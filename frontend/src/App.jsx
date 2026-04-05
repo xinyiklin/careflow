@@ -11,6 +11,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState(null); // Tracks ID of appointment being edited
+  const [selectedDate, setSelectedDate] = useState("");
 
   const [formData, setFormData] = useState({
     patient_name: "",
@@ -20,11 +21,14 @@ function App() {
     status: "pending",
   });
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = async (date = selectedDate) => {
     try {
-      const res = await axios.get(API_URL, {
+      const url = date ? `${API_URL}?date=${date}` : API_URL;
+
+      const res = await axios.get(url, {
         withCredentials: true,
       });
+
       setAppointments(res.data);
       setError("");
     } catch (err) {
@@ -36,8 +40,8 @@ function App() {
   };
 
   useEffect(() => {
-    fetchAppointments();
-  }, []);
+    fetchAppointments(selectedDate);
+  }, [selectedDate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -207,7 +211,33 @@ function App() {
           </form>
         </div>
       </div>
+      <div className="card shadow-sm mb-4">
+        <div className="card-body">
+          <h2 className="h4 mb-3">View Schedule by Day</h2>
 
+          <div className="row g-3 align-items-end">
+            <div className="col-md-4">
+              <label className="form-label">Select Date</label>
+              <input
+                type="date"
+                className="form-control"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+              />
+            </div>
+
+            <div className="col-md-4">
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setSelectedDate("")}
+              >
+                Show All
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
       <h2 className="h4 mb-3">Appointments</h2>
 
       {loading && <p>Loading appointments...</p>}
