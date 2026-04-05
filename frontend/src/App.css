@@ -2,3 +2,8 @@ body {
   margin: 0;
   background-color: #f5f7fb;
 }
+
+.card:hover {
+  background-color: #f8f9fa;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}

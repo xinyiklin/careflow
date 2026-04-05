@@ -8,6 +8,7 @@ export default function SchedulerDayView({
   intervalMinutes = 15,
   selectedDate,
   onDateChange,
+  onSlotDoubleClick,
 }) {
   const timeSlots = useMemo(() => {
     return generateTimeSlots(intervalMinutes);
@@ -79,18 +80,23 @@ export default function SchedulerDayView({
             >
               <div
                 className="border-end px-2 py-1 bg-light"
-                style={{ width: "100px", flexShrink: 0 }}
+                style={{ width: "100px", flexShrink: 0, userSelect: "none" }}
               >
                 {slot.label}
               </div>
 
-              <div className="flex-grow-1 px-2 py-1">
+              <div
+                className="flex-grow-1 px-2 py-1"
+                style={{ cursor: "pointer" }}
+                onDoubleClick={() =>
+                  onSlotDoubleClick?.(selectedDate, slot.time24)
+                }
+              >
                 {slotAppointments.map((a) => (
                   <AppointmentBlock
                     key={a.id}
                     appointment={a}
-                    onEdit={a.onEdit}
-                    onDelete={a.onDelete}
+                    onDoubleClick={a.onEdit}
                   />
                 ))}
               </div>
@@ -98,6 +104,6 @@ export default function SchedulerDayView({
           );
         })}
       </div>
-    </div>
+    </div >
   );
 }
