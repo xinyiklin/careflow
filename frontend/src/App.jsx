@@ -41,6 +41,8 @@ function App() {
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
 
+  const [draggedAppointment, setDraggedAppointment] = useState(null);
+
   const fetchUser = async () => {
     try {
       const res = await axios.get("/api/me/", {
@@ -236,17 +238,50 @@ function App() {
     }
   };
 
+  const handleDragStartAppointment = (appointment) => {
+    setDraggedAppointment(appointment);
+  };
+
+  const handleDropAppointment = async (date, time24) => {
+    if (!draggedAppointment) return;
+
+    const payload = {
+      patient_name: draggedAppointment.patient_name,
+      doctor_name: draggedAppointment.doctor_name,
+      appointment_time: `${date}T${time24}`,
+      reason: draggedAppointment.reason || "",
+      status: draggedAppointment.status,
+      appointment_type: draggedAppointment.appointment_type,
+      facility: draggedAppointment.facility,
+    };
+
+    try {
+      await axios.put(`${API_URL}${draggedAppointment.id}/`, payload, {
+        withCredentials: true,
+      });
+
+      setDraggedAppointment(null);
+      await fetchAppointments(selectedDate, true);
+    } catch (err) {
+      console.error(err.response?.data || err);
+      setError("Failed to move appointment.");
+    }
+  };
+
   const formattedAppointments = appointments.map((appointment) => ({
     id: appointment.id,
     patient_name: appointment.patient_name,
     doctor_name: appointment.doctor_name,
     reason: appointment.reason,
-    status: appointment.status_code,
+    status: appointment.status,
     status_name: appointment.status_name,
+    status_code: appointment.status_code,
     status_color: appointment.status_color,
-    appointment_type: appointment.appointment_type_code,
+    appointment_type: appointment.appointment_type,
     appointment_type_name: appointment.appointment_type_name,
+    appointment_type_code: appointment.appointment_type_code,
     appointment_type_color: appointment.appointment_type_color,
+    facility: appointment.facility,
     created_by_name: appointment.created_by_name,
     appointment_time: appointment.appointment_time,
     date: extractStoredDate(appointment.appointment_time),
@@ -282,6 +317,8 @@ function App() {
           selectedDate={selectedDate}
           onDateChange={setSelectedDate}
           onSlotDoubleClick={handleSlotDoubleClick}
+          onAppointmentDragStart={handleDragStartAppointment}
+          onAppointmentDrop={handleDropAppointment}
         />
       )}
 

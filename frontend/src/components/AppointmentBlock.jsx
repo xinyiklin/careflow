@@ -1,13 +1,22 @@
-export default function AppointmentBlock({ appointment, onDoubleClick }) {
+export default function AppointmentBlock({
+  appointment,
+  onDoubleClick,
+  onDragStart,
+}) {
   return (
     <div
       className="card"
+      draggable
       style={{
         flex: "1 1 0",
         minWidth: 0,
-        cursor: "pointer",
+        cursor: "grab",
         backgroundColor: appointment.status_color || "#ffffff",
         border: "1px solid #ffffff",
+      }}
+      onDragStart={(e) => {
+        e.stopPropagation();
+        onDragStart?.(appointment);
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -26,7 +35,10 @@ export default function AppointmentBlock({ appointment, onDoubleClick }) {
           }}
         />
 
-        <div className="fw-semibold small me-2 text-truncate" style={{ minWidth: 0 }}>
+        <div
+          className="fw-semibold small me-2 text-truncate"
+          style={{ minWidth: 0 }}
+        >
           {appointment.patient_name}
         </div>
 

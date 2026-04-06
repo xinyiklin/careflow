@@ -9,6 +9,8 @@ export default function SchedulerDayView({
   selectedDate,
   onDateChange,
   onSlotDoubleClick,
+  onAppointmentDragStart,
+  onAppointmentDrop,
 }) {
   const timeSlots = useMemo(() => {
     return generateTimeSlots(intervalMinutes);
@@ -91,12 +93,18 @@ export default function SchedulerDayView({
                 onDoubleClick={() =>
                   onSlotDoubleClick?.(selectedDate, slot.time24)
                 }
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  onAppointmentDrop?.(selectedDate, slot.time24);
+                }}
               >
                 {slotAppointments.map((a) => (
                   <AppointmentBlock
                     key={a.id}
                     appointment={a}
                     onDoubleClick={a.onEdit}
+                    onDragStart={onAppointmentDragStart}
                   />
                 ))}
               </div>
