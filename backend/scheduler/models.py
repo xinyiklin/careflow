@@ -1,5 +1,6 @@
 from django.db import models
-from django.conf import settings # 1. Ensure this is imported
+from django.conf import settings
+
 
 class Appointment(models.Model):
     patient_name = models.CharField(max_length=100)
@@ -7,35 +8,40 @@ class Appointment(models.Model):
     appointment_time = models.DateTimeField()
     reason = models.TextField(blank=True)
 
-    # Use string references for foreign apps to prevent circular imports
     status = models.ForeignKey(
-        'facilities.AppointmentStatus',
+        "facilities.AppointmentStatus",
         on_delete=models.PROTECT,
-        related_name="appointments"
+        related_name="appointments",
     )
 
     appointment_type = models.ForeignKey(
-        'facilities.AppointmentType',
+        "facilities.AppointmentType",
         on_delete=models.PROTECT,
-        related_name="appointments"
+        related_name="appointments",
     )
 
-    facility = models.ForeignKey('facilities.Facility', on_delete=models.CASCADE)
+    facility = models.ForeignKey(
+        "facilities.Facility",
+        on_delete=models.CASCADE,
+        related_name="appointments",
+    )
 
-    # 2. Fix this field to point to settings.AUTH_USER_MODEL
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True
+        blank=True,
+        related_name="created_appointments",
     )
-    
+
     created_by_name = models.CharField(max_length=150, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         if self.created_by and not self.created_by_name:
-            self.created_by_name = self.created_by.get_full_name() or self.created_by.username
+            self.created_by_name = (
+                self.created_by.get_full_name() or self.created_by.username
+            )
         super().save(*args, **kwargs)
 
     def __str__(self):

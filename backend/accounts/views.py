@@ -1,13 +1,12 @@
-from django.shortcuts import render
-
-# Create your views here.
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
+
 from .serializers import UserSerializer, RegisterSerializer
 
+
 class RegisterView(APIView):
-    permission_classes = [permissions.AllowAny] # Anyone can sign up
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -16,9 +15,9 @@ class RegisterView(APIView):
             return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class UserProfileView(APIView):
-    # This ensures only logged-in users can see their own data
-    permission_classes = [permissions.IsAuthenticated] 
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         serializer = UserSerializer(request.user)

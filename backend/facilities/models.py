@@ -1,6 +1,7 @@
-from django.db import models
 from django.conf import settings
+from django.db import models
 from colorfield.fields import ColorField
+
 
 # --- 1. SEED DATA ---
 
@@ -37,11 +38,12 @@ DEFAULT_TITLES = [
     ("rn", "RN"),
 ]
 
+
 # --- 2. FACILITY MODEL ---
 
 class Facility(models.Model):
     name = models.CharField(max_length=100)
-    address = models.TextField(blank=True, null=True) 
+    address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -55,42 +57,55 @@ class Facility(models.Model):
         super().save(*args, **kwargs)
 
         if is_new:
-            # 1. Seed Appointment Statuses
             for status in DEFAULT_APPOINTMENT_STATUSES:
                 AppointmentStatus.objects.get_or_create(
                     facility=self,
                     code=status["code"],
-                    defaults={"name": status["name"], "color": status["color"]}
+                    defaults={
+                        "name": status["name"],
+                        "color": status["color"],
+                    },
                 )
 
-            # 2. Seed Appointment Types
             for appt_type in DEFAULT_APPOINTMENT_TYPES:
                 AppointmentType.objects.get_or_create(
                     facility=self,
                     code=appt_type["code"],
-                    defaults={"name": appt_type["name"], "color": appt_type["color"]}
+                    defaults={
+                        "name": appt_type["name"],
+                        "color": appt_type["color"],
+                    },
                 )
 
-            # 3. Seed Staff Roles
-            for role in DEFAULT_ROLES:
+            for code, name in DEFAULT_ROLES:
                 StaffRole.objects.get_or_create(
                     facility=self,
-                    code=role[0],
-                    defaults={"name": role[1]}
+                    code=code,
+                    defaults={
+                        "name": name,
+                        "is_active": True,
+                    },
                 )
 
-            # 4. Seed Staff Titles
-            for title in DEFAULT_TITLES:
+            for code, name in DEFAULT_TITLES:
                 StaffTitle.objects.get_or_create(
                     facility=self,
-                    code=title[0],
-                    defaults={"name": title[1]}
+                    code=code,
+                    defaults={
+                        "name": name,
+                        "is_active": True,
+                    },
                 )
+
 
 # --- 3. CONFIGURATION MODELS ---
 
 class AppointmentStatus(models.Model):
-    facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name="appointment_statuses")
+    facility = models.ForeignKey(
+        Facility,
+        on_delete=models.CASCADE,
+        related_name="appointment_statuses",
+    )
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=50)
     color = ColorField(default="#6c757d")
@@ -103,8 +118,13 @@ class AppointmentStatus(models.Model):
     def __str__(self):
         return f"{self.facility.name} - {self.name}"
 
+
 class AppointmentType(models.Model):
-    facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name="appointment_types")
+    facility = models.ForeignKey(
+        Facility,
+        on_delete=models.CASCADE,
+        related_name="appointment_types",
+    )
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=50)
     color = ColorField(default="#6f42c1")
@@ -116,22 +136,34 @@ class AppointmentType(models.Model):
     def __str__(self):
         return f"{self.facility.name} - {self.name}"
 
+
 class StaffRole(models.Model):
-    facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name="roles")
+    facility = models.ForeignKey(
+        Facility,
+        on_delete=models.CASCADE,
+        related_name="roles",
+    )
     name = models.CharField(max_length=50)
     code = models.CharField(max_length=50)
     is_system_role = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ("facility", "code")
 
     def __str__(self):
         return f"{self.facility.name} - {self.name}"
+
 
 class StaffTitle(models.Model):
-    facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name="titles")
+    facility = models.ForeignKey(
+        Facility,
+        on_delete=models.CASCADE,
+        related_name="titles",
+    )
     name = models.CharField(max_length=20)
     code = models.CharField(max_length=10)
+    is_active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ("facility", "code")
@@ -139,17 +171,27 @@ class StaffTitle(models.Model):
     def __str__(self):
         return f"{self.facility.name} - {self.name}"
 
-# --- 4. THE STAFF MODEL ---
+
+# --- 4. STAFF MODEL ---
 
 class Staff(models.Model):
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="staff_profiles"
+        related_name="staff_profiles",
     )
-    facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name="staff_members")
+    facility = models.ForeignKey(
+        Facility,
+        on_delete=models.CASCADE,
+        related_name="staff_members",
+    )
     role = models.ForeignKey(StaffRole, on_delete=models.PROTECT)
-    title = models.ForeignKey(StaffTitle, on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.ForeignKey(
+        StaffTitle,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:

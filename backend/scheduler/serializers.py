@@ -1,9 +1,5 @@
 from rest_framework import serializers
-from .models import (
-    Appointment,
-    AppointmentStatus,
-    AppointmentType,
-)
+from .models import Appointment
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
@@ -37,33 +33,3 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ("created_by", "created_by_name", "created_at")
-
-
-class CurrentFacilitySerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField()
-
-
-class CurrentUserSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    username = serializers.CharField()
-    role = serializers.CharField(allow_null=True)
-    facility = CurrentFacilitySerializer(allow_null=True)
-
-
-class PhysicianSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    name = serializers.CharField()
-    title = serializers.CharField(allow_blank=True, allow_null=True)
-
-
-class AppointmentStatusSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AppointmentStatus
-        fields = ["id", "name", "code", "color", "is_active"]
-
-
-class AppointmentTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AppointmentType
-        fields = ["id", "name", "code", "color", "is_active"]
