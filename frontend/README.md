@@ -1,16 +1,89 @@
-# React + Vite
+# Frontend README
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
 
-Currently, two official plugins are available:
+This is the React frontend for Clinic Scheduler. It provides the scheduling UI, patient search and patient detail flows, appointment create/edit forms, and facility-scoped configuration driven by the backend API.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Tech Stack
 
-## React Compiler
+- React
+- Vite
+- Tailwind CSS
+- Material UI
+- React Query
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Key Features
 
-## Expanding the ESLint configuration
+- Day-view scheduler
+- Drag-and-drop appointment rescheduling
+- Appointment create/edit modal
+- Patient search with debounced filtering
+- Patient create/edit modal
+- React Query for server-state fetching and cache invalidation
+- Feature-based folder structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Project Structure
+
+```text
+src/
+  app/
+    App.jsx
+    providers.jsx
+  features/
+    appointments/
+    auth/
+    facility/
+    patients/
+  shared/
+    api/
+    components/
+    utils/
+```
+
+## Development Setup
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Start development server
+
+```bash
+npm run dev
+```
+
+### Build for production
+
+```bash
+npm run build
+```
+
+### Preview production build
+
+```bash
+npm run preview
+```
+
+## Expected Backend
+
+The frontend expects the Django backend API to be running and reachable by the configured API client.
+
+Common endpoints used by the frontend include:
+
+- `/api/accounts/token/`
+- `/api/accounts/token/refresh/`
+- `/api/facilities/me/`
+- `/api/facilities/physicians/`
+- `/api/facilities/appointment-statuses/`
+- `/api/facilities/appointment-types/`
+- `/api/facilities/patient-genders/`
+- `/api/scheduler/appointments/`
+- `/api/patients/`
+
+## Notes
+
+- React Query is used for server state, cache invalidation, and query lifecycle handling.
+- Modal layouts are designed to stay within the available window height and scroll internally on smaller screens.
+- Authentication tokens are stored in local storage in the current implementation.
