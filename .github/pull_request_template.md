@@ -1,3 +1,10 @@
+<!--
+Title format:
+- lowercase
+- verb first
+- no punctuation
+-->
+
 ## Summary
 Brief description of what this PR does.
 
