@@ -76,7 +76,20 @@ export default function usePatientFlow() {
 
   const closePatientSearch = () => {
     setIsPatientSearchOpen(false);
-    setPatientSearchSource("appointment");
+  };
+
+  const openPatientSearch = (source) => {
+    setPatientSearchSource(source);
+    setIsPatientSearchOpen(true);
+
+    // reset search
+    setPatientSearchInjectedPatient(null);
+    setPatientSearchRefreshKey((prev) => prev + 1);
+  };
+
+  const closePatientDetail = () => {
+    setIsPatientDetailOpen(false);
+    setActivePatient(null);
   };
 
   const handlePatientSaved = (savedPatient, setSelectedPatient) => {
@@ -109,5 +122,7 @@ export default function usePatientFlow() {
     openEditPatient,
     openPatientFromHistory,
     handlePatientSaved,
+    openPatientSearch,
+    closePatientDetail,
   };
 }

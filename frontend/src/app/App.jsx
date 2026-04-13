@@ -202,8 +202,7 @@ function App() {
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
           onLogout={handleLogout}
           onOpenPatientSearch={() => {
-            patientFlow.setPatientSearchSource("navbar");
-            patientFlow.setIsPatientSearchOpen(true);
+            patientFlow.openPatientSearch("navbar");
           }}
           recentPatients={patientFlow.recentPatients}
           onOpenRecentPatient={(patient) => {
@@ -243,18 +242,17 @@ function App() {
               selectedPatient={appointmentFlow.selectedPatient}
               onSelectPatient={appointmentFlow.setSelectedPatient}
               onOpenDetailedSearch={() => {
-                patientFlow.setPatientSearchSource("appointment");
-                patientFlow.setIsPatientSearchOpen(true);
+                patientFlow.openPatientSearch("appointment");
               }}
               onOpenCreatePatient={patientFlow.openCreatePatient}
             />
 
             <PatientSearchModal
               isOpen={patientFlow.isPatientSearchOpen}
-              onClose={() => patientFlow.setIsPatientSearchOpen(false)}
+              onClose={patientFlow.closePatientSearch}
               onSelectPatient={(patient) => {
                 appointmentFlow.setSelectedPatient(patient);
-                patientFlow.setIsPatientSearchOpen(false);
+                patientFlow.closePatientSearch();
               }}
               onOpenCreatePatient={patientFlow.openCreatePatient}
               onOpenPatientProfile={(patient) => {
@@ -272,7 +270,7 @@ function App() {
               mode={patientFlow.patientDetailMode}
               patient={patientFlow.activePatient}
               genderOptions={genderOptions}
-              onClose={patientFlow.closePatientSearch}
+              onClose={patientFlow.closePatientDetail}
               onSaved={(savedPatient) =>
                 patientFlow.handlePatientSaved(
                   savedPatient,
