@@ -1,22 +1,26 @@
 export default function AppointmentBlock({
   appointment,
   onDoubleClick,
-  onDragStart,
+  onPointerDragStart,
+  isDragging = false,
 }) {
   return (
     <div
-      draggable
-      className="flex items-center flex-1 min-w-0 h-full cursor-grab rounded-md border border-white px-2"
+      className={[
+        "flex h-full min-w-0 flex-1 select-none items-center rounded-md border border-white px-2",
+        isDragging ? "cursor-grabbing opacity-40" : "cursor-grab",
+      ].join(" ")}
       style={{
         backgroundColor: appointment.status_color || "#ffffff",
+        touchAction: "none",
       }}
-      onDragStart={(e) => {
+      onPointerDown={(e) => {
         e.stopPropagation();
-        onDragStart?.(appointment);
+        onPointerDragStart?.(e, appointment);
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
-        onDoubleClick();
+        onDoubleClick?.();
       }}
     >
       <div

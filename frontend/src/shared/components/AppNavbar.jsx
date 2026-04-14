@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Menu, Search, ChevronDown, LogOut } from "lucide-react";
+import { Search, ChevronDown, LogOut } from "lucide-react";
 import { APP_NAME } from "../constants/app";
 
 function getInitials(fullName) {
@@ -15,8 +15,6 @@ function getInitials(fullName) {
 
 export default function AppNavbar({
   fullName,
-  isSidebarOpen,
-  onToggleSidebar,
   onLogout,
   onOpenPatientSearch,
   recentPatients = [],
@@ -49,29 +47,15 @@ export default function AppNavbar({
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="relative h-14">
-        {!isSidebarOpen && (
-          <div className="absolute inset-y-0 left-0 flex w-14 items-center justify-center">
-            <button
-              type="button"
-              onClick={onToggleSidebar}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-              aria-label="Toggle sidebar"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          </div>
-        )}
-
-        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4">
+        <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 select-none">
           <div className="flex min-w-0 items-center gap-3">
             <h1 className="truncate text-base font-semibold tracking-tight text-slate-900">
               {APP_NAME}
             </h1>
 
-
             <div
               ref={patientMenuRef}
-              className="relative hidden sm:flex sm:items-center"
+              className="relative flex items-center"
             >
               <div className="inline-flex overflow-hidden rounded-lg border border-slate-300 bg-white shadow-sm">
                 <button
@@ -141,7 +125,7 @@ export default function AppNavbar({
           </div>
 
           <div ref={userMenuRef} className="relative flex items-center gap-3">
-            <div className="hidden text-right sm:block">
+            <div className="text-right">
               <p className="text-sm font-medium text-slate-900">
                 {fullName || "User"}
               </p>

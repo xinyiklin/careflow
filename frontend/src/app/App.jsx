@@ -34,7 +34,7 @@ function App() {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const handleLoginSubmit = async (credentials) => {
     setAuthLoading(true);
@@ -98,7 +98,6 @@ function App() {
     moveMutation,
   } = useAppointmentMutations({
     onCloseModal: appointmentFlow.closeModal,
-    onMoveSuccess: () => appointmentFlow.setDraggedAppointment(null),
     setError: setAppError,
   });
 
@@ -130,8 +129,7 @@ function App() {
     deleteMutation.mutate(appointmentFlow.editingId);
   };
 
-  const handleDropAppointment = (date, time24) => {
-    const dragged = appointmentFlow.draggedAppointment;
+  const handleDropAppointment = (date, time24, dragged) => {
     if (!dragged) return;
 
     const payload = {
@@ -186,20 +184,17 @@ function App() {
   return (
     <div className="flex h-[calc(100dvh-0px)] bg-slate-50">
       <AppSidebar
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
       />
-
       <div
         className={[
           "flex flex-1 flex-col transition-all duration-200",
-          isSidebarOpen ? "lg:ml-64" : "lg:ml-0",
+          isSidebarCollapsed ? "ml-16" : "ml-36"
         ].join(" ")}
       >
         <AppNavbar
           fullName={currentUser?.full_name || currentUser?.username || "User"}
-          isSidebarOpen={isSidebarOpen}
-          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
           onLogout={handleLogout}
           onOpenPatientSearch={() => {
             patientFlow.openPatientSearch("navbar");
@@ -224,7 +219,6 @@ function App() {
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
               onSlotDoubleClick={appointmentFlow.openCreateFromSlot}
-              onAppointmentDragStart={appointmentFlow.setDraggedAppointment}
               onAppointmentDrop={handleDropAppointment}
             />
 

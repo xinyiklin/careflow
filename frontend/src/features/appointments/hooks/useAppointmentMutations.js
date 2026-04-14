@@ -7,7 +7,6 @@ import {
 
 export default function useAppointmentMutations({
   onCloseModal,
-  onMoveSuccess,
   setError,
 }) {
   const queryClient = useQueryClient();
@@ -59,7 +58,6 @@ export default function useAppointmentMutations({
     mutationFn: ({ id, data }) => updateAppointment(id, data),
     onSuccess: async () => {
       await invalidateAppointments();
-      onMoveSuccess?.();
       setError("");
     },
     onError: (err) => {

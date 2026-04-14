@@ -21,7 +21,6 @@ export default function useAppointmentFlow({
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState(emptyForm);
   const [selectedPatient, setSelectedPatient] = useState(null);
-  const [draggedAppointment, setDraggedAppointment] = useState(null);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -87,9 +86,7 @@ export default function useAppointmentFlow({
     editingId,
     formData,
     selectedPatient,
-    draggedAppointment,
     setSelectedPatient,
-    setDraggedAppointment,
     openCreateModal,
     openEditModal,
     openCreateFromSlot,
