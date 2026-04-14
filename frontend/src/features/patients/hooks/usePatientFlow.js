@@ -7,7 +7,6 @@ export default function usePatientFlow() {
   const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
   const [patientSearchSource, setPatientSearchSource] = useState("appointment");
 
-  const [patientSearchRefreshKey, setPatientSearchRefreshKey] = useState(0);
   const [patientSearchInjectedPatient, setPatientSearchInjectedPatient] =
     useState(null);
 
@@ -78,10 +77,7 @@ export default function usePatientFlow() {
   const openPatientSearch = (source) => {
     setPatientSearchSource(source);
     setIsPatientSearchOpen(true);
-
-    // reset search
     setPatientSearchInjectedPatient(null);
-    setPatientSearchRefreshKey((prev) => prev + 1);
   };
 
   const closePatientDetail = () => {
@@ -93,7 +89,6 @@ export default function usePatientFlow() {
     setActivePatient(savedPatient);
     setSelectedPatient(savedPatient);
     setPatientSearchInjectedPatient(savedPatient);
-    setPatientSearchRefreshKey((prev) => prev + 1);
     setIsPatientDetailOpen(false);
 
     if (patientDetailMode === "edit") {
@@ -107,7 +102,6 @@ export default function usePatientFlow() {
     closePatientSearch,
     patientSearchSource,
     setPatientSearchSource,
-    patientSearchRefreshKey,
     patientSearchInjectedPatient,
     isPatientDetailOpen,
     setIsPatientDetailOpen,

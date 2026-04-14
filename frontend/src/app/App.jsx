@@ -255,7 +255,6 @@ function App() {
                 patientFlow.openEditPatient(patient);
               }}
               allowSelect={patientFlow.patientSearchSource === "appointment"}
-              refreshKey={patientFlow.patientSearchRefreshKey}
               injectedPatient={patientFlow.patientSearchInjectedPatient}
               injectedPatientMode={patientFlow.patientDetailMode}
             />
