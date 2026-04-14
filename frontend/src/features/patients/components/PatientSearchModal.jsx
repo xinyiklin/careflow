@@ -15,7 +15,6 @@ export default function PatientSearchModal({
   onOpenCreatePatient,
   onOpenPatientProfile,
   allowSelect = true,
-  refreshKey,
   injectedPatient,
   injectedPatientMode,
 }) {
@@ -44,6 +43,18 @@ export default function PatientSearchModal({
   useEffect(() => {
     if (!isOpen) return;
 
+    setName("");
+    setChartNumber("");
+    setDateOfBirth(null);
+    setResults([]);
+    setSelectedPatientId(null);
+    setPage(1);
+    setError("");
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
     const trimmedName = name.trim();
     const trimmedChartNumber = chartNumber.trim();
     const validDob =
@@ -57,9 +68,6 @@ export default function PatientSearchModal({
 
     if (!canSearchByName && !canSearchByMrn && !canSearchByDob) {
       setResults([]);
-      setSelectedPatientId(null);
-      setPage(1);
-      setError("");
       return;
     }
 
@@ -84,18 +92,6 @@ export default function PatientSearchModal({
 
     return () => clearTimeout(timeoutId);
   }, [isOpen, name, chartNumber, dateOfBirth]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    if (injectedPatientMode !== "create") return;
-
-    setName("");
-    setChartNumber("");
-    setDateOfBirth(null);
-    setSelectedPatientId(null);
-    setPage(1);
-    setError("");
-  }, [refreshKey, isOpen, injectedPatientMode]);
 
   useEffect(() => {
     if (!injectedPatient) return;
