@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { searchPatients } from "../api/patients";
+import { X } from "lucide-react";
+import useDraggableModal from "../../../shared/hooks/useDraggableModal";
 
 const PAGE_SIZE = 10;
 const SEARCH_DELAY_MS = 500;
@@ -34,6 +36,10 @@ export default function PatientSearchModal({
     const start = (page - 1) * PAGE_SIZE;
     return results.slice(start, start + PAGE_SIZE);
   }, [results, page]);
+
+  const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
+    isOpen,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -121,14 +127,26 @@ export default function PatientSearchModal({
     onClose();
   };
 
+  const handleBackdropClick = (e) => {
+    e.stopPropagation();
+    onClose?.();
+  };
+
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4" onClick={onClose}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4"
+      onClick={handleBackdropClick}
     >
       <div
-        className="flex max-h-[min(90dvh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}
+        ref={modalRef}
+        style={modalStyle}
+        className="fixed flex max-h-[min(90dvh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <div
+          {...dragHandleProps}
+          className="flex cursor-move items-center justify-between border-b border-slate-200 px-6 py-4 select-none"
+        >
           <div>
             <h2 className="text-lg font-semibold text-slate-900">
               Patient Search
@@ -141,6 +159,7 @@ export default function PatientSearchModal({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={onOpenCreatePatient}
               className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
@@ -149,11 +168,12 @@ export default function PatientSearchModal({
 
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={onClose}
               className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close"
             >
-              ✕
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>

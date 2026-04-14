@@ -3,6 +3,9 @@ import dayjs from "dayjs";
 import { useForm, Controller } from "react-hook-form";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import PatientSearchField from "../../patients/components/PatientSearchField";
+import { X } from "lucide-react";
+import useDraggableModal from "../../../shared/hooks/useDraggableModal";
+
 
 export default function AppointmentFormModal({
   isOpen,
@@ -41,6 +44,10 @@ export default function AppointmentFormModal({
   });
 
   const [internalError, setInternalError] = useState("");
+
+  const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
+    isOpen,
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -86,31 +93,46 @@ export default function AppointmentFormModal({
 
   const displayError = error || internalError;
 
+  const handleBackdropClick = (e) => {
+    e.stopPropagation();
+    handleClose();
+  };
+
+  const handleClose = () => {
+    onClose?.();
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4"
-      onClick={onClose}
+      onClick={handleBackdropClick}
     >
       <div
-        className="flex max-h-[min(90dvh,900px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        ref={modalRef}
+        style={modalStyle}
+        className="fixed flex max-h-[min(90dvh,900px)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <form
           onSubmit={handleSubmit(submitForm)}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div
+            {...dragHandleProps}
+            className="flex cursor-move items-center justify-between border-b border-slate-200 px-6 py-4 select-none"
+          >
             <h2 className="text-lg font-semibold text-slate-900">
               {mode === "edit" ? "Edit Appointment" : "Create Appointment"}
             </h2>
 
             <button
               type="button"
-              onClick={onClose}
-              className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={handleClose}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close"
             >
-              ✕
+              <X className="h-5 w-5" />
             </button>
           </div>
 

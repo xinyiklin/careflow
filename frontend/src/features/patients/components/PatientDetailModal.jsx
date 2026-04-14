@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { createPatient, updatePatient } from "../api/patients";
 import { X } from "lucide-react";
+import useDraggableModal from "../../../shared/hooks/useDraggableModal";
 
 const emptyValues = {
   first_name: "",
@@ -26,6 +27,10 @@ export default function PatientDetailModal({
     formState: { errors, isSubmitting },
   } = useForm({
     defaultValues: emptyValues,
+  });
+
+  const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
+    isOpen,
   });
 
   useEffect(() => {
@@ -82,20 +87,26 @@ export default function PatientDetailModal({
       onClick={handleBackdropClick}
     >
       <div
-        className="flex max-h-[min(90dvh,900px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        ref={modalRef}
+        style={modalStyle}
+        className="fixed flex max-h-[min(90dvh,900px)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="flex min-h-0 flex-1 flex-col"
         >
-          <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div
+            {...dragHandleProps}
+            className="flex cursor-move items-center justify-between border-b border-slate-200 px-6 py-4 select-none"
+          >
             <h2 className="text-lg font-semibold text-slate-900">
               {mode === "edit" ? "Patient Details" : "Create Patient"}
             </h2>
 
             <button
               type="button"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={handleClose}
               className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
               aria-label="Close"
