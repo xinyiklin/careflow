@@ -15,20 +15,17 @@ export default function usePatientFlow() {
   const [patientDetailMode, setPatientDetailMode] = useState("create");
   const [activePatient, setActivePatient] = useState(null);
 
-  const [recentPatients, setRecentPatients] = useState([]);
-
-  useEffect(() => {
+  const [recentPatients, setRecentPatients] = useState(() => {
     try {
       const stored = localStorage.getItem(RECENT_PATIENTS_KEY);
-      if (!stored) return;
+      if (!stored) return [];
       const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) {
-        setRecentPatients(parsed);
-      }
+      return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       console.error("Failed to load recent patients.", error);
+      return [];
     }
-  }, []);
+  });
 
   useEffect(() => {
     try {
