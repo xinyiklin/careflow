@@ -5,9 +5,9 @@ import { login } from "../features/auth/api/accounts";
 
 import LoginForm from "../shared/components/LoginForm";
 import SchedulerDayView from "../features/appointments/components/SchedulerDayView";
-import AppointmentFormModal from "../features/appointments/components/AppointmentFormModal";
+import AppointmentModal from "../features/appointments/components/AppointmentModal";
 import PatientSearchModal from "../features/patients/components/PatientSearchModal";
-import PatientDetailModal from "../features/patients/components/PatientDetailModal";
+import PatientModal from "../features/patients/components/PatientModal";
 
 import { getTodayLocal } from "../shared/utils/dateTime";
 import formatAppointments from "../features/appointments/utils/formatAppointments";
@@ -104,8 +104,18 @@ function App() {
   const handleCloseAppointmentModal = () => {
     setAppError("");
     closeConfirmDialog();
-    appointmentFlow.closeModal();
+    appointmentFlow.modal.close();
   };
+
+  const {
+    deleteMutation,
+    saveMutation,
+    moveMutation,
+    getDuplicateDayAppointmentError,
+  } = useAppointmentMutations({
+    onCloseModal: handleCloseAppointmentModal,
+    setError: setAppError,
+  });
 
   const openConfirmDialog = ({
     title,
@@ -145,16 +155,6 @@ function App() {
     closeConfirmDialog();
   };
 
-  const {
-    deleteMutation,
-    saveMutation,
-    moveMutation,
-    getDuplicateDayAppointmentError,
-  } = useAppointmentMutations({
-    onCloseModal: handleCloseAppointmentModal,
-    setError: setAppError,
-  });
-
   const handleSubmitAppointment = async (submittedData) => {
     setAppError("");
 
@@ -173,16 +173,14 @@ function App() {
     const payload = buildPayload();
 
     try {
-      // ONE call to saveMutation handles both Create and Update
       await saveMutation.mutateAsync({
-        id: appointmentFlow.editingId, // Will be undefined/null for 'create'
+        id: appointmentFlow.modal.editingId,
         data: payload,
       });
     } catch (err) {
       const duplicateError = getDuplicateDayAppointmentError(err);
       if (!duplicateError) return;
 
-      // Standard Double Booking flow
       openConfirmDialog({
         title: "Possible Double Booking",
         message:
@@ -195,7 +193,7 @@ function App() {
           });
 
           await saveMutation.mutateAsync({
-            id: appointmentFlow.editingId,
+            id: appointmentFlow.modal.editingId,
             data: overridePayload,
           });
         },
@@ -204,7 +202,7 @@ function App() {
   };
 
   const handleDeleteAppointment = () => {
-    if (!appointmentFlow.editingId) return;
+    if (!appointmentFlow.modal.editingId) return;
 
     openConfirmDialog({
       title: "Delete Appointment",
@@ -214,7 +212,7 @@ function App() {
       cancelText: "Cancel",
       variant: "danger",
       onConfirm: async () => {
-        await deleteMutation.mutateAsync(appointmentFlow.editingId);
+        await deleteMutation.mutateAsync(appointmentFlow.modal.editingId);
       },
     });
   };
@@ -265,8 +263,8 @@ function App() {
   };
 
   const formattedAppointments = useMemo(
-    () => formatAppointments(appointments, appointmentFlow.openEditModal),
-    [appointments, appointmentFlow.openEditModal]
+    () => formatAppointments(appointments, appointmentFlow.modal.openEdit),
+    [appointments, appointmentFlow.modal.openEdit]
   );
 
   if (!isAuthenticated) {
@@ -313,7 +311,7 @@ function App() {
           fullName={currentUser?.full_name || currentUser?.username || "User"}
           onLogout={handleLogout}
           onOpenPatientSearch={() => {
-            patientFlow.openPatientSearch("navbar");
+            patientFlow.search.open("navbar");
           }}
           recentPatients={patientFlow.recentPatients}
           onOpenRecentPatient={(patient) => {
@@ -323,7 +321,7 @@ function App() {
 
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-7xl px-4">
-            {appError && !appointmentFlow.isModalOpen && (
+            {appError && !appointmentFlow.modal.isOpen && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {appError}
               </div>
@@ -331,17 +329,16 @@ function App() {
 
             <SchedulerDayView
               appointments={formattedAppointments}
-              intervalMinutes={15}
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
-              onSlotDoubleClick={appointmentFlow.openCreateFromSlot}
+              onSlotDoubleClick={appointmentFlow.modal.openFromSlot}
               onAppointmentDrop={handleDropAppointment}
             />
 
-            <AppointmentFormModal
-              isOpen={appointmentFlow.isModalOpen}
-              mode={appointmentFlow.editingId ? "edit" : "create"}
-              formData={appointmentFlow.formData}
+            <AppointmentModal
+              isOpen={appointmentFlow.modal.isOpen}
+              mode={appointmentFlow.modal.mode}
+              formData={appointmentFlow.modal.formData}
               physicians={physicians}
               statusOptions={statusOptions}
               typeOptions={typeOptions}
@@ -351,39 +348,44 @@ function App() {
               onDelete={handleDeleteAppointment}
               selectedPatient={appointmentFlow.selectedPatient}
               onSelectPatient={appointmentFlow.setSelectedPatient}
-              onOpenDetailedSearch={() => {
-                patientFlow.openPatientSearch("appointment");
-              }}
-              onOpenCreatePatient={patientFlow.openCreatePatient}
+              onOpenDetailedSearch={() =>
+                patientFlow.search.open("appointment")
+              }
+              onOpenCreatePatient={() =>
+                patientFlow.modal.open({ mode: "create" })
+              }
             />
-
             <PatientSearchModal
-              isOpen={patientFlow.isPatientSearchOpen}
-              onClose={patientFlow.closePatientSearch}
+              isOpen={patientFlow.search.isOpen}
+              onClose={patientFlow.search.close}
               onSelectPatient={(patient) => {
                 appointmentFlow.setSelectedPatient(patient);
-                patientFlow.closePatientSearch();
+                patientFlow.search.close();
               }}
-              onOpenCreatePatient={patientFlow.openCreatePatient}
+              onOpenCreatePatient={() =>
+                patientFlow.modal.open({ mode: "create" })
+              }
               onOpenPatientProfile={(patient) => {
                 patientFlow.addRecentPatient(patient);
-                patientFlow.openEditPatient(patient);
+                patientFlow.modal.openEdit(patient);
               }}
-              allowSelect={patientFlow.patientSearchSource === "appointment"}
-              injectedPatient={patientFlow.patientSearchInjectedPatient}
-              injectedPatientMode={patientFlow.patientDetailMode}
+              allowSelect={patientFlow.search.source === "appointment"}
+              injectedPatient={patientFlow.search.injectedPatient}
+              injectedPatientMode={patientFlow.modal.mode}
             />
 
-            <PatientDetailModal
-              isOpen={patientFlow.isPatientDetailOpen}
-              mode={patientFlow.patientDetailMode}
-              patient={patientFlow.activePatient}
+            <PatientModal
+              isOpen={patientFlow.modal.isOpen}
+              mode={patientFlow.modal.mode}
+              patient={patientFlow.modal.patient}
               genderOptions={genderOptions}
-              onClose={patientFlow.closePatientDetail}
+              onClose={patientFlow.modal.close}
               onSaved={(savedPatient) =>
                 patientFlow.handlePatientSaved(
                   savedPatient,
-                  appointmentFlow.setSelectedPatient
+                  patientFlow.search.source === "appointment"
+                    ? appointmentFlow.setSelectedPatient
+                    : null
                 )
               }
             />

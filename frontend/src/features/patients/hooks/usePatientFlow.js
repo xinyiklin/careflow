@@ -11,9 +11,15 @@ export default function usePatientFlow() {
   const [patientSearchInjectedPatient, setPatientSearchInjectedPatient] =
     useState(null);
 
-  const [isPatientDetailOpen, setIsPatientDetailOpen] = useState(false);
-  const [patientDetailMode, setPatientDetailMode] = useState("create");
+  const [isPatientModalOpen, setIsPatientModalOpen] = useState(false);
+  const [patientModalMode, setPatientModalMode] = useState("create");
   const [activePatient, setActivePatient] = useState(null);
+
+  const openPatientModal = ({ mode, patient = null }) => {
+    setPatientModalMode(mode);
+    setActivePatient(patient);
+    setIsPatientModalOpen(true);
+  };
 
   const [recentPatients, setRecentPatients] = useState(() => {
     try {
@@ -54,25 +60,13 @@ export default function usePatientFlow() {
     });
   };
 
-  const openCreatePatient = () => {
-    setPatientDetailMode("create");
-    setActivePatient(null);
-    setIsPatientDetailOpen(true);
-  };
-
-  const openEditPatient = (patient) => {
-    setPatientDetailMode("edit");
-    setActivePatient(patient);
-    setIsPatientDetailOpen(true);
-  };
-
   const openPatientFromHistory = async (patient) => {
     if (!patient?.id) return;
 
     try {
       const fullPatient = await fetchPatientById(patient.id);
       addRecentPatient(patient);
-      openEditPatient(fullPatient);
+      openPatientModal({ mode: "edit", patients: fullPatient });
     } catch (error) {
       console.error("Failed to load full patient details.", error);
     }
@@ -88,40 +82,46 @@ export default function usePatientFlow() {
     setPatientSearchInjectedPatient(null);
   };
 
-  const closePatientDetail = () => {
-    setIsPatientDetailOpen(false);
+  const closePatientModal = () => {
+    setIsPatientModalOpen(false);
+    setPatientModalMode("create");
     setActivePatient(null);
   };
 
   const handlePatientSaved = (savedPatient, setSelectedPatient) => {
     setActivePatient(savedPatient);
-    setSelectedPatient(savedPatient);
+    setSelectedPatient?.(savedPatient);
     setPatientSearchInjectedPatient(savedPatient);
-    setIsPatientDetailOpen(false);
 
-    if (patientDetailMode === "edit") {
+    if (patientModalMode === "edit") {
       addRecentPatient(savedPatient);
     }
+
+    closePatientModal();
   };
 
   return {
-    isPatientSearchOpen,
-    setIsPatientSearchOpen,
-    closePatientSearch,
-    patientSearchSource,
-    setPatientSearchSource,
-    patientSearchInjectedPatient,
-    isPatientDetailOpen,
-    setIsPatientDetailOpen,
-    patientDetailMode,
-    activePatient,
+    search: {
+      isOpen: isPatientSearchOpen,
+      source: patientSearchSource,
+      injectedPatient: patientSearchInjectedPatient,
+      open: openPatientSearch,
+      close: closePatientSearch,
+    },
+
+    modal: {
+      isOpen: isPatientModalOpen,
+      mode: patientModalMode,
+      patient: activePatient,
+      open: openPatientModal,
+      close: closePatientModal,
+      openCreate: () => openPatientModal({ mode: "create" }),
+      openEdit: (patient) => openPatientModal({ mode: "edit", patient }),
+    },
+
     recentPatients,
     addRecentPatient,
-    openCreatePatient,
-    openEditPatient,
-    openPatientFromHistory,
     handlePatientSaved,
-    openPatientSearch,
-    closePatientDetail,
+    openPatientFromHistory,
   };
 }
