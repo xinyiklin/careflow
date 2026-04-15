@@ -22,6 +22,8 @@ import usePatientFlow from "../features/patients/hooks/usePatientFlow";
 import AppNavbar from "../shared/components/AppNavbar";
 import AppSidebar from "../shared/components/AppSidebar";
 
+import ConfirmDialog from "../shared/components/ConfirmDialog";
+
 function App() {
   const queryClient = useQueryClient();
 
@@ -35,6 +37,16 @@ function App() {
   const [authError, setAuthError] = useState("");
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+
+  const [confirmDialogState, setConfirmDialogState] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    variant: "default",
+    onConfirm: null,
+  });
 
   const handleLoginSubmit = async (credentials) => {
     setAuthLoading(true);
@@ -92,7 +104,46 @@ function App() {
 
   const handleCloseAppointmentModal = () => {
     setAppError("");
+    closeConfirmDialog();
     appointmentFlow.closeModal();
+  };
+
+  const openConfirmDialog = ({
+    title,
+    message,
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    variant = "default",
+    onConfirm,
+  }) => {
+    setConfirmDialogState({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      variant,
+      onConfirm,
+    });
+  };
+
+  const closeConfirmDialog = () => {
+    setConfirmDialogState({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
+  };
+
+  const handleConfirmDialogConfirm = async () => {
+    if (!confirmDialogState.onConfirm) return;
+
+    await confirmDialogState.onConfirm();
+    closeConfirmDialog();
   };
 
   const {
@@ -137,38 +188,46 @@ function App() {
 
       setAppError("");
 
-      const confirmed = window.confirm(
-        "This patient already has an appointment on this date.\n\nDo you want to proceed anyway?"
-      );
+      openConfirmDialog({
+        title: "Possible Double Booking",
+        message:
+          "This patient already has an appointment on this date. Creating another appointment may result in a double booking. Do you want to proceed anyway?",
+        confirmText: "Proceed Anyway",
+        cancelText: "Cancel",
+        variant: "warning",
+        onConfirm: async () => {
+          const overridePayload = {
+            ...payload,
+            allow_same_day_double_book: true,
+          };
 
-      if (!confirmed) {
-        return;
-      }
-
-      const overridePayload = {
-        ...payload,
-        allow_same_day_double_book: true,
-      };
-
-      if (appointmentFlow.editingId) {
-        await updateMutation.mutateAsync({
-          id: appointmentFlow.editingId,
-          data: overridePayload,
-        });
-      } else {
-        await createMutation.mutateAsync(overridePayload);
-      }
+          if (appointmentFlow.editingId) {
+            await updateMutation.mutateAsync({
+              id: appointmentFlow.editingId,
+              data: overridePayload,
+            });
+          } else {
+            await createMutation.mutateAsync(overridePayload);
+          }
+        },
+      });
     }
   };
 
   const handleDeleteAppointment = () => {
     if (!appointmentFlow.editingId) return;
 
-    if (!window.confirm("Are you sure you want to delete this appointment?")) {
-      return;
-    }
-
-    deleteMutation.mutate(appointmentFlow.editingId);
+    openConfirmDialog({
+      title: "Delete Appointment",
+      message:
+        "Are you sure you want to delete this appointment? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        await deleteMutation.mutateAsync(appointmentFlow.editingId);
+      },
+    });
   };
 
   const handleDropAppointment = (date, time24, dragged) => {
@@ -312,6 +371,17 @@ function App() {
                   appointmentFlow.setSelectedPatient
                 )
               }
+            />
+
+            <ConfirmDialog
+              isOpen={confirmDialogState.isOpen}
+              title={confirmDialogState.title}
+              message={confirmDialogState.message}
+              confirmText={confirmDialogState.confirmText}
+              cancelText={confirmDialogState.cancelText}
+              variant={confirmDialogState.variant}
+              onConfirm={handleConfirmDialogConfirm}
+              onCancel={closeConfirmDialog}
             />
           </div>
         </main>
