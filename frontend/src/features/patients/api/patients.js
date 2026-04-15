@@ -1,4 +1,4 @@
-import { apiRequest, getAuthHeaders } from "../../../shared/api/client";
+import { apiRequest } from "../../../shared/api/client";
 
 export function searchPatients({
   search,
@@ -8,6 +8,7 @@ export function searchPatients({
 } = {}) {
   const params = new URLSearchParams();
 
+  // data sanitation
   if (search) params.append("search", search);
   if (name) params.append("name", name);
   if (date_of_birth) params.append("date_of_birth", date_of_birth);
@@ -15,19 +16,12 @@ export function searchPatients({
 
   const query = params.toString() ? `?${params.toString()}` : "";
 
-  return apiRequest(`/api/patients/${query}`, {
-    headers: {
-      ...getAuthHeaders(),
-    },
-  });
+  return apiRequest(`/api/patients/${query}`);
 }
 
 export function createPatient(data) {
   return apiRequest("/api/patients/", {
     method: "POST",
-    headers: {
-      ...getAuthHeaders(),
-    },
     body: JSON.stringify(data),
   });
 }
@@ -35,9 +29,6 @@ export function createPatient(data) {
 export function updatePatient(id, data) {
   return apiRequest(`/api/patients/${id}/`, {
     method: "PUT",
-    headers: {
-      ...getAuthHeaders(),
-    },
     body: JSON.stringify(data),
   });
 }
@@ -45,8 +36,9 @@ export function updatePatient(id, data) {
 export function deletePatient(id) {
   return apiRequest(`/api/patients/${id}/`, {
     method: "DELETE",
-    headers: {
-      ...getAuthHeaders(),
-    },
   });
+}
+
+export function fetchPatientById(id) {
+  return apiRequest(`/api/patients/${id}/`, {});
 }

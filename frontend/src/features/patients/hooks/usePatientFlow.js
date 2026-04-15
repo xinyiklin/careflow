@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { fetchPatientById } from "../api/patients";
 
 const RECENT_PATIENTS_KEY = "recentPatients";
-const MAX_RECENT_PATIENTS = 8;
+const MAX_RECENT_PATIENTS = 10;
 
 export default function usePatientFlow() {
   const [isPatientSearchOpen, setIsPatientSearchOpen] = useState(false);
@@ -65,9 +66,16 @@ export default function usePatientFlow() {
     setIsPatientDetailOpen(true);
   };
 
-  const openPatientFromHistory = (patient) => {
-    addRecentPatient(patient);
-    openEditPatient(patient);
+  const openPatientFromHistory = async (patient) => {
+    if (!patient?.id) return;
+
+    try {
+      const fullPatient = await fetchPatientById(patient.id);
+      addRecentPatient(patient);
+      openEditPatient(fullPatient);
+    } catch (error) {
+      console.error("Failed to load full patient details.", error);
+    }
   };
 
   const closePatientSearch = () => {

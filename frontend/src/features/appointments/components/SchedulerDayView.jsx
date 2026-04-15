@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { generateTimeSlots } from "../../../shared/utils/timeSlots";
 import { getTodayLocal, parseLocalDate } from "../../../shared/utils/dateTime";
@@ -42,27 +42,28 @@ export default function SchedulerDayView({
     return appointments.filter((a) => a.date === selectedDate);
   }, [appointments, selectedDate]);
 
-  const getSlotIndexFromPointer = (clientY) => {
-    if (!dayViewRef.current) return null;
+  const getSlotIndexFromPointer = useCallback(
+    (clientY) => {
+      if (!dayViewRef.current) return null;
 
-    const container = dayViewRef.current;
-    const rect = container.getBoundingClientRect();
+      const container = dayViewRef.current;
+      const rect = container.getBoundingClientRect();
+      const clampedY = Math.min(Math.max(clientY, rect.top), rect.bottom - 1);
+      const relativeVisibleY = clampedY - rect.top;
+      const relativeScrolledY = relativeVisibleY + container.scrollTop;
 
-    const clampedY = Math.min(Math.max(clientY, rect.top), rect.bottom - 1);
+      const slotElements = container.querySelectorAll("[data-slot-index]");
+      if (!slotElements.length) return null;
 
-    const relativeVisibleY = clampedY - rect.top;
-    const relativeScrolledY = relativeVisibleY + container.scrollTop;
+      const firstSlot = slotElements[0];
+      const slotHeight = firstSlot.getBoundingClientRect().height;
 
-    const slotElements = container.querySelectorAll("[data-slot-index]");
-    if (!slotElements.length) return null;
+      const slotIndex = Math.floor(relativeScrolledY / slotHeight);
 
-    const firstSlot = slotElements[0];
-    const slotHeight = firstSlot.getBoundingClientRect().height;
-
-    const slotIndex = Math.floor(relativeScrolledY / slotHeight);
-
-    return Math.min(Math.max(slotIndex, 0), timeSlots.length - 1);
-  };
+      return Math.min(Math.max(slotIndex, 0), timeSlots.length - 1);
+    },
+    [timeSlots]
+  );
 
   const handlePointerDragStart = (e, appointment) => {
     if (!dayViewRef.current) return;
@@ -130,7 +131,32 @@ export default function SchedulerDayView({
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [dragState, onAppointmentDrop, selectedDate, timeSlots]);
+  }, [
+    dragState,
+    onAppointmentDrop,
+    selectedDate,
+    timeSlots,
+    getSlotIndexFromPointer,
+  ]);
+
+  const appointmentsBySlot = useMemo(() => {
+    const map = new Map();
+
+    appointmentsForDay.forEach((a) => {
+      const [h, m] = a.time.split(":").map(Number);
+      const minutes = h * 60 + m;
+
+      const slotIndex = Math.floor(minutes / intervalMinutes);
+
+      if (!map.has(slotIndex)) {
+        map.set(slotIndex, []);
+      }
+
+      map.get(slotIndex).push(a);
+    });
+
+    return map;
+  }, [appointmentsForDay, intervalMinutes]);
 
   return (
     <div className="mt-4">
@@ -202,15 +228,7 @@ export default function SchedulerDayView({
 
         <div ref={dayViewRef} className="max-h-[80vh] overflow-y-auto">
           {timeSlots.map((slot, slotIndex) => {
-            const slotAppointments = appointmentsForDay.filter((a) => {
-              const [h, m] = a.time.split(":").map(Number);
-              const appointmentMinutes = h * 60 + m;
-
-              return (
-                appointmentMinutes >= slot.value &&
-                appointmentMinutes < slot.value + intervalMinutes
-              );
-            });
+            const slotAppointments = appointmentsBySlot.get(slotIndex) || [];
 
             const previewAppointment =
               dragState &&

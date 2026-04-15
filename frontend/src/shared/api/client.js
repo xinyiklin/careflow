@@ -55,10 +55,13 @@ export function getAuthHeaders(token) {
 }
 
 export async function apiRequest(path, options = {}, retry = true) {
+  const authHeaders = getAuthHeaders();
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
       ...(options.headers || {}),
     },
   });

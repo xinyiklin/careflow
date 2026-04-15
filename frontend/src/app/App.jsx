@@ -78,7 +78,6 @@ function App() {
   const {
     facility,
     currentUser,
-    role,
     isLoading: userLoading,
     error: userError,
   } = useCurrentUser(isAuthenticated);
@@ -147,9 +146,8 @@ function App() {
   };
 
   const {
-    createMutation,
-    updateMutation,
     deleteMutation,
+    saveMutation,
     moveMutation,
     getDuplicateDayAppointmentError,
   } = useAppointmentMutations({
@@ -160,7 +158,8 @@ function App() {
   const handleSubmitAppointment = async (submittedData) => {
     setAppError("");
 
-    const payload = {
+    // Helper to ensure payload consistency across both initial save and double-booking override
+    const buildPayload = (overrides = {}) => ({
       ...submittedData,
       patient: appointmentFlow.selectedPatient?.id || "",
       status: submittedData.status ? Number(submittedData.status) : "",
@@ -168,47 +167,37 @@ function App() {
         ? Number(submittedData.appointment_type)
         : "",
       facility: submittedData.facility ? Number(submittedData.facility) : "",
-    };
+      ...overrides,
+    });
+
+    const payload = buildPayload();
 
     try {
-      if (appointmentFlow.editingId) {
-        await updateMutation.mutateAsync({
-          id: appointmentFlow.editingId,
-          data: payload,
-        });
-      } else {
-        await createMutation.mutateAsync(payload);
-      }
+      // ONE call to saveMutation handles both Create and Update
+      await saveMutation.mutateAsync({
+        id: appointmentFlow.editingId, // Will be undefined/null for 'create'
+        data: payload,
+      });
     } catch (err) {
       const duplicateError = getDuplicateDayAppointmentError(err);
+      if (!duplicateError) return;
 
-      if (!duplicateError) {
-        return;
-      }
-
-      setAppError("");
-
+      // Standard Double Booking flow
       openConfirmDialog({
         title: "Possible Double Booking",
         message:
           "This patient already has an appointment on this date. Creating another appointment may result in a double booking. Do you want to proceed anyway?",
-        confirmText: "Proceed Anyway",
-        cancelText: "Cancel",
+        confirmText: "Confirm",
         variant: "warning",
         onConfirm: async () => {
-          const overridePayload = {
-            ...payload,
+          const overridePayload = buildPayload({
             allow_same_day_double_book: true,
-          };
+          });
 
-          if (appointmentFlow.editingId) {
-            await updateMutation.mutateAsync({
-              id: appointmentFlow.editingId,
-              data: overridePayload,
-            });
-          } else {
-            await createMutation.mutateAsync(overridePayload);
-          }
+          await saveMutation.mutateAsync({
+            id: appointmentFlow.editingId,
+            data: overridePayload,
+          });
         },
       });
     }
@@ -230,10 +219,10 @@ function App() {
     });
   };
 
-  const handleDropAppointment = (date, time24, dragged) => {
+  const handleDropAppointment = async (date, time24, dragged) => {
     if (!dragged) return;
 
-    const payload = {
+    const buildPayload = (overrides = {}) => ({
       patient: dragged.patient_id,
       doctor_name: dragged.doctor_name,
       appointment_time: `${date}T${time24}`,
@@ -241,17 +230,43 @@ function App() {
       status: dragged.status,
       appointment_type: dragged.appointment_type,
       facility: dragged.facility,
-    };
-
-    moveMutation.mutate({
-      id: dragged.id,
-      data: payload,
+      ...overrides,
     });
+
+    const payload = buildPayload();
+
+    try {
+      await moveMutation.mutateAsync({
+        id: dragged.id,
+        data: payload,
+      });
+    } catch (err) {
+      const duplicateError = getDuplicateDayAppointmentError(err);
+
+      if (!duplicateError) {
+        return;
+      }
+
+      openConfirmDialog({
+        title: "Possible Double Booking",
+        message:
+          "This patient already has an appointment on this date. Moving this appointment may result in a double booking. Do you want to proceed anyway?",
+        confirmText: "Proceed Anyway",
+        cancelText: "Cancel",
+        variant: "warning",
+        onConfirm: async () => {
+          await moveMutation.mutateAsync({
+            id: dragged.id,
+            data: buildPayload({ allow_same_day_double_book: true }),
+          });
+        },
+      });
+    }
   };
 
   const formattedAppointments = useMemo(
     () => formatAppointments(appointments, appointmentFlow.openEditModal),
-    [appointments]
+    [appointments, appointmentFlow.openEditModal]
   );
 
   if (!isAuthenticated) {

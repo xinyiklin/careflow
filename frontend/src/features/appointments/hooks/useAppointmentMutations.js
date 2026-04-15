@@ -15,8 +15,10 @@ export default function useAppointmentMutations({ onCloseModal, setError }) {
   const getDuplicateDayAppointmentError = (err) =>
     err?.data?.duplicate_day_appointment ?? null;
 
-  const createMutation = useMutation({
-    mutationFn: createAppointment,
+  const saveMutation = useMutation({
+    mutationFn: ({ id, data }) => {
+      return id ? updateAppointment(id, data) : createAppointment(data);
+    },
     onSuccess: async () => {
       await invalidateAppointments();
       onCloseModal();
@@ -25,31 +27,9 @@ export default function useAppointmentMutations({ onCloseModal, setError }) {
     onError: (err) => {
       console.error(err);
 
-      if (getDuplicateDayAppointmentError(err)) {
-        setError("");
-        return;
+      if (!getDuplicateDayAppointmentError(err)) {
+        setError("Failed to save appointment.");
       }
-
-      setError("Failed to save appointment.");
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => updateAppointment(id, data),
-    onSuccess: async () => {
-      await invalidateAppointments();
-      onCloseModal();
-      setError("");
-    },
-    onError: (err) => {
-      console.error(err);
-
-      if (getDuplicateDayAppointmentError(err)) {
-        setError("");
-        return;
-      }
-
-      setError("Failed to save appointment.");
     },
   });
 
@@ -79,8 +59,7 @@ export default function useAppointmentMutations({ onCloseModal, setError }) {
   });
 
   return {
-    createMutation,
-    updateMutation,
+    saveMutation,
     deleteMutation,
     moveMutation,
     getDuplicateDayAppointmentError,
