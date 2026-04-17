@@ -1,94 +1,86 @@
-# 🏥 Clinic Scheduler
+# CareFlow
 
-## 💡 Project Summary
+A full-stack clinic scheduling system that simulates real-world healthcare workflows, including patient management, appointment scheduling, and facility-level configuration.
 
-Built a full-stack clinic scheduling system that simulates real-world healthcare workflows, including patient management, appointment scheduling, and facility-level configuration.
-
-Designed and implemented both frontend and backend systems with a focus on usability, scalability, and clean data modeling. This project goes beyond basic CRUD by incorporating role-based access, dynamic configuration, and real-time UI interactions.
+Designed and implemented with a focus on usability, scalability, and clean data modeling — going beyond basic CRUD with role-based access, dynamic configuration, and real-time UI interactions.
 
 ---
 
-## 🌐 Live Demo
+## Live Demo
 
-https://clinic-scheduler.xinyiklin.com
-
----
-
-## 🚀 Key Highlights
-
-- 🔎 Real-time Patient Search
-  - Debounced search with filtering by name, DOB, and MRN
-  - Reduced unnecessary API calls and improved responsiveness
-
-- 📅 Appointment Scheduling System
-  - Day-based calendar view with drag-and-drop rescheduling
-  - Full create/edit/delete workflow with validation
-
-- 🧑‍⚕️ Patient Management System
-  - Unified create/edit modal
-  - MRN system-controlled and immutable
-  - Integrated seamlessly with appointment flow
-  - Recent patients persistence (localStorage)
-
-- 🏢 Facility-Based Configuration
-  - Dynamic configuration for statuses, visit types, and genders
-  - Eliminated hardcoded enums for scalability
-
-- 🔐 Authentication & Access Control
-  - JWT-based authentication
-  - Facility-scoped data access
+https://careflow.xinyiklin.com
 
 ---
 
-## 🧠 Technical Strengths
+## Key Highlights
 
-- Full-stack development (React + Django REST Framework)
-- Relational database design with PostgreSQL
-- Handling schema changes (CharField → ForeignKey)
-- API design and validation
-- UI state management for complex workflows
-- Performance optimization (debouncing, pagination)
-- Drag-and-drop interactions with pointer events
-- Debugging migrations and database permissions
+**Real-time Patient Search**
+
+- Debounced search with filtering by name, DOB, and MRN
+- Reduced unnecessary API calls and improved responsiveness
+
+**Appointment Scheduling**
+
+- Day-based calendar view with drag-and-drop rescheduling
+- Full create/edit/delete workflow with validation
+
+**Patient Management**
+
+- Unified create/edit modal
+- MRN system-controlled and immutable
+- Integrated seamlessly with appointment flow
+- Recent patients persistence via localStorage
+
+**Facility-Based Configuration**
+
+- Per-facility configuration for statuses, visit types, roles, and genders
+- Timezone support — all times displayed in clinic's local timezone regardless of user location
+- Eliminated hardcoded enums for scalability
+
+**Authentication & Access Control**
+
+- JWT-based authentication
+- Facility-scoped data access
 
 ---
 
-## ⚙️ Tech Stack
+## Tech Stack
 
-Frontend: React, Tailwind CSS, Material UI  
-Backend: Django, Django REST Framework  
-Database: PostgreSQL  
-Deployment: Vercel (frontend), Render (backend)
+| Layer      | Technology                          |
+| ---------- | ----------------------------------- |
+| Frontend   | React, Tailwind CSS, Material UI    |
+| Backend    | Django, Django REST Framework       |
+| Database   | PostgreSQL                          |
+| Deployment | Vercel (frontend), Render (backend) |
 
 ---
 
-## 🧪 Local Setup
+## Local Setup
 
 ```bash
-git clone https://github.com/your-username/clinic-scheduler.git
-cd clinic-scheduler/backend
-
+git clone https://github.com/xinyiklin/careflow.git
+cd careflow/backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Database
+Configure your database in `config/settings.py`:
 
 ```python
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "clinic_scheduler",
-        "USER": "clinic_user",
-        "PASSWORD": "password",
+        "NAME": "careflow",
+        "USER": "your_user",
+        "PASSWORD": "your_password",
         "HOST": "localhost",
-        "PORT": "5433",
+        "PORT": "5432",
     }
 }
 ```
 
-### Run
+Run migrations and seed demo data:
 
 ```bash
 python manage.py migrate
@@ -98,7 +90,7 @@ python manage.py runserver
 
 ---
 
-## 🔑 Demo Credentials
+## Demo Credentials
 
 Username: admin  
 Password: Admin123!
