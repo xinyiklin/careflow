@@ -1,3 +1,14 @@
+import { format, parseISO, isValid } from "date-fns";
+
+export function formatDOB(dateString) {
+  if (!dateString) return "—";
+
+  const parsed = parseISO(dateString);
+  if (!isValid(parsed)) return "—";
+
+  return format(parsed, "MM/dd/yyyy");
+}
+
 export function getTodayLocal() {
   const today = new Date();
   const year = today.getFullYear();

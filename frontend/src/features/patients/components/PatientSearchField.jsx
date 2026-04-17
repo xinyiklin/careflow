@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { searchPatients } from "../api/patients";
 import { parsePatientQuery } from "../utils/parsePatientQuery";
+import { format, parseISO } from "date-fns";
+import { formatDOB } from "../../../shared/utils/dateTime";
 
 export default function PatientSearchField({
   selectedPatient,
@@ -68,7 +70,7 @@ export default function PatientSearchField({
       } finally {
         setLoading(false);
       }
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(timer);
   }, [cleanQuery]);
@@ -90,10 +92,10 @@ export default function PatientSearchField({
         <div className="flex items-center justify-between rounded-lg border border-slate-300 bg-slate-50 px-3 py-2">
           <div>
             <p className="text-sm font-medium text-slate-900">
-              {selectedPatient}
+              {`${selectedPatient.last_name}, ${selectedPatient.first_name}`}
             </p>
             <p className="text-xs text-slate-500">
-              DOB: {selectedPatient.date_of_birth}
+              DOB: {formatDOB(selectedPatient.date_of_birth)}
               {selectedPatient.chart_number
                 ? ` • MRN: ${selectedPatient.chart_number}`
                 : ""}
@@ -150,7 +152,7 @@ export default function PatientSearchField({
                               {`${patient.last_name}, ${patient.first_name}`}
                             </div>
                             <div className="text-xs text-slate-500">
-                              DOB: {patient.date_of_birth}
+                              DOB: {formatDOB(patient.date_of_birth)}
                               {patient.chart_number
                                 ? ` • MRN: ${patient.chart_number}`
                                 : ""}
