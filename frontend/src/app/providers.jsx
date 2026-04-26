@@ -1,6 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+
+import { AuthProvider } from "../features/auth/AuthProvider";
+import { FacilityProvider } from "../features/facilities/FacilityProvider";
+import { ThemeProvider } from "../shared/context/ThemeProvider";
+import { UserPreferencesProvider } from "../shared/context/UserPreferencesProvider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,10 +19,16 @@ const queryClient = new QueryClient({
 
 export default function AppProviders({ children }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        {children}
-      </LocalizationProvider>
-    </QueryClientProvider>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <LocalizationProvider dateAdapter={AdapterDateFns}>
+          <AuthProvider>
+            <UserPreferencesProvider>
+              <FacilityProvider>{children}</FacilityProvider>
+            </UserPreferencesProvider>
+          </AuthProvider>
+        </LocalizationProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }

@@ -1,171 +1,325 @@
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from rest_framework import generics, permissions
+from rest_framework import permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from audit.models import AuditEvent
+from organizations.permissions import get_user_organization_membership
+
+from .access import get_facility_for_user
 from .models import (
     AppointmentStatus,
     AppointmentType,
+    Facility,
+    FacilityResource,
+    PatientGender,
     Staff,
     StaffRole,
     StaffTitle,
 )
+from .permissions import IsFacilityAdminOrReadOnly, IsOrgAdmin
+from .security import get_role_security_template
 from .serializers import (
     AppointmentStatusSerializer,
     AppointmentTypeSerializer,
+    FacilityResourceSerializer,
+    FacilitySerializer,
+    PatientGenderSerializer,
     StaffRoleSerializer,
     StaffSerializer,
     StaffTitleSerializer,
 )
 
 
-def get_request_user(request):
-    if request.user.is_authenticated:
-        return request.user
-
-    if getattr(settings, "DEMO_MODE", False):
-        User = get_user_model()
-        return User.objects.filter(username="admin").first()
-
-    return None
-
-
-def get_active_staff_profile(user):
-    if not user:
-        return None
-
-    return (
-        Staff.objects.filter(user=user, is_active=True)
-        .select_related("facility", "role", "title")
-        .first()
+def create_security_audit_event(
+    request, *, facility, model_name, object_pk, summary, metadata
+):
+    AuditEvent.objects.create(
+        actor=request.user,
+        facility=facility,
+        action="update",
+        app_label="facilities",
+        model_name=model_name,
+        object_pk=str(object_pk),
+        summary=summary,
+        metadata=metadata,
     )
 
 
-class StaffListView(generics.ListAPIView):
-    serializer_class = StaffSerializer
-    permission_classes = [permissions.IsAuthenticated]
+class FacilityScopedMixin:
+    def get_facility(self):
+        if hasattr(self, "_facility"):
+            return self._facility
+
+        facility_id = self.request.query_params.get("facility_id")
+        self._facility = get_facility_for_user(self.request.user, facility_id)
+        return self._facility
+
+
+class FacilityViewSet(viewsets.ModelViewSet):
+    serializer_class = FacilitySerializer
+    permission_classes = [permissions.IsAuthenticated, IsOrgAdmin]
 
     def get_queryset(self):
-        user = get_request_user(self.request)
-        profile = get_active_staff_profile(user)
+        membership = get_user_organization_membership(self.request.user)
+        if not membership:
+            return Facility.objects.none()
 
-        if not profile:
-            return Staff.objects.none()
+        return Facility.objects.filter(
+            organization_id=membership.organization_id
+        ).order_by("name")
 
-        return (
-            Staff.objects.filter(facility=profile.facility)
-            .select_related("user", "role", "title")
-            .order_by("user__last_name")
+    def perform_create(self, serializer):
+        membership = get_user_organization_membership(self.request.user)
+        serializer.save(organization=membership.organization)
+
+    def perform_destroy(self, instance):
+        instance.is_active = False
+        instance.save()
+
+
+class StaffViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+    serializer_class = StaffSerializer
+    permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
+
+    def get_queryset(self):
+        queryset = (
+            Staff.objects.filter(facility=self.get_facility())
+            .select_related("user", "facility", "role", "title", "resource")
+            .order_by("user__last_name", "user__first_name")
         )
 
+        role_code = self.request.query_params.get("role")
+        if role_code:
+            queryset = queryset.filter(role__code=role_code)
 
-class PhysicianListView(generics.ListAPIView):
-    serializer_class = StaffSerializer
-    permission_classes = [permissions.IsAuthenticated]
+        return queryset
 
-    def get_queryset(self):
-        user = get_request_user(self.request)
-        profile = get_active_staff_profile(user)
+    def perform_create(self, serializer):
+        serializer.save(facility=self.get_facility())
 
-        if not profile:
-            return Staff.objects.none()
+    def perform_update(self, serializer):
+        if serializer.instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("You do not have access to this staff membership.")
+        previous_overrides = serializer.instance.security_overrides or {}
+        serializer.save()
+        if "security_overrides" in serializer.validated_data:
+            create_security_audit_event(
+                self.request,
+                facility=serializer.instance.facility,
+                model_name="staff",
+                object_pk=serializer.instance.pk,
+                summary=f"Updated security overrides for {serializer.instance.user}",
+                metadata={
+                    "changed_fields": ["Security overrides"],
+                    "previous": previous_overrides,
+                    "next": serializer.instance.security_overrides or {},
+                    "user_id": serializer.instance.user_id,
+                },
+            )
 
-        return Staff.objects.filter(
-            facility=profile.facility,
-            role__code="physician",
-            is_active=True,
-        ).select_related("user", "title")
+    def perform_destroy(self, instance):
+        if instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("You do not have access to this staff membership.")
+        instance.is_active = False
+        instance.save()
 
 
-class AppointmentStatusListView(generics.ListAPIView):
+class AppointmentStatusViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
     serializer_class = AppointmentStatusSerializer
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 
     def get_queryset(self):
-        user = get_request_user(self.request)
-        profile = get_active_staff_profile(user)
-
-        if not profile:
-            return AppointmentStatus.objects.none()
-
-        return AppointmentStatus.objects.filter(
-            facility=profile.facility,
-            is_active=True,
-        ).order_by("id")
-
-
-class AppointmentTypeListView(generics.ListAPIView):
-    serializer_class = AppointmentTypeSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        user = get_request_user(self.request)
-        profile = get_active_staff_profile(user)
-
-        if not profile:
-            return AppointmentType.objects.none()
-
-        return AppointmentType.objects.filter(
-            facility=profile.facility,
-            is_active=True,
-        ).order_by("id")
-
-
-class StaffRoleListView(generics.ListAPIView):
-    serializer_class = StaffRoleSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        user = get_request_user(self.request)
-        profile = get_active_staff_profile(user)
-
-        if not profile:
-            return StaffRole.objects.none()
-
-        return StaffRole.objects.filter(
-            facility=profile.facility,
-            is_active=True,
-        ).order_by("id")
-
-
-class StaffTitleListView(generics.ListAPIView):
-    serializer_class = StaffTitleSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        user = get_request_user(self.request)
-        profile = get_active_staff_profile(user)
-
-        if not profile:
-            return StaffTitle.objects.none()
-
-        return StaffTitle.objects.filter(
-            facility=profile.facility,
-            is_active=True,
-        ).order_by("id")
-
-
-class PatientGendersView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def get(self, request):
-        user = get_request_user(request)
-        profile = get_active_staff_profile(user)
-
-        if not profile:
-            raise PermissionDenied("Authentication required.")
-
-        genders = profile.facility.patient_genders.filter(is_active=True)
-
-        return Response(
-            [
-                {
-                    "id": gender.id,
-                    "code": gender.code,
-                    "name": gender.name,
-                }
-                for gender in genders
-            ]
+        return AppointmentStatus.objects.filter(facility=self.get_facility()).order_by(
+            "name"
         )
+
+    def perform_create(self, serializer):
+        serializer.save(facility=self.get_facility())
+
+    def perform_update(self, serializer):
+        if serializer.instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        previous_values = {
+            "name": serializer.instance.name,
+            "code": serializer.instance.code,
+            "color": str(serializer.instance.color),
+            "is_active": serializer.instance.is_active,
+        }
+        serializer.save()
+        changed_fields = [
+            field
+            for field in ["name", "code", "color", "is_active"]
+            if field in serializer.validated_data
+            and previous_values[field] != getattr(serializer.instance, field)
+        ]
+        if changed_fields:
+            create_security_audit_event(
+                self.request,
+                facility=serializer.instance.facility,
+                model_name="appointmentstatus",
+                object_pk=serializer.instance.pk,
+                summary=f"Updated appointment status {serializer.instance.name}",
+                metadata={
+                    "changed_fields": changed_fields,
+                    "previous": previous_values,
+                    "next": {
+                        "name": serializer.instance.name,
+                        "code": serializer.instance.code,
+                        "color": str(serializer.instance.color),
+                        "is_active": serializer.instance.is_active,
+                    },
+                },
+            )
+
+    def perform_destroy(self, instance):
+        if instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        instance.is_active = False
+        instance.save()
+
+
+class AppointmentTypeViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+    serializer_class = AppointmentTypeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
+
+    def get_queryset(self):
+        return AppointmentType.objects.filter(facility=self.get_facility()).order_by(
+            "name"
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(facility=self.get_facility())
+
+    def perform_update(self, serializer):
+        if serializer.instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        instance.is_active = False
+        instance.save()
+
+
+class FacilityResourceViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+    serializer_class = FacilityResourceSerializer
+    permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
+
+    def get_queryset(self):
+        return (
+            FacilityResource.objects.filter(facility=self.get_facility())
+            .select_related("linked_staff__user", "linked_staff__title")
+            .order_by("name", "id")
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            facility=self.get_facility(),
+            is_deletable=True,
+        )
+
+    def perform_update(self, serializer):
+        if serializer.instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+
+
+class StaffRoleViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+    serializer_class = StaffRoleSerializer
+    permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
+
+    def get_queryset(self):
+        return StaffRole.objects.filter(facility=self.get_facility()).order_by("name")
+
+    def perform_create(self, serializer):
+        role_code = serializer.validated_data.get("code")
+        serializer.save(
+            facility=self.get_facility(),
+            security_permissions=get_role_security_template(role_code),
+            is_system_role=False,
+            is_deletable=True,
+        )
+
+    def perform_update(self, serializer):
+        if serializer.instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+
+        if not instance.is_deletable:
+            instance.is_active = False
+            instance.save()
+            return
+
+        instance.delete()
+
+
+class StaffTitleViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+    serializer_class = StaffTitleSerializer
+    permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
+
+    def get_queryset(self):
+        return StaffTitle.objects.filter(facility=self.get_facility()).order_by("name")
+
+    def perform_create(self, serializer):
+        serializer.save(
+            facility=self.get_facility(),
+            is_deletable=True,
+        )
+
+    def perform_update(self, serializer):
+        if serializer.instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+
+        if not instance.is_deletable:
+            instance.is_active = False
+            instance.save()
+            return
+
+        instance.delete()
+
+
+class PatientGenderViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+    serializer_class = PatientGenderSerializer
+    permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
+
+    def get_queryset(self):
+        return PatientGender.objects.filter(facility=self.get_facility()).order_by(
+            "sort_order", "name"
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            facility=self.get_facility(),
+            is_deletable=True,
+        )
+
+    def perform_update(self, serializer):
+        if serializer.instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.facility_id != self.get_facility().id:
+            raise PermissionDenied("Invalid facility.")
+
+        if not instance.is_deletable:
+            instance.is_active = False
+            instance.save()
+            return
+
+        instance.delete()

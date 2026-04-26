@@ -11,18 +11,18 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
-  - repo: https://github.com/psf/black
-    rev: 25.11.0
-    hooks:
-      - id: black
-        files: ^backend/.*\.py$
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.10
     hooks:
       - id: ruff
         files: ^backend/.*\.py$
         args: [--fix]
+
+  - repo: https://github.com/psf/black
+    rev: 25.11.0
+    hooks:
+      - id: black
+        files: ^backend/.*\.py$
 
   - repo: local
     hooks:

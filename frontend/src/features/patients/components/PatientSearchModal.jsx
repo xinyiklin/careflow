@@ -1,18 +1,31 @@
-import { useEffect, useMemo, useState } from "react";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  UserRoundCheck,
+  UserPlus,
+  X,
+} from "lucide-react";
+
 import { searchPatients } from "../api/patients";
-import { formatDOB } from "../../../shared/utils/dateTime";
-
-import { X } from "lucide-react";
-
-import dayjs from "dayjs";
+import { parsePatientQuery } from "../utils/parsePatientQuery";
+import {
+  PatientResultRow,
+  PatientResultSkeleton,
+  SelectedPatientPanel,
+} from "./PatientSearchModalParts";
 import useDraggableModal from "../../../shared/hooks/useDraggableModal";
+import { Button, Input, Notice } from "../../../shared/components/ui";
+import { getErrorMessage } from "../../../shared/utils/errors";
 
 const PAGE_SIZE = 10;
 const SEARCH_DELAY_MS = 500;
 
 export default function PatientSearchModal({
   isOpen,
+  facilityId,
   onClose,
   onSelectPatient,
   onOpenCreatePatient,
@@ -21,19 +34,21 @@ export default function PatientSearchModal({
   injectedPatient,
   injectedPatientMode,
 }) {
-  const [name, setName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState(null);
-  const [chartNumber, setChartNumber] = useState("");
+  const [smartQuery, setSmartQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
-
-  const selectedPatient =
-    results.find((patient) => patient.id === selectedPatientId) || null;
+  const [loading, setLoading] = useState(false);
+  const searchRequestIdRef = useRef(0);
 
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
-
+  const parsedSmartQuery = useMemo(
+    () => parsePatientQuery(smartQuery.trim()),
+    [smartQuery]
+  );
+  const smartSearchValue = smartQuery.trim();
+  const canSearch = smartSearchValue.length >= 2;
   const paginatedResults = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return results.slice(start, start + PAGE_SIZE);
@@ -45,10 +60,7 @@ export default function PatientSearchModal({
 
   useEffect(() => {
     if (!isOpen) return;
-
-    setName("");
-    setChartNumber("");
-    setDateOfBirth(null);
+    setSmartQuery("");
     setResults([]);
     setSelectedPatientId(null);
     setPage(1);
@@ -57,120 +69,145 @@ export default function PatientSearchModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    const queryName = parsedSmartQuery.name;
+    const queryChartNumber = parsedSmartQuery.chart_number;
+    const queryDob = parsedSmartQuery.date_of_birth;
+    const queryPhone = parsedSmartQuery.phone;
+    const canSearchByName = queryName.trim().length >= 2;
+    const canSearchByMrn = queryChartNumber.trim().length >= 1;
+    const canSearchByDob = !!queryDob;
+    const canSearchByPhone = queryPhone.trim().length >= 7;
+    const canSearchBySmartText =
+      smartSearchValue.length >= 2 &&
+      !parsedSmartQuery.name &&
+      !parsedSmartQuery.chart_number &&
+      !parsedSmartQuery.date_of_birth &&
+      !parsedSmartQuery.phone;
 
-    const trimmedName = name.trim();
-    const trimmedChartNumber = chartNumber.trim();
-    const validDob =
-      dateOfBirth && dayjs(dateOfBirth).isValid()
-        ? dayjs(dateOfBirth).format("YYYY-MM-DD")
-        : "";
-
-    const canSearchByName = trimmedName.length >= 2;
-    const canSearchByMrn = trimmedChartNumber.length >= 1;
-    const canSearchByDob = !!validDob;
-
-    if (!canSearchByName && !canSearchByMrn && !canSearchByDob) {
+    if (
+      !canSearchByName &&
+      !canSearchByMrn &&
+      !canSearchByDob &&
+      !canSearchByPhone &&
+      !canSearchBySmartText
+    ) {
+      setLoading(false);
       setResults([]);
+      setSelectedPatientId(null);
+      setPage(1);
+      setError("");
       return;
     }
 
     const timeoutId = setTimeout(async () => {
-      try {
-        setError("");
-        setSelectedPatientId(null);
-        setPage(1);
+      const requestId = searchRequestIdRef.current + 1;
+      searchRequestIdRef.current = requestId;
 
+      try {
+        setLoading(true);
+        setError("");
         const data = await searchPatients({
-          name: canSearchByName ? trimmedName : "",
-          date_of_birth: canSearchByDob ? validDob : "",
-          chart_number: canSearchByMrn ? trimmedChartNumber : "",
+          facilityId,
+          search: canSearchBySmartText ? smartSearchValue : "",
+          name: canSearchByName ? queryName : "",
+          date_of_birth: canSearchByDob ? queryDob : "",
+          chart_number: canSearchByMrn ? queryChartNumber : "",
+          phone: canSearchByPhone ? queryPhone : "",
         });
 
+        if (searchRequestIdRef.current !== requestId) return;
+
         setResults(data);
+        setPage(1);
+        setSelectedPatientId((prevSelectedId) =>
+          data.some((patient) => patient.id === prevSelectedId)
+            ? prevSelectedId
+            : data[0]?.id || null
+        );
       } catch (err) {
-        console.error(err);
-        setError("Failed to search patients.");
+        if (searchRequestIdRef.current !== requestId) return;
+        setError(getErrorMessage(err, "Failed to search patients."));
+      } finally {
+        if (searchRequestIdRef.current === requestId) {
+          setLoading(false);
+        }
       }
     }, SEARCH_DELAY_MS);
 
     return () => clearTimeout(timeoutId);
-  }, [isOpen, name, chartNumber, dateOfBirth]);
+  }, [facilityId, isOpen, parsedSmartQuery, smartSearchValue]);
 
   useEffect(() => {
     if (!injectedPatient) return;
-
     if (injectedPatientMode === "edit") {
       setResults((prev) =>
-        prev.map((patient) =>
-          patient.id === injectedPatient.id ? injectedPatient : patient
-        )
+        prev.map((p) => (p.id === injectedPatient.id ? injectedPatient : p))
       );
     } else {
       setResults([injectedPatient]);
     }
-
     setSelectedPatientId(injectedPatient.id);
     setPage(1);
   }, [injectedPatient, injectedPatientMode]);
 
-  if (!isOpen) return null;
+  const selectedPatient = useMemo(
+    () => results.find((patient) => patient.id === selectedPatientId) || null,
+    [results, selectedPatientId]
+  );
 
-  const handleOpenProfile = () => {
-    if (!selectedPatient) return;
-    onOpenPatientProfile?.(selectedPatient);
-  };
-
-  const handleSelectPatient = () => {
-    if (!selectedPatient || !allowSelect) return;
-    onSelectPatient?.(selectedPatient);
-    onClose();
-  };
-
-  const handleBackdropClick = (e) => {
-    e.stopPropagation();
+  const handleUsePatient = (patient) => {
+    if (!patient) return;
+    setSelectedPatientId(patient.id);
+    onSelectPatient?.(patient);
     onClose?.();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4"
-      onClick={handleBackdropClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClose?.();
+      }}
     >
       <div
         ref={modalRef}
         style={modalStyle}
-        className="fixed flex max-h-[min(90dvh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+        className="fixed flex max-h-[min(90dvh,760px)] w-full max-w-[72rem] flex-col overflow-hidden rounded-[1.7rem] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div
           {...dragHandleProps}
-          className="flex cursor-move items-center justify-between border-b border-slate-200 px-6 py-4 select-none"
+          className="flex cursor-move select-none items-center justify-between gap-4 border-b border-cf-border bg-[linear-gradient(180deg,var(--color-surface),var(--color-surface-muted))] px-5 py-4"
         >
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Patient Search
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Search by name, date of birth, and MRN. All filled fields must
-              match.
-            </p>
+          <div className="min-w-0">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+              Patient Search · Compact Match Desk
+            </div>
+            <div className="mt-0.5 text-xl font-semibold tracking-[-0.02em] text-cf-text">
+              {allowSelect ? "Attach patient" : "Find patient"}
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="default"
+              size="sm"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={onOpenCreatePatient}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="bg-cf-text text-white hover:bg-cf-text/90"
             >
-              New
-            </button>
-
+              <UserPlus className="h-4 w-4" />
+              New patient
+            </Button>
             <button
               type="button"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={onClose}
-              className="rounded-md p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-cf-text-subtle transition hover:bg-cf-surface-soft hover:text-cf-text-muted"
               aria-label="Close"
             >
               <X className="h-5 w-5" />
@@ -178,172 +215,137 @@ export default function PatientSearchModal({
           </div>
         </div>
 
-        <div className="space-y-4 border-b border-slate-200 px-6 py-5">
+        <div className="bg-cf-page-bg px-5 pt-4">
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <Notice tone="danger" title="Patient search failed">
               {error}
-            </div>
+            </Notice>
           )}
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Last, First or Last"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Date of Birth
-              </label>
-              <DatePicker
-                value={dateOfBirth}
-                onChange={(newValue) => {
-                  setDateOfBirth(newValue);
-                }}
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                    sx: { width: "100%" },
-                  },
-                }}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                MRN
-              </label>
-              <input
-                type="text"
-                value={chartNumber}
-                onChange={(e) => setChartNumber(e.target.value)}
-                placeholder="Chart number"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
+          <div className={error ? "mt-3" : ""}>
+            <div className="rounded-3xl border border-cf-border bg-cf-surface-muted/55 p-3">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cf-text-subtle" />
+                <Input
+                  type="text"
+                  value={smartQuery}
+                  onChange={(event) => setSmartQuery(event.target.value)}
+                  aria-label="Smart patient search"
+                  className="h-12 rounded-2xl border-cf-border bg-cf-surface pl-10 pr-24 text-sm font-semibold focus:border-cf-border-strong focus:ring-0"
+                  autoFocus
+                />
+                <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-cf-text-subtle">
+                  {results.length > 0
+                    ? `${results.length} match${results.length === 1 ? "" : "es"}`
+                    : canSearch
+                      ? loading
+                        ? "Searching"
+                        : "No matches"
+                      : "Type a clue"}
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 px-6 py-5">
-          <div className="flex h-full min-h-[320px] flex-col overflow-hidden rounded-xl border border-slate-200">
-            <div className="min-h-0 flex-1 overflow-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-sm">
-                <thead className="sticky top-0 bg-slate-50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">
-                      Patient
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">
-                      DOB
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-slate-600">
-                      MRN
-                    </th>
-                  </tr>
-                </thead>
+        <div className="relative z-10 grid min-h-0 flex-1 bg-cf-page-bg px-5 pb-4 pt-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-h-0 overflow-hidden rounded-t-3xl border border-cf-border bg-cf-surface lg:rounded-l-3xl lg:rounded-tr-none lg:border-r-0">
+            <div className="min-h-0 max-h-full overflow-auto">
+              {loading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <PatientResultSkeleton key={index} />
+                  ))
+                : null}
 
-                <tbody className="divide-y divide-slate-200 bg-white">
-                  {paginatedResults.map((patient) => {
-                    const isSelected = patient.id === selectedPatientId;
-
-                    return (
-                      <tr
-                        key={patient.id}
-                        onClick={() => setSelectedPatientId(patient.id)}
-                        onDoubleClick={() => onOpenPatientProfile?.(patient)}
-                        className={`cursor-pointer select-none transition ${
-                          isSelected ? "bg-blue-50" : "hover:bg-slate-50"
-                        }`}
+              {!loading && paginatedResults.length === 0 ? (
+                <div className="flex min-h-[20rem] items-center justify-center px-5 py-10 text-center">
+                  <div className="mx-auto max-w-md">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-cf-border bg-cf-surface-muted text-cf-text-subtle">
+                      {canSearch ? (
+                        <AlertCircle className="h-5 w-5" />
+                      ) : (
+                        <UserRoundCheck className="h-5 w-5" />
+                      )}
+                    </div>
+                    <div className="mt-4 text-base font-semibold text-cf-text">
+                      {canSearch
+                        ? "No patients found"
+                        : "Start with any patient clue"}
+                    </div>
+                    <div className="mt-2 text-sm leading-6 text-cf-text-muted">
+                      {canSearch
+                        ? "Create only after confirming name and DOB."
+                        : "Search by name, MRN, DOB, or phone. The best match is selected automatically."}
+                    </div>
+                    {canSearch ? (
+                      <Button
+                        type="button"
+                        variant="default"
+                        className="mt-5"
+                        onClick={onOpenCreatePatient}
                       >
-                        <td className="select-none px-4 py-3 text-slate-900">
-                          {`${patient.last_name}, ${patient.first_name}`}
-                        </td>
-                        <td className="select-none px-4 py-3 text-slate-700">
-                          {formatDOB(patient.date_of_birth)}
-                        </td>
-                        <td className="select-none px-4 py-3 text-slate-700">
-                          {patient.chart_number || "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        <UserPlus className="h-4 w-4" />
+                        Create Patient
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
 
-            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3">
-              {results.length > 0 && (
-                <>
-                  <p className="text-sm text-slate-600">
+              {!loading && paginatedResults.length > 0
+                ? paginatedResults.map((patient) => (
+                    <PatientResultRow
+                      key={patient.id}
+                      patient={patient}
+                      isSelected={patient.id === selectedPatientId}
+                      allowSelect={allowSelect}
+                      onSelect={() => setSelectedPatientId(patient.id)}
+                      onUsePatient={handleUsePatient}
+                      onOpenPatientProfile={onOpenPatientProfile}
+                    />
+                  ))
+                : null}
+
+              {!loading && results.length > PAGE_SIZE ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-cf-border px-4 py-3">
+                  <div className="text-sm text-cf-text-muted">
                     Page {page} of {totalPages}
-                  </p>
-
+                  </div>
                   <div className="flex gap-2">
-                    <button
+                    <Button
                       type="button"
+                      variant="default"
+                      size="sm"
                       onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                       disabled={page === 1}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
+                      <ChevronLeft className="h-4 w-4" />
                       Prev
-                    </button>
-
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      variant="default"
+                      size="sm"
                       onClick={() =>
                         setPage((prev) => Math.min(totalPages, prev + 1))
                       }
                       disabled={page === totalPages}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Next
-                    </button>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                </>
-              )}
+                </div>
+              ) : null}
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between border-t border-slate-200 px-6 py-4">
-          <div className="text-sm text-slate-500">
-            {selectedPatient
-              ? `Selected: ${
-                  selectedPatient.display_name || selectedPatient.full_name
-                }`
-              : "No patient selected"}
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={handleOpenProfile}
-              disabled={!selectedPatient}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Open
-            </button>
-
-            {allowSelect && (
-              <button
-                type="button"
-                onClick={handleSelectPatient}
-                disabled={!selectedPatient}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Select
-              </button>
-            )}
-          </div>
+          <SelectedPatientPanel
+            patient={selectedPatient}
+            allowSelect={allowSelect}
+            onUsePatient={handleUsePatient}
+            onOpenPatientProfile={onOpenPatientProfile}
+          />
         </div>
       </div>
     </div>

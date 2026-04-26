@@ -1,26 +1,60 @@
 # Python
 backend/venv/
 venv/
+.venv/
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # Django
 *.log
 db.sqlite3
+*.sqlite3
+*.sqlite
 staticfiles/
+backend/staticfiles/
+backend/local_documents/
 
 # Environment variables
 .env
 .env.*
 !.env.example
 
+# Local agent/session guidance
+AGENTS.md
+CONTINUITY.md
+
 # Node / Frontend
+node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
+frontend/src/dev-previews/
+frontend/backups/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test / coverage reports
+coverage/
+frontend/coverage/
+playwright-report/
+frontend/playwright-report/
+test-results/
+frontend/test-results/
 
 # OS / Misc
 .DS_Store
 Thumbs.db
+
+# Postman local workspace/export files
+.postman/
+postman/

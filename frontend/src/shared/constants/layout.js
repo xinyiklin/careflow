@@ -1,0 +1,3 @@
+export const SIDEBAR_COLLAPSED_WIDTH = 76;
+export const SIDEBAR_EXPANDED_WIDTH = 216;
+export const NAVBAR_HEIGHT = 64;

@@ -1,12 +1,20 @@
 <!--
+Solo project template: keep this concise, but include enough context for
+future self-review and portfolio/code-history clarity.
+
 Title format:
 - lowercase
 - verb first
 - no punctuation
+
+Examples:
+- harden auth and document workflows
+- split patient modal registration sections
+- fix schedule column scroll behavior
 -->
 
 ## Summary
-Brief description of what this PR does.
+Describe what this PR does and why it matters in 1-2 sentences.
 
 ## Changes
 - 
@@ -19,7 +27,21 @@ Brief description of what this PR does.
 - [ ] Refactor
 - [ ] UI / Styling
 - [ ] Configuration
+- [ ] Documentation
+- [ ] Tests
 
-## Notes
+## User Impact
+- What changes for users or admins?
+- If there is no user-facing change, say so.
+
+## Verification
+- [ ] Frontend lint/build
+- [ ] Backend check/tests
+- [ ] Chrome visual QA, if UI changed
+- [ ] Not applicable; reason:
+- [ ] Not run; reason:
+
+## Notes / Follow-ups
 - Any additional context
-- Breaking changes (if any)
+- Breaking changes or deployment notes, if any
+- Follow-up work intentionally left out

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ api_title }}</title>
+  <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}" />
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --bg-accent: #f1f5f9;
+      --panel: rgba(255, 255, 255, 0.94);
+      --panel-strong: #ffffff;
+      --panel-muted: #f8fafc;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --muted: #475569;
+      --subtle: #64748b;
+      --accent: #0f172a;
+      --accent-strong: #1e293b;
+      --accent-soft: #e2e8f0;
+      --sidebar-bg: #2a3847;
+      --sidebar-accent: #b8cfdf;
+      --shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.22);
+      --green-bg: #ecfdf5;
+      --green-text: #047857;
+      --blue-bg: #eff6ff;
+      --blue-text: #1d4ed8;
+      --amber-bg: #fffbeb;
+      --amber-text: #b45309;
+      --red-bg: #fef2f2;
+      --red-text: #b91c1c;
+      --radius-lg: 24px;
+      --radius-md: 20px;
+      --radius-sm: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.96), transparent 24%),
+        radial-gradient(circle at top right, rgba(184, 207, 223, 0.18), transparent 28%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg-accent) 100%);
+    }
+
+    a {
+      color: inherit;
+    }
+
+    code,
+    pre {
+      font-family: "SFMono-Regular", SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    .page {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 56px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94)),
+        var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -80px -80px auto;
+      width: 220px;
+      height: 220px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(184, 207, 223, 0.36), rgba(184, 207, 223, 0));
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      background: var(--sidebar-bg);
+      color: var(--sidebar-accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(34px, 5vw, 52px);
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .toolbar,
+    .section-card,
+    .footer {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-actions,
+    .jump-links,
+    .method-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .hero-actions {
+      margin-top: 20px;
+    }
+
+    .action-link,
+    .jump-link,
+    .method-filter {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: border-color 140ms ease, transform 140ms ease, background 140ms ease;
+      cursor: pointer;
+    }
+
+    .action-link:hover,
+    .jump-link:hover,
+    .method-filter:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-1px);
+    }
+
+    .action-link.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+      color: #ffffff;
+    }
+
+    .toolbar,
+    .section-grid,
+    .footer {
+      margin-top: 18px;
+    }
+
+    .toolbar {
+      padding: 18px;
+    }
+
+    .toolbar h2,
+    .section-head h2 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .toolbar p,
+    .section-summary,
+    .footer p,
+    .empty-state p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .jump-link {
+      background: var(--panel-muted);
+    }
+
+    .jump-link small {
+      color: var(--subtle);
+      font-size: 12px;
+    }
+
+    .toolbar-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1 1 320px;
+      min-height: 48px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 0 16px;
+      background: var(--panel-strong);
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    .search-input:focus {
+      outline: 2px solid rgba(184, 207, 223, 0.45);
+      outline-offset: 2px;
+      border-color: var(--border-strong);
+    }
+
+    .search-clear {
+      min-height: 48px;
+      padding: 0 16px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: var(--panel-strong);
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .method-filters {
+      margin-top: 14px;
+    }
+
+    .method-filter[data-active="true"] {
+      border-color: transparent;
+      background: var(--text);
+      color: #ffffff;
+    }
+
+    .toolbar-jumps {
+      margin-top: 14px;
+    }
+
+    .toolbar-label {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: var(--subtle);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .section-grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-card {
+      overflow: hidden;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 22px 22px 18px;
+      border-bottom: 1px solid var(--border);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.92));
+    }
+
+    .count-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--panel-strong);
+      color: var(--subtle);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .endpoint-list {
+      padding: 10px 0;
+    }
+
+    .endpoint {
+      padding: 16px 22px;
+      border-top: 1px solid rgba(15, 23, 42, 0.06);
+    }
+
+    .endpoint:first-child {
+      border-top: 0;
+    }
+
+    .endpoint-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .method-badge {
+      min-width: 66px;
+      text-align: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .get {
+      background: var(--green-bg);
+      color: var(--green-text);
+    }
+
+    .post {
+      background: var(--blue-bg);
+      color: var(--blue-text);
+    }
+
+    .patch {
+      background: var(--amber-bg);
+      color: var(--amber-text);
+    }
+
+    .delete {
+      background: var(--red-bg);
+      color: var(--red-text);
+    }
+
+    .path {
+      display: inline-block;
+      padding: 4px 9px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-muted);
+      color: var(--text);
+      font-size: 14px;
+      word-break: break-word;
+    }
+
+    .endpoint-desc {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .empty-state {
+      padding: 28px 24px;
+      text-align: center;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.72);
+      margin-top: 18px;
+    }
+
+    .empty-state h2 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .footer {
+      padding: 20px 22px;
+    }
+
+    .footer p {
+      margin: 0;
+      text-align: center;
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 18px 14px 42px;
+      }
+
+      .hero,
+      .toolbar,
+      .section-head,
+      .endpoint,
+      .footer {
+        border-radius: 20px;
+      }
+
+      .hero,
+      .toolbar,
+      .footer {
+        padding: 18px;
+      }
+      .section-head,
+      .endpoint {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <div class="eyebrow">{{ version|upper }} backend catalog</div>
+      <h1>{{ api_title }}</h1>
+      <p class="subtitle">{{ api_subtitle }}</p>
+
+      <div class="hero-actions">
+        <a class="action-link primary" href="/v1/users/token/">Token Endpoint</a>
+        <a class="action-link" href="/health/">Health Check</a>
+        <a class="action-link" href="/admin/">Django Admin</a>
+        <a class="action-link" href="/v1/users/me/">Current User</a>
+      </div>
+    </section>
+
+    <section class="toolbar">
+      <div class="toolbar-top">
+        <div>
+          <h2>Filter endpoints</h2>
+          <p>Search by section, method, path, or description, then use the section links below for quick jumps through the catalog.</p>
+        </div>
+      </div>
+
+      <div class="search-row">
+        <input
+          class="search-input"
+          type="search"
+          placeholder="Search endpoints, examples, or descriptions"
+          aria-label="Search endpoints"
+          data-endpoint-search
+        />
+        <button class="search-clear" type="button" data-search-clear>Clear</button>
+      </div>
+
+      <div class="method-filters">
+        <button class="method-filter" type="button" data-method-filter="all" data-active="true">All methods</button>
+        {% for item in method_counts %}
+        <button
+          class="method-filter"
+          type="button"
+          data-method-filter="{{ item.method|lower }}"
+          data-active="false"
+        >
+          {{ item.method }} ({{ item.count }})
+        </button>
+        {% endfor %}
+      </div>
+
+      <div class="toolbar-jumps">
+        <span class="toolbar-label">Sections</span>
+        <div class="jump-links">
+          {% for section in endpoint_sections %}
+          <a class="jump-link" href="#{{ section.id }}">
+            {{ section.title }}
+            <small>{{ section.endpoints|length }} endpoints</small>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <div class="section-grid" data-section-grid>
+      {% for section in endpoint_sections %}
+      <section class="section-card" id="{{ section.id }}" data-section-card>
+        <div class="section-head">
+          <div>
+            <h2>{{ section.title }}</h2>
+            <p class="section-summary">{{ section.summary }}</p>
+          </div>
+          <span class="count-pill" data-count-label>{{ section.endpoints|length }} endpoints</span>
+        </div>
+
+        <div class="endpoint-list">
+          {% for endpoint in section.endpoints %}
+          <div
+            class="endpoint"
+            data-endpoint
+            data-method="{{ endpoint.method|lower }}"
+            data-search="{{ section.title|lower }} {{ endpoint.method|lower }} {{ endpoint.path|lower }} {{ endpoint.description|lower }}"
+          >
+            <div class="endpoint-row">
+              <span class="method-badge {{ endpoint.class }}">{{ endpoint.method }}</span>
+              <code class="path">{{ endpoint.path }}</code>
+            </div>
+            <div class="endpoint-desc">{{ endpoint.description }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+
+    <section class="empty-state" hidden data-empty-state>
+      <h2>No matching endpoints</h2>
+      <p>Try a different path fragment, method, or domain keyword like patient, organization, policy, or health.</p>
+    </section>
+
+    <footer class="footer">
+      <p>This page is a browsable CareFlow API catalog for local development, admin workflows, and integration checks.</p>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      const searchInput = document.querySelector("[data-endpoint-search]");
+      const clearButton = document.querySelector("[data-search-clear]");
+      const sectionCards = Array.from(document.querySelectorAll("[data-section-card]"));
+      const methodButtons = Array.from(document.querySelectorAll("[data-method-filter]"));
+      const emptyState = document.querySelector("[data-empty-state]");
+
+      if (!searchInput || !clearButton || !sectionCards.length || !methodButtons.length || !emptyState) {
+        return;
+      }
+
+      let activeMethod = "all";
+
+      function normalize(value) {
+        return value.trim().toLowerCase();
+      }
+
+      function updateMethodButtons() {
+        methodButtons.forEach((button) => {
+          button.dataset.active = String(button.dataset.methodFilter === activeMethod);
+        });
+      }
+
+      function applyFilters() {
+        const query = normalize(searchInput.value);
+        let visibleEndpoints = 0;
+
+        sectionCards.forEach((card) => {
+          const endpoints = Array.from(card.querySelectorAll("[data-endpoint]"));
+          const countLabel = card.querySelector("[data-count-label]");
+          let visibleInSection = 0;
+
+          endpoints.forEach((endpoint) => {
+            const matchesMethod =
+              activeMethod === "all" || endpoint.dataset.method === activeMethod;
+            const matchesQuery =
+              !query || endpoint.dataset.search.includes(query);
+            const isVisible = matchesMethod && matchesQuery;
+
+            endpoint.hidden = !isVisible;
+
+            if (isVisible) {
+              visibleInSection += 1;
+              visibleEndpoints += 1;
+            }
+          });
+
+          card.hidden = visibleInSection === 0;
+
+          if (countLabel) {
+            countLabel.textContent =
+              visibleInSection === 1
+                ? "1 endpoint"
+                : `${visibleInSection} endpoints`;
+          }
+        });
+
+        emptyState.hidden = visibleEndpoints > 0;
+      }
+
+      methodButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          activeMethod = button.dataset.methodFilter || "all";
+          updateMethodButtons();
+          applyFilters();
+        });
+      });
+
+      searchInput.addEventListener("input", applyFilters);
+      clearButton.addEventListener("click", () => {
+        searchInput.value = "";
+        searchInput.focus();
+        applyFilters();
+      });
+
+      updateMethodButtons();
+      applyFilters();
+    })();
+  </script>
+</body>
+</html>

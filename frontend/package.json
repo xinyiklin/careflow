@@ -21,14 +21,15 @@
     "@mui/x-date-pickers": "^8.27.2",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.97.0",
-    "axios": "^1.14.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
-    "dayjs": "^1.11.20",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",
+    "react-colorful": "^5.6.1",
     "react-dom": "^19.2.4",
-    "react-hook-form": "^7.72.1"
+    "react-hook-form": "^7.72.1",
+    "react-pdf": "^10.4.1",
+    "react-router-dom": "^7.14.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

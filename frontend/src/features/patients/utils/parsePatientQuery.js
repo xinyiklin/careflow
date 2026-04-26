@@ -1,14 +1,48 @@
 import { parse, isValid, format } from "date-fns";
 
+function normalizeQuery(query) {
+  return String(query || "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function stripKnownTokens(query) {
+  return query
+    .replace(/\b(?:mrn|chart)\s*[:#]?\s*\d+\b/gi, "")
+    .replace(/\b(?:dob|birth(?:day)?|born)\s*[:#]?\s*/gi, "")
+    .replace(/\b\d{8}\b/g, "")
+    .replace(/\b\d{4}-\d{2}-\d{2}\b/g, "")
+    .replace(/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/g, "")
+    .replace(
+      /\b(?:phone|cell|mobile|tel)\s*[:#]?\s*(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}\b/gi,
+      ""
+    )
+    .replace(
+      /\b(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4}\b/g,
+      ""
+    )
+    .replace(/^,|,$/g, "")
+    .trim()
+    .replace(/\s*,\s*/g, ", ")
+    .replace(/\s+/g, " ");
+}
+
 export function parsePatientQuery(query) {
   if (!query)
-    return { name: "", date_of_birth: "", chart_number: "", needsAi: false };
+    return {
+      name: "",
+      date_of_birth: "",
+      chart_number: "",
+      phone: "",
+      needsAi: false,
+    };
 
-  const mrnMatch = query.match(/\b(?:mrn|chart)\s*[:#]?\s*([a-z0-9-]+)\b/i);
-  let chart_number = mrnMatch ? mrnMatch[1].toUpperCase() : "";
+  const normalizedQuery = normalizeQuery(query);
+  const mrnMatch = normalizedQuery.match(/\b(?:mrn|chart)\s*[:#]?\s*(\d+)\b/i);
+  let chart_number = mrnMatch ? mrnMatch[1] : "";
 
-  const dateMatch = query.match(
-    /\b(\d{8}|\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4})\b/
+  const dateMatch = normalizedQuery.match(
+    /\b(\d{8}|\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4})\b/
   );
   let date_of_birth = "";
 
@@ -17,9 +51,20 @@ export function parsePatientQuery(query) {
     let parsedDate = null;
 
     if (raw.includes("-")) {
-      parsedDate = parse(raw, "yyyy-MM-dd", new Date());
+      parsedDate =
+        raw.length === 10 && raw.indexOf("-") === 4
+          ? parse(raw, "yyyy-MM-dd", new Date())
+          : parse(
+              raw,
+              raw.split("-")[2]?.length === 2 ? "M-d-yy" : "M-d-yyyy",
+              new Date()
+            );
     } else if (raw.includes("/")) {
-      parsedDate = parse(raw, "M/d/yyyy", new Date());
+      parsedDate = parse(
+        raw,
+        raw.split("/")[2]?.length === 2 ? "M/d/yy" : "M/d/yyyy",
+        new Date()
+      );
     } else if (raw.length === 8) {
       const firstFour = parseInt(raw.substring(0, 4), 10);
 
@@ -35,20 +80,28 @@ export function parsePatientQuery(query) {
     }
   }
 
-  let name = query
-    .replace(/\b(?:mrn|chart)\s*[:#]?\s*[a-z0-9-]+\b/gi, "")
-    .replace(/\b\d{8}\b/g, "")
-    .replace(/\b\d{4}-\d{2}-\d{2}\b/g, "")
-    .replace(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/g, "")
-    .replace(/\bborn\b/gi, "")
-    .trim()
-    .replace(/^,|,$/g, "")
-    .trim();
+  const phoneMatch = normalizedQuery.match(
+    /\b(?:phone|cell|mobile|tel)?\s*[:#]?\s*((?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)?\d{3}[\s.-]?\d{4})\b/i
+  );
+  const phone = phoneMatch ? phoneMatch[1].replace(/\D/g, "") : "";
+
+  if (
+    !chart_number &&
+    !date_of_birth &&
+    !phone &&
+    /^\d+$/.test(normalizedQuery)
+  ) {
+    chart_number = normalizedQuery;
+  }
+
+  const name =
+    chart_number === normalizedQuery ? "" : stripKnownTokens(normalizedQuery);
 
   const needsAi =
     !chart_number &&
     !date_of_birth &&
-    /\b(?:born|male|female|patient|mrn)\b/i.test(query);
+    !phone &&
+    /\b(?:born|male|female|patient|mrn)\b/i.test(normalizedQuery);
 
-  return { name, date_of_birth, chart_number, needsAi };
+  return { name, date_of_birth, chart_number, phone, needsAi };
 }

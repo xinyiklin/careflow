@@ -1,0 +1,8 @@
+export const DRAG_START_THRESHOLD = 6;
+export const MAX_SCHEDULE_COLUMNS = 5;
+export const DEFAULT_SLOT_INTERVAL = 15;
+export const DEFAULT_RESOURCE_COLUMN_COUNT = 1;
+export const DEFAULT_MULTI_DAY_COLUMN_COUNT = 1;
+export const SLOT_INTERVAL_OPTIONS = [5, 10, 15, 20, 30, 60];
+export const SCHEDULE_START_MINUTE = 8 * 60;
+export const SCHEDULE_END_MINUTE = 17 * 60;

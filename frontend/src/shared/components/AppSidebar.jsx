@@ -1,50 +1,95 @@
-import { Menu, LayoutDashboard } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+
+import useAdminPermissions from "../../features/admin/hooks/shared/useAdminPermissions";
+import { APP_NAME } from "../constants/app";
+import {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+} from "../constants/layout";
+import { getSidebarNavItems } from "../constants/navItems";
+import { CareFlowIcon } from "./icons";
+import SidebarItem from "./SidebarItem";
 
 export default function AppSidebar({ isCollapsed, onToggleCollapse }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const {
+    canAccessFacilityAdmin,
+    canAccessOrganizationAdmin,
+    hasAnyAdminAccess,
+  } = useAdminPermissions();
+
+  const navItems = getSidebarNavItems({
+    location,
+    navigate,
+    canAccessFacilityAdmin,
+    canAccessOrganizationAdmin,
+    hasAnyAdminAccess,
+  });
+
   return (
     <aside
-      className={[
-        "fixed inset-y-0 left-0 z-50 overflow-hidden border-r border-slate-200 bg-white shadow-sm",
-        "transition-[width] duration-300 ease-in-out",
-        isCollapsed ? "w-16" : "w-36",
-      ].join(" ")}
+      className="relative h-full shrink-0 will-change-[width] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      style={{
+        width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
+      }}
     >
-      <div className="flex h-14 items-center border-b border-slate-200 px-2 select-none">
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50"
-          aria-label="Toggle sidebar collapse"
-          title="Toggle sidebar"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      </div>
-
-      <nav className="p-2 select-none">
-        <div className="space-y-1">
-          <button
-            type="button"
-            className="relative flex h-10 w-full items-center rounded-lg px-3 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
-            title="Dashboard"
+      <div className="h-full">
+        <div className="cf-sidebar flex h-full flex-col px-3 py-3">
+          <div
+            className={[
+              "cf-sidebar-brand flex min-h-14 items-center",
+              isCollapsed ? "justify-center px-1" : "gap-3 px-2.5",
+            ].join(" ")}
           >
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center">
-              <LayoutDashboard className="h-5 w-5" />
-            </span>
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              className="cf-sidebar-brand-mark flex h-10 w-10 shrink-0 items-center justify-center"
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <CareFlowIcon className="block h-5 w-5 shrink-0 text-[var(--color-cf-sidebar-accent)]" />
+            </button>
 
-            <span
+            <div
               className={[
-                "pointer-events-none absolute left-11 whitespace-nowrap transition-[opacity,transform] duration-150 ease-out",
+                "min-w-0 overflow-hidden text-left transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
                 isCollapsed
-                  ? "translate-x-1 opacity-0"
-                  : "translate-x-0 opacity-100",
+                  ? "max-w-0 translate-x-1 opacity-0"
+                  : "max-w-[140px] translate-x-0 opacity-100 delay-75",
               ].join(" ")}
             >
-              Dashboard
-            </span>
-          </button>
+              <div className="truncate text-sm font-semibold text-[var(--color-cf-sidebar-text)]">
+                {APP_NAME}
+              </div>
+            </div>
+          </div>
+
+          <nav className="mt-4 flex-1">
+            <div
+              className={[
+                "mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-cf-sidebar-text-muted)] transition-opacity",
+                isCollapsed ? "opacity-0" : "opacity-100",
+              ].join(" ")}
+            >
+              Navigate
+            </div>
+            <div className="space-y-1">
+              {navItems.map((item) => (
+                <SidebarItem
+                  key={item.key}
+                  icon={item.icon}
+                  label={item.label}
+                  isActive={item.isActive}
+                  isCollapsed={isCollapsed}
+                  onClick={item.onClick}
+                />
+              ))}
+            </div>
+          </nav>
         </div>
-      </nav>
+      </div>
     </aside>
   );
 }

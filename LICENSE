@@ -1,9 +1,18 @@
-MIT License
-
 Copyright (c) 2026 Xinyi Lin
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction...
+All rights reserved.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND...
+CareFlow is provided for portfolio review, demonstration, and evaluation only.
+No permission is granted to copy, modify, distribute, sublicense, sell, host,
+commercialize, or otherwise use this software or any substantial portion of it
+without prior written permission from the copyright holder.
+
+This repository and any related demo deployment are not licensed as open source
+software. Access to the code or demo does not grant any ownership interest or
+commercial usage rights.
+
+The software is provided "as is", without warranty of any kind, express or
+implied, including but not limited to warranties of merchantability, fitness for
+a particular purpose, and noninfringement. In no event shall the copyright
+holder be liable for any claim, damages, or other liability arising from or in
+connection with the software or its use.

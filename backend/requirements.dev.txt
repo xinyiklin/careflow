@@ -1,18 +1,5 @@
 -r requirements.txt
-black==24.4.2
-cfgv==3.4.0
-click==8.1.8
-distlib==0.4.0
-filelock==3.19.1
-identify==2.6.15
-mypy_extensions==1.1.0
-nodeenv==1.10.0
-packaging==26.1
-pathspec==1.0.4
-platformdirs==4.4.0
+
+black==25.11.0
 pre-commit==3.7.1
-python-discovery==1.2.2
-PyYAML==6.0.3
-ruff==0.4.4
-tomli==2.4.1
-virtualenv==21.2.4
+ruff==0.15.10

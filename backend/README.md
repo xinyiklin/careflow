@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is the Django backend for Clinic Scheduler. It provides authentication, facility-scoped scheduling APIs, patient APIs, and admin tools for configuration data.
+This is the Django backend for CareFlow. It provides authentication, facility-scoped scheduling APIs, patient registration, document workflows, insurance, pharmacy, audit, and admin configuration APIs.
 
 ## Tech Stack
 
@@ -13,10 +13,13 @@ This is the Django backend for Clinic Scheduler. It provides authentication, fac
 
 ## Apps
 
-- `accounts` - custom user model and authentication endpoints
-- `facilities` - facility, staff, appointment status/type, patient gender configuration
-- `patients` - patient records
-- `scheduler` - appointment scheduling and related APIs
+- `users` - custom user model, authentication, memberships, and preferences
+- `facilities` - facility, staff, resources, appointment status/type, and security configuration
+- `appointments` - appointment scheduling and activity behavior
+- `patients` - patient records, registration, search, documents, and pharmacies
+- `insurance` - carriers and patient insurance policies
+- `organizations` - organization profile, memberships, and pharmacy preferences
+- `audit` - audit-style event records
 
 ## Core Features
 
@@ -24,7 +27,8 @@ This is the Django backend for Clinic Scheduler. It provides authentication, fac
 - Facility-scoped access control
 - Appointment CRUD endpoints
 - Patient CRUD and search
-- Configurable appointment statuses, appointment types, and patient genders
+- Patient document upload, preview, download, categories, and bundled PDF export
+- Configurable appointment statuses, types, resources, operating hours, patient genders, and document categories
 - Django admin for operational configuration
 - Demo data seeding
 
@@ -51,8 +55,8 @@ Example local database settings:
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "clinic_scheduler",
-        "USER": "clinic_user",
+        "NAME": "careflow",
+        "USER": "careflow_user",
         "PASSWORD": "password",
         "HOST": "localhost",
         "PORT": "5433",
@@ -69,7 +73,8 @@ python manage.py migrate
 ### Seed demo data
 
 ```bash
-python manage.py seed_demo --reset-appointments
+python manage.py seed_demo
+python manage.py seed_patient_documents
 ```
 
 ### Start server
@@ -108,4 +113,6 @@ python manage.py showmigrations
 
 - If models change, make sure migrations are created and applied in both local and deployed environments.
 - Production admin errors often come from migration mismatches between code and database schema.
-- `seed_demo` populates a demo clinic, demo users, patients, and appointments for local testing.
+- `seed_demo` populates the CareFlow demo organization, Clinic A/B/C, users, staff, resources, patients, phones, emergency contacts, insurance, pharmacies, local previewable documents, and appointments.
+- `seed_patient_documents` refreshes or adds local previewable PDF documents for document workflow testing without reseeding the whole demo database.
+- Development document files are stored under `backend/local_documents/`; database rows store metadata and a storage key, not the file bytes.

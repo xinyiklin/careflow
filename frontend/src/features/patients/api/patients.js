@@ -1,44 +1,76 @@
 import { apiRequest } from "../../../shared/api/client";
 
 export function searchPatients({
+  facilityId,
   search,
   name,
   date_of_birth,
   chart_number,
+  phone,
 } = {}) {
-  const params = new URLSearchParams();
-
-  // data sanitation
-  if (search) params.append("search", search);
-  if (name) params.append("name", name);
-  if (date_of_birth) params.append("date_of_birth", date_of_birth);
-  if (chart_number) params.append("chart_number", chart_number);
-
-  const query = params.toString() ? `?${params.toString()}` : "";
-
-  return apiRequest(`/api/patients/${query}`);
+  return apiRequest("/patients/", {
+    params: {
+      facility_id: facilityId,
+      search,
+      name,
+      date_of_birth,
+      chart_number,
+      phone,
+    },
+  });
 }
 
-export function createPatient(data) {
-  return apiRequest("/api/patients/", {
+export function createPatient(data, facilityId) {
+  return apiRequest("/patients/", {
     method: "POST",
+    params: {
+      facility_id: facilityId,
+    },
     body: JSON.stringify(data),
   });
 }
 
-export function updatePatient(id, data) {
-  return apiRequest(`/api/patients/${id}/`, {
+export function updatePatient(id, data, facilityId) {
+  return apiRequest(`/patients/${id}/`, {
     method: "PUT",
+    params: {
+      facility_id: facilityId,
+    },
     body: JSON.stringify(data),
   });
 }
 
-export function deletePatient(id) {
-  return apiRequest(`/api/patients/${id}/`, {
-    method: "DELETE",
+export function patchPatient(id, partialData, facilityId) {
+  return apiRequest(`/patients/${id}/`, {
+    method: "PATCH",
+    params: {
+      facility_id: facilityId,
+    },
+    body: JSON.stringify(partialData),
   });
 }
 
-export function fetchPatientById(id) {
-  return apiRequest(`/api/patients/${id}/`, {});
+export function deletePatient(id, facilityId) {
+  return apiRequest(`/patients/${id}/`, {
+    method: "DELETE",
+    params: {
+      facility_id: facilityId,
+    },
+  });
+}
+
+export function fetchPatientById(id, facilityId) {
+  return apiRequest(`/patients/${id}/`, {
+    params: {
+      facility_id: facilityId,
+    },
+  });
+}
+
+export function revealPatientSsn(id, facilityId) {
+  return apiRequest(`/patients/${id}/reveal-ssn/`, {
+    params: {
+      facility_id: facilityId,
+    },
+  });
 }

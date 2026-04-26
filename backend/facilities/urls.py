@@ -1,25 +1,49 @@
-from django.urls import path
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
 
 from .views import (
-    AppointmentStatusListView,
-    AppointmentTypeListView,
-    PatientGendersView,
-    PhysicianListView,
-    StaffListView,
+    AppointmentStatusViewSet,
+    AppointmentTypeViewSet,
+    FacilityResourceViewSet,
+    FacilityViewSet,
+    PatientGenderViewSet,
+    StaffRoleViewSet,
+    StaffTitleViewSet,
+    StaffViewSet,
 )
 
+router = DefaultRouter()
+router.register(r"staff", StaffViewSet, basename="staff")
+router.register(
+    r"appointment-statuses", AppointmentStatusViewSet, basename="appointment-status"
+)
+router.register(
+    r"appointment-types", AppointmentTypeViewSet, basename="appointment-type"
+)
+router.register(r"resources", FacilityResourceViewSet, basename="facility-resource")
+router.register(r"staff-roles", StaffRoleViewSet, basename="staff-role")
+router.register(r"staff-titles", StaffTitleViewSet, basename="staff-title")
+router.register(r"patient-genders", PatientGenderViewSet, basename="patient-gender")
+
 urlpatterns = [
-    path("staffs/", StaffListView.as_view(), name="staff-list"),  # Renamed to staffs
-    path("physicians/", PhysicianListView.as_view(), name="physician-list"),
+    path("", include(router.urls)),
     path(
-        "appointment-statuses/",
-        AppointmentStatusListView.as_view(),
-        name="appointment-status-list",
+        "manage/",
+        FacilityViewSet.as_view(
+            {
+                "get": "list",
+                "post": "create",
+            }
+        ),
     ),
     path(
-        "appointment-types/",
-        AppointmentTypeListView.as_view(),
-        name="appointment-type-list",
+        "manage/<int:pk>/",
+        FacilityViewSet.as_view(
+            {
+                "get": "retrieve",
+                "patch": "partial_update",
+                "delete": "destroy",
+            }
+        ),
     ),
-    path("patient-genders/", PatientGendersView.as_view(), name="patient-gender-list"),
 ]

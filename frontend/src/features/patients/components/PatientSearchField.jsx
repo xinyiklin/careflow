@@ -1,22 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Search,
+  UserRoundCheck,
+  X,
+} from "lucide-react";
 import { searchPatients } from "../api/patients";
 import { parsePatientQuery } from "../utils/parsePatientQuery";
-import { formatDOB } from "../../../shared/utils/dateTime";
+import {
+  PatientAvatar,
+  PatientDobMrnLine,
+  PatientNameLine,
+} from "./PatientIdentity";
+import { Button, Input, Notice } from "../../../shared/components/ui";
+import { getErrorMessage } from "../../../shared/utils/errors";
 
 export default function PatientSearchField({
+  facilityId,
   selectedPatient,
   onSelectPatient,
   onOpenDetailedSearch,
   onOpenCreatePatient,
+  recentPatients = [],
+  showDetailedSearch = true,
+  showNoResultActions = true,
+  compactSelected = false,
+  showSelectedAvatar = true,
+  resultsDropdownClassName = "",
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [showRecentPatients, setShowRecentPatients] = useState(false);
   const [error, setError] = useState("");
 
   const containerRef = useRef(null);
-
   const cleanQuery = useMemo(
     () => (query || "").trim().replace(/\s+/g, " "),
     [query]
@@ -26,9 +46,9 @@ export default function PatientSearchField({
     const handleClickOutside = (event) => {
       if (!containerRef.current?.contains(event.target)) {
         setShowResults(false);
+        setShowRecentPatients(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -46,165 +66,258 @@ export default function PatientSearchField({
       try {
         setLoading(true);
         setError("");
-
         const parsed = parsePatientQuery(cleanQuery);
-        console.log(parsed);
-
         const searchPayload =
-          parsed.name || parsed.date_of_birth || parsed.chart_number
+          parsed.name ||
+          parsed.date_of_birth ||
+          parsed.chart_number ||
+          parsed.phone
             ? {
+                facilityId,
                 name: parsed.name,
                 date_of_birth: parsed.date_of_birth,
                 chart_number: parsed.chart_number,
+                phone: parsed.phone,
               }
-            : { search: cleanQuery };
-
+            : { facilityId, search: cleanQuery };
         const data = await searchPatients(searchPayload);
-
         setResults(data);
         setShowResults(true);
       } catch (err) {
-        console.error(err);
-        setError("Failed to search patients.");
+        setError(getErrorMessage(err, "Failed to search patients."));
       } finally {
         setLoading(false);
       }
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [cleanQuery]);
+  }, [cleanQuery, facilityId]);
 
   const handleSelect = (patient) => {
     onSelectPatient(patient);
     setQuery("");
     setResults([]);
     setShowResults(false);
+    setShowRecentPatients(false);
   };
 
-  const clearSelectedPatient = () => {
-    onSelectPatient(null);
-  };
+  const clearSelectedPatient = () => onSelectPatient(null);
 
   return (
     <div className="space-y-2" ref={containerRef}>
       {selectedPatient ? (
-        <div className="flex items-center justify-between rounded-lg border border-slate-300 bg-slate-50 px-3 py-2">
-          <div>
-            <p className="text-sm font-medium text-slate-900">
-              {`${selectedPatient.last_name}, ${selectedPatient.first_name}`}
-            </p>
-            <p className="text-xs text-slate-500">
-              DOB: {formatDOB(selectedPatient.date_of_birth)}
-              {selectedPatient.chart_number
-                ? ` • MRN: ${selectedPatient.chart_number}`
-                : ""}
-            </p>
+        <div
+          className={[
+            "flex items-center justify-between gap-3 rounded-2xl border border-cf-border bg-cf-surface-soft px-3",
+            compactSelected ? "h-[42px] py-0" : "py-3",
+          ].join(" ")}
+        >
+          <div className="flex min-w-0 items-center gap-3">
+            {showSelectedAvatar ? (
+              <PatientAvatar
+                patient={selectedPatient}
+                size={compactSelected ? "sm" : "md"}
+              />
+            ) : null}
+            <div className="min-w-0">
+              <PatientNameLine patient={selectedPatient} className="text-sm" />
+              {!compactSelected ? (
+                <PatientDobMrnLine
+                  patient={selectedPatient}
+                  className="mt-0.5"
+                />
+              ) : null}
+            </div>
           </div>
-
           <button
             type="button"
             onClick={clearSelectedPatient}
-            className="rounded-md px-2 py-1 text-sm text-slate-600 hover:bg-slate-200"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-cf-text-subtle transition hover:bg-cf-surface hover:text-cf-text"
+            aria-label="Clear selected patient"
           >
-            Change
+            <X className="h-4 w-4" />
           </button>
         </div>
       ) : (
         <>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <input
+              <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-cf-text-subtle" />
+              <Input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => {
                   if (results.length > 0) setShowResults(true);
                 }}
-                placeholder="Search patient (Last, First or Last Name)"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className={compactSelected ? "h-[42px] pl-10" : "pl-10"}
               />
 
               {showResults && (
-                <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg">
+                <div
+                  className={[
+                    "absolute z-20 mt-2 max-h-72 overflow-y-auto rounded-2xl border border-cf-border bg-cf-surface p-2 shadow-[var(--shadow-panel-lg)]",
+                    resultsDropdownClassName || "w-full",
+                  ].join(" ")}
+                >
                   {loading && (
-                    <div className="px-3 py-2 text-sm text-slate-500">
-                      Searching...
+                    <div className="space-y-2 px-1 py-1">
+                      <div className="cf-loading-skeleton h-12 rounded-xl bg-cf-surface-soft" />
+                      <div className="cf-loading-skeleton h-12 rounded-xl bg-cf-surface-soft" />
                     </div>
                   )}
-
-                  {!loading && error && (
-                    <div className="px-3 py-2 text-sm text-red-600">
-                      {error}
-                    </div>
-                  )}
-
+                  {!loading && error && <Notice tone="danger">{error}</Notice>}
                   {!loading && !error && results.length > 0 && (
-                    <ul>
+                    <ul className="space-y-1">
                       {results.map((patient) => (
                         <li key={patient.id}>
                           <button
                             type="button"
+                            onMouseDown={(event) => {
+                              event.preventDefault();
+                            }}
                             onClick={() => handleSelect(patient)}
-                            className="w-full px-3 py-2 text-left hover:bg-slate-50"
+                            className="group flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition hover:bg-cf-surface-soft"
                           >
-                            <div className="text-sm font-medium text-slate-900">
-                              {`${patient.last_name}, ${patient.first_name}`}
+                            <div className="min-w-0 flex-1">
+                              <PatientNameLine
+                                patient={patient}
+                                className="text-sm"
+                              />
+                              <PatientDobMrnLine
+                                patient={patient}
+                                className="mt-0.5"
+                              />
                             </div>
-                            <div className="text-xs text-slate-500">
-                              DOB: {formatDOB(patient.date_of_birth)}
-                              {patient.chart_number
-                                ? ` • MRN: ${patient.chart_number}`
-                                : ""}
-                            </div>
+                            <ChevronRight className="h-4 w-4 shrink-0 text-cf-text-subtle transition group-hover:translate-x-0.5 group-hover:text-cf-text" />
                           </button>
                         </li>
                       ))}
                     </ul>
                   )}
-
                   {!loading &&
                     !error &&
                     query.trim().length >= 2 &&
                     results.length === 0 && (
-                      <div className="space-y-2 px-3 py-3">
-                        <p className="text-sm text-slate-500">
-                          No patient found.
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={onOpenCreatePatient}
-                            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                          >
-                            Create New Patient
-                          </button>
-                          <button
-                            type="button"
-                            onClick={onOpenDetailedSearch}
-                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                          >
-                            Advanced Search
-                          </button>
+                      <div className="space-y-3 rounded-xl border border-dashed border-cf-border bg-cf-surface-muted/35 px-3 py-4 text-center">
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl border border-cf-border bg-cf-surface text-cf-text-subtle">
+                          <UserRoundCheck className="h-4 w-4" />
                         </div>
+                        <p className="text-sm font-medium text-cf-text">
+                          No patient found
+                        </p>
+                        {showNoResultActions &&
+                        (onOpenCreatePatient ||
+                          (showDetailedSearch && onOpenDetailedSearch)) ? (
+                          <div className="flex justify-center gap-2">
+                            {onOpenCreatePatient ? (
+                              <Button
+                                type="button"
+                                variant="primary"
+                                size="sm"
+                                onClick={onOpenCreatePatient}
+                              >
+                                Create
+                              </Button>
+                            ) : null}
+                            {showDetailedSearch && onOpenDetailedSearch ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={onOpenDetailedSearch}
+                              >
+                                Advanced Search
+                              </Button>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
                     )}
                 </div>
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={onOpenDetailedSearch}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              title="Advanced search"
-            >
-              Search
-            </button>
-          </div>
+            {showDetailedSearch || recentPatients.length > 0 ? (
+              <div
+                className={[
+                  "relative inline-flex shrink-0 items-center rounded-xl border border-cf-border bg-cf-surface shadow-sm",
+                  compactSelected ? "h-[42px]" : "h-10",
+                ].join(" ")}
+              >
+                {showDetailedSearch ? (
+                  <button
+                    type="button"
+                    onClick={onOpenDetailedSearch}
+                    className={[
+                      "inline-flex h-9 w-10 items-center justify-center text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text",
+                      recentPatients.length > 0 ? "rounded-l-xl" : "rounded-xl",
+                    ].join(" ")}
+                    aria-label="Open advanced patient search"
+                    title="Advanced search"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                ) : null}
 
-          <p className="text-xs text-slate-500">
-            Quick search supports “Last, First” or just last name.
-          </p>
+                {recentPatients.length > 0 ? (
+                  <>
+                    {showDetailedSearch ? (
+                      <div className="h-5 w-px bg-cf-border" />
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRecentPatients((prev) => !prev);
+                        setShowResults(false);
+                      }}
+                      className={[
+                        "inline-flex h-9 w-9 items-center justify-center text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text",
+                        showDetailedSearch ? "rounded-r-xl" : "rounded-xl",
+                      ].join(" ")}
+                      aria-label="Open recent patients"
+                      title="Recent patients"
+                    >
+                      <ChevronDown
+                        className={[
+                          "h-4 w-4 transition-transform duration-200",
+                          showRecentPatients ? "rotate-180" : "rotate-0",
+                        ].join(" ")}
+                      />
+                    </button>
+                  </>
+                ) : null}
+
+                {recentPatients.length > 0 && showRecentPatients ? (
+                  <div className="absolute right-0 top-12 z-30 w-72 rounded-2xl border border-cf-border bg-cf-surface p-2 shadow-[var(--shadow-panel-lg)]">
+                    <ul className="max-h-72 space-y-1 overflow-y-auto">
+                      {recentPatients.map((patient) => (
+                        <li key={patient.id}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelect(patient)}
+                            className="group flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left transition hover:bg-cf-surface-soft"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <PatientNameLine
+                                patient={patient}
+                                className="text-sm"
+                              />
+                              <PatientDobMrnLine
+                                patient={patient}
+                                className="mt-0.5"
+                              />
+                            </div>
+                            <ChevronRight className="h-4 w-4 shrink-0 text-cf-text-subtle transition group-hover:translate-x-0.5 group-hover:text-cf-text" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </>
       )}
     </div>
