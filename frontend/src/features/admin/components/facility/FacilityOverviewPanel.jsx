@@ -15,7 +15,14 @@ function formatAddress(address) {
 
 function ProfileField({ label, value, className = "" }) {
   return (
-    <div className={className}>
+    <div
+      className={[
+        "rounded-2xl border border-cf-border bg-cf-surface/75 px-3 py-2.5",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <dt className="text-[10px] font-semibold uppercase tracking-widest text-cf-text-subtle">
         {label}
       </dt>
@@ -28,8 +35,8 @@ function ProfileField({ label, value, className = "" }) {
 
 function SummaryTile({ label, value }) {
   return (
-    <div className="rounded-xl bg-cf-surface-soft p-3 text-center">
-      <div className="text-xl font-semibold tracking-tight text-cf-text">
+    <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+      <div className="text-2xl font-semibold tracking-tight text-cf-text">
         {value}
       </div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-cf-text-subtle">
@@ -118,46 +125,27 @@ export default function FacilityOverviewPanel() {
   return (
     <AdminTableCard>
       <div className="px-5 py-5">
-        <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-              Facility · Overview
+        <header className="mb-4 rounded-[1.15rem] border border-cf-border bg-cf-surface-soft/55 px-4 py-3 shadow-[var(--shadow-panel)]">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface text-sm font-bold text-cf-text shadow-[var(--shadow-panel)]">
+              {getFacilityInitials(adminFacility.name)}
+            </span>
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+                Facility profile
+              </div>
+              <h3 className="mt-0.5 truncate text-xl font-semibold tracking-tight text-cf-text">
+                {adminFacility.name}
+              </h3>
+              <div className="mt-0.5 text-sm font-medium text-cf-text-muted">
+                {adminFacility.facility_code || "No facility code"}
+              </div>
             </div>
-            <h3 className="mt-1 text-xl font-semibold tracking-tight text-cf-text">
-              {adminFacility.name}
-            </h3>
-            <p className="mt-1 text-sm text-cf-text-muted">
-              Profile, contact details, and operating notes for this facility.
-            </p>
           </div>
-          <span
-            className={[
-              "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold",
-              adminFacility.is_active !== false
-                ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-500/12 dark:text-emerald-200 dark:ring-emerald-500/30"
-                : "bg-cf-surface-muted text-cf-text-subtle ring-1 ring-cf-border",
-            ].join(" ")}
-          >
-            {adminFacility.is_active !== false ? "Active" : "Inactive"}
-          </span>
         </header>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-2">
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cf-accent/12 text-sm font-semibold text-cf-accent ring-1 ring-cf-accent/20">
-                {getFacilityInitials(adminFacility.name)}
-              </span>
-              <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
-                  Profile
-                </div>
-                <div className="truncate text-sm font-semibold text-cf-text">
-                  {adminFacility.facility_code || "No facility code"}
-                </div>
-              </div>
-            </div>
-
+          <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface-soft/55 p-3 shadow-[var(--shadow-panel)] lg:col-span-2">
             <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
               <ProfileField label="Facility name" value={adminFacility.name} />
               <ProfileField label="Time zone" value={adminFacility.timezone} />
@@ -177,7 +165,7 @@ export default function FacilityOverviewPanel() {
           </div>
 
           <div className="space-y-3">
-            <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
+            <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface-soft/55 p-3 shadow-[var(--shadow-panel)]">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                 At a glance
               </div>
@@ -189,7 +177,7 @@ export default function FacilityOverviewPanel() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
+            <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                 Notes
               </div>

@@ -4,3 +4,4 @@ export { default as Badge } from "./Badge";
 export { default as ModalShell } from "./ModalShell";
 export { default as Panel } from "./Panel";
 export { default as Notice } from "./Notice";
+export { CategoryRail, CategoryRailItem } from "./CategoryRail";

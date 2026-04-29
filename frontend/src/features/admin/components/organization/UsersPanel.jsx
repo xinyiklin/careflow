@@ -207,7 +207,7 @@ export default function UsersPanel() {
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-100 text-[11px] font-semibold text-blue-800">
+                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                             {fullName
                               .split(/\s+/)
                               .slice(0, 2)

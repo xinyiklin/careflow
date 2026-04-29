@@ -10,29 +10,10 @@ import { AdminWorkspaceShell } from "../components/shared/AdminSurface";
 import useAdminPermissions from "../hooks/shared/useAdminPermissions";
 
 const ORGANIZATION_SECTIONS = [
-  {
-    key: "overview",
-    label: "Overview",
-    description:
-      "Core organization profile, contact details, and identity settings.",
-  },
-  {
-    key: "facilities",
-    label: "Facilities",
-    description:
-      "Review and manage the facilities that belong to this organization.",
-  },
-  {
-    key: "users",
-    label: "Users",
-    description: "Manage organization users, access, and role assignments.",
-  },
-  {
-    key: "pharmacies",
-    label: "Pharmacies",
-    description:
-      "Curate organization pharmacy preferences from the global directory.",
-  },
+  { key: "overview", label: "Overview" },
+  { key: "facilities", label: "Facilities" },
+  { key: "users", label: "Users" },
+  { key: "pharmacies", label: "Pharmacies" },
 ];
 
 export default function OrganizationAdminPage() {

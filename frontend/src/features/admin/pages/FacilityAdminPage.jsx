@@ -15,46 +15,13 @@ import { AdminWorkspaceShell } from "../components/shared/AdminSurface";
 import useAdminPermissions from "../hooks/shared/useAdminPermissions";
 
 const FACILITY_SECTIONS = [
-  {
-    key: "overview",
-    label: "Overview",
-    description:
-      "See the selected facility profile, contact details, and notes.",
-  },
-  {
-    key: "physicians",
-    label: "Physicians",
-    description:
-      "Manage physician records, titles, and scheduling availability context.",
-  },
-  {
-    key: "staff",
-    label: "Staff",
-    description:
-      "Maintain non-physician staff members assigned to this facility.",
-  },
-  {
-    key: "permissions",
-    label: "Permissions & Roles",
-    description: "Manage role defaults and facility-facing access rules.",
-  },
-  {
-    key: "resources",
-    label: "Resources",
-    description:
-      "Manage the schedulable resources available for this facility.",
-  },
-  {
-    key: "statuses",
-    label: "Statuses",
-    description: "Configure appointment status labels and operational meaning.",
-  },
-  {
-    key: "types",
-    label: "Types",
-    description:
-      "Manage appointment types, durations, and scheduling defaults.",
-  },
+  { key: "overview", label: "Overview" },
+  { key: "physicians", label: "Physicians" },
+  { key: "staff", label: "Staff" },
+  { key: "permissions", label: "Permissions & Roles" },
+  { key: "resources", label: "Resources" },
+  { key: "statuses", label: "Statuses" },
+  { key: "types", label: "Types" },
 ];
 
 export default function FacilityAdminPage() {

@@ -9,7 +9,12 @@ import {
   UploadCloud,
 } from "lucide-react";
 
-import { Button, Notice } from "../../../shared/components/ui";
+import {
+  Button,
+  CategoryRail,
+  CategoryRailItem,
+  Notice,
+} from "../../../shared/components/ui";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
   downloadPatientDocumentBundle,
@@ -287,33 +292,20 @@ export default function DocumentsWorkspace({
               ) : null}
             </div>
 
-            <div className="flex min-w-0 gap-1 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden md:overscroll-contain">
+            <CategoryRail
+              label="Document categories"
+              className="flex min-w-0 gap-1 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden md:overscroll-contain"
+            >
               {categories.map((category) => (
-                <button
+                <CategoryRailItem
                   key={category.id}
-                  type="button"
                   onClick={() => setActiveCategory(category.id)}
-                  className={[
-                    "group flex shrink-0 items-center rounded-lg px-3 py-1.5 text-left text-xs transition md:w-full md:shrink md:text-[13px]",
-                    activeCategory === category.id
-                      ? "bg-cf-surface font-semibold text-cf-text shadow-[var(--shadow-panel)]"
-                      : "text-cf-text-muted hover:bg-cf-surface/70 hover:text-cf-text",
-                  ].join(" ")}
+                  active={activeCategory === category.id}
                 >
-                  <span
-                    className={[
-                      "mr-2 h-2 w-2 shrink-0 rounded-full transition",
-                      activeCategory === category.id
-                        ? "bg-cf-accent"
-                        : "bg-cf-border-strong group-hover:bg-cf-text-subtle",
-                    ].join(" ")}
-                  />
-                  <span className="min-w-0 flex-1 truncate">
-                    {category.navLabel || category.label}
-                  </span>
-                </button>
+                  {category.navLabel || category.label}
+                </CategoryRailItem>
               ))}
-            </div>
+            </CategoryRail>
           </div>
 
           <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">

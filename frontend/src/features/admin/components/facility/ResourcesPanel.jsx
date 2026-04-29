@@ -275,13 +275,13 @@ export default function ResourcesPanel() {
                         label: `Edit resource ${resource.name || resource.id}`,
                         onAction: () => handleOpenEdit(resource),
                         className: !resource.linked_staff
-                          ? "bg-amber-50/30"
+                          ? "bg-cf-warning-bg/40"
                           : "",
                       })}
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-100 text-[11px] font-semibold text-blue-800">
+                          <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                             {resource.name
                               ?.split(/\s+/)
                               .slice(0, 2)
@@ -312,7 +312,7 @@ export default function ResourcesPanel() {
                       <td className="px-5 py-4 text-cf-text-muted">
                         {resource.linked_staff_name ? (
                           <span className="inline-flex items-center gap-2">
-                            <span className="grid h-6 w-6 place-items-center rounded-full bg-purple-100 text-[10px] font-semibold text-purple-800">
+                            <span className="grid h-6 w-6 place-items-center rounded-full bg-cf-accent/12 text-[10px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                               {resource.linked_staff_name
                                 .split(/\s+/)
                                 .slice(0, 2)
@@ -323,7 +323,7 @@ export default function ResourcesPanel() {
                             {resource.linked_staff_name}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-100/60 px-2 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-200/60">
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-cf-warning-bg px-2 py-0.5 text-xs font-medium text-cf-warning-text ring-1 ring-cf-warning-text/20">
                             Unlinked
                           </span>
                         )}

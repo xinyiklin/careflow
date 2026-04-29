@@ -29,8 +29,8 @@ function Field({ label, children, className = "" }) {
 
 function SummaryTile({ label, value }) {
   return (
-    <div className="rounded-xl bg-cf-surface-soft p-3 text-center">
-      <div className="text-xl font-semibold tracking-tight text-cf-text">
+    <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+      <div className="text-2xl font-semibold tracking-tight text-cf-text">
         {value}
       </div>
       <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-cf-text-subtle">
@@ -42,28 +42,30 @@ function SummaryTile({ label, value }) {
 
 export function OrganizationOverviewHeader({ formData }) {
   return (
-    <header className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-          Organization · Overview
+    <header className="mb-4 rounded-[1.15rem] border border-cf-border bg-cf-surface-soft/55 px-4 py-3 shadow-[var(--shadow-panel)]">
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface text-sm font-bold text-cf-text shadow-[var(--shadow-panel)]">
+          {getInitials(formData.name)}
+        </span>
+        <div className="min-w-0">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+            Organization profile
+          </div>
+          <h3 className="mt-0.5 truncate text-xl font-semibold tracking-tight text-cf-text">
+            {formData.name || "Organization"}
+          </h3>
+          <div className="mt-0.5 text-sm font-medium text-cf-text-muted">
+            {formData.legal_name || "Legal entity"}
+          </div>
         </div>
-        <h3 className="mt-1 text-xl font-semibold tracking-tight text-cf-text">
-          {formData.name || "Organization"}
-        </h3>
-        <p className="mt-1 text-sm text-cf-text-muted">
-          Identity, contact, and administrative profile for this organization.
-        </p>
       </div>
-      <span className="rounded-full border border-cf-border bg-cf-surface-soft px-3 py-1 text-xs font-semibold text-cf-text-muted">
-        {formData.slug || "No slug"}
-      </span>
     </header>
   );
 }
 
 export function OrganizationIdentityCard({ formData, onChange }) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-2">
+    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-2">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cf-accent/12 text-sm font-semibold text-cf-accent ring-1 ring-cf-accent/20">
           {getInitials(formData.name)}
@@ -107,7 +109,7 @@ export function OrganizationFootprintCard({
   hasAddress,
 }) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
+    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface-soft/55 p-3 shadow-[var(--shadow-panel)]">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Footprint
       </div>
@@ -123,7 +125,7 @@ export function OrganizationFootprintCard({
 
 export function OrganizationContactCard({ formData, onChange }) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-2">
+    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-2">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Contact
       </div>
@@ -153,7 +155,7 @@ export function OrganizationContactCard({ formData, onChange }) {
 
 export function OrganizationNotesCard({ formData, onChange }) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
+    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Notes
       </div>
@@ -171,7 +173,7 @@ export function OrganizationNotesCard({ formData, onChange }) {
 
 export function OrganizationAddressCard({ address, onChange }) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-3">
+    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-3">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Address
       </div>

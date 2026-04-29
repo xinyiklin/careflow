@@ -1,4 +1,4 @@
-import { Building2, CalendarDays, FileText, Landmark } from "lucide-react";
+import { CalendarDays, FileText, ShieldCheck } from "lucide-react";
 
 export function getSidebarNavItems({
   location,
@@ -7,34 +7,19 @@ export function getSidebarNavItems({
   canAccessOrganizationAdmin,
   hasAnyAdminAccess,
 }) {
-  const adminItems =
-    canAccessFacilityAdmin && canAccessOrganizationAdmin
-      ? [
-          {
-            key: "organization-admin",
-            label: "Org Admin",
-            icon: Landmark,
-            isActive: location.pathname.startsWith("/admin/organization"),
-            onClick: () => navigate("/admin/organization"),
-          },
-          {
-            key: "facility-admin",
-            label: "Facility Admin",
-            icon: Building2,
-            isActive: location.pathname.startsWith("/admin/facility"),
-            onClick: () => navigate("/admin/facility"),
-          },
-        ]
-      : [
-          {
-            key: "admin",
-            label: canAccessOrganizationAdmin ? "Org Admin" : "Facility Admin",
-            icon: canAccessOrganizationAdmin ? Landmark : Building2,
-            isActive: location.pathname.startsWith("/admin"),
-            onClick: () => navigate("/admin"),
-            isVisible: hasAnyAdminAccess,
-          },
-        ];
+  const adminItems = [
+    {
+      key: "admin",
+      label: "Admin",
+      icon: ShieldCheck,
+      isActive: location.pathname.startsWith("/admin"),
+      onClick: () => navigate("/admin"),
+      isVisible:
+        hasAnyAdminAccess ||
+        canAccessFacilityAdmin ||
+        canAccessOrganizationAdmin,
+    },
+  ];
 
   return [
     {
