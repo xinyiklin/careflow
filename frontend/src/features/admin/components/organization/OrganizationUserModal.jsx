@@ -36,7 +36,7 @@ function getDisplayName(formData) {
   return fullName || formData.username || "New user";
 }
 
-export default function PersonModal({
+export default function OrganizationUserModal({
   isOpen,
   mode = "create",
   initialValues = null,

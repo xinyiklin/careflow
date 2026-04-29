@@ -5,7 +5,8 @@ import { CompactModalGrid } from "../shared/AdminCompactModal";
 import {
   PharmacyDetailsLane,
   PharmacyDirectoryLane,
-} from "./OrganizationPharmacyModalParts";
+} from "./OrganizationPharmacyModalSections";
+
 const EMPTY_ADDRESS = {
   line_1: "",
   line_2: "",

@@ -5,7 +5,7 @@ import useAdminListControls, {
   compareText,
 } from "../../hooks/shared/useAdminListControls";
 import useOrganizationPeople from "../../hooks/organization/useOrganizationPeople";
-import PersonModal from "./PersonModal";
+import OrganizationUserModal from "./OrganizationUserModal";
 import {
   AdminInlineNotice,
   AdminListToolbar,
@@ -255,7 +255,7 @@ export default function UsersPanel() {
         />
       </AdminTableCard>
 
-      <PersonModal
+      <OrganizationUserModal
         isOpen={isModalOpen}
         mode={editingPerson ? "edit" : "create"}
         initialValues={editingPerson}

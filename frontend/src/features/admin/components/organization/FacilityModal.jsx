@@ -7,7 +7,7 @@ import {
   FacilityDetailsLane,
   FacilityIdentityLane,
   OPERATING_DAY_OPTIONS,
-} from "./FacilityModalParts";
+} from "./FacilityModalSections";
 
 const DEFAULT_FORM = {
   name: "",

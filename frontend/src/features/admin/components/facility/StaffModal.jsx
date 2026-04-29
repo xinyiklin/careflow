@@ -10,7 +10,7 @@ import {
   getInitialsFromName,
   getOverrideStats,
   getPermissionSummary,
-} from "./StaffModalParts";
+} from "./StaffModalSections";
 
 const DEFAULT_FORM = {
   user_id: "",
