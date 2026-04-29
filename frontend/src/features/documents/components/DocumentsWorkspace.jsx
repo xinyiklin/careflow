@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import {
-  CheckCircle2,
   Download,
   Eye,
   FileText,
@@ -10,7 +9,7 @@ import {
   UploadCloud,
 } from "lucide-react";
 
-import { Badge, Button, Notice } from "../../../shared/components/ui";
+import { Button, Notice } from "../../../shared/components/ui";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
   downloadPatientDocumentBundle,
@@ -126,13 +125,9 @@ export default function DocumentsWorkspace({
           ),
     [activeCategory, normalizedDocuments]
   );
-  const filteredIds = filteredDocuments.map((document) => document.id);
   const selectedDocuments = normalizedDocuments.filter((document) =>
     selectedIds.includes(document.id)
   );
-  const allFilteredSelected =
-    filteredIds.length > 0 &&
-    filteredIds.every((id) => selectedIds.includes(id));
   const activeLabel =
     categories.find((category) => category.id === activeCategory)?.label ||
     "Documents";
@@ -143,11 +138,6 @@ export default function DocumentsWorkspace({
     focusedDocument || selectedDocuments[0] || filteredDocuments[0] || null;
   const showManageCategories =
     Boolean(canManageCategories) && typeof onManageCategories === "function";
-  const uploadBlockedReason = !selectedPatient
-    ? "Select a patient before uploading documents."
-    : !selectedFacilityId
-      ? "Select a facility before uploading documents."
-      : "";
   const selectionBlockedReason = !selectedDocuments.length
     ? "Select one or more documents first."
     : "";
@@ -163,16 +153,6 @@ export default function DocumentsWorkspace({
   const handlePreviewDocument = (document) => {
     setFocusedDocumentId(document.id);
     setErrorMessage("");
-  };
-
-  const toggleFilteredDocuments = () => {
-    setSelectedIds((current) => {
-      if (allFilteredSelected) {
-        return current.filter((id) => !filteredIds.includes(id));
-      }
-
-      return Array.from(new Set([...current, ...filteredIds]));
-    });
   };
 
   const handleUploadClick = () => {
@@ -248,8 +228,8 @@ export default function DocumentsWorkspace({
     <div
       className={
         compact
-          ? "grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(420px,0.84fr)_minmax(0,1.16fr)]"
-          : "cf-preview-surface grid h-full min-h-0 grid-cols-1 overflow-y-auto xl:grid-cols-[minmax(440px,0.82fr)_minmax(0,1.18fr)] xl:overflow-hidden"
+          ? "grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(560px,1fr)_minmax(340px,0.95fr)]"
+          : "cf-preview-surface grid h-full min-h-0 grid-cols-1 overflow-y-auto xl:grid-cols-[minmax(580px,1fr)_minmax(360px,0.95fr)] xl:overflow-hidden"
       }
     >
       <section className="flex min-h-0 min-w-0 flex-col border-b border-cf-border bg-cf-page-bg xl:border-r xl:border-b-0">
@@ -261,85 +241,19 @@ export default function DocumentsWorkspace({
           onChange={handleFileSelected}
         />
         <div className="shrink-0 border-b border-cf-border bg-gradient-to-br from-cf-surface to-cf-surface-muted/70 px-4 py-3">
-          <div className="flex min-w-0 flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{activeLabel}</Badge>
-                <Badge variant="muted">
-                  {selectedDocuments.length} selected
-                </Badge>
-              </div>
-              <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
                 <div className="shrink-0 text-xl font-semibold tracking-tight text-cf-text">
                   {compact ? activeLabel : title}
                 </div>
-                <p className="text-sm text-cf-text-muted">
-                  {filteredDocuments.length} file
-                  {filteredDocuments.length === 1 ? "" : "s"} ready for review.
-                </p>
               </div>
             </div>
             {toolbarAccessory ? (
-              <div className="min-w-0 2xl:w-[360px]">{toolbarAccessory}</div>
+              <div className="min-w-[200px] flex-1 md:max-w-[280px]">
+                {toolbarAccessory}
+              </div>
             ) : null}
-          </div>
-        </div>
-
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-4 py-3">
-          <label className="inline-flex items-center gap-2 text-sm font-semibold text-cf-text-muted">
-            <input
-              type="checkbox"
-              checked={allFilteredSelected}
-              disabled={!filteredDocuments.length}
-              onChange={toggleFilteredDocuments}
-              className="h-3.5 w-3.5 rounded border-cf-border"
-            />
-            Select all visible
-          </label>
-
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
-            <div className="mr-1 hidden items-center gap-1.5 text-xs font-semibold text-cf-text-subtle sm:flex">
-              <CheckCircle2 className="h-3.5 w-3.5 text-cf-success-text" />
-              {selectedDocuments.length
-                ? `${selectedDocuments.length} selected`
-                : `${filteredDocuments.length} visible`}
-            </div>
-            <Button
-              size="sm"
-              onClick={handleUploadClick}
-              disabled={!selectedPatient || !selectedFacilityId || isUploading}
-              title={uploadBlockedReason || undefined}
-            >
-              <UploadCloud className="h-3.5 w-3.5" />
-              {isUploading ? "Uploading..." : "Upload"}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => handleBatchAction("download")}
-              disabled={!selectedDocuments.length}
-              title={selectionBlockedReason || undefined}
-            >
-              <Download className="h-3.5 w-3.5" />
-              Download
-            </Button>
-            <Button
-              size="sm"
-              onClick={handlePlaceholderAction}
-              disabled={!selectedDocuments.length}
-              title={selectionBlockedReason || undefined}
-            >
-              <Send className="h-3.5 w-3.5" />
-              Fax
-            </Button>
-            <Button
-              size="sm"
-              onClick={handlePlaceholderAction}
-              disabled={!selectedDocuments.length}
-              title={selectionBlockedReason || undefined}
-            >
-              <Printer className="h-3.5 w-3.5" />
-              Print
-            </Button>
           </div>
         </div>
 
@@ -347,16 +261,10 @@ export default function DocumentsWorkspace({
           <div className="shrink-0 px-4 pt-3">
             <Notice tone="danger">{errorMessage}</Notice>
           </div>
-        ) : uploadBlockedReason ? (
-          <div className="shrink-0 px-5 pt-3">
-            <p className="rounded-2xl border border-cf-border bg-cf-surface-soft px-4 py-2 text-xs font-medium text-cf-text-muted">
-              {uploadBlockedReason}
-            </p>
-          </div>
         ) : null}
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[144px_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col border-b border-cf-border bg-cf-surface-muted/70 md:border-r md:border-b-0">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[196px_minmax(0,1fr)]">
+          <div className="flex min-h-0 min-w-0 flex-col border-b border-cf-border bg-cf-surface-muted/70 md:border-r md:border-b-0">
             <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2 md:block">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
@@ -379,14 +287,14 @@ export default function DocumentsWorkspace({
               ) : null}
             </div>
 
-            <div className="flex min-w-0 gap-1 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden">
+            <div className="flex min-w-0 gap-1 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden md:overscroll-contain">
               {categories.map((category) => (
                 <button
                   key={category.id}
                   type="button"
                   onClick={() => setActiveCategory(category.id)}
                   className={[
-                    "group flex shrink-0 items-center rounded-xl px-3 py-2 text-left text-xs transition md:w-full md:shrink md:text-[13px]",
+                    "group flex shrink-0 items-center rounded-lg px-3 py-1.5 text-left text-xs transition md:w-full md:shrink md:text-[13px]",
                     activeCategory === category.id
                       ? "bg-cf-surface font-semibold text-cf-text shadow-[var(--shadow-panel)]"
                       : "text-cf-text-muted hover:bg-cf-surface/70 hover:text-cf-text",
@@ -408,110 +316,160 @@ export default function DocumentsWorkspace({
             </div>
           </div>
 
-          <div className="min-h-0 overflow-y-auto p-3">
-            {isLoadingDocuments && filteredDocuments.length === 0 ? (
-              <div className="space-y-2.5">
-                {[0, 1, 2].map((item) => (
-                  <div
-                    key={item}
-                    className="cf-loading-skeleton h-24 rounded-[1.15rem] bg-cf-surface-soft"
-                  />
-                ))}
+          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+            <div className="flex min-h-10 shrink-0 items-center border-b border-cf-border bg-cf-page-bg/95 px-2.5 py-1">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-1.5">
+                <Button
+                  size="sm"
+                  className="px-2.5 py-1 text-xs"
+                  onClick={handleUploadClick}
+                  disabled={
+                    !selectedPatient || !selectedFacilityId || isUploading
+                  }
+                >
+                  <UploadCloud className="h-3.5 w-3.5" />
+                  {isUploading ? "Uploading..." : "Upload"}
+                </Button>
+                <Button
+                  size="sm"
+                  className="px-2.5 py-1 text-xs"
+                  onClick={() => handleBatchAction("download")}
+                  disabled={!selectedDocuments.length}
+                  title={selectionBlockedReason || undefined}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                </Button>
+                <Button
+                  size="sm"
+                  className="px-2.5 py-1 text-xs"
+                  onClick={handlePlaceholderAction}
+                  disabled={!selectedDocuments.length}
+                  title={selectionBlockedReason || undefined}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Fax
+                </Button>
+                <Button
+                  size="sm"
+                  className="px-2.5 py-1 text-xs"
+                  onClick={handlePlaceholderAction}
+                  disabled={!selectedDocuments.length}
+                  title={selectionBlockedReason || undefined}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Print
+                </Button>
               </div>
-            ) : documentLoadError ? (
-              <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-cf-border bg-cf-surface-soft px-6 text-center">
-                <div className="max-w-sm">
-                  <p className="text-sm font-semibold text-cf-text">
-                    Documents could not load
-                  </p>
-                  <p className="mt-1 text-sm text-cf-text-muted">
-                    {documentLoadError}
-                  </p>
-                  {onRetryDocuments ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="mt-4"
-                      onClick={onRetryDocuments}
-                    >
-                      Retry
-                    </Button>
-                  ) : null}
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-2.5">
+              {isLoadingDocuments && filteredDocuments.length === 0 ? (
+                <div className="space-y-2.5">
+                  {[0, 1, 2].map((item) => (
+                    <div
+                      key={item}
+                      className="cf-loading-skeleton h-24 rounded-[1.15rem] bg-cf-surface-soft"
+                    />
+                  ))}
                 </div>
-              </div>
-            ) : !selectedPatient ? (
-              <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-cf-border bg-cf-surface-soft px-6 text-center text-sm font-medium text-cf-text-muted">
-                Select a patient to view documents.
-              </div>
-            ) : filteredDocuments.length === 0 ? (
-              <div className="flex h-full items-center justify-center rounded-3xl border border-dashed border-cf-border bg-cf-surface-soft text-sm font-medium text-cf-text-muted">
-                No documents in this category yet.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredDocuments.map((document) => (
-                  <div
-                    key={document.id}
-                    className={[
-                      "group rounded-xl border bg-cf-surface transition hover:border-cf-border-strong hover:bg-cf-surface-soft/55",
-                      selectedIds.includes(document.id)
-                        ? "border-cf-accent/35 bg-cf-surface-soft"
-                        : "border-cf-border",
-                    ].join(" ")}
-                  >
-                    <div className="grid gap-2 px-3 py-2.5 2xl:grid-cols-[minmax(0,1fr)_auto] 2xl:items-center">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.includes(document.id)}
-                          onChange={() => toggleDocument(document.id)}
-                          className="h-4 w-4 rounded border-cf-border"
-                          aria-label={`Select ${document.name}`}
-                        />
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-subtle">
-                          <FileText className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="min-w-0 truncate text-sm font-semibold text-cf-text">
-                            {document.name}
+              ) : documentLoadError ? (
+                <div className="flex h-full items-center justify-center px-6 text-center">
+                  <div className="max-w-sm">
+                    <p className="text-sm font-semibold text-cf-text">
+                      Documents could not load
+                    </p>
+                    <p className="mt-1 text-sm text-cf-text-muted">
+                      {documentLoadError}
+                    </p>
+                    {onRetryDocuments ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="mt-4"
+                        onClick={onRetryDocuments}
+                      >
+                        Retry
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : !selectedPatient ? (
+                <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-cf-text-muted">
+                  Select a patient to view documents.
+                </div>
+              ) : filteredDocuments.length === 0 ? (
+                <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-cf-text-muted">
+                  No documents in this category yet.
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {filteredDocuments.map((document) => (
+                    <div
+                      key={document.id}
+                      className={[
+                        "group rounded-lg border bg-cf-surface transition hover:border-cf-border-strong hover:bg-cf-surface-soft/55",
+                        selectedIds.includes(document.id)
+                          ? "border-cf-accent/35 bg-cf-surface-soft"
+                          : "border-cf-border",
+                      ].join(" ")}
+                    >
+                      <div className="grid gap-1.5 px-2.5 py-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(document.id)}
+                            onChange={() => toggleDocument(document.id)}
+                            className="h-3.5 w-3.5 rounded border-cf-border"
+                            aria-label={`Select ${document.name}`}
+                          />
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-cf-border bg-cf-surface text-cf-text-subtle">
+                            <FileText className="h-3.5 w-3.5" />
                           </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px] text-cf-text-muted">
-                            <span className="font-medium text-cf-text-subtle">
-                              {document.categoryLabel || activeLabel}
-                            </span>
-                            {document.date ? (
-                              <span>{formatDocumentDate(document.date)}</span>
-                            ) : null}
-                            {document.uploadedBy ? (
-                              <span>{document.uploadedBy}</span>
-                            ) : null}
-                            {document.size ? (
-                              <span>{document.size}</span>
-                            ) : null}
+                          <div className="min-w-0">
+                            <div className="min-w-0 truncate text-sm font-semibold text-cf-text">
+                              {document.name}
+                            </div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-cf-text-muted">
+                              <span className="font-medium text-cf-text-subtle">
+                                {document.categoryLabel || activeLabel}
+                              </span>
+                              {document.date ? (
+                                <span>{formatDocumentDate(document.date)}</span>
+                              ) : null}
+                              {document.uploadedBy ? (
+                                <span>{document.uploadedBy}</span>
+                              ) : null}
+                              {document.size ? (
+                                <span>{document.size}</span>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
-                        <Button
-                          size="sm"
-                          onClick={() => handlePreviewDocument(document)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          Preview
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleDownloadDocument(document)}
-                          aria-label={`Download ${document.name}`}
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                          <Button
+                            size="sm"
+                            className="px-2 py-1 text-xs"
+                            onClick={() => handlePreviewDocument(document)}
+                            aria-label={`Preview ${document.name}`}
+                            title={`Preview ${document.name}`}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="px-2 py-1 text-xs"
+                            onClick={() => handleDownloadDocument(document)}
+                            aria-label={`Download ${document.name}`}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
