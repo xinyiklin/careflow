@@ -1,11 +1,5 @@
 import { Fragment } from "react";
-import {
-  AlertTriangle,
-  Check,
-  CircleSlash,
-  LockKeyhole,
-  ShieldCheck,
-} from "lucide-react";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { normalizeSecurityPermissions } from "../../constants/securityPermissions";
 
@@ -60,9 +54,6 @@ function RoleHeader({ role, staffCount }) {
               <span className="truncate text-sm font-semibold text-cf-text">
                 {role.name}
               </span>
-              {role.is_system_role ? (
-                <LockKeyhole className="h-3.5 w-3.5 shrink-0 text-cf-text-subtle" />
-              ) : null}
             </span>
             <span className="mt-0.5 block truncate text-[10px] font-medium text-cf-text-subtle">
               {role.is_system_role ? "System" : "Custom"} · {staffCount} staff
@@ -73,7 +64,7 @@ function RoleHeader({ role, staffCount }) {
         <div className="mt-3 flex items-center gap-2">
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-cf-border">
             <div
-              className="h-full rounded-full bg-emerald-500"
+              className="h-full rounded-full bg-cf-success-text"
               style={{ width: `${allowedPercent}%` }}
             />
           </div>
@@ -89,12 +80,11 @@ function RoleHeader({ role, staffCount }) {
 function PermissionStateButton({
   disabled,
   isAllowed,
-  isLocked,
+  requiresConfirmation,
   isSaving,
   onToggle,
 }) {
   const label = isAllowed ? "Allow" : "Block";
-  const Icon = isAllowed ? Check : CircleSlash;
 
   return (
     <button
@@ -103,24 +93,29 @@ function PermissionStateButton({
       onClick={onToggle}
       aria-pressed={isAllowed}
       title={
-        isLocked
-          ? "System roles are locked"
+        requiresConfirmation
+          ? `Click to ${isAllowed ? "block" : "allow"} after confirmation`
           : `Click to ${isAllowed ? "block" : "allow"}`
       }
       className={[
-        "inline-flex min-w-[88px] items-center justify-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold transition",
+        "inline-flex min-w-[84px] items-center justify-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-bold transition",
         isAllowed
-          ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
-          : "bg-cf-surface-soft text-cf-text-subtle ring-1 ring-cf-border",
+          ? "border-cf-success-text/20 bg-cf-success-bg text-cf-success-text"
+          : "border-cf-border bg-cf-surface-soft text-cf-text-subtle",
         disabled
           ? "cursor-not-allowed opacity-65"
           : "hover:-translate-y-0.5 hover:shadow-[var(--shadow-panel)]",
       ].join(" ")}
     >
-      {isLocked ? (
-        <LockKeyhole className="h-3 w-3" />
+      {requiresConfirmation ? (
+        <AlertTriangle className="h-3 w-3" />
       ) : (
-        <Icon className="h-3 w-3" />
+        <span
+          className={[
+            "h-2.5 w-2.5 rounded-full",
+            isAllowed ? "bg-cf-success-text" : "bg-cf-border-strong",
+          ].join(" ")}
+        />
       )}
       {isSaving ? "Saving" : label}
     </button>
@@ -183,7 +178,7 @@ function PermissionRow({
         const permissions = normalizeSecurityPermissions(
           role.security_permissions
         );
-        const isLocked = role.is_system_role;
+        const requiresConfirmation = role.is_system_role;
         const cellKey = `${role.id}:${permission.key}`;
         const isCellSaving = savingCellKey === cellKey;
         return (
@@ -191,16 +186,16 @@ function PermissionRow({
             key={`${group.key}-${permission.key}-${role.id}`}
             className={[
               "border-b border-cf-border px-3 py-2 text-center",
-              isLocked ? "bg-cf-surface-soft/40" : "",
+              requiresConfirmation ? "bg-cf-surface-soft/40" : "",
             ].join(" ")}
           >
             <PermissionStateButton
-              disabled={disabled || isLocked}
+              disabled={disabled}
               isAllowed={permissions[permission.key]}
-              isLocked={isLocked}
+              requiresConfirmation={requiresConfirmation}
               isSaving={isCellSaving}
               onToggle={() =>
-                onToggle(role, permission.key, !permissions[permission.key])
+                onToggle(role, permission, !permissions[permission.key])
               }
             />
           </td>
@@ -230,7 +225,7 @@ export default function PermissionsRolesMatrix({
                     Permission
                   </div>
                   <div className="mt-0.5 text-xs text-cf-text-muted">
-                    Click custom-role cells to toggle
+                    System-role changes require confirmation
                   </div>
                 </th>
                 {roles.map((role) => (

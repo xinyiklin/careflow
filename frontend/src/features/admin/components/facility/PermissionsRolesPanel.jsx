@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
+import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
 import useAdminFacility from "../../hooks/shared/useAdminFacility";
 import useAdminFacilityConfig from "../../hooks/facility/useAdminFacilityConfig";
 import useAdminListControls, {
@@ -52,6 +53,16 @@ const ROLE_SORT_OPTIONS = [
   },
 ];
 
+const DEFAULT_CONFIRM_DIALOG = {
+  isOpen: false,
+  title: "",
+  message: "",
+  confirmText: "Confirm",
+  cancelText: "Cancel",
+  variant: "warning",
+  onConfirm: null,
+};
+
 function getStaffRoleId(record) {
   return record?.role?.id || record?.role_id || record?.role;
 }
@@ -93,6 +104,9 @@ export default function PermissionsRolesPanel() {
   const { roles = [], staffs = [] } = useAdminFacilityConfig(adminFacility?.id);
   const [query, setQuery] = useState("");
   const [savingCellKey, setSavingCellKey] = useState("");
+  const [confirmDialogState, setConfirmDialogState] = useState(
+    DEFAULT_CONFIRM_DIALOG
+  );
   const canManageCurrentFacility = Boolean(adminFacility?.id);
   const { saving, error, updateRoleSecurity } = useStaffRoleSecurity(
     canManageCurrentFacility ? adminFacility?.id : null
@@ -126,8 +140,11 @@ export default function PermissionsRolesPanel() {
 
   const staffCounts = useMemo(() => getStaffCounts(staffs), [staffs]);
 
-  const handleRoleSecurityChange = async (role, permissionKey, isAllowed) => {
-    if (role.is_system_role) return;
+  const closeConfirmDialog = () => {
+    setConfirmDialogState(DEFAULT_CONFIRM_DIALOG);
+  };
+
+  const applyRoleSecurityChange = async (role, permissionKey, isAllowed) => {
     const cellKey = getCellKey(role.id, permissionKey);
 
     const securityPermissions = {
@@ -144,6 +161,30 @@ export default function PermissionsRolesPanel() {
     } finally {
       setSavingCellKey("");
     }
+  };
+
+  const handleConfirmDialogConfirm = async () => {
+    if (!confirmDialogState.onConfirm) return;
+    await confirmDialogState.onConfirm();
+    closeConfirmDialog();
+  };
+
+  const handleRoleSecurityChange = async (role, permission, isAllowed) => {
+    if (role.is_system_role) {
+      setConfirmDialogState({
+        isOpen: true,
+        title: `Change ${role.name} permissions?`,
+        message: `This role is a protected system role. Changing "${permission.label}" will affect every ${role.name} assigned to this facility. Confirm only if this is intentional.`,
+        confirmText: isAllowed ? "Allow Permission" : "Block Permission",
+        cancelText: "Keep Current",
+        variant: "warning",
+        onConfirm: () =>
+          applyRoleSecurityChange(role, permission.key, isAllowed),
+      });
+      return;
+    }
+
+    await applyRoleSecurityChange(role, permission.key, isAllowed);
   };
 
   return (
@@ -194,6 +235,16 @@ export default function PermissionsRolesPanel() {
           </div>
         )}
       </AdminTableCard>
+      <ConfirmDialog
+        isOpen={confirmDialogState.isOpen}
+        title={confirmDialogState.title}
+        message={confirmDialogState.message}
+        confirmText={confirmDialogState.confirmText}
+        cancelText={confirmDialogState.cancelText}
+        variant={confirmDialogState.variant}
+        onConfirm={handleConfirmDialogConfirm}
+        onCancel={closeConfirmDialog}
+      />
     </div>
   );
 }
