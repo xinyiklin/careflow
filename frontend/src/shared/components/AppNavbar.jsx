@@ -3,13 +3,14 @@ import {
   Search,
   ChevronDown,
   LogOut,
-  Command,
   FileText,
+  Keyboard,
   SlidersHorizontal,
 } from "lucide-react";
 
 import useFacility from "../../features/facilities/hooks/useFacility";
 import { formatDOB } from "../utils/dateTime";
+import { getPatientName } from "../../features/patients/utils/patientDisplay";
 import { Badge, Button, Input } from "./ui";
 import { NAVBAR_HEIGHT } from "../constants/layout";
 
@@ -29,6 +30,14 @@ function getUserDisplayName(user) {
     .join(" ")
     .trim();
   return fullName || user?.username || "CareFlow User";
+}
+
+function getQuickActionsShortcutLabel() {
+  if (typeof navigator === "undefined") return "Ctrl/Cmd K";
+
+  const platform =
+    navigator.userAgentData?.platform || navigator.platform || "";
+  return /mac|iphone|ipad|ipod/i.test(platform) ? "Cmd K" : "Ctrl K";
 }
 
 export default function AppNavbar({
@@ -55,6 +64,7 @@ export default function AppNavbar({
   const patientMenuRef = useRef(null);
   const initials = useMemo(() => getUserInitials(user), [user]);
   const userDisplayName = useMemo(() => getUserDisplayName(user), [user]);
+  const quickActionsShortcut = useMemo(getQuickActionsShortcutLabel, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -91,11 +101,11 @@ export default function AppNavbar({
                 type="button"
                 onClick={onOpenPatientSearch}
                 className="inline-flex h-7 min-w-0 items-center justify-center gap-2 rounded-full px-2.5 text-sm font-semibold leading-none text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text sm:px-3"
-                aria-label="Search patients"
-                title="Search patients"
+                aria-label="Search Patient"
+                title="Search Patient"
               >
                 <Search className="h-4 w-4" />
-                <span className="hidden sm:inline">Search Patients</span>
+                <span className="hidden sm:inline">Search Patient</span>
                 <span className="hidden rounded-md bg-cf-surface px-1.5 py-0.5 text-[11px] font-semibold text-cf-text-subtle lg:inline">
                   /
                 </span>
@@ -145,7 +155,7 @@ export default function AppNavbar({
                           className="block w-full px-4 py-3 text-left transition hover:bg-cf-surface-soft"
                         >
                           <div className="text-sm font-medium text-cf-text">
-                            {`${patient.last_name}, ${patient.first_name}`}
+                            {getPatientName(patient)}
                           </div>
                           <div className="text-xs text-cf-text-subtle">
                             DOB:{" "}
@@ -177,10 +187,10 @@ export default function AppNavbar({
             onClick={onOpenQuickActions}
             className="hidden h-9 leading-none lg:inline-flex"
           >
-            <Command className="h-4 w-4" />
+            <Keyboard className="h-4 w-4" />
             Actions
             <span className="rounded-md bg-cf-surface-soft px-1.5 py-0.5 text-[11px] font-semibold text-cf-text-subtle">
-              ⌘K
+              {quickActionsShortcut}
             </span>
           </Button>
 

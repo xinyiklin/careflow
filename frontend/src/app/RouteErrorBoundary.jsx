@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, isRouteErrorResponse, useRouteError } from "react-router-dom";
+import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 
 function getErrorCopy(error) {
   if (isRouteErrorResponse(error)) {
@@ -32,6 +32,15 @@ export default function RouteErrorBoundary() {
     console.error("CareFlow route error", error);
   }, [error]);
 
+  const returnToSchedule = () => {
+    if (window.location.pathname === "/schedule") {
+      window.location.reload();
+      return;
+    }
+
+    window.location.assign("/schedule");
+  };
+
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-cf-page-bg px-4 py-8 text-cf-text">
       <section className="cf-ui-panel w-full max-w-lg rounded-[1.75rem] px-6 py-6 shadow-[var(--shadow-panel-lg)]">
@@ -41,12 +50,13 @@ export default function RouteErrorBoundary() {
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-cf-text-muted">{message}</p>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Link
-            to="/schedule"
-            className="inline-flex h-10 items-center rounded-xl bg-cf-text px-4 text-sm font-semibold text-white transition hover:bg-cf-text/90"
+          <button
+            type="button"
+            onClick={returnToSchedule}
+            className="inline-flex h-10 items-center rounded-xl border border-cf-accent bg-cf-accent px-4 text-sm font-semibold text-cf-page-bg shadow-[var(--shadow-panel)] transition hover:border-cf-accent-hover hover:bg-cf-accent-hover"
           >
             Return to schedule
-          </Link>
+          </button>
           <button
             type="button"
             onClick={() => window.location.reload()}

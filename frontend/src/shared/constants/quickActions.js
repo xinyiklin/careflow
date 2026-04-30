@@ -42,7 +42,7 @@ export const DEFAULT_QUICK_ACTION_ASSIGNMENTS = [
 ];
 
 export const QUICK_ACTION_OPTIONS = [
-  { key: "search-patients", label: "Search Patients", requiresAdmin: false },
+  { key: "search-patients", label: "Search Patient", requiresAdmin: false },
   { key: "new-patient", label: "New Patient", requiresAdmin: false },
   {
     key: "new-appointment",
@@ -277,7 +277,7 @@ export function buildQuickActions({
     {
       key: "search-patients",
       icon: Search,
-      label: "Search Patients",
+      label: "Search Patient",
       keywords: "search patients global patient finder lookup hub chart",
       onClick: () => {
         onClose?.();

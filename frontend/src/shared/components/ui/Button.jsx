@@ -3,7 +3,7 @@ const variants = {
     "border border-cf-border bg-cf-surface text-cf-text-muted " +
     "shadow-[var(--shadow-panel)] hover:border-cf-border-strong hover:bg-cf-surface-soft hover:text-cf-text",
   primary:
-    "border border-cf-accent bg-cf-accent text-white " +
+    "border border-cf-accent bg-cf-accent text-cf-page-bg " +
     "shadow-[var(--shadow-panel)] hover:border-cf-accent-hover hover:bg-cf-accent-hover",
   danger: "border border-transparent bg-red-600 text-white hover:bg-red-700",
   warning:

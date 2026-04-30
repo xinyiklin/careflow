@@ -10,10 +10,13 @@ import {
   Sun,
 } from "lucide-react";
 
-import { useUserPreferences } from "../context/UserPreferencesProvider";
+import {
+  DEFAULT_USER_PREFERENCES,
+  useUserPreferences,
+} from "../context/UserPreferencesProvider";
 import { useTheme } from "../context/ThemeProvider";
 import { APPOINTMENT_BLOCK_DISPLAY_OPTIONS } from "../constants/appointmentBlockDisplay";
-import { Badge, Button, ModalShell } from "./ui";
+import { Button, ModalShell } from "./ui";
 
 function Section({ title, children }) {
   return (
@@ -46,7 +49,7 @@ function SegmentedControl({
             className={[
               "flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-medium transition",
               isActive
-                ? "border-cf-border-strong bg-cf-accent text-white shadow-sm"
+                ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
                 : "border-cf-border bg-cf-surface-muted text-cf-text-muted hover:border-cf-border-strong hover:text-cf-text",
             ].join(" ")}
           >
@@ -81,7 +84,7 @@ function ToggleRow({ icon: Icon, title, checked, onChange }) {
       >
         <span
           className={[
-            "h-4 w-4 rounded-full bg-white shadow-sm transition",
+            "h-4 w-4 rounded-full bg-cf-page-bg shadow-sm ring-1 ring-cf-border/70 transition",
             checked ? "translate-x-5" : "translate-x-0",
           ].join(" ")}
         />
@@ -109,7 +112,7 @@ function BlockDisplayToggleGrid({ value, onChange }) {
             className={[
               "rounded-lg border px-3 py-2 text-left text-sm font-medium transition",
               isActive
-                ? "border-cf-border-strong bg-cf-accent text-white shadow-sm"
+                ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
                 : "border-cf-border bg-cf-surface-muted text-cf-text-muted hover:border-cf-border-strong hover:text-cf-text",
             ].join(" ")}
             aria-pressed={isActive}
@@ -132,6 +135,11 @@ export default function UserPreferencesModal({ isOpen, onClose }) {
     updatePreferences({ theme: nextTheme });
   };
 
+  const handleResetPreferences = () => {
+    setTheme(DEFAULT_USER_PREFERENCES.theme);
+    resetPreferences();
+  };
+
   return (
     <ModalShell
       isOpen={isOpen}
@@ -146,7 +154,7 @@ export default function UserPreferencesModal({ isOpen, onClose }) {
           <Button
             type="button"
             variant="default"
-            onClick={() => resetPreferences()}
+            onClick={handleResetPreferences}
           >
             Reset
           </Button>
@@ -279,35 +287,6 @@ export default function UserPreferencesModal({ isOpen, onClose }) {
                 updatePreferences({ showDemoBadge: nextValue })
               }
             />
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{preferences.theme}</Badge>
-              <Badge variant="outline">
-                {preferences.scheduleStartMode === "days"
-                  ? "Multi-day"
-                  : "Resource"}
-              </Badge>
-              <Badge variant="outline">{preferences.scheduleViewMode}</Badge>
-              <Badge variant="outline">
-                Grid {preferences.showScheduleSlotDividers ? "on" : "off"}
-              </Badge>
-              <Badge variant="outline">
-                Block{" "}
-                {
-                  Object.values(
-                    preferences.appointmentBlockDisplay || {}
-                  ).filter(Boolean).length
-                }{" "}
-                details
-              </Badge>
-              <Badge variant="outline">
-                Recent{" "}
-                {preferences.clearRecentPatientsOnLogout ? "resets" : "stays"}
-              </Badge>
-              <Badge variant="outline">
-                Notes{" "}
-                {preferences.clearPersonalNotesOnLogout ? "reset" : "stay"}
-              </Badge>
-            </div>
           </div>
         </Section>
       </div>

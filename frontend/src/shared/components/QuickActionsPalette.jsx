@@ -15,7 +15,6 @@ import {
 } from "../constants/quickActions";
 
 const DELETE_DROP_ZONE = "delete-drop-zone";
-const DELETE_SHELF_HEIGHT = 64;
 
 function matchesActionQuery(action, normalizedQuery) {
   if (!normalizedQuery) return true;
@@ -313,8 +312,8 @@ export default function QuickActionsPalette({
       title="Quick Actions"
       maxWidth="3xl"
       zIndex={80}
-      panelClassName="relative !overflow-visible"
-      bodyClassName="overflow-visible"
+      panelClassName="relative"
+      bodyClassName="relative"
     >
       {pickerSlot ? (
         <ActionPickerOverlay
@@ -325,47 +324,6 @@ export default function QuickActionsPalette({
           }
           onClose={resetTransientState}
         />
-      ) : null}
-
-      {draggedSlotCode ? (
-        <div
-          onDragOver={(event) => {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-            setDropTargetCode(DELETE_DROP_ZONE);
-          }}
-          onDragLeave={() => {
-            setDropTargetCode((current) =>
-              current === DELETE_DROP_ZONE ? null : current
-            );
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            const sourceCode =
-              event.dataTransfer.getData("text/plain") || draggedSlotCode;
-            handleDropOnDeleteRail(sourceCode);
-            finishDragInteraction();
-          }}
-          className={[
-            "absolute top-full right-0 left-0 z-[90] flex items-center justify-center gap-3 rounded-b-2xl border-x border-b border-dashed px-4 text-sm font-semibold shadow-[var(--shadow-panel-lg)] backdrop-blur transition",
-            dropTargetCode === DELETE_DROP_ZONE
-              ? "border-cf-danger-text bg-cf-danger-bg text-cf-danger-text"
-              : "border-cf-border bg-cf-surface/95 text-cf-text-muted",
-          ].join(" ")}
-          style={{ height: DELETE_SHELF_HEIGHT }}
-        >
-          <div
-            className={[
-              "inline-flex h-10 w-10 items-center justify-center rounded-xl border transition",
-              dropTargetCode === DELETE_DROP_ZONE
-                ? "border-cf-danger-text/30 bg-cf-surface text-cf-danger-text"
-                : "border-cf-border bg-cf-surface-soft text-cf-text-subtle",
-            ].join(" ")}
-          >
-            <Trash2 className="h-4 w-4" />
-          </div>
-          Drop here to remove this shortcut
-        </div>
       ) : null}
 
       <div
@@ -475,6 +433,46 @@ export default function QuickActionsPalette({
               </div>
             </div>
           </div>
+
+          {draggedSlotCode ? (
+            <div
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+                setDropTargetCode(DELETE_DROP_ZONE);
+              }}
+              onDragLeave={() => {
+                setDropTargetCode((current) =>
+                  current === DELETE_DROP_ZONE ? null : current
+                );
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const sourceCode =
+                  event.dataTransfer.getData("text/plain") || draggedSlotCode;
+                handleDropOnDeleteRail(sourceCode);
+                finishDragInteraction();
+              }}
+              className={[
+                "flex min-h-14 items-center justify-center gap-3 rounded-xl border border-dashed px-4 py-3 text-sm font-semibold transition",
+                dropTargetCode === DELETE_DROP_ZONE
+                  ? "border-cf-danger-text bg-cf-danger-bg text-cf-danger-text"
+                  : "border-cf-border bg-cf-surface-soft text-cf-text-muted",
+              ].join(" ")}
+            >
+              <div
+                className={[
+                  "inline-flex h-9 w-9 items-center justify-center rounded-lg border transition",
+                  dropTargetCode === DELETE_DROP_ZONE
+                    ? "border-cf-danger-text/30 bg-cf-surface text-cf-danger-text"
+                    : "border-cf-border bg-cf-surface text-cf-text-subtle",
+                ].join(" ")}
+              >
+                <Trash2 className="h-4 w-4" />
+              </div>
+              Drop here to remove this shortcut
+            </div>
+          ) : null}
         </div>
       </div>
     </ModalShell>
