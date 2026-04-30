@@ -7,11 +7,13 @@ const TONE_STYLES = {
   },
   warning: {
     icon: TriangleAlert,
-    className: "border-amber-200 bg-amber-50 text-amber-900",
+    className:
+      "border-cf-warning-text/35 bg-cf-warning-bg text-cf-warning-text",
   },
   success: {
     icon: CheckCircle2,
-    className: "border-emerald-200 bg-emerald-50 text-emerald-900",
+    className:
+      "border-cf-success-text/35 bg-cf-success-bg text-cf-success-text",
   },
   info: {
     icon: Info,

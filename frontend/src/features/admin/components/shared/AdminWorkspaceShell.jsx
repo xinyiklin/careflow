@@ -26,7 +26,7 @@ export default function AdminWorkspaceShell({
       <div className="grid h-full min-h-0 overflow-hidden bg-cf-page-bg md:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="hidden min-h-0 flex-col overflow-hidden border-r border-cf-border bg-cf-page-bg md:flex">
           <div className="border-b border-cf-border px-3 pt-0 pb-3">
-            <div className="rounded-b-[1.15rem] border-x border-b border-cf-border bg-cf-page-bg p-3 shadow-[var(--shadow-panel)]">
+            <div className="rounded-b-2xl border-x border-b border-cf-border bg-cf-page-bg p-3 shadow-[var(--shadow-panel)]">
               <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
                 Admin console
               </div>
@@ -64,7 +64,7 @@ export default function AdminWorkspaceShell({
 
         <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <div className="shrink-0 px-4 pt-0 pb-3 sm:px-5 lg:px-6 xl:px-7">
-            <div className="rounded-b-[1.75rem] border-x border-b border-cf-border bg-cf-surface/88 px-4 py-4 shadow-[var(--shadow-panel)] backdrop-blur sm:px-5">
+            <div className="rounded-b-[var(--radius-cf-shell)] border-x border-b border-cf-border bg-cf-surface/88 px-4 py-4 shadow-[var(--shadow-panel)] backdrop-blur sm:px-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">

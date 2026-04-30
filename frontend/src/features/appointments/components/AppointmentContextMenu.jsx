@@ -143,7 +143,7 @@ export default function AppointmentContextMenu({
       <div className="fixed inset-0 z-[72]" onClick={onClose} />
 
       <div
-        className="fixed z-[73] w-64 overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-xl"
+        className="fixed z-[73] w-64 overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]"
         style={position}
       >
         <div className="border-b border-cf-border bg-cf-surface-muted/45 px-4 py-3">

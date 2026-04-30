@@ -114,7 +114,7 @@ export function SecurityOverrideBoard({
   onChange,
 }) {
   return (
-    <section className="rounded-[1.15rem] border border-cf-border bg-cf-surface-soft/45 p-3 shadow-[var(--shadow-panel)]">
+    <section className="rounded-2xl border border-cf-border bg-cf-surface-soft/45 p-3 shadow-[var(--shadow-panel)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">

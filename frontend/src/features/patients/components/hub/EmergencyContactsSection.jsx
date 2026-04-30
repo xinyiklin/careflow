@@ -315,11 +315,11 @@ export default function EmergencyContactsSection({
       }
     >
       {isMissing && !showAdd ? (
-        <div className="rounded-2xl border border-dashed border-amber-300 bg-amber-50/40 px-4 py-4">
-          <div className="text-sm font-semibold text-amber-950">
+        <div className="rounded-2xl border border-dashed border-cf-warning-text/35 bg-cf-warning-bg px-4 py-4">
+          <div className="text-sm font-semibold text-cf-warning-text">
             No emergency contact on file.
           </div>
-          <p className="mt-0.5 text-xs text-amber-900/80">
+          <p className="mt-0.5 text-xs text-cf-warning-text/80">
             Required before the next visit. Add at least one person to reach
             during an emergency.
           </p>

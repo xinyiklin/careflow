@@ -168,7 +168,7 @@ export default function ResourceModal({
           </CompactModalLane>
 
           <CompactCard eyebrow="Preview" title="Resource lane">
-            <div className="rounded-[1.1rem] border border-cf-border bg-cf-surface-soft/55 p-3">
+            <div className="rounded-2xl border border-cf-border bg-cf-surface-soft/55 p-3">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-cf-text">

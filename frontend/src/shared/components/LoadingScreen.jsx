@@ -6,7 +6,7 @@ export default function LoadingScreen({
 }) {
   return (
     <div className="cf-loading-screen flex h-[100dvh] w-full items-center justify-center bg-cf-page-bg px-6 text-cf-text">
-      <div className="cf-loading-card relative w-full max-w-lg overflow-hidden rounded-[2rem] border border-cf-border-strong bg-cf-surface px-8 py-8 shadow-[var(--shadow-panel-lg)]">
+      <div className="cf-loading-card relative w-full max-w-lg overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border-strong bg-cf-surface px-8 py-8 shadow-[var(--shadow-panel-lg)]">
         <div className="cf-loading-orbit" aria-hidden="true" />
         <div className="relative">
           <div className="flex items-center gap-4">

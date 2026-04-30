@@ -32,9 +32,9 @@ export default function LoginForm({ onSubmit, onDemoLogin, error, loading }) {
 
   return (
     <div className="cf-app-shell flex h-[100dvh] w-full items-center justify-center bg-cf-page-bg px-4">
-      <div className="w-full max-w-sm rounded-[1.6rem] border border-cf-border bg-cf-surface px-7 py-7 shadow-[var(--shadow-panel-lg)]">
+      <div className="w-full max-w-sm rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface px-7 py-7 shadow-[var(--shadow-panel-lg)]">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.875rem] bg-[var(--color-cf-sidebar-bg)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-cf-sidebar-bg)]">
             <CareFlowIcon className="h-5 w-5 text-[var(--color-cf-sidebar-accent)]" />
           </div>
           <div>

@@ -245,7 +245,7 @@ export default function DocumentsWorkspace({
           accept={ACCEPTED_DOCUMENT_EXTENSIONS}
           onChange={handleFileSelected}
         />
-        <div className="shrink-0 border-b border-cf-border bg-gradient-to-br from-cf-surface to-cf-surface-muted/70 px-4 py-3">
+        <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/55 px-4 py-3">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
@@ -360,7 +360,7 @@ export default function DocumentsWorkspace({
                   {[0, 1, 2].map((item) => (
                     <div
                       key={item}
-                      className="cf-loading-skeleton h-24 rounded-[1.15rem] bg-cf-surface-soft"
+                      className="cf-loading-skeleton h-24 rounded-xl bg-cf-surface-soft"
                     />
                   ))}
                 </div>

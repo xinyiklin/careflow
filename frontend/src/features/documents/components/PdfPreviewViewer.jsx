@@ -136,7 +136,7 @@ export default function PdfPreviewViewer({
         "flex h-full min-h-[420px] flex-1 flex-col overflow-hidden bg-cf-surface",
         flush
           ? ""
-          : "rounded-[1.2rem] border border-cf-border shadow-[var(--shadow-panel)]",
+          : "rounded-2xl border border-cf-border shadow-[var(--shadow-panel)]",
       ].join(" ")}
     >
       <div

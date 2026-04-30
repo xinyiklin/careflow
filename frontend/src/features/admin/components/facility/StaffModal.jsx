@@ -134,7 +134,7 @@ export default function StaffModal({
         className="grid gap-3 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]"
       >
         <section className="space-y-3">
-          <div className="rounded-[1.15rem] border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+          <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-cf-border bg-cf-surface-soft text-sm font-bold text-cf-text">
                 {getInitialsFromName(
@@ -163,7 +163,7 @@ export default function StaffModal({
             </div>
           </div>
 
-          <div className="rounded-[1.15rem] border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+          <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
             <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
               Membership
             </div>
@@ -230,7 +230,7 @@ export default function StaffModal({
             </div>
           </div>
 
-          <div className="rounded-[1.15rem] border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+          <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
@@ -291,7 +291,7 @@ export default function StaffModal({
             onChange={handleSecurityOverrideChange}
           />
         ) : (
-          <section className="rounded-[1.15rem] border border-dashed border-cf-border bg-cf-surface-soft/45 p-5 text-sm font-medium text-cf-text-muted">
+          <section className="rounded-2xl border border-dashed border-cf-border bg-cf-surface-soft/45 p-5 text-sm font-medium text-cf-text-muted">
             Overrides unlock after the member is saved.
           </section>
         )}

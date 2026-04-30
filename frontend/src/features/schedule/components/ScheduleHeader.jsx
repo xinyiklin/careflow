@@ -34,7 +34,7 @@ export default function ScheduleHeader({
   }, [isIntervalExpanded]);
 
   return (
-    <div className="grid gap-3 border-b border-cf-border bg-gradient-to-b from-cf-surface-soft/75 to-cf-surface px-0 py-3 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-0">
+    <div className="grid gap-3 border-b border-cf-border bg-cf-surface-muted/55 px-0 py-3 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-0">
       <div className="min-w-0 px-4 sm:px-5">
         <div className="min-w-0">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">

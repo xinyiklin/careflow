@@ -478,7 +478,7 @@ export default function ScheduleGridView({
         "relative flex h-full min-h-0 flex-col overflow-hidden",
         embedded
           ? "rounded-none border-0 bg-transparent shadow-none"
-          : "rounded-[1.25rem] border border-cf-border bg-cf-surface shadow-sm",
+          : "rounded-2xl border border-cf-border bg-cf-surface shadow-sm",
       ].join(" ")}
     >
       {showToolbar ? (

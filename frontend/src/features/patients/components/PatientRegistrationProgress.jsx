@@ -71,9 +71,9 @@ export function buildRegistrationSteps(values) {
 function PreviewMetric({ label, value, tone = "default" }) {
   const toneClass =
     tone === "success"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-950"
+      ? "border-cf-success-text/35 bg-cf-success-bg text-cf-success-text"
       : tone === "warning"
-        ? "border-amber-200 bg-amber-50 text-amber-950"
+        ? "border-cf-warning-text/35 bg-cf-warning-bg text-cf-warning-text"
         : "border-cf-border bg-cf-surface text-cf-text";
 
   return (
@@ -90,7 +90,7 @@ function PreviewMetric({ label, value, tone = "default" }) {
 
 export function RegistrationProgressRibbon({ steps, completionPercent }) {
   return (
-    <section className="overflow-hidden rounded-3xl border border-cf-border bg-gradient-to-br from-cf-surface via-cf-surface to-cf-surface-muted/60 p-4 shadow-[var(--shadow-panel)]">
+    <section className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
@@ -117,7 +117,7 @@ export function RegistrationProgressRibbon({ steps, completionPercent }) {
               className={[
                 "min-h-16 rounded-xl border px-2 py-2",
                 step.complete
-                  ? "border-cf-text bg-cf-text text-white"
+                  ? "border-cf-accent bg-cf-accent text-cf-page-bg"
                   : "border-cf-border bg-cf-surface-muted/70 text-cf-text-muted",
               ].join(" ")}
             >
@@ -136,7 +136,7 @@ export function RegistrationProgressRibbon({ steps, completionPercent }) {
 export function RegistrationRail({ steps }) {
   return (
     <aside className="hidden xl:block">
-      <div className="sticky top-0 rounded-3xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+      <div className="sticky top-0 rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
         <div className="px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
           Registration
         </div>
@@ -149,7 +149,7 @@ export function RegistrationRail({ steps }) {
                 className={[
                   "flex items-start gap-3 rounded-2xl px-3 py-3",
                   step.complete
-                    ? "bg-cf-text text-white shadow-[var(--shadow-panel)]"
+                    ? "bg-cf-accent text-cf-page-bg shadow-[var(--shadow-panel)]"
                     : "text-cf-text-muted hover:bg-cf-surface-muted/70",
                 ].join(" ")}
               >
@@ -159,7 +159,9 @@ export function RegistrationRail({ steps }) {
                   <div
                     className={[
                       "mt-0.5 text-xs",
-                      step.complete ? "text-white/70" : "text-cf-text-subtle",
+                      step.complete
+                        ? "text-cf-page-bg/70"
+                        : "text-cf-text-subtle",
                     ].join(" ")}
                   >
                     {step.meta}
@@ -193,8 +195,8 @@ export function RegistrationLens({
 
   return (
     <aside className="hidden xl:block">
-      <div className="sticky top-0 overflow-hidden rounded-3xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel)]">
-        <div className="bg-gradient-to-b from-cf-surface-muted/75 to-cf-surface px-4 py-4">
+      <div className="sticky top-0 overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel)]">
+        <div className="border-b border-cf-border bg-cf-surface-muted/55 px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
               Registration lens
@@ -203,7 +205,7 @@ export function RegistrationLens({
           </div>
 
           <div className="mt-3 flex items-center gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 text-sm font-semibold tracking-[0.12em] text-blue-900 ring-1 ring-blue-200/70">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cf-accent/12 text-sm font-semibold tracking-[0.12em] text-cf-accent ring-1 ring-cf-accent/20">
               {patientInitials}
             </div>
             <div className="min-w-0">

@@ -43,7 +43,7 @@ export default function RouteErrorBoundary() {
 
   return (
     <div className="flex min-h-[100dvh] items-center justify-center bg-cf-page-bg px-4 py-8 text-cf-text">
-      <section className="cf-ui-panel w-full max-w-lg rounded-[1.75rem] px-6 py-6 shadow-[var(--shadow-panel-lg)]">
+      <section className="cf-ui-panel w-full max-w-lg px-6 py-6">
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
           CareFlow
         </div>

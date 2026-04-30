@@ -16,10 +16,7 @@ function formatAddress(address) {
 function ProfileField({ label, value, className = "" }) {
   return (
     <div
-      className={[
-        "rounded-2xl border border-cf-border bg-cf-surface/75 px-3 py-2.5",
-        className,
-      ]
+      className={["border-t border-cf-border py-2.5", className]
         .filter(Boolean)
         .join(" ")}
     >
@@ -35,7 +32,7 @@ function ProfileField({ label, value, className = "" }) {
 
 function SummaryTile({ label, value }) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+    <div className="border-t border-cf-border py-2.5">
       <div className="text-2xl font-semibold tracking-tight text-cf-text">
         {value}
       </div>
@@ -125,9 +122,9 @@ export default function FacilityOverviewPanel() {
   return (
     <AdminTableCard>
       <div className="px-5 py-5">
-        <header className="mb-4 rounded-[1.15rem] border border-cf-border bg-cf-surface-soft/55 px-4 py-3 shadow-[var(--shadow-panel)]">
+        <header className="mb-4 border-b border-cf-border pb-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface text-sm font-bold text-cf-text shadow-[var(--shadow-panel)]">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface text-sm font-bold text-cf-text">
               {getFacilityInitials(adminFacility.name)}
             </span>
             <div className="min-w-0">
@@ -145,8 +142,8 @@ export default function FacilityOverviewPanel() {
         </header>
 
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface-soft/55 p-3 shadow-[var(--shadow-panel)] lg:col-span-2">
-            <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+          <div className="lg:col-span-2">
+            <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
               <ProfileField label="Facility name" value={adminFacility.name} />
               <ProfileField label="Time zone" value={adminFacility.timezone} />
               <ProfileField label="Phone" value={adminFacility.phone_number} />
@@ -164,27 +161,27 @@ export default function FacilityOverviewPanel() {
             </dl>
           </div>
 
-          <div className="space-y-3">
-            <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface-soft/55 p-3 shadow-[var(--shadow-panel)]">
+          <div className="space-y-4 lg:border-l lg:border-cf-border lg:pl-4">
+            <section>
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                 At a glance
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-2 grid grid-cols-2 gap-x-4">
                 <SummaryTile label="Physicians" value={physicians.length} />
                 <SummaryTile label="Staff" value={staffs.length} />
                 <SummaryTile label="Resources" value={resources.length} />
                 <SummaryTile label="Visit types" value={typeOptions.length} />
               </div>
-            </div>
+            </section>
 
-            <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
+            <section className="border-t border-cf-border pt-4">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                 Notes
               </div>
               <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-cf-text-muted">
                 {adminFacility.notes || "No notes yet."}
               </div>
-            </div>
+            </section>
           </div>
         </div>
       </div>

@@ -151,7 +151,7 @@ export default function ModalShell({
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
         className={[
-          "cf-modal-panel flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-2xl",
+          "cf-modal-panel flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]",
           isClosing ? "is-closing" : "is-opening",
           maxWidthClasses[maxWidth] ?? maxWidthClasses.xl,
           panelClassName,
@@ -159,7 +159,7 @@ export default function ModalShell({
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={handlePanelKeyDown}
       >
-        <div className="shrink-0 border-b border-cf-border bg-gradient-to-b from-cf-surface-soft/70 to-cf-surface px-6 py-4">
+        <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/55 px-6 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               {eyebrow ? (

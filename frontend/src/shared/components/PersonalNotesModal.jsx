@@ -19,7 +19,7 @@ export default function PersonalNotesModal({
       title="Personal Notes"
       maxWidth="3xl"
       zIndex={84}
-      panelClassName="cf-notes-modal rounded-[1.75rem]"
+      panelClassName="cf-notes-modal rounded-[var(--radius-cf-shell)]"
       bodyClassName="bg-cf-page-bg px-0 py-0"
       footerClassName="justify-between bg-cf-surface"
       footer={

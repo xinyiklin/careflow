@@ -29,7 +29,7 @@ function Field({ label, children, className = "" }) {
 
 function SummaryTile({ label, value }) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
+    <div className="border-t border-cf-border py-2.5">
       <div className="text-2xl font-semibold tracking-tight text-cf-text">
         {value}
       </div>
@@ -42,9 +42,9 @@ function SummaryTile({ label, value }) {
 
 export function OrganizationOverviewHeader({ formData }) {
   return (
-    <header className="mb-4 rounded-[1.15rem] border border-cf-border bg-cf-surface-soft/55 px-4 py-3 shadow-[var(--shadow-panel)]">
+    <header className="mb-4 border-b border-cf-border pb-4">
       <div className="flex min-w-0 items-center gap-3">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface text-sm font-bold text-cf-text shadow-[var(--shadow-panel)]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface text-sm font-bold text-cf-text">
           {getInitials(formData.name)}
         </span>
         <div className="min-w-0">
@@ -65,7 +65,7 @@ export function OrganizationOverviewHeader({ formData }) {
 
 export function OrganizationIdentityCard({ formData, onChange }) {
   return (
-    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-2">
+    <section className="lg:col-span-2">
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-cf-accent/12 text-sm font-semibold text-cf-accent ring-1 ring-cf-accent/20">
           {getInitials(formData.name)}
@@ -98,7 +98,7 @@ export function OrganizationIdentityCard({ formData, onChange }) {
           <Input name="tax_id" value={formData.tax_id} onChange={onChange} />
         </Field>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -109,23 +109,23 @@ export function OrganizationFootprintCard({
   hasAddress,
 }) {
   return (
-    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface-soft/55 p-3 shadow-[var(--shadow-panel)]">
+    <section className="lg:border-l lg:border-cf-border lg:pl-4">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Footprint
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-2">
+      <div className="mt-2 grid grid-cols-2 gap-x-4">
         <SummaryTile label="Users" value={activePeopleCount || 0} />
         <SummaryTile label="Admins" value={adminCount} />
         <SummaryTile label="Profile" value={`${configuredFieldCount}/8`} />
         <SummaryTile label="Address" value={hasAddress ? "Set" : "—"} />
       </div>
-    </div>
+    </section>
   );
 }
 
 export function OrganizationContactCard({ formData, onChange }) {
   return (
-    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-2">
+    <section className="border-t border-cf-border pt-4 lg:col-span-2">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Contact
       </div>
@@ -149,13 +149,13 @@ export function OrganizationContactCard({ formData, onChange }) {
           <Input name="website" value={formData.website} onChange={onChange} />
         </Field>
       </div>
-    </div>
+    </section>
   );
 }
 
 export function OrganizationNotesCard({ formData, onChange }) {
   return (
-    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
+    <section className="border-t border-cf-border pt-4">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Notes
       </div>
@@ -167,13 +167,13 @@ export function OrganizationNotesCard({ formData, onChange }) {
         rows={5}
         className="mt-3"
       />
-    </div>
+    </section>
   );
 }
 
 export function OrganizationAddressCard({ address, onChange }) {
   return (
-    <div className="rounded-[1.35rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] lg:col-span-3">
+    <section className="border-t border-cf-border pt-4 lg:col-span-3">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
         Address
       </div>
@@ -219,6 +219,6 @@ export function OrganizationAddressCard({ address, onChange }) {
           </Field>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

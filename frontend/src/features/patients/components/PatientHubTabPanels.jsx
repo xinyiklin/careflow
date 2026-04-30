@@ -121,7 +121,7 @@ export function EmptyClinicalTab({
             className={[
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-cf-text-subtle",
               variant === "warning"
-                ? "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400"
+                ? "border-cf-warning-text/35 bg-cf-warning-bg text-cf-warning-text"
                 : "border-cf-border bg-cf-surface-soft",
             ].join(" ")}
           >

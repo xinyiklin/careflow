@@ -346,7 +346,7 @@ export default function PatientModal({
       <div
         ref={modalRef}
         style={modalStyle}
-        className="fixed flex max-h-[min(94dvh,1040px)] w-[min(1400px,96vw)] flex-col rounded-[1.75rem] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]"
+        className="fixed flex max-h-[min(94dvh,1040px)] w-[min(1400px,96vw)] flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
         <form

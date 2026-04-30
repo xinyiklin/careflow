@@ -5,9 +5,10 @@ const variants = {
   primary:
     "border border-cf-accent bg-cf-accent text-cf-page-bg " +
     "shadow-[var(--shadow-panel)] hover:border-cf-accent-hover hover:bg-cf-accent-hover",
-  danger: "border border-transparent bg-red-600 text-white hover:bg-red-700",
+  danger:
+    "border border-cf-danger-text bg-cf-danger-text text-cf-page-bg hover:opacity-90",
   warning:
-    "border border-transparent bg-amber-500 text-white hover:bg-amber-600",
+    "border border-cf-warning-text bg-cf-warning-text text-cf-page-bg hover:opacity-90",
 };
 
 const sizes = {

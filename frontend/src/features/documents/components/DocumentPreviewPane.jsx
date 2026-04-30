@@ -198,7 +198,7 @@ export default function DocumentPreviewPane({
       <PreviewShell flush={flush}>
         <img
           alt={`Preview of ${document.name}`}
-          className="h-full w-full rounded-[1.15rem] object-contain"
+          className="h-full w-full rounded-xl object-contain"
           src={preview.url}
         />
       </PreviewShell>
@@ -230,16 +230,16 @@ function PreviewShell({ children, flush }) {
   return (
     <div
       className={[
-        "relative flex min-h-0 flex-1 bg-gradient-to-b from-cf-surface-soft to-cf-surface",
+        "relative flex min-h-0 flex-1 bg-cf-surface-muted/55",
         flush
           ? ""
-          : "rounded-[1.35rem] border border-cf-border p-3 shadow-[var(--shadow-panel)]",
+          : "rounded-2xl border border-cf-border p-3 shadow-[var(--shadow-panel)]",
       ].join(" ")}
     >
       <div
         className={[
           "min-h-[420px] flex-1 overflow-hidden bg-cf-surface xl:min-h-0",
-          flush ? "" : "rounded-[1.2rem] border border-cf-border shadow-inner",
+          flush ? "" : "rounded-xl border border-cf-border shadow-inner",
         ].join(" ")}
       >
         {children}
@@ -255,7 +255,7 @@ function NoDocumentPreview({ documentName = "", showDocumentHeader, flush }) {
         "flex min-h-[420px] flex-1 flex-col overflow-hidden bg-cf-surface xl:min-h-0",
         flush
           ? ""
-          : "rounded-[1.2rem] border border-cf-border shadow-[var(--shadow-panel)]",
+          : "rounded-2xl border border-cf-border shadow-[var(--shadow-panel)]",
       ].join(" ")}
     >
       {showDocumentHeader ? (

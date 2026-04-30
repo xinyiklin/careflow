@@ -70,7 +70,7 @@ export function ScheduleDayColumns({
               "flex min-h-0 flex-col overflow-hidden",
               embedded
                 ? "min-w-0 border-r border-cf-border bg-transparent shadow-none last:border-r-0"
-                : "w-[min(32rem,calc(100vw-9rem))] min-w-[23rem] flex-1 rounded-[1.35rem] cf-ui-panel",
+                : "w-[min(32rem,calc(100vw-9rem))] min-w-[23rem] flex-1 cf-ui-panel",
             ].join(" ")}
           >
             <DayCardHeader

@@ -144,7 +144,7 @@ function PageRouteLoader({ children }) {
     <Suspense
       fallback={
         <div className="flex h-full min-h-0 items-center justify-center bg-cf-page-bg px-4">
-          <div className="cf-ui-panel w-full max-w-sm rounded-[1.5rem] px-5 py-5">
+          <div className="cf-ui-panel w-full max-w-sm px-5 py-5">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
               CareFlow
             </div>

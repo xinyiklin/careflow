@@ -89,17 +89,17 @@ export default function IntakeBanner({
   if (!missingSections.length) return null;
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-amber-300 bg-gradient-to-br from-amber-50 to-amber-100/40 shadow-[var(--shadow-panel)]">
+    <section className="overflow-hidden rounded-2xl border border-cf-warning-text/35 bg-cf-warning-bg shadow-[var(--shadow-panel)]">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-100 ring-1 ring-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-800" />
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cf-surface/60 ring-1 ring-cf-warning-text/30">
+            <AlertTriangle className="h-4 w-4 text-cf-warning-text" />
           </div>
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-900/70">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-warning-text/75">
               Intake completeness · {completionPercent}%
             </div>
-            <div className="mt-0.5 text-sm font-semibold text-amber-950">
+            <div className="mt-0.5 text-sm font-semibold text-cf-warning-text">
               {missingSections.length} thing
               {missingSections.length === 1 ? " is" : "s are"} missing before
               the next visit

@@ -36,7 +36,7 @@ export function AdminFormModal({
       description=""
       maxWidth={maxWidth}
       panelClassName={[
-        "cf-admin-record-modal rounded-[1.15rem] border-cf-border-strong bg-cf-surface shadow-[var(--shadow-panel-lg)]",
+        "cf-admin-record-modal rounded-[var(--radius-cf-shell)] border-cf-border-strong bg-cf-surface shadow-[var(--shadow-panel-lg)]",
         "[&>div:first-child_p]:hidden",
       ].join(" ")}
       bodyClassName="bg-cf-page-bg px-4 py-4"
@@ -85,7 +85,7 @@ export function AdminFormSection({ title, children, className = "" }) {
   return (
     <section
       className={joinClasses(
-        "overflow-hidden rounded-[1rem] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel)]",
+        "overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel)]",
         className
       )}
     >
@@ -114,7 +114,7 @@ export function AdminField({ label, children, className = "" }) {
 
 export function AdminEditorGrid({ fields, preview }) {
   return (
-    <div className="overflow-hidden rounded-[1.45rem] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]">
+    <div className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]">
       <div className="grid min-h-0 md:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0 space-y-4 bg-cf-surface p-4 md:border-r md:border-cf-border">
           {fields}
@@ -136,7 +136,7 @@ export function AdminFieldGrid({ children, columns = 2 }) {
 
 export function AdminModalSummary({ children }) {
   return (
-    <div className="overflow-hidden rounded-[1rem] border border-cf-border bg-cf-surface-soft/65 px-4 py-3 shadow-[var(--shadow-panel)]">
+    <div className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface-soft/65 px-4 py-3 shadow-[var(--shadow-panel)]">
       {children}
     </div>
   );
@@ -201,7 +201,7 @@ export function AdminRecordPreview({
   children,
 }) {
   return (
-    <section className="overflow-hidden rounded-[1.25rem] border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] ring-1 ring-black/[0.015]">
+    <section className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] ring-1 ring-black/[0.015]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <span

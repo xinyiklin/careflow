@@ -33,7 +33,7 @@ export function CompactCard({
   return (
     <section
       className={joinClasses(
-        "rounded-[1.15rem] border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]",
+        "rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]",
         className
       )}
     >

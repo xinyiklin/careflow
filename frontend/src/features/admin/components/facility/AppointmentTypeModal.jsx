@@ -156,7 +156,7 @@ export default function AppointmentTypeModal({
 
           <CompactCard eyebrow="Preview" title="Schedule block">
             <div
-              className="rounded-[1.1rem] border border-cf-border p-3 shadow-[var(--shadow-panel)]"
+              className="rounded-2xl border border-cf-border p-3 shadow-[var(--shadow-panel)]"
               style={{
                 borderLeft: `5px solid ${formData.color || "#c084fc"}`,
                 backgroundColor: `${formData.color || "#c084fc"}18`,

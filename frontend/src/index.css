@@ -43,6 +43,13 @@
   /* Shadows */
   --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.05);
   --shadow-panel-lg: 0 22px 60px -32px rgba(15, 23, 42, 0.28);
+
+  /* Shape scale:
+     controls 0.75rem, cards 1rem, shells/modals 1.5rem.
+     Full pills are reserved for badges, chips, toggles, dots, and avatars. */
+  --radius-cf-control: 0.75rem;
+  --radius-cf-card: 1rem;
+  --radius-cf-shell: 1.5rem;
 }
 
 /* ── Dark mode token overrides ───────────────────────────────────── */
@@ -283,7 +290,7 @@
 
   .cf-ui-panel {
     border: 1px solid var(--color-cf-border);
-    border-radius: 1.5rem;
+    border-radius: var(--radius-cf-shell);
     background: var(--color-cf-surface);
     box-shadow: var(--shadow-panel-lg);
   }

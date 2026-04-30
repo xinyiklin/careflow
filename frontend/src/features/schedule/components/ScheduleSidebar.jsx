@@ -210,7 +210,7 @@ export default function ScheduleSidebar({
                         className={[
                           "rounded-lg px-2 py-1.5 text-xs font-semibold transition",
                           isActive
-                            ? "bg-cf-text text-white"
+                            ? "bg-cf-accent text-cf-page-bg"
                             : "text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text",
                         ].join(" ")}
                       >
@@ -238,7 +238,7 @@ export default function ScheduleSidebar({
             <button
               type="button"
               onClick={onJumpToToday}
-              className="grid h-7 min-w-7 place-items-center rounded-lg bg-cf-surface-soft px-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-cf-text-subtle transition hover:bg-cf-text hover:text-white"
+              className="grid h-7 min-w-7 place-items-center rounded-lg bg-cf-surface-soft px-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-cf-text-subtle transition hover:bg-cf-accent hover:text-cf-page-bg"
               aria-label="Jump schedule to today"
             >
               T

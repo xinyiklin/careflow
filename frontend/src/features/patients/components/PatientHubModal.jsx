@@ -14,7 +14,7 @@ export default function PatientHubModal({
       onClick={onClose}
     >
       <div
-        className="relative flex h-[95dvh] w-full max-w-[min(1720px,96vw)] flex-col overflow-hidden rounded-[1.75rem] bg-cf-page-bg shadow-2xl"
+        className="relative flex h-[95dvh] w-full max-w-[min(1720px,96vw)] flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-page-bg shadow-[var(--shadow-panel-lg)]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="min-h-0 flex-1">

@@ -55,7 +55,7 @@ export function AdminTableCard({
     ) : null;
 
   return (
-    <section className="cf-admin-table-card overflow-hidden rounded-[1.75rem] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ring-1 ring-black/[0.015]">
+    <section className="cf-admin-table-card overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ring-1 ring-black/[0.015]">
       {useSharedToolbar && toolbarContent
         ? createPortal(toolbarContent, toolbarSlot)
         : null}
@@ -107,7 +107,7 @@ export function AdminListToolbar({
             "rounded-full px-3 py-1 text-xs font-semibold",
             hasInteractiveFilters ? "transition" : "",
             isActive
-              ? "bg-cf-text text-white shadow-[var(--shadow-panel)]"
+              ? "bg-cf-accent text-cf-page-bg shadow-[var(--shadow-panel)]"
               : [
                   "border border-cf-border bg-cf-surface-soft/70 text-cf-text-muted",
                   hasInteractiveFilters ? "hover:bg-cf-surface" : "",
@@ -119,7 +119,9 @@ export function AdminListToolbar({
               {label}{" "}
               {count !== undefined ? (
                 <span
-                  className={isActive ? "text-white/70" : "text-cf-text-subtle"}
+                  className={
+                    isActive ? "text-cf-page-bg/70" : "text-cf-text-subtle"
+                  }
                 >
                   {count}
                 </span>

@@ -131,7 +131,7 @@ export default function AppNavbar({
             </div>
 
             {isPatientMenuOpen && (
-              <div className="absolute left-0 top-12 z-50 w-[22rem] overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-xl">
+              <div className="absolute left-0 top-12 z-50 w-[22rem] overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]">
                 <div className="border-b border-cf-border px-4 py-3">
                   <p className="text-sm font-semibold text-cf-text">
                     Recent Patients
@@ -204,7 +204,7 @@ export default function AppNavbar({
           </button>
 
           {isUserMenuOpen && (
-            <div className="absolute right-0 top-12 z-50 w-[22rem] overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-xl">
+            <div className="absolute right-0 top-12 z-50 w-[22rem] overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]">
               <div className="border-b border-cf-border px-4 py-4">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cf-border bg-cf-surface-soft text-sm font-semibold tracking-[0.14em] text-cf-text">

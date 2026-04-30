@@ -137,7 +137,7 @@ export default function AppointmentStatusModal({
           </CompactModalLane>
 
           <CompactCard eyebrow="Preview" title="Status treatment">
-            <div className="rounded-[1.1rem] border border-cf-border bg-cf-surface-soft/55 p-3">
+            <div className="rounded-2xl border border-cf-border bg-cf-surface-soft/55 p-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-cf-text">
