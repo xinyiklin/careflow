@@ -15,6 +15,22 @@ FACILITY_DATETIME_INPUT_FORMATS = (
 class AppointmentSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     patient_id = serializers.IntegerField(source="patient.id", read_only=True)
+    patient_first_name = serializers.CharField(
+        source="patient.first_name",
+        read_only=True,
+    )
+    patient_middle_name = serializers.CharField(
+        source="patient.middle_name",
+        read_only=True,
+    )
+    patient_last_name = serializers.CharField(
+        source="patient.last_name",
+        read_only=True,
+    )
+    patient_preferred_name = serializers.CharField(
+        source="patient.preferred_name",
+        read_only=True,
+    )
     patient_date_of_birth = serializers.DateField(
         source="patient.date_of_birth",
         read_only=True,
@@ -45,8 +61,12 @@ class AppointmentSerializer(serializers.ModelSerializer):
     rendering_provider_role_name = serializers.SerializerMethodField()
     rendering_provider_title_name = serializers.SerializerMethodField()
 
-    duration_minutes = serializers.IntegerField(read_only=True)
-    end_time = serializers.SerializerMethodField()
+    duration_minutes = serializers.SerializerMethodField()
+    end_time = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
 
     allow_same_day_double_book = serializers.BooleanField(
         write_only=True,
@@ -61,6 +81,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "patient",
             "patient_id",
             "patient_name",
+            "patient_first_name",
+            "patient_middle_name",
+            "patient_last_name",
+            "patient_preferred_name",
             "patient_date_of_birth",
             "patient_chart_number",
             "resource",
@@ -93,8 +117,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_by",
             "created_by_name",
             "created_at",
-            "duration_minutes",
-            "end_time",
         )
         extra_kwargs = {
             "facility": {"required": False},
@@ -135,7 +157,12 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 {"facility": f"Invalid facility timezone: {tz_name}."}
             )
 
-    def _parse_facility_local_datetime_to_utc(self, raw_value, facility):
+    def _parse_facility_local_datetime_to_utc(
+        self,
+        raw_value,
+        facility,
+        field_name="appointment_time",
+    ):
         if raw_value in (None, ""):
             return None
 
@@ -153,16 +180,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
                     continue
             if parsed is None:
                 raise serializers.ValidationError(
-                    {
-                        "appointment_time": (
-                            "Invalid datetime format. Use YYYY-MM-DDTHH:MM."
-                        )
-                    }
+                    {field_name: "Invalid datetime format. Use YYYY-MM-DDTHH:MM."}
                 )
         else:
-            raise serializers.ValidationError(
-                {"appointment_time": "Invalid datetime value."}
-            )
+            raise serializers.ValidationError({field_name: "Invalid datetime value."})
 
         if timezone.is_aware(parsed):
             local_dt = parsed.astimezone(facility_tz)
@@ -181,6 +202,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         facility = self._get_facility(attrs)
         patient = attrs.get("patient", getattr(self.instance, "patient", None))
+        appointment_type = attrs.get(
+            "appointment_type",
+            getattr(self.instance, "appointment_type", None),
+        )
         allow_same_day_double_book = attrs.pop("allow_same_day_double_book", False)
 
         if facility is not None and not self.instance and "facility" not in attrs:
@@ -192,11 +217,22 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 raw_appointment_time,
                 facility,
             )
+        raw_end_time = self.initial_data.get("end_time", serializers.empty)
+        if raw_end_time is not serializers.empty and facility is not None:
+            if raw_end_time in (None, ""):
+                attrs["end_time"] = None
+            else:
+                attrs["end_time"] = self._parse_facility_local_datetime_to_utc(
+                    raw_end_time,
+                    facility,
+                    "end_time",
+                )
 
         appointment_time = attrs.get(
             "appointment_time",
             getattr(self.instance, "appointment_time", None),
         )
+        end_time = attrs.get("end_time", getattr(self.instance, "end_time", None))
         resource = attrs.get("resource", getattr(self.instance, "resource", None))
         room = attrs.get("room", getattr(self.instance, "room", ""))
         rendering_provider = attrs.get(
@@ -211,6 +247,17 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         if resource and not str(room or "").strip():
             attrs["room"] = getattr(resource, "default_room", "") or ""
+
+        if appointment_time and not end_time and appointment_type:
+            attrs["end_time"] = appointment_time + timedelta(
+                minutes=appointment_type.duration_minutes
+            )
+            end_time = attrs["end_time"]
+
+        if appointment_time and end_time and end_time <= appointment_time:
+            raise serializers.ValidationError(
+                {"end_time": "Appointment end time must be after start time."}
+            )
 
         if facility and rendering_provider:
             if rendering_provider.facility_id != facility.id:
@@ -268,13 +315,17 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         return attrs
 
-    def get_end_time(self, obj):
-        return self._format_utc_to_facility_local(obj.end_time, obj.facility)
+    def get_duration_minutes(self, obj):
+        return obj.duration_minutes
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data["appointment_time"] = self._format_utc_to_facility_local(
             instance.appointment_time,
+            instance.facility,
+        )
+        data["end_time"] = self._format_utc_to_facility_local(
+            instance.end_time,
             instance.facility,
         )
         return data

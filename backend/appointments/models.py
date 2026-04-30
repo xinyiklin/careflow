@@ -28,6 +28,7 @@ class Appointment(models.Model):
     room = models.CharField(max_length=50, blank=True)
     reason = models.TextField(blank=True)
     notes = models.TextField(blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
 
     status = models.ForeignKey(
         "facilities.AppointmentStatus",
@@ -76,14 +77,10 @@ class Appointment(models.Model):
 
     @property
     def duration_minutes(self):
-        return self.appointment_type.duration_minutes if self.appointment_type else 0
-
-    @property
-    def end_time(self):
-        if not self.appointment_time or not self.appointment_type:
-            return None
-        return self.appointment_time + timedelta(
-            minutes=self.appointment_type.duration_minutes
+        if not self.appointment_time or not self.end_time:
+            return 0
+        return max(
+            0, round((self.end_time - self.appointment_time).total_seconds() / 60)
         )
 
     def clean(self):
@@ -124,9 +121,22 @@ class Appointment(models.Model):
                 }
             )
 
+        if (
+            self.appointment_time
+            and self.end_time
+            and self.end_time <= self.appointment_time
+        ):
+            raise ValidationError(
+                {"end_time": "Appointment end time must be after start time."}
+            )
+
     def save(self, *args, **kwargs):
         if self.resource and not str(self.room or "").strip():
             self.room = self.resource.default_room or ""
+        if not self.end_time and self.appointment_time and self.appointment_type:
+            self.end_time = self.appointment_time + timedelta(
+                minutes=self.appointment_type.duration_minutes
+            )
 
         self.full_clean()
 

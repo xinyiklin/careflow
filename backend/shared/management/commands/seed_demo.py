@@ -700,6 +700,24 @@ class Command(BaseCommand):
 
             target_patient_count = patient_counts[facility.id]
 
+            def build_demo_ssn(last4=None):
+                last4_digits = "".join(
+                    char for char in str(last4 or "") if char.isdigit()
+                )
+                if len(last4_digits) != 4:
+                    last4_digits = f"{random.randint(0, 9999):04d}"
+                return f"{random.randint(10000, 99999):05d}{last4_digits}"
+
+            def normalize_demo_patient_ssn(patient):
+                patient_ssn_digits = "".join(
+                    char for char in str(patient.ssn or "") if char.isdigit()
+                )
+                if len(patient_ssn_digits) != 9:
+                    patient.ssn = build_demo_ssn(patient.ssn_last4)
+                else:
+                    patient.ssn = patient_ssn_digits
+                patient.ssn_last4 = patient.ssn[-4:]
+
             while len(patients) < target_patient_count:
                 first_name = random.choice(first_names)
                 last_name = random.choice(last_names)
@@ -715,7 +733,7 @@ class Command(BaseCommand):
                 used_patient_keys.add(key)
 
                 patient_index = len(patients) + 1
-                demo_ssn = f"{random.randint(100000000, 999999999):09d}"
+                demo_ssn = build_demo_ssn()
                 demographic_defaults = demo_demographics(patient_index)
                 patient, _ = Patient.objects.get_or_create(
                     facility=facility,
@@ -783,11 +801,7 @@ class Command(BaseCommand):
                         f"{patient.first_name.lower()}.{patient.last_name.lower()}"
                         f"{patient_index}@demo-patient.local"
                     )
-                if not patient.ssn:
-                    preserved_last4 = (
-                        patient.ssn_last4 or f"{random.randint(0, 9999):04d}"
-                    )
-                    patient.ssn = f"{random.randint(10000, 99999):05d}{preserved_last4}"
+                normalize_demo_patient_ssn(patient)
                 if not patient.pcp:
                     patient.pcp = external_pcp
                 if not patient.referring_provider:
@@ -826,6 +840,22 @@ class Command(BaseCommand):
                 )
 
                 patients.append(patient)
+
+            for seeded_patient in Patient.objects.filter(
+                facility=facility,
+                email__endswith="@demo-patient.local",
+            ):
+                previous_ssn = seeded_patient.ssn
+                previous_last4 = seeded_patient.ssn_last4
+                normalize_demo_patient_ssn(seeded_patient)
+                if (
+                    seeded_patient.ssn != previous_ssn
+                    or seeded_patient.ssn_last4 != previous_last4
+                ):
+                    Patient.objects.filter(pk=seeded_patient.pk).update(
+                        ssn=seeded_patient.ssn,
+                        ssn_last4=seeded_patient.ssn_last4,
+                    )
 
             document_storage = get_patient_document_storage()
             for patient in patients[: min(6, len(patients))]:

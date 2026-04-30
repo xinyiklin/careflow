@@ -265,6 +265,48 @@ class AppointmentViewSetTests(TestCase):
         self.assertEqual(appointment.room, "201")
         self.assertEqual(response.data["room"], "201")
 
+    def test_create_accepts_custom_end_time(self):
+        response = self.client.post(
+            "/v1/appointments/",
+            {
+                "patient": self.patient.id,
+                "appointment_time": "2026-04-22T10:00",
+                "end_time": "2026-04-22T10:40",
+                "reason": "Follow up",
+                "status": self.status.id,
+                "appointment_type": self.appointment_type.id,
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        appointment = Appointment.objects.get(id=response.data["id"])
+        self.assertEqual(response.data["end_time"], "2026-04-22T10:40")
+        self.assertEqual(response.data["duration_minutes"], 40)
+        self.assertEqual(appointment.duration_minutes, 40)
+
+    def test_create_rejects_end_time_before_start_time(self):
+        response = self.client.post(
+            "/v1/appointments/",
+            {
+                "patient": self.patient.id,
+                "appointment_time": "2026-04-22T10:00",
+                "end_time": "2026-04-22T09:45",
+                "reason": "Follow up",
+                "status": self.status.id,
+                "appointment_type": self.appointment_type.id,
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data["end_time"][0],
+            "Appointment end time must be after start time.",
+        )
+
     def test_create_accepts_rendering_provider_for_same_facility(self):
         response = self.client.post(
             "/v1/appointments/",

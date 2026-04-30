@@ -1,4 +1,5 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
 from rest_framework import serializers
 
 from shared.serializers import AddressSerializer
@@ -379,20 +380,30 @@ class PatientSerializer(AddressModelSerializerMixin, serializers.ModelSerializer
         if not normalized_phones:
             return
 
-        primary_label = (
-            "cell"
-            if any(phone.get("label") == "cell" for phone in normalized_phones)
-            else None
+        primary_index = next(
+            (
+                index
+                for index, phone in enumerate(normalized_phones)
+                if phone.get("is_primary")
+            ),
+            None,
         )
+        if primary_index is None:
+            primary_index = next(
+                (
+                    index
+                    for index, phone in enumerate(normalized_phones)
+                    if phone.get("label") == "cell"
+                ),
+                0,
+            )
 
         for index, phone in enumerate(normalized_phones):
             PatientPhone.objects.create(
                 patient=patient,
                 number=phone["number"].strip(),
                 label=phone.get("label") or "cell",
-                is_primary=(
-                    phone.get("label") == primary_label if primary_label else index == 0
-                ),
+                is_primary=index == primary_index,
             )
 
     def _save_emergency_contacts(self, patient, contacts_data):
@@ -525,29 +536,31 @@ class PatientSerializer(AddressModelSerializerMixin, serializers.ModelSerializer
             "emergency_contacts", serializers.empty
         )
         pharmacy_ids = validated_data.pop("pharmacy_ids", serializers.empty)
-        self._save_address(instance, validated_data)
 
-        if "ssn" in validated_data:
-            instance.ssn_last4 = (
-                validated_data["ssn"][-4:] if validated_data["ssn"] else ""
-            )
+        with transaction.atomic():
+            self._save_address(instance, validated_data)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+            if "ssn" in validated_data:
+                instance.ssn_last4 = (
+                    validated_data["ssn"][-4:] if validated_data["ssn"] else ""
+                )
 
-        instance.save()
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
 
-        if phones_data is not serializers.empty:
-            self._save_phones(instance, phones_data)
+            if emergency_contacts_data is not serializers.empty:
+                self._save_emergency_contacts(instance, emergency_contacts_data)
 
-        if emergency_contacts_data is not serializers.empty:
-            self._save_emergency_contacts(instance, emergency_contacts_data)
+            instance.save()
 
-        if (
-            "preferred_pharmacy" in validated_data
-            or pharmacy_ids is not serializers.empty
-        ):
-            self._sync_preferred_pharmacy(instance, pharmacy_ids)
+            if phones_data is not serializers.empty:
+                self._save_phones(instance, phones_data)
+
+            if (
+                "preferred_pharmacy" in validated_data
+                or pharmacy_ids is not serializers.empty
+            ):
+                self._sync_preferred_pharmacy(instance, pharmacy_ids)
 
         return instance
 

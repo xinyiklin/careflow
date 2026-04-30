@@ -12,6 +12,7 @@ from patients.models import (
     Patient,
     PatientDocument,
     PatientDocumentCategory,
+    PatientEmergencyContact,
     PatientPhone,
 )
 
@@ -381,6 +382,33 @@ class PatientViewSetTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("phones", response.data)
 
+    def test_phone_update_honors_requested_primary_phone(self):
+        response = self.client.patch(
+            f"/v1/patients/{self.patient.id}/",
+            {
+                "phones": [
+                    {
+                        "number": "5551234488",
+                        "label": "cell",
+                        "is_primary": False,
+                    },
+                    {
+                        "number": "5551234499",
+                        "label": "home",
+                        "is_primary": True,
+                    },
+                ],
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.phones.get(label="home").is_primary, True)
+        self.assertEqual(self.patient.phones.get(label="cell").is_primary, False)
+        self.assertEqual(response.data["primary_phone_number"], "5551234499")
+
     def test_emergency_contact_update_rejects_too_many_phone_digits(self):
         response = self.client.patch(
             f"/v1/patients/{self.patient.id}/",
@@ -400,6 +428,41 @@ class PatientViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("emergency_contacts", response.data)
+
+    def test_emergency_contact_update_replaces_invalid_legacy_phone(self):
+        Patient.objects.filter(pk=self.patient.pk).update(
+            emergency_contact_name="Old Contact",
+            emergency_contact_relationship="Sibling",
+            emergency_contact_phone="555123448899",
+        )
+        PatientEmergencyContact.objects.create(
+            patient=self.patient,
+            name="Old Contact",
+            relationship="Sibling",
+            phone_number="555-123-4488",
+            is_primary=True,
+        )
+
+        response = self.client.patch(
+            f"/v1/patients/{self.patient.id}/",
+            {
+                "emergency_contacts": [
+                    {
+                        "name": "Emergency Contact",
+                        "relationship": "Sibling",
+                        "phone_number": "5551234499",
+                        "is_primary": True,
+                    }
+                ],
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.emergency_contact_phone, "5551234499")
+        self.assertEqual(self.patient.emergency_contacts.count(), 1)
 
     def test_ssn_update_rejects_invalid_digit_count(self):
         response = self.client.patch(
