@@ -2,13 +2,41 @@ import {
   DEFAULT_APPOINTMENT_BLOCK_DISPLAY,
   sanitizeAppointmentBlockDisplay,
 } from "../../../shared/constants/appointmentBlockDisplay";
+import type { AppointmentBlockDisplay } from "../../../shared/constants/appointmentBlockDisplay";
 import {
   getAppointmentDetailText,
   getAppointmentTimeLabel,
 } from "../../../shared/utils/appointmentBlockDetails";
 import { getPatientChartName } from "../../patients/utils/patientDisplay";
+import type { AppointmentLike } from "../../../shared/types/domain";
 
-function parseHexColor(value) {
+type RgbColor = {
+  r: number;
+  g: number;
+  b: number;
+};
+
+type AppointmentBlockProps = {
+  appointment: AppointmentLike;
+  onDoubleClick?: () => void;
+  onPointerDragStart?: (
+    event: React.PointerEvent<HTMLDivElement>,
+    appointment: AppointmentLike
+  ) => void;
+  onContextMenu?: (
+    event: React.MouseEvent<HTMLDivElement>,
+    appointment: AppointmentLike
+  ) => void;
+  isDragging?: boolean;
+  isPreview?: boolean;
+  fullWidth?: boolean;
+  equalWidth?: boolean;
+  displayOptions?: AppointmentBlockDisplay;
+  className?: string;
+  style?: React.CSSProperties;
+};
+
+function parseHexColor(value: unknown): RgbColor | null {
   if (typeof value !== "string") return null;
   const hex = value.trim().replace("#", "");
   const normalized =
@@ -28,17 +56,17 @@ function parseHexColor(value) {
   };
 }
 
-function formatHexChannel(value) {
+function formatHexChannel(value: number): string {
   return Math.max(0, Math.min(255, Math.round(value)))
     .toString(16)
     .padStart(2, "0");
 }
 
-function shadeHexColor(value, amount) {
+function shadeHexColor(value: unknown, amount: number): string | null {
   const rgb = parseHexColor(value);
   if (!rgb) return null;
 
-  const adjust = (channel) =>
+  const adjust = (channel: number) =>
     amount < 0 ? channel * (1 + amount) : channel + (255 - channel) * amount;
 
   return `#${formatHexChannel(adjust(rgb.r))}${formatHexChannel(
@@ -46,7 +74,7 @@ function shadeHexColor(value, amount) {
   )}${formatHexChannel(adjust(rgb.b))}`;
 }
 
-function getRelativeLuminance({ r, g, b }) {
+function getRelativeLuminance({ r, g, b }: RgbColor): number {
   const [red, green, blue] = [r, g, b].map((channel) => {
     const normalized = channel / 255;
     return normalized <= 0.03928
@@ -57,13 +85,16 @@ function getRelativeLuminance({ r, g, b }) {
   return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 }
 
-function getContrastRatio(firstLuminance, secondLuminance) {
+function getContrastRatio(
+  firstLuminance: number,
+  secondLuminance: number
+): number {
   const lighter = Math.max(firstLuminance, secondLuminance);
   const darker = Math.min(firstLuminance, secondLuminance);
   return (lighter + 0.05) / (darker + 0.05);
 }
 
-function getReadableTone(backgroundColor) {
+function getReadableTone(backgroundColor: unknown) {
   const rgb = parseHexColor(backgroundColor);
   if (!rgb) {
     return {
@@ -93,7 +124,7 @@ function getReadableTone(backgroundColor) {
       };
 }
 
-function getNumericStyleHeight(style) {
+function getNumericStyleHeight(style?: React.CSSProperties): number | null {
   if (!style || style.height == null) return null;
   if (typeof style.height === "number") return style.height;
   const parsed = Number.parseFloat(style.height);
@@ -112,7 +143,7 @@ export default function AppointmentBlock({
   displayOptions = DEFAULT_APPOINTMENT_BLOCK_DISPLAY,
   className = "",
   style,
-}) {
+}: AppointmentBlockProps) {
   const display = sanitizeAppointmentBlockDisplay(displayOptions);
   const statusColor = appointment.status_color || "#ffffff";
   const visitTypeColor = appointment.appointment_type_color || statusColor;

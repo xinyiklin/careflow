@@ -1,8 +1,35 @@
 import { History, X } from "lucide-react";
+import type { PointerEventHandler } from "react";
 
 import { Button } from "../../../shared/components/ui";
+import type {
+  AppointmentFormData,
+  AppointmentMode,
+  AppointmentPatient,
+  AppointmentResource,
+  AppointmentStatusOption,
+} from "../types";
 
-function getAppointmentInitials(patientDisplayName) {
+type AppointmentModalHeaderProps = {
+  dragHandleProps: {
+    onPointerDown?: PointerEventHandler<HTMLElement>;
+  };
+  patientDisplayName: string;
+  selectedPatient?: AppointmentPatient | null;
+  mode: AppointmentMode;
+  formData: AppointmentFormData;
+  appointmentHeaderDate: string;
+  appointmentHeaderTime: string;
+  appointmentHeaderEndTime: string;
+  selectedResource?: AppointmentResource | null;
+  providerDisplayName?: string;
+  selectedStatusOption?: AppointmentStatusOption | null;
+  selectedStatusColor?: string | null;
+  onOpenHistory?: () => void;
+  onClose?: () => void;
+};
+
+function getAppointmentInitials(patientDisplayName: string): string {
   return (patientDisplayName || "AP")
     .split(/\s|,/)
     .filter(Boolean)
@@ -27,7 +54,7 @@ export default function AppointmentModalHeader({
   selectedStatusColor,
   onOpenHistory,
   onClose,
-}) {
+}: AppointmentModalHeaderProps) {
   const resourceDisplayName = selectedResource?.name || "No resource";
   const normalizedResourceName = resourceDisplayName.trim().toLowerCase();
   const normalizedProviderName = providerDisplayName?.trim().toLowerCase();

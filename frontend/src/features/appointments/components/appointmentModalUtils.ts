@@ -1,7 +1,15 @@
 import { toFacilityDateTime } from "../../../shared/utils/dateTime";
 import { getPatientChartName } from "../../patients/utils/patientDisplay";
+import type {
+  PatientAddress,
+  PatientInsurancePolicy,
+  StaffLike,
+} from "../../../shared/types/domain";
+import type { AppointmentPatient } from "../types";
 
-export function getPatientDisplayName(selectedPatient) {
+export function getPatientDisplayName(
+  selectedPatient?: AppointmentPatient | null
+): string {
   if (!selectedPatient) return "";
 
   return getPatientChartName(
@@ -13,12 +21,14 @@ export function getPatientDisplayName(selectedPatient) {
   );
 }
 
-export function getPrimaryInsurancePolicy(policies) {
+export function getPrimaryInsurancePolicy(
+  policies?: PatientInsurancePolicy[] | null
+): PatientInsurancePolicy | null {
   if (!Array.isArray(policies) || !policies.length) return null;
   return policies.find((policy) => policy.is_primary) || policies[0] || null;
 }
 
-export function formatAddress(address) {
+export function formatAddress(address?: PatientAddress | null): string {
   if (!address?.line_1) return "";
 
   const cityStateZip = [
@@ -33,7 +43,9 @@ export function formatAddress(address) {
     .join(" • ");
 }
 
-export function formatPickerValueForApi(value) {
+export function formatPickerValueForApi(
+  value: Date | null | undefined
+): string {
   if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
     return "";
   }
@@ -47,7 +59,10 @@ export function formatPickerValueForApi(value) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-export function parseFacilityLocalDateTime(value, timeZone) {
+export function parseFacilityLocalDateTime(
+  value: string | Date | null | undefined,
+  timeZone?: string | null
+): Date | null {
   if (!value) return null;
 
   if (value instanceof Date) {
@@ -77,12 +92,17 @@ export function parseFacilityLocalDateTime(value, timeZone) {
   return toFacilityDateTime(value, timeZone);
 }
 
-export function addMinutes(date, minutes) {
+export function addMinutes(
+  date: Date | null | undefined,
+  minutes: number | string | null | undefined
+): Date | null {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
-  return new Date(date.getTime() + minutes * 60000);
+  const duration = Number(minutes) || 0;
+  return new Date(date.getTime() + duration * 60000);
 }
 
-export function getPhysicianLabel(physician) {
+export function getPhysicianLabel(physician?: StaffLike | null): string {
+  if (!physician) return "";
   if (physician?.display_name) return physician.display_name;
 
   const fullName = [physician.user?.first_name, physician.user?.last_name]
@@ -96,7 +116,7 @@ export function getPhysicianLabel(physician) {
     .trim();
 }
 
-export function isRenderingProviderStaff(staff) {
+export function isRenderingProviderStaff(staff: StaffLike): boolean {
   if (!staff?.is_active) return false;
   if (staff.can_render_claims) return true;
 

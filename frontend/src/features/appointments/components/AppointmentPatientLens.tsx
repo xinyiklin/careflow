@@ -1,6 +1,48 @@
 import PatientSearchField from "../../patients/components/PatientSearchField";
 import { formatDOB } from "../../../shared/utils/dateTime";
 import { PatientMetaItem, SummaryItem } from "./AppointmentModalFields";
+import type { ComponentType } from "react";
+import type { FieldErrors } from "react-hook-form";
+import type { UseQueryResult } from "@tanstack/react-query";
+import type { EntityId } from "../../../shared/api/types";
+import type { NormalizedPhoneEntry } from "../../patients/utils/contactValidation";
+import type {
+  AppointmentFormValues,
+  AppointmentMode,
+  AppointmentPatient,
+  PatientInsurancePolicy,
+} from "../types";
+
+type PatientSearchFieldProps = {
+  facilityId?: EntityId | null;
+  selectedPatient?: AppointmentPatient | null;
+  onSelectPatient?: (patient: AppointmentPatient | null) => void;
+  onOpenDetailedSearch?: () => void;
+  onOpenCreatePatient?: () => void;
+  recentPatients?: AppointmentPatient[];
+};
+
+type AppointmentPatientLensProps = {
+  selectedPatient?: AppointmentPatient | null;
+  onOpenPatientHub?: (patient: AppointmentPatient) => void;
+  patientDisplayName: string;
+  patientSnapshot: AppointmentPatient;
+  mode: AppointmentMode;
+  facilityId?: EntityId | null;
+  onSelectPatient?: (patient: AppointmentPatient | null) => void;
+  onOpenDetailedSearch?: () => void;
+  onOpenCreatePatient?: () => void;
+  recentPatients: AppointmentPatient[];
+  patientDetailsQuery: UseQueryResult<AppointmentPatient>;
+  errors: FieldErrors<AppointmentFormValues>;
+  patientPhones: NormalizedPhoneEntry[];
+  patientAddress: string;
+  insurancePoliciesQuery: UseQueryResult<PatientInsurancePolicy[]>;
+  primaryInsurancePolicy?: PatientInsurancePolicy | null;
+};
+
+const TypedPatientSearchField =
+  PatientSearchField as ComponentType<PatientSearchFieldProps>;
 
 export default function AppointmentPatientLens({
   selectedPatient,
@@ -19,7 +61,7 @@ export default function AppointmentPatientLens({
   patientAddress,
   insurancePoliciesQuery,
   primaryInsurancePolicy,
-}) {
+}: AppointmentPatientLensProps) {
   const isPatientLoading = patientDetailsQuery.isLoading;
   const dobValue = patientSnapshot.date_of_birth
     ? formatDOB(patientSnapshot.date_of_birth)
@@ -61,7 +103,7 @@ export default function AppointmentPatientLens({
 
           <div className="mt-3">
             {mode !== "edit" ? (
-              <PatientSearchField
+              <TypedPatientSearchField
                 facilityId={facilityId}
                 selectedPatient={selectedPatient}
                 onSelectPatient={onSelectPatient}

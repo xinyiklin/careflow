@@ -42,7 +42,27 @@ export type ResourceLike = {
   key?: string;
   name?: string | null;
   linked_staff_name?: string | null;
+  linked_staff?: EntityId | null;
+  default_room?: string | null;
   resourceId?: EntityId;
+};
+
+export type StaffLike = ApiRecord & {
+  id?: EntityId;
+  display_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  title_code?: string | null;
+  title_name?: string | null;
+  role_code?: string | null;
+  role_name?: string | null;
+  can_render_claims?: boolean | null;
+  is_active?: boolean | null;
+  user?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    username?: string | null;
+  } | null;
 };
 
 export type SecurityPermissions = Record<string, boolean | undefined>;
@@ -93,6 +113,21 @@ export type ResourceDefinition = {
   resourceId?: EntityId;
 };
 
+export type PatientAddress = {
+  line_1?: string | null;
+  line_2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+};
+
+export type PatientPhoneEntryLike = {
+  label?: string | null;
+  number?: string | number | null;
+  phone_number?: string | number | null;
+  is_primary?: boolean | null;
+};
+
 export type PatientLike = {
   id?: EntityId;
   facility_id?: EntityId | null;
@@ -109,6 +144,24 @@ export type PatientLike = {
   display_name?: string | null;
   date_of_birth?: string | null;
   chart_number?: string | number | null;
+  address?: PatientAddress | null;
+  phones?: PatientPhoneEntryLike[] | null;
+  primary_phone_label?: string | null;
+  primary_phone_number?: string | number | null;
+  phone_cell?: string | number | null;
+  phone_home?: string | number | null;
+  phone_work?: string | number | null;
+  pcp_name?: string | null;
+  referring_provider_name?: string | null;
+};
+
+export type PatientInsurancePolicy = ApiRecord & {
+  id?: EntityId;
+  is_primary?: boolean | null;
+  carrier_name?: string | null;
+  plan_name?: string | null;
+  member_id?: string | null;
+  group_number?: string | null;
 };
 
 export type AppointmentLike = PatientLike & {

@@ -6,6 +6,7 @@ import type {
   EntityId,
 } from "../../../shared/api/types";
 import type { ApiRecord, AppointmentLike } from "../../../shared/types/domain";
+import type { AppointmentHistoryEntry } from "../types";
 
 type AppointmentEditSessionStatus = "active" | "available" | "occupied";
 
@@ -101,7 +102,7 @@ export function fetchAppointmentHistory(
   facilityId: EntityId | null | undefined,
   id: EntityId
 ) {
-  return apiRequest<ApiRecord[]>(`/appointments/${id}/history/`, {
+  return apiRequest<AppointmentHistoryEntry[]>(`/appointments/${id}/history/`, {
     params: { facility_id: facilityId },
   });
 }

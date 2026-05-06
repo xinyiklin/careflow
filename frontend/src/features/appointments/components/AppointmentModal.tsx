@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
+import type { SubmitHandler } from "react-hook-form";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Clock3, UserRoundCheck } from "lucide-react";
@@ -16,6 +17,9 @@ import {
   formatTimeInTimeZone,
 } from "../../../shared/utils/dateTime";
 import { getErrorMessage } from "../../../shared/utils/errors";
+import type { EntityId } from "../../../shared/api/types";
+import type { AppointmentLike } from "../../../shared/types/domain";
+import type { AppointmentEditSessionActiveEditor } from "../api/appointments";
 import {
   ChipPicker,
   FieldLabel,
@@ -34,8 +38,55 @@ import {
   isRenderingProviderStaff,
   parseFacilityLocalDateTime,
 } from "./appointmentModalUtils";
+import type {
+  AppointmentFormData,
+  AppointmentFormValues,
+  AppointmentMode,
+  AppointmentPatient,
+  AppointmentResource,
+  AppointmentStaff,
+  AppointmentStatusOption,
+  AppointmentSubmitPayload,
+  AppointmentTypeOption,
+  PatientInsurancePolicy,
+} from "../types";
 
-function getDurationMinutes(start, end) {
+type AppointmentModalProps = {
+  isOpen: boolean;
+  mode: AppointmentMode;
+  appointmentId?: EntityId | null;
+  formData: AppointmentFormData;
+  facilityId?: EntityId | null;
+  physicians?: AppointmentStaff[];
+  staffs?: AppointmentStaff[];
+  resources: AppointmentResource[];
+  statusOptions: AppointmentStatusOption[];
+  typeOptions: AppointmentTypeOption[];
+  error?: string;
+  onSubmit: (payload: AppointmentSubmitPayload) => void | Promise<void>;
+  onClose?: () => void;
+  onDelete?: () => void;
+  onOpenHistory?: (appointment?: AppointmentLike | null) => void;
+  onOpenPatientHub?: (patient?: AppointmentPatient | AppointmentLike) => void;
+  selectedPatient?: AppointmentPatient | null;
+  onSelectPatient?: (patient: AppointmentPatient | null) => void;
+  recentPatients?: AppointmentPatient[];
+  onOpenDetailedSearch?: () => void;
+  onOpenCreatePatient?: () => void;
+  timeZone?: string | null;
+  onEditSessionBlocked?: (
+    activeEditor: AppointmentEditSessionActiveEditor
+  ) => void;
+};
+
+function toFormString(value: unknown): string {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function getDurationMinutes(
+  start: Date | null | undefined,
+  end: Date | null | undefined
+): number {
   if (
     !(start instanceof Date) ||
     !(end instanceof Date) ||
@@ -71,7 +122,7 @@ export default function AppointmentModal({
   onOpenCreatePatient,
   timeZone,
   onEditSessionBlocked,
-}) {
+}: AppointmentModalProps) {
   const {
     register,
     control,
@@ -81,7 +132,7 @@ export default function AppointmentModal({
     clearErrors,
     watch,
     formState: { errors },
-  } = useForm({
+  } = useForm<AppointmentFormValues>({
     defaultValues: {
       patient: "",
       resource: "",
@@ -111,7 +162,7 @@ export default function AppointmentModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const initialResourceId = formData.resource || "";
+    const initialResourceId = toFormString(formData.resource);
     const initialResource =
       resources.find(
         (resource) => String(resource.id) === String(initialResourceId)
@@ -125,24 +176,24 @@ export default function AppointmentModal({
       ) || null;
     const initialDuration =
       Number(formData.duration_minutes) ||
-      initialAppointmentType?.duration_minutes ||
+      Number(initialAppointmentType?.duration_minutes) ||
       0;
     const initialEndTime = formData.end_time
       ? parseFacilityLocalDateTime(formData.end_time, timeZone)
       : addMinutes(initialAppointmentTime, initialDuration);
 
     reset({
-      patient: selectedPatient?.id || formData.patient || "",
+      patient: toFormString(selectedPatient?.id || formData.patient),
       resource: initialResourceId,
-      rendering_provider: formData.rendering_provider || "",
+      rendering_provider: toFormString(formData.rendering_provider),
       appointment_time: initialAppointmentTime,
       end_time: initialEndTime,
       room: formData.room || initialResource?.default_room || "",
       reason: formData.reason || "",
       notes: formData.notes || "",
-      status: formData.status || "",
-      appointment_type: formData.appointment_type || "",
-      facility: formData.facility || facilityId || "",
+      status: toFormString(formData.status),
+      appointment_type: toFormString(formData.appointment_type),
+      facility: toFormString(formData.facility || facilityId),
     });
 
     setInternalError("");
@@ -158,7 +209,7 @@ export default function AppointmentModal({
   ]);
 
   useEffect(() => {
-    setValue("patient", selectedPatient?.id || "");
+    setValue("patient", toFormString(selectedPatient?.id));
     if (selectedPatient?.id) {
       clearErrors("patient");
     }
@@ -218,31 +269,33 @@ export default function AppointmentModal({
   }, [watchedEndTime, timeZone]);
 
   const selectedPatientId = selectedPatient?.id || formData.patient || "";
-  const patientDetailsQuery = useQuery({
+  const patientDetailsQuery = useQuery<AppointmentPatient>({
     queryKey: [
       "appointmentPatientSnapshot",
       facilityId || null,
       selectedPatientId || null,
     ],
-    queryFn: () => fetchPatientById(selectedPatientId, facilityId),
+    queryFn: async () =>
+      (await fetchPatientById(selectedPatientId as EntityId, facilityId)) || {},
     enabled: isOpen && Boolean(facilityId && selectedPatientId),
     staleTime: 60_000,
   });
-  const insurancePoliciesQuery = useQuery({
+  const insurancePoliciesQuery = useQuery<PatientInsurancePolicy[]>({
     queryKey: [
       "appointmentPatientInsuranceSnapshot",
       facilityId || null,
       selectedPatientId || null,
     ],
-    queryFn: () =>
-      fetchPatientInsurancePolicies({
+    queryFn: async () =>
+      (await fetchPatientInsurancePolicies({
         facilityId,
         patientId: selectedPatientId,
-      }),
+      })) || [],
     enabled: isOpen && Boolean(facilityId && selectedPatientId),
     staleTime: 60_000,
   });
-  const patientSnapshot = patientDetailsQuery.data || selectedPatient || {};
+  const patientSnapshot: AppointmentPatient =
+    patientDetailsQuery.data || selectedPatient || {};
   const primaryInsurancePolicy = getPrimaryInsurancePolicy(
     insurancePoliciesQuery.data
   );
@@ -288,14 +341,15 @@ export default function AppointmentModal({
 
   if (!isOpen) return null;
 
-  const isEditSessionUnavailable =
+  const isEditSessionUnavailable = Boolean(
     mode === "edit" &&
     appointmentId &&
     (editSession.isChecking ||
       editSession.isBlockedByActiveEditor ||
-      editSession.status === "error");
+      editSession.status === "error")
+  );
 
-  const submitForm = (data) => {
+  const submitForm: SubmitHandler<AppointmentFormValues> = (data) => {
     if (editSession.isBlockedByActiveEditor) {
       onEditSessionBlocked?.(editSession.activeEditor);
       onClose?.();
@@ -308,13 +362,14 @@ export default function AppointmentModal({
     }
 
     try {
-      onSubmit({
+      const payload: AppointmentSubmitPayload = {
         ...data,
         patient: selectedPatient?.id || "",
-        facility: data.facility || facilityId || "",
+        facility: data.facility || toFormString(facilityId),
         appointment_time: formatPickerValueForApi(data.appointment_time),
         end_time: formatPickerValueForApi(data.end_time),
-      });
+      };
+      onSubmit(payload);
     } catch (err) {
       setInternalError(getErrorMessage(err, "Failed to submit form."));
     }
@@ -484,7 +539,7 @@ export default function AppointmentModal({
                           validate: (value) =>
                             getDurationMinutes(watchedAppointmentTime, value) >
                             0
-                              ? null
+                              ? true
                               : "End time must be after start time.",
                         }}
                         render={({ field }) => (
@@ -651,7 +706,7 @@ export default function AppointmentModal({
                       <FieldLabel>Reason</FieldLabel>
                       <Input
                         as="textarea"
-                        rows="3"
+                        rows={3}
                         placeholder="Annual checkup, medication follow-up, intake, or similar"
                         {...register("reason")}
                       />
@@ -661,7 +716,7 @@ export default function AppointmentModal({
                       <FieldLabel>Notes</FieldLabel>
                       <Input
                         as="textarea"
-                        rows="3"
+                        rows={3}
                         placeholder="Anything the team should know before or during the visit"
                         {...register("notes")}
                       />

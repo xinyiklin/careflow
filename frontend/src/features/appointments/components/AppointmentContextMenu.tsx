@@ -7,16 +7,41 @@ import {
   Trash2,
   UserRound,
 } from "lucide-react";
+import type { ComponentType, CSSProperties, MouseEventHandler } from "react";
 
 import {
   formatDateOnlyInTimeZone,
   formatTimeInTimeZone,
 } from "../../../shared/utils/dateTime";
+import type { AppointmentLike } from "../../../shared/types/domain";
 
 const MENU_WIDTH = 224;
 const MENU_HEIGHT = 356;
 
-function getMenuPosition(x, y) {
+type MenuPosition = Pick<CSSProperties, "left" | "top">;
+
+type MenuItemProps = {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  variant?: "default" | "danger";
+};
+
+type AppointmentContextMenuProps = {
+  isOpen: boolean;
+  appointment?: AppointmentLike | null;
+  x?: number;
+  y?: number;
+  timeZone?: string | null;
+  onClose?: () => void;
+  onOpenAppointment?: (appointment: AppointmentLike) => void;
+  onOpenPatientHub?: (appointment: AppointmentLike) => void;
+  onDuplicateAppointment?: (appointment: AppointmentLike) => void;
+  onOpenHistory?: (appointment: AppointmentLike) => void;
+  onDeleteAppointment?: (appointment: AppointmentLike) => void;
+};
+
+function getMenuPosition(x: number, y: number): MenuPosition {
   if (typeof window === "undefined") {
     return { left: x, top: y };
   }
@@ -30,7 +55,12 @@ function getMenuPosition(x, y) {
   };
 }
 
-function MenuItem({ icon: Icon, label, onClick, variant = "default" }) {
+function MenuItem({
+  icon: Icon,
+  label,
+  onClick,
+  variant = "default",
+}: MenuItemProps) {
   const isDanger = variant === "danger";
 
   return (
@@ -66,7 +96,7 @@ export default function AppointmentContextMenu({
   onDuplicateAppointment,
   onOpenHistory,
   onDeleteAppointment,
-}) {
+}: AppointmentContextMenuProps) {
   if (!isOpen || !appointment) return null;
 
   const position = getMenuPosition(x, y);

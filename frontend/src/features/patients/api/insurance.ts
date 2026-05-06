@@ -1,6 +1,7 @@
 import { apiRequest } from "../../../shared/api/client";
 
 import type { ApiPayload, EntityId } from "../../../shared/api/types";
+import type { PatientInsurancePolicy } from "../../../shared/types/domain";
 
 export function fetchInsuranceCarriers() {
   return apiRequest("/insurance/carriers/");
@@ -13,7 +14,7 @@ export function fetchPatientInsurancePolicies({
   facilityId?: EntityId | null;
   patientId?: EntityId | null;
 } = {}) {
-  return apiRequest("/insurance/policies/", {
+  return apiRequest<PatientInsurancePolicy[]>("/insurance/policies/", {
     params: {
       facility_id: facilityId,
       patient_id: patientId,

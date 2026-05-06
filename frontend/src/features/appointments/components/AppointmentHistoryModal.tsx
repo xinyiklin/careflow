@@ -8,8 +8,39 @@ import {
   formatTimeInTimeZone,
 } from "../../../shared/utils/dateTime";
 import { getErrorMessage } from "../../../shared/utils/errors";
+import type { EntityId } from "../../../shared/api/types";
+import type { AppointmentHistoryEntry } from "../types";
 
-const actionStyles = {
+type HistoryBadgeVariant = "success" | "warning" | "danger" | "outline";
+
+type HistoryActionStyle = {
+  label: string;
+  badge: HistoryBadgeVariant;
+  dot: string;
+};
+
+type HistoryRowProps = {
+  entry: AppointmentHistoryEntry;
+  timeZone?: string | null;
+};
+
+type HistoryStateProps = {
+  tone?: "default" | "danger";
+  title: string;
+  body?: string;
+};
+
+type AppointmentHistoryModalProps = {
+  isOpen: boolean;
+  appointmentId?: EntityId | null;
+  facilityId?: EntityId | null;
+  patientName?: string | null;
+  appointmentTime?: string | Date | null;
+  timeZone?: string | null;
+  onClose: () => void;
+};
+
+const actionStyles: Record<string, HistoryActionStyle> = {
   create: {
     label: "Created",
     badge: "success",
@@ -27,18 +58,22 @@ const actionStyles = {
   },
 };
 
-function getActionStyle(action) {
+function getActionStyle(action: unknown): HistoryActionStyle {
+  const key = String(action || "").toLowerCase();
   return (
-    actionStyles[String(action || "").toLowerCase()] || {
-      label: action || "Activity",
+    actionStyles[key] || {
+      label: String(action || "Activity"),
       badge: "outline",
       dot: "bg-cf-text-subtle",
     }
   );
 }
 
-function formatTimestamp(value, timeZone) {
-  const timestamp = new Date(value);
+function formatTimestamp(
+  value: string | Date | null | undefined,
+  timeZone?: string | null
+) {
+  const timestamp = new Date(value || "");
   if (Number.isNaN(timestamp.getTime())) {
     return { date: "Unknown date", time: "" };
   }
@@ -49,7 +84,7 @@ function formatTimestamp(value, timeZone) {
   };
 }
 
-function HistoryRow({ entry, timeZone }) {
+function HistoryRow({ entry, timeZone }: HistoryRowProps) {
   const actionStyle = getActionStyle(entry.action);
   const { date, time } = formatTimestamp(entry.created_at, timeZone);
 
@@ -102,7 +137,7 @@ function HistoryRow({ entry, timeZone }) {
   );
 }
 
-function HistoryState({ tone = "default", title, body }) {
+function HistoryState({ tone = "default", title, body }: HistoryStateProps) {
   const toneClasses = {
     default: "border-cf-border bg-cf-surface-soft text-cf-text-muted",
     danger: "border-cf-danger-bg bg-cf-danger-bg text-cf-danger-text",
@@ -132,8 +167,8 @@ export default function AppointmentHistoryModal({
   appointmentTime,
   timeZone,
   onClose,
-}) {
-  const [entries, setEntries] = useState([]);
+}: AppointmentHistoryModalProps) {
+  const [entries, setEntries] = useState<AppointmentHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -141,12 +176,17 @@ export default function AppointmentHistoryModal({
     if (!isOpen || !appointmentId || !facilityId) return;
 
     let isCancelled = false;
+    const currentAppointmentId = appointmentId;
+    const currentFacilityId = facilityId;
 
     async function loadHistory() {
       try {
         setLoading(true);
         setError("");
-        const data = await fetchAppointmentHistory(facilityId, appointmentId);
+        const data = await fetchAppointmentHistory(
+          currentFacilityId,
+          currentAppointmentId
+        );
         if (!isCancelled) {
           setEntries(Array.isArray(data) ? data : []);
         }

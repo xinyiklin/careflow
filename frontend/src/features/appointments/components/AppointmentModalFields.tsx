@@ -1,4 +1,49 @@
-export function ReadOnlyValueField({ value }) {
+import type { ComponentType, ReactNode } from "react";
+
+import type { EntityId } from "../../../shared/api/types";
+import type { AppointmentPickerOption } from "../types";
+
+type ReadOnlyValueFieldProps = {
+  value?: ReactNode;
+};
+
+type FieldLabelProps = {
+  children: ReactNode;
+  required?: boolean;
+};
+
+type FormSectionProps = {
+  icon?: ComponentType<{ className?: string }> | null;
+  title: string;
+  description?: ReactNode;
+  children: ReactNode;
+};
+
+type SummaryItemProps = {
+  label: string;
+  value?: ReactNode;
+  swatchColor?: string | null;
+};
+
+type ChipPickerProps<TOption extends AppointmentPickerOption> = {
+  label: string;
+  options: TOption[];
+  value?: EntityId | null;
+  onChange: (optionId: EntityId) => void;
+  required?: boolean;
+  error?: string;
+  getMeta?: ((option: TOption) => ReactNode) | null;
+  singleRow?: boolean;
+};
+
+type PatientMetaItemProps = {
+  label: string;
+  value?: ReactNode;
+  className?: string;
+  multiline?: boolean;
+};
+
+export function ReadOnlyValueField({ value }: ReadOnlyValueFieldProps) {
   return (
     <div className="min-h-10 rounded-xl border border-cf-border bg-cf-surface-muted/60 px-3 py-2.5 text-sm font-medium text-cf-text">
       {value || "—"}
@@ -6,7 +51,7 @@ export function ReadOnlyValueField({ value }) {
   );
 }
 
-export function FieldLabel({ children, required = false }) {
+export function FieldLabel({ children, required = false }: FieldLabelProps) {
   return (
     <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-cf-text-subtle">
       {children}
@@ -15,7 +60,12 @@ export function FieldLabel({ children, required = false }) {
   );
 }
 
-export function FormSection({ icon: Icon, title, description, children }) {
+export function FormSection({
+  icon: Icon,
+  title,
+  description,
+  children,
+}: FormSectionProps) {
   return (
     <section className="border-t border-cf-border px-5 py-4 first:border-t-0">
       <div className="flex items-start gap-2">
@@ -35,7 +85,11 @@ export function FormSection({ icon: Icon, title, description, children }) {
   );
 }
 
-export function SummaryItem({ label, value, swatchColor = null }) {
+export function SummaryItem({
+  label,
+  value,
+  swatchColor = null,
+}: SummaryItemProps) {
   return (
     <div className="border-t border-cf-border/80 py-2 first:border-t-0">
       <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
@@ -54,7 +108,7 @@ export function SummaryItem({ label, value, swatchColor = null }) {
   );
 }
 
-export function ChipPicker({
+export function ChipPicker<TOption extends AppointmentPickerOption>({
   label,
   options,
   value,
@@ -63,7 +117,7 @@ export function ChipPicker({
   error = "",
   getMeta = null,
   singleRow = false,
-}) {
+}: ChipPickerProps<TOption>) {
   return (
     <div>
       <FieldLabel required={required}>{label}</FieldLabel>
@@ -113,7 +167,7 @@ export function PatientMetaItem({
   value,
   className = "",
   multiline = false,
-}) {
+}: PatientMetaItemProps) {
   return (
     <div
       className={[
