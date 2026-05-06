@@ -8,8 +8,15 @@ import {
   FacilityIdentityLane,
   OPERATING_DAY_OPTIONS,
 } from "./FacilityModalSections";
+import type { ChangeEvent, FormEvent } from "react";
+import type {
+  AdminAddress,
+  AdminFacility,
+  AdminFacilityForm,
+  AdminSavePayload,
+} from "../../types";
 
-const DEFAULT_FORM = {
+const DEFAULT_FORM: AdminFacilityForm = {
   name: "",
   facility_code: "",
   timezone: "America/New_York",
@@ -24,8 +31,17 @@ const DEFAULT_FORM = {
   address: { line_1: "", line_2: "", city: "", state: "NY", zip_code: "" },
 };
 
-function normalizeAddress(address) {
-  if (!address) return DEFAULT_FORM.address;
+type FacilityModalProps = {
+  isOpen: boolean;
+  mode?: "create" | "edit";
+  initialValues?: AdminFacility | null;
+  saving?: boolean;
+  onClose: () => void;
+  onSubmit?: (values: AdminSavePayload["values"]) => void | Promise<void>;
+};
+
+function normalizeAddress(address: AdminAddress | null | undefined) {
+  if (!address) return { ...DEFAULT_FORM.address };
   return {
     line_1: address.line_1 || "",
     line_2: address.line_2 || "",
@@ -35,22 +51,25 @@ function normalizeAddress(address) {
   };
 }
 
-function normalizeTimeInput(value, fallback) {
+function normalizeTimeInput(
+  value: string | null | undefined,
+  fallback: string
+) {
   return typeof value === "string" && value ? value.slice(0, 5) : fallback;
 }
 
-function normalizeOperatingDays(value) {
-  if (!Array.isArray(value)) return DEFAULT_OPERATING_DAYS;
+function normalizeOperatingDays(value: unknown) {
+  if (!Array.isArray(value)) return [...DEFAULT_OPERATING_DAYS];
   const days = value
     .map((day) => Number(day))
     .filter(
       (day, index, allDays) =>
         day >= 1 && day <= 7 && allDays.indexOf(day) === index
     );
-  return days.length ? days : DEFAULT_OPERATING_DAYS;
+  return days.length ? days : [...DEFAULT_OPERATING_DAYS];
 }
 
-function getFacilityInitials(name) {
+function getFacilityInitials(name: string) {
   return (
     name
       ?.split(/\s+/)
@@ -61,7 +80,7 @@ function getFacilityInitials(name) {
   );
 }
 
-function formatOperatingDays(days) {
+function formatOperatingDays(days: unknown) {
   const normalizedDays = normalizeOperatingDays(days);
   if (normalizedDays.length === 7) return "Daily";
   if (normalizedDays.join(",") === "1,2,3,4,5") return "Mon-Fri";
@@ -79,8 +98,8 @@ export default function FacilityModal({
   saving = false,
   onClose,
   onSubmit,
-}) {
-  const [formData, setFormData] = useState(DEFAULT_FORM);
+}: FacilityModalProps) {
+  const [formData, setFormData] = useState<AdminFacilityForm>(DEFAULT_FORM);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -109,19 +128,24 @@ export default function FacilityModal({
         address: normalizeAddress(initialValues.address),
       });
     } else {
-      setFormData(DEFAULT_FORM);
+      setFormData({ ...DEFAULT_FORM, address: { ...DEFAULT_FORM.address } });
     }
   }, [initialValues, isOpen]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = e.target instanceof HTMLInputElement && e.target.checked;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleAddressChange = (e) => {
+  const handleAddressChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -129,7 +153,7 @@ export default function FacilityModal({
     }));
   };
 
-  const handleOperatingDayToggle = (day) => {
+  const handleOperatingDayToggle = (day: number) => {
     setFormData((prev) => {
       const currentDays = normalizeOperatingDays(prev.operating_days);
       const nextDays = currentDays.includes(day)
@@ -143,7 +167,7 @@ export default function FacilityModal({
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit?.({
       ...formData,

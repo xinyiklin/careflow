@@ -14,11 +14,18 @@ import {
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
+import type {
+  AdminOrganizationUser,
+  AdminSavePayload,
+  AdminSortOption,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
 
-function getPersonName(person) {
+function getPersonName(person: AdminOrganizationUser) {
   return (
     `${person.first_name || ""} ${person.last_name || ""}`.trim() ||
-    person.username
+    person.username ||
+    "User"
   );
 }
 
@@ -39,7 +46,7 @@ const USER_FILTERS = [
     label: "Admins",
     predicate: (person) => String(person.role || "").includes("admin"),
   },
-];
+] satisfies AdminListFilter<AdminOrganizationUser>[];
 
 const USER_SORT_OPTIONS = [
   {
@@ -66,11 +73,12 @@ const USER_SORT_OPTIONS = [
       compareBoolean(a.is_active !== false, b.is_active !== false) ||
       compareText(getPersonName(a), getPersonName(b)),
   },
-];
+] satisfies AdminSortOption<AdminOrganizationUser>[];
 
 export default function UsersPanel() {
   const { people, loading, saving, error, reload, savePerson } =
     useOrganizationPeople();
+  const organizationPeople = people as AdminOrganizationUser[];
   const {
     activeFilter,
     activeSort,
@@ -78,20 +86,21 @@ export default function UsersPanel() {
     visibleRecords: visiblePeople,
     setActiveFilter,
     setActiveSort,
-  } = useAdminListControls(people, {
+  } = useAdminListControls(organizationPeople, {
     filters: USER_FILTERS,
     sortOptions: USER_SORT_OPTIONS,
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPerson, setEditingPerson] = useState(null);
+  const [editingPerson, setEditingPerson] =
+    useState<AdminOrganizationUser | null>(null);
 
   const handleOpenCreate = () => {
     setEditingPerson(null);
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (person) => {
+  const handleOpenEdit = (person: AdminOrganizationUser) => {
     setEditingPerson(person);
     setIsModalOpen(true);
   };
@@ -101,7 +110,7 @@ export default function UsersPanel() {
     setIsModalOpen(false);
   };
 
-  const handleSave = async (values) => {
+  const handleSave = async (values: AdminSavePayload["values"]) => {
     await savePerson({ id: editingPerson?.id || null, values });
     handleCloseModal();
   };
@@ -118,7 +127,7 @@ export default function UsersPanel() {
             <Button
               variant="default"
               size="sm"
-              onClick={reload}
+              onClick={() => reload()}
               disabled={loading || saving}
             >
               <RefreshCw
@@ -169,16 +178,16 @@ export default function UsersPanel() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     Loading users...
                   </td>
                 </tr>
-              ) : people.length === 0 ? (
+              ) : organizationPeople.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No users found. Add a user to assign organization-level
@@ -188,7 +197,7 @@ export default function UsersPanel() {
               ) : visiblePeople.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No users match the selected filter.

@@ -9,6 +9,12 @@ import {
   CompactRecordHeader,
   CompactToggle,
 } from "../shared/AdminCompactModal";
+import type { ChangeEvent } from "react";
+import type { AdminFacilityForm } from "../../types";
+
+type AdminFormChangeEvent = ChangeEvent<
+  HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+>;
 
 export const OPERATING_DAY_OPTIONS = [
   { value: 1, label: "Mon" },
@@ -22,13 +28,28 @@ export const OPERATING_DAY_OPTIONS = [
 
 export const DEFAULT_OPERATING_DAYS = [1, 2, 3, 4, 5];
 
+type FacilityIdentityLaneProps = {
+  formData: AdminFacilityForm;
+  initials: string;
+  daysLabel: string;
+  onChange: (event: AdminFormChangeEvent) => void;
+  onDayToggle: (day: number) => void;
+};
+
+type FacilityDetailsLaneProps = {
+  formData: AdminFacilityForm;
+  daysLabel: string;
+  onChange: (event: AdminFormChangeEvent) => void;
+  onAddressChange: (event: AdminFormChangeEvent) => void;
+};
+
 export function FacilityIdentityLane({
   formData,
   initials,
   daysLabel,
   onChange,
   onDayToggle,
-}) {
+}: FacilityIdentityLaneProps) {
   return (
     <CompactModalLane>
       <CompactCard>
@@ -127,7 +148,7 @@ export function FacilityDetailsLane({
   daysLabel,
   onChange,
   onAddressChange,
-}) {
+}: FacilityDetailsLaneProps) {
   return (
     <CompactModalLane>
       <CompactCard eyebrow="Contact">

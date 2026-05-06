@@ -18,7 +18,17 @@ import {
 } from "../shared/AdminSurface";
 import OrganizationPharmacyModal from "./OrganizationPharmacyModal";
 
-function formatAddress(address) {
+import type {
+  AdminAddress,
+  AdminConfirmDialogState,
+  AdminOrganizationPharmacy,
+  AdminOrganizationPharmacyPreference,
+  AdminSavePayload,
+  AdminSortOption,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
+
+function formatAddress(address: AdminAddress | null | undefined) {
   if (!address?.line_1) return "No address yet";
   return [
     address.line_1,
@@ -29,7 +39,7 @@ function formatAddress(address) {
     .join(", ");
 }
 
-function getStatusBadge(preference) {
+function getStatusBadge(preference: AdminOrganizationPharmacyPreference) {
   if (!preference.is_active) return <Badge variant="muted">Inactive</Badge>;
   if (preference.is_hidden) return <Badge variant="warning">Hidden</Badge>;
   if (preference.is_preferred)
@@ -37,16 +47,20 @@ function getStatusBadge(preference) {
   return <Badge variant="outline">Available</Badge>;
 }
 
-function formatDirectorySource(pharmacy) {
-  const sourceLabels = {
+function formatDirectorySource(
+  pharmacy: AdminOrganizationPharmacy | null | undefined
+) {
+  const sourceLabels: Record<string, string> = {
     custom: "Custom record",
     imported: "Imported record",
     directory: "Directory record",
   };
-  return sourceLabels[pharmacy?.source] || "Custom record";
+  return sourceLabels[String(pharmacy?.source || "custom")] || "Custom record";
 }
 
-function formatDirectoryStatus(pharmacy) {
+function formatDirectoryStatus(
+  pharmacy: AdminOrganizationPharmacy | null | undefined
+) {
   const status = pharmacy?.directory_status || "unknown";
   if (status === "active") return "Directory active";
   if (status === "inactive") return "Directory inactive";
@@ -58,19 +72,19 @@ const PHARMACY_FILTERS = [
   {
     key: "preferred",
     label: "Preferred",
-    predicate: (preference) => preference.is_preferred,
+    predicate: (preference) => Boolean(preference.is_preferred),
   },
   {
     key: "erx",
     label: "eRx",
-    predicate: (preference) => preference.pharmacy?.accepts_erx,
+    predicate: (preference) => Boolean(preference.pharmacy?.accepts_erx),
   },
   {
     key: "inactive",
     label: "Inactive",
     predicate: (preference) => !preference.is_active,
   },
-];
+] satisfies AdminListFilter<AdminOrganizationPharmacyPreference>[];
 
 const PHARMACY_SORT_OPTIONS = [
   {
@@ -99,7 +113,7 @@ const PHARMACY_SORT_OPTIONS = [
       compareNumber(a.sort_order, b.sort_order) ||
       compareText(a.pharmacy?.name, b.pharmacy?.name),
   },
-];
+] satisfies AdminSortOption<AdminOrganizationPharmacyPreference>[];
 
 export default function OrganizationPharmaciesPanel() {
   const {
@@ -111,16 +125,18 @@ export default function OrganizationPharmaciesPanel() {
     savePharmacyPreference,
   } = useOrganizationPharmacies();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPreference, setEditingPreference] = useState(null);
-  const [confirmDialogState, setConfirmDialogState] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    confirmText: "Confirm",
-    cancelText: "Cancel",
-    variant: "default",
-    onConfirm: null,
-  });
+  const [editingPreference, setEditingPreference] =
+    useState<AdminOrganizationPharmacyPreference | null>(null);
+  const [confirmDialogState, setConfirmDialogState] =
+    useState<AdminConfirmDialogState>({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
   const {
     activeFilter,
     activeSort,
@@ -128,18 +144,21 @@ export default function OrganizationPharmaciesPanel() {
     visibleRecords: visiblePreferences,
     setActiveFilter,
     setActiveSort,
-  } = useAdminListControls(preferences, {
-    filters: PHARMACY_FILTERS,
-    sortOptions: PHARMACY_SORT_OPTIONS,
-    defaultSort: "order",
-  });
+  } = useAdminListControls(
+    preferences as AdminOrganizationPharmacyPreference[],
+    {
+      filters: PHARMACY_FILTERS,
+      sortOptions: PHARMACY_SORT_OPTIONS,
+      defaultSort: "order",
+    }
+  );
 
   const handleCloseModal = () => {
     setEditingPreference(null);
     setIsModalOpen(false);
   };
 
-  const handleSave = async (values) => {
+  const handleSave = async (values: AdminSavePayload["values"]) => {
     await savePharmacyPreference({
       id: editingPreference?.id || null,
       values,
@@ -200,7 +219,7 @@ export default function OrganizationPharmaciesPanel() {
             <Button
               variant="default"
               size="sm"
-              onClick={reload}
+              onClick={() => reload()}
               disabled={loading || saving}
             >
               <RefreshCw
@@ -258,7 +277,7 @@ export default function OrganizationPharmaciesPanel() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     Loading pharmacies...
@@ -267,7 +286,7 @@ export default function OrganizationPharmaciesPanel() {
               ) : preferences.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No organization pharmacies yet. Add common pharmacies to
@@ -278,7 +297,7 @@ export default function OrganizationPharmaciesPanel() {
               ) : visiblePreferences.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No pharmacies match the selected filter.
@@ -286,13 +305,13 @@ export default function OrganizationPharmaciesPanel() {
                 </tr>
               ) : (
                 visiblePreferences.map((preference) => {
-                  const pharmacy = preference.pharmacy || {};
+                  const pharmacy = preference.pharmacy || null;
 
                   return (
                     <tr
                       key={preference.id}
                       {...getAdminRowActionProps({
-                        label: `Edit pharmacy ${pharmacy.name || preference.id}`,
+                        label: `Edit pharmacy ${pharmacy?.name || preference.id}`,
                         onAction: () => {
                           setEditingPreference(preference);
                           setIsModalOpen(true);
@@ -302,7 +321,7 @@ export default function OrganizationPharmaciesPanel() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
-                            {pharmacy.name
+                            {pharmacy?.name
                               ?.split(/\s+/)
                               .slice(0, 2)
                               .map((part) => part.charAt(0))
@@ -311,38 +330,38 @@ export default function OrganizationPharmaciesPanel() {
                           </span>
                           <div>
                             <div className="font-semibold text-cf-text">
-                              {pharmacy.name}
+                              {pharmacy?.name}
                             </div>
                             <div className="text-[11px] text-cf-text-muted">
                               {formatDirectorySource(pharmacy)} ·{" "}
-                              {pharmacy.service_type || "retail"}
+                              {pharmacy?.service_type || "retail"}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-cf-text-muted">
-                        <div>NCPDP: {pharmacy.ncpdp_id || "—"}</div>
+                        <div>NCPDP: {pharmacy?.ncpdp_id || "—"}</div>
                         <div className="mt-1 text-xs text-cf-text-subtle">
-                          NPI: {pharmacy.npi || "—"}
+                          NPI: {pharmacy?.npi || "—"}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-cf-text-muted">
-                        <div>{pharmacy.phone_number || "No phone"}</div>
+                        <div>{pharmacy?.phone_number || "No phone"}</div>
                         <div className="mt-1 text-xs text-cf-text-subtle">
-                          {pharmacy.fax_number
+                          {pharmacy?.fax_number
                             ? `Fax: ${pharmacy.fax_number}`
                             : "No fax"}
                         </div>
                       </td>
                       <td className="px-5 py-4 text-cf-text-muted">
-                        {formatAddress(pharmacy.address)}
+                        {formatAddress(pharmacy?.address)}
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
                           <Badge variant="muted">
                             {formatDirectoryStatus(pharmacy)}
                           </Badge>
-                          {pharmacy.accepts_erx ? (
+                          {pharmacy?.accepts_erx ? (
                             <Badge variant="neutral">eRx</Badge>
                           ) : null}
                           {getStatusBadge(preference)}

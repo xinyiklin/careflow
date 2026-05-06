@@ -14,8 +14,15 @@ import {
   OrganizationNotesCard,
   OrganizationOverviewHeader,
 } from "./OrganizationOverviewSections";
+import type { ChangeEvent, FormEvent } from "react";
+import type {
+  AdminAddressForm,
+  AdminOrganizationOverview,
+  AdminOrganizationOverviewForm,
+  AdminOrganizationUser,
+} from "../../types";
 
-function emptyAddress() {
+function emptyAddress(): AdminAddressForm {
   return { line_1: "", line_2: "", city: "", state: "NY", zip_code: "" };
 }
 
@@ -23,7 +30,8 @@ export default function OrganizationOverviewPanel() {
   const { organization, loading, saving, error, reload, updateOrganization } =
     useOrganizationOverview();
   const { setRouteReady } = useBootReadiness();
-  const [formData, setFormData] = useState(null);
+  const [formData, setFormData] =
+    useState<AdminOrganizationOverviewForm | null>(null);
   const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
@@ -33,16 +41,23 @@ export default function OrganizationOverviewPanel() {
 
   useEffect(() => {
     if (!organization) return;
+    const currentOrganization = organization as AdminOrganizationOverview;
     setFormData({
-      name: organization.name || "",
-      slug: organization.slug || "",
-      legal_name: organization.legal_name || "",
-      phone_number: organization.phone_number || "",
-      email: organization.email || "",
-      website: organization.website || "",
-      tax_id: organization.tax_id || "",
-      notes: organization.notes || "",
-      address: organization.address || emptyAddress(),
+      name: currentOrganization.name || "",
+      slug: currentOrganization.slug || "",
+      legal_name: currentOrganization.legal_name || "",
+      phone_number: currentOrganization.phone_number || "",
+      email: currentOrganization.email || "",
+      website: currentOrganization.website || "",
+      tax_id: currentOrganization.tax_id || "",
+      notes: currentOrganization.notes || "",
+      address: {
+        line_1: currentOrganization.address?.line_1 || "",
+        line_2: currentOrganization.address?.line_2 || "",
+        city: currentOrganization.address?.city || "",
+        state: currentOrganization.address?.state || "NY",
+        zip_code: currentOrganization.address?.zip_code || "",
+      },
     });
   }, [organization]);
 
@@ -62,26 +77,35 @@ export default function OrganizationOverviewPanel() {
 
   const adminCount = useMemo(() => {
     const members = Array.isArray(organization?.members)
-      ? organization.members
+      ? (organization.members as AdminOrganizationUser[])
       : [];
-    return members.filter((member) => ["owner", "admin"].includes(member.role))
-      .length;
+    return members.filter((member) =>
+      ["owner", "admin"].includes(String(member.role || ""))
+    ).length;
   }, [organization]);
 
-  const handleChange = (e) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => (prev ? { ...prev, [name]: value } : prev));
   };
 
-  const handleAddressChange = (e) => {
+  const handleAddressChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      address: { ...(prev?.address || emptyAddress()), [name]: value },
-    }));
+    setFormData((prev) =>
+      prev
+        ? {
+            ...prev,
+            address: { ...(prev.address || emptyAddress()), [name]: value },
+          }
+        : prev
+    );
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!organization?.id || !formData) return;
     setSaveError("");
@@ -128,7 +152,7 @@ export default function OrganizationOverviewPanel() {
             <Button
               variant="default"
               size="sm"
-              onClick={reload}
+              onClick={() => reload()}
               disabled={loading || saving}
             >
               <RefreshCw
@@ -168,7 +192,12 @@ export default function OrganizationOverviewPanel() {
                 onChange={handleChange}
               />
               <OrganizationFootprintCard
-                activePeopleCount={organization.active_people_count || 0}
+                activePeopleCount={
+                  Number(
+                    (organization as AdminOrganizationOverview)
+                      .active_people_count
+                  ) || 0
+                }
                 adminCount={adminCount}
                 configuredFieldCount={configuredFieldCount}
                 hasAddress={hasText(formData.address?.line_1)}

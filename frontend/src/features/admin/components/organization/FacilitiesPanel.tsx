@@ -14,6 +14,12 @@ import {
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
+import type {
+  AdminFacility,
+  AdminSavePayload,
+  AdminSortOption,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
 
 const FACILITY_FILTERS = [
   { key: "all", label: "All", predicate: () => true },
@@ -32,7 +38,7 @@ const FACILITY_FILTERS = [
     label: "With email",
     predicate: (facility) => Boolean(facility.email),
   },
-];
+] satisfies AdminListFilter<AdminFacility>[];
 
 const FACILITY_SORT_OPTIONS = [
   {
@@ -54,11 +60,12 @@ const FACILITY_SORT_OPTIONS = [
       compareBoolean(a.is_active !== false, b.is_active !== false) ||
       compareText(a.name, b.name),
   },
-];
+] satisfies AdminSortOption<AdminFacility>[];
 
 export default function FacilitiesPanel() {
   const { facilities, loading, saving, error, reload, saveFacility } =
     useOrganizationFacilities();
+  const adminFacilities = facilities as AdminFacility[];
   const {
     activeFilter,
     activeSort,
@@ -66,20 +73,22 @@ export default function FacilitiesPanel() {
     visibleRecords: visibleFacilities,
     setActiveFilter,
     setActiveSort,
-  } = useAdminListControls(facilities, {
+  } = useAdminListControls(adminFacilities, {
     filters: FACILITY_FILTERS,
     sortOptions: FACILITY_SORT_OPTIONS,
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingFacility, setEditingFacility] = useState(null);
+  const [editingFacility, setEditingFacility] = useState<AdminFacility | null>(
+    null
+  );
 
   const handleOpenCreate = () => {
     setEditingFacility(null);
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (facility) => {
+  const handleOpenEdit = (facility: AdminFacility) => {
     setEditingFacility(facility);
     setIsModalOpen(true);
   };
@@ -89,7 +98,7 @@ export default function FacilitiesPanel() {
     setIsModalOpen(false);
   };
 
-  const handleSave = async (values) => {
+  const handleSave = async (values: AdminSavePayload["values"]) => {
     await saveFacility({ id: editingFacility?.id || null, values });
     handleCloseModal();
   };
@@ -106,7 +115,7 @@ export default function FacilitiesPanel() {
             <Button
               variant="default"
               size="sm"
-              onClick={reload}
+              onClick={() => reload()}
               disabled={loading || saving}
             >
               <RefreshCw
@@ -157,16 +166,16 @@ export default function FacilitiesPanel() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan={4}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     Loading facilities...
                   </td>
                 </tr>
-              ) : facilities.length === 0 ? (
+              ) : adminFacilities.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan={4}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No facilities found yet. Add one to start configuring the
@@ -176,7 +185,7 @@ export default function FacilitiesPanel() {
               ) : visibleFacilities.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan={4}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No facilities match the selected filter.

@@ -5,7 +5,15 @@ import { CompactModalGrid } from "../shared/AdminCompactModal";
 import {
   PharmacyDetailsLane,
   PharmacyDirectoryLane,
+  type OrganizationPharmacyForm,
 } from "./OrganizationPharmacyModalSections";
+
+import type { ChangeEvent, FormEvent } from "react";
+import type {
+  AdminAddress,
+  AdminOrganizationPharmacyPreference,
+  AdminSavePayload,
+} from "../../types";
 
 const EMPTY_ADDRESS = {
   line_1: "",
@@ -36,7 +44,7 @@ const DEFAULT_FORM = {
   address: EMPTY_ADDRESS,
 };
 
-function normalizeAddress(address) {
+function normalizeAddress(address: AdminAddress | null | undefined) {
   if (!address) return EMPTY_ADDRESS;
   return {
     line_1: address.line_1 || "",
@@ -47,20 +55,22 @@ function normalizeAddress(address) {
   };
 }
 
-function getDirectoryMeta(initialValues) {
-  const pharmacy = initialValues?.pharmacy || {};
+function getDirectoryMeta(
+  initialValues: AdminOrganizationPharmacyPreference | null
+) {
+  const pharmacy = initialValues?.pharmacy || null;
   const sourceLabel =
     {
       custom: "Custom",
       imported: "Imported",
       directory: "Directory",
-    }[pharmacy.source] || "Custom";
+    }[pharmacy?.source || "custom"] || "Custom";
   const statusLabel =
     {
       active: "Active",
       inactive: "Inactive",
       unknown: "Not synced",
-    }[pharmacy.directory_status] || "Not synced";
+    }[pharmacy?.directory_status || "unknown"] || "Not synced";
 
   return {
     sourceLabel,
@@ -76,8 +86,17 @@ export default function OrganizationPharmacyModal({
   onClose,
   onSubmit,
   onDeactivate,
+}: {
+  isOpen: boolean;
+  mode?: "create" | "edit";
+  initialValues?: AdminOrganizationPharmacyPreference | null;
+  saving?: boolean;
+  onClose: () => void;
+  onSubmit: (values: AdminSavePayload["values"]) => Promise<void> | void;
+  onDeactivate?: () => void;
 }) {
-  const [formData, setFormData] = useState(DEFAULT_FORM);
+  const [formData, setFormData] =
+    useState<OrganizationPharmacyForm>(DEFAULT_FORM);
   const directoryMeta = getDirectoryMeta(initialValues);
 
   useEffect(() => {
@@ -88,20 +107,20 @@ export default function OrganizationPharmacyModal({
       return;
     }
 
-    const pharmacy = initialValues.pharmacy || {};
+    const pharmacy = initialValues.pharmacy || null;
     setFormData({
-      name: pharmacy.name || "",
-      legal_business_name: pharmacy.legal_business_name || "",
-      ncpdp_id: pharmacy.ncpdp_id || "",
-      npi: pharmacy.npi || "",
-      dea_number: pharmacy.dea_number || "",
-      tax_id: pharmacy.tax_id || "",
-      store_number: pharmacy.store_number || "",
-      service_type: pharmacy.service_type || "retail",
-      phone_number: pharmacy.phone_number || "",
-      fax_number: pharmacy.fax_number || "",
-      accepts_erx: Boolean(pharmacy.accepts_erx),
-      is_24_hour: Boolean(pharmacy.is_24_hour),
+      name: pharmacy?.name || "",
+      legal_business_name: pharmacy?.legal_business_name || "",
+      ncpdp_id: pharmacy?.ncpdp_id || "",
+      npi: pharmacy?.npi || "",
+      dea_number: pharmacy?.dea_number || "",
+      tax_id: pharmacy?.tax_id || "",
+      store_number: pharmacy?.store_number || "",
+      service_type: pharmacy?.service_type || "retail",
+      phone_number: pharmacy?.phone_number || "",
+      fax_number: pharmacy?.fax_number || "",
+      accepts_erx: Boolean(pharmacy?.accepts_erx),
+      is_24_hour: Boolean(pharmacy?.is_24_hour),
       notes: initialValues.notes || "",
       is_preferred:
         typeof initialValues.is_preferred === "boolean"
@@ -116,19 +135,29 @@ export default function OrganizationPharmacyModal({
           ? initialValues.is_active
           : true,
       sort_order: initialValues.sort_order || 0,
-      address: normalizeAddress(pharmacy.address),
+      address: normalizeAddress(pharmacy?.address),
     });
   }, [initialValues, isOpen]);
 
-  const handleChange = (event) => {
-    const { name, value, type, checked } = event.target;
+  const handleChange = (
+    event: ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value, type } = event.target;
+    const checked =
+      event.target instanceof HTMLInputElement ? event.target.checked : false;
     setFormData((current) => ({
       ...current,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleAddressChange = (event) => {
+  const handleAddressChange = (
+    event: ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
     const { name, value } = event.target;
     setFormData((current) => ({
       ...current,
@@ -136,7 +165,7 @@ export default function OrganizationPharmacyModal({
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const pharmacy = {

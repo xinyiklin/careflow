@@ -12,8 +12,14 @@ import {
   CompactRecordHeader,
   CompactToggle,
 } from "../shared/AdminCompactModal";
+import type { ChangeEvent, FormEvent } from "react";
+import type {
+  AdminOrganizationUser,
+  AdminOrganizationUserForm,
+  AdminSavePayload,
+} from "../../types";
 
-const DEFAULT_FORM = {
+const DEFAULT_FORM: AdminOrganizationUserForm = {
   username: "",
   email: "",
   first_name: "",
@@ -22,13 +28,30 @@ const DEFAULT_FORM = {
   is_active: true,
 };
 
-const ROLE_LABELS = {
+const ROLE_LABELS: Record<AdminOrganizationUserForm["role"], string> = {
   owner: "Owner",
   admin: "Admin",
   member: "Member",
 };
 
-function getDisplayName(formData) {
+type OrganizationUserModalProps = {
+  isOpen: boolean;
+  mode?: "create" | "edit";
+  initialValues?: AdminOrganizationUser | null;
+  saving?: boolean;
+  onClose: () => void;
+  onSubmit?: (values: AdminSavePayload["values"]) => void | Promise<void>;
+};
+
+function normalizeRole(
+  role: AdminOrganizationUser["role"]
+): AdminOrganizationUserForm["role"] {
+  return role === "owner" || role === "admin" || role === "member"
+    ? role
+    : "member";
+}
+
+function getDisplayName(formData: AdminOrganizationUserForm) {
   const fullName = [formData.first_name, formData.last_name]
     .filter(Boolean)
     .join(" ")
@@ -43,8 +66,9 @@ export default function OrganizationUserModal({
   saving = false,
   onClose,
   onSubmit,
-}) {
-  const [formData, setFormData] = useState(DEFAULT_FORM);
+}: OrganizationUserModalProps) {
+  const [formData, setFormData] =
+    useState<AdminOrganizationUserForm>(DEFAULT_FORM);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -54,7 +78,7 @@ export default function OrganizationUserModal({
         email: initialValues.email || "",
         first_name: initialValues.first_name || "",
         last_name: initialValues.last_name || "",
-        role: initialValues.role || "member",
+        role: normalizeRole(initialValues.role),
         is_active:
           typeof initialValues.is_active === "boolean"
             ? initialValues.is_active
@@ -65,15 +89,18 @@ export default function OrganizationUserModal({
     }
   }, [isOpen, initialValues]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const checked = e.target instanceof HTMLInputElement && e.target.checked;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const values =
       mode === "edit"

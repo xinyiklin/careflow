@@ -1,22 +1,47 @@
 import { Input } from "../../../../shared/components/ui";
 import { US_STATE_OPTIONS } from "../../../../shared/constants/usStates";
+import type { ChangeEvent, ReactNode } from "react";
+import type {
+  AdminAddressForm,
+  AdminOrganizationOverviewForm,
+} from "../../types";
 
-export function hasText(value) {
+type AdminFormChangeEvent = ChangeEvent<
+  HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+>;
+
+type FieldProps = {
+  label: string;
+  children: ReactNode;
+  className?: string;
+};
+
+type SummaryTileProps = {
+  label: string;
+  value: ReactNode;
+};
+
+type OrganizationFormProps = {
+  formData: AdminOrganizationOverviewForm;
+  onChange: (event: AdminFormChangeEvent) => void;
+};
+
+export function hasText(value: unknown) {
   return Boolean(String(value || "").trim());
 }
 
-function getInitials(name) {
+function getInitials(name: string) {
   return (
     name
       ?.split(/\s+/)
       .slice(0, 2)
-      .map((part) => part.charAt(0))
+      .map((part: string) => part.charAt(0))
       .join("")
       .toUpperCase() || "OR"
   );
 }
 
-function Field({ label, children, className = "" }) {
+function Field({ label, children, className = "" }: FieldProps) {
   return (
     <label className={className}>
       <span className="text-[10px] font-semibold uppercase tracking-widest text-cf-text-subtle">
@@ -27,7 +52,7 @@ function Field({ label, children, className = "" }) {
   );
 }
 
-function SummaryTile({ label, value }) {
+function SummaryTile({ label, value }: SummaryTileProps) {
   return (
     <div className="border-t border-cf-border py-2.5">
       <div className="text-2xl font-semibold tracking-tight text-cf-text">
@@ -40,7 +65,11 @@ function SummaryTile({ label, value }) {
   );
 }
 
-export function OrganizationOverviewHeader({ formData }) {
+export function OrganizationOverviewHeader({
+  formData,
+}: {
+  formData: AdminOrganizationOverviewForm;
+}) {
   return (
     <header className="mb-4 border-b border-cf-border pb-4">
       <div className="flex min-w-0 items-center gap-3">
@@ -63,7 +92,10 @@ export function OrganizationOverviewHeader({ formData }) {
   );
 }
 
-export function OrganizationIdentityCard({ formData, onChange }) {
+export function OrganizationIdentityCard({
+  formData,
+  onChange,
+}: OrganizationFormProps) {
   return (
     <section className="lg:col-span-2">
       <div className="flex items-center gap-3">
@@ -107,6 +139,11 @@ export function OrganizationFootprintCard({
   adminCount,
   configuredFieldCount,
   hasAddress,
+}: {
+  activePeopleCount: number;
+  adminCount: number;
+  configuredFieldCount: number;
+  hasAddress: boolean;
 }) {
   return (
     <section className="lg:border-l lg:border-cf-border lg:pl-4">
@@ -123,7 +160,10 @@ export function OrganizationFootprintCard({
   );
 }
 
-export function OrganizationContactCard({ formData, onChange }) {
+export function OrganizationContactCard({
+  formData,
+  onChange,
+}: OrganizationFormProps) {
   return (
     <section className="border-t border-cf-border pt-4 lg:col-span-2">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
@@ -153,7 +193,10 @@ export function OrganizationContactCard({ formData, onChange }) {
   );
 }
 
-export function OrganizationNotesCard({ formData, onChange }) {
+export function OrganizationNotesCard({
+  formData,
+  onChange,
+}: OrganizationFormProps) {
   return (
     <section className="border-t border-cf-border pt-4">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
@@ -171,7 +214,13 @@ export function OrganizationNotesCard({ formData, onChange }) {
   );
 }
 
-export function OrganizationAddressCard({ address, onChange }) {
+export function OrganizationAddressCard({
+  address,
+  onChange,
+}: {
+  address: AdminAddressForm;
+  onChange: (event: AdminFormChangeEvent) => void;
+}) {
   return (
     <section className="border-t border-cf-border pt-4 lg:col-span-3">
       <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">

@@ -10,6 +10,44 @@ import {
   CompactToggle,
 } from "../shared/AdminCompactModal";
 
+import type { ChangeEventHandler } from "react";
+
+export type OrganizationPharmacyForm = {
+  name: string;
+  legal_business_name: string;
+  ncpdp_id: string;
+  npi: string;
+  dea_number: string;
+  tax_id: string;
+  store_number: string;
+  service_type: string;
+  phone_number: string;
+  fax_number: string;
+  accepts_erx: boolean;
+  is_24_hour: boolean;
+  notes: string;
+  is_preferred: boolean;
+  is_hidden: boolean;
+  is_active: boolean;
+  sort_order: number | string;
+  address: {
+    line_1: string;
+    line_2: string;
+    city: string;
+    state: string;
+    zip_code: string;
+  };
+};
+
+type DirectoryMeta = {
+  sourceLabel: string;
+  statusLabel: string;
+};
+
+type PharmacyLaneChangeHandler = ChangeEventHandler<
+  HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+>;
+
 export const SERVICE_TYPE_OPTIONS = [
   { value: "retail", label: "Retail" },
   { value: "mail_order", label: "Mail Order" },
@@ -20,14 +58,22 @@ export const SERVICE_TYPE_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
-export function getServiceTypeLabel(value) {
+export function getServiceTypeLabel(value: string) {
   return (
     SERVICE_TYPE_OPTIONS.find((option) => option.value === value)?.label ||
     "Retail"
   );
 }
 
-export function PharmacyDirectoryLane({ formData, directoryMeta, onChange }) {
+export function PharmacyDirectoryLane({
+  formData,
+  directoryMeta,
+  onChange,
+}: {
+  formData: OrganizationPharmacyForm;
+  directoryMeta: DirectoryMeta;
+  onChange: PharmacyLaneChangeHandler;
+}) {
   return (
     <CompactModalLane>
       <CompactCard>
@@ -163,7 +209,15 @@ export function PharmacyDirectoryLane({ formData, directoryMeta, onChange }) {
   );
 }
 
-export function PharmacyDetailsLane({ formData, onChange, onAddressChange }) {
+export function PharmacyDetailsLane({
+  formData,
+  onChange,
+  onAddressChange,
+}: {
+  formData: OrganizationPharmacyForm;
+  onChange: PharmacyLaneChangeHandler;
+  onAddressChange: PharmacyLaneChangeHandler;
+}) {
   return (
     <CompactModalLane>
       <CompactCard eyebrow="Address">
