@@ -6,8 +6,23 @@ import {
   getPatientChartName,
   getPatientFullName,
 } from "../utils/patientDisplay";
+import type { KeyboardEvent } from "react";
+import type { AppointmentLike } from "../../../shared/types/domain";
+import type {
+  AppointmentGroup,
+  PatientHubEmptyTab,
+  PatientHubEmptyTabs,
+  PatientHubInsurancePolicy,
+  PatientRecord,
+} from "../types";
 
-export function buildAppointmentPatientSnapshot(patient) {
+type AppointmentListItem = AppointmentLike & {
+  upcoming: boolean;
+};
+
+export function buildAppointmentPatientSnapshot(
+  patient?: PatientRecord | null
+) {
   if (!patient) return null;
 
   return {
@@ -23,6 +38,10 @@ export function InsuranceTab({
   insurancePolicies,
   onOpenPolicy,
   insurancePoliciesQuery,
+}: {
+  insurancePolicies: PatientHubInsurancePolicy[];
+  onOpenPolicy: (policy?: PatientHubInsurancePolicy | null) => void;
+  insurancePoliciesQuery: { isLoading: boolean };
 }) {
   return (
     <div className="space-y-3">
@@ -101,7 +120,7 @@ export function EmptyClinicalTab({
   action,
   icon: Icon,
   variant = "default",
-}) {
+}: PatientHubEmptyTab) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -146,8 +165,12 @@ export function AppointmentsTab({
   appointmentGroups,
   onOpenAppointment,
   onSchedule,
+}: {
+  appointmentGroups: AppointmentGroup;
+  onOpenAppointment?: (appointment: AppointmentLike) => void;
+  onSchedule: () => void;
 }) {
-  const appointments = [
+  const appointments: AppointmentListItem[] = [
     ...appointmentGroups.upcoming.map((appointment) => ({
       ...appointment,
       upcoming: true,
@@ -156,7 +179,11 @@ export function AppointmentsTab({
       ...appointment,
       upcoming: false,
     })),
-  ].sort((a, b) => new Date(b.appointment_time) - new Date(a.appointment_time));
+  ].sort(
+    (a, b) =>
+      new Date(b.appointment_time || "").getTime() -
+      new Date(a.appointment_time || "").getTime()
+  );
 
   return (
     <div className="space-y-3">
@@ -175,7 +202,7 @@ export function AppointmentsTab({
             role="button"
             tabIndex={0}
             onDoubleClick={() => onOpenAppointment?.(appointment)}
-            onKeyDown={(event) => {
+            onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
               if (event.key === "Enter") onOpenAppointment?.(appointment);
             }}
             className="flex cursor-default flex-wrap items-center justify-between gap-2 rounded-2xl border border-cf-border bg-cf-surface px-5 py-4 shadow-sm transition hover:border-cf-border-strong hover:bg-cf-surface-muted/60 focus:outline-none focus:ring-2 focus:ring-cf-accent/25"
@@ -209,7 +236,7 @@ export function AppointmentsTab({
   );
 }
 
-export const PATIENT_HUB_EMPTY_TABS = {
+export const PATIENT_HUB_EMPTY_TABS: PatientHubEmptyTabs = {
   allergies: {
     title: "Allergies & Adverse Reactions",
     description: "No allergies recorded",

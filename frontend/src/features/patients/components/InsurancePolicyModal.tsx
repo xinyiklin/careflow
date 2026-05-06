@@ -17,22 +17,39 @@ import {
   ModalShell,
 } from "../../../shared/components/ui";
 
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import type {
+  InsuranceCarrier,
+  InsuranceCoverageOrder,
+  InsurancePolicyFormValues,
+  InsurancePolicyPayload,
+  InsuranceRelationship,
+  PatientHubInsurancePolicy,
+} from "../types";
+
 const RELATIONSHIP_OPTIONS = [
   { value: "self", label: "Self" },
   { value: "spouse", label: "Spouse" },
   { value: "child", label: "Child" },
   { value: "parent", label: "Parent" },
   { value: "other", label: "Other" },
-];
+] as const satisfies ReadonlyArray<{
+  value: InsuranceRelationship;
+  label: string;
+}>;
 
 const COVERAGE_ORDER_OPTIONS = [
   { value: "primary", label: "Primary" },
   { value: "secondary", label: "Secondary" },
   { value: "tertiary", label: "Tertiary" },
   { value: "other", label: "Other" },
-];
+] as const satisfies ReadonlyArray<{
+  value: InsuranceCoverageOrder;
+  label: string;
+}>;
 
-const defaultValues = {
+const defaultValues: InsurancePolicyFormValues = {
   carrier: "",
   plan_name: "",
   member_id: "",
@@ -47,7 +64,29 @@ const defaultValues = {
   notes: "",
 };
 
-function FieldSection({ icon: Icon, title, children, className = "" }) {
+type FieldSectionProps = {
+  icon?: LucideIcon;
+  title: string;
+  children: ReactNode;
+  className?: string;
+};
+
+type InsurancePolicyModalProps = {
+  isOpen: boolean;
+  policy?: PatientHubInsurancePolicy | null;
+  carriers?: InsuranceCarrier[];
+  saving?: boolean;
+  onClose?: () => void;
+  onSubmit?: (values: InsurancePolicyPayload) => void;
+  onDelete?: () => void;
+};
+
+function FieldSection({
+  icon: Icon,
+  title,
+  children,
+  className = "",
+}: FieldSectionProps) {
   return (
     <section className={["min-w-0", className].filter(Boolean).join(" ")}>
       <div className="mb-2 flex items-center gap-2 border-b border-cf-border pb-2">
@@ -61,7 +100,7 @@ function FieldSection({ icon: Icon, title, children, className = "" }) {
   );
 }
 
-function formatPolicyDate(value) {
+function formatPolicyDate(value: string | null | undefined) {
   if (!value) return "—";
 
   const [year, month, day] = value.split("-");
@@ -86,7 +125,7 @@ export default function InsurancePolicyModal({
   onClose,
   onSubmit,
   onDelete,
-}) {
+}: InsurancePolicyModalProps) {
   const {
     register,
     handleSubmit,
@@ -94,7 +133,7 @@ export default function InsurancePolicyModal({
     setValue,
     watch,
     formState: { errors },
-  } = useForm({
+  } = useForm<InsurancePolicyFormValues>({
     defaultValues,
   });
 
@@ -102,7 +141,7 @@ export default function InsurancePolicyModal({
     if (!isOpen) return;
 
     reset({
-      carrier: policy?.carrier || "",
+      carrier: policy?.carrier ? String(policy.carrier) : "",
       plan_name: policy?.plan_name || "",
       member_id: policy?.member_id || "",
       group_number: policy?.group_number || "",

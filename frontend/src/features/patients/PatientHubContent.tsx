@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CircleUserRound, X } from "lucide-react";
 import useFacility from "../facilities/hooks/useFacility";
@@ -42,9 +43,62 @@ import ConfirmDialog from "../../shared/components/ConfirmDialog";
 import { Panel } from "../../shared/components/ui";
 import { getTodayInTimeZone } from "../../shared/utils/dateTime";
 import { getPatientChartName } from "./utils/patientDisplay";
+import type { ApiPayload, EntityId } from "../../shared/api/types";
+import type { AppointmentLike } from "../../shared/types/domain";
+import type { AppointmentEditSessionActiveEditor } from "../appointments/api/appointments";
+import type {
+  AppointmentMode,
+  AppointmentResource,
+  AppointmentStaff,
+  AppointmentStatusOption,
+  AppointmentSubmitPayload,
+  AppointmentTypeOption,
+} from "../appointments/types";
+import type {
+  AppointmentGroup,
+  InsuranceCarrier,
+  InsurancePolicyPayload,
+  InsurancePolicyFormValues,
+  PatientEmergencyContact,
+  PatientCareProvider,
+  PatientGenderOption,
+  PatientHubInsurancePolicy,
+  PatientHubTabKey,
+  PatientRecord,
+  PharmacyRecord,
+} from "./types";
 
-function getSafeInitialTab(initialTab) {
-  return HUB_TABS.some((tab) => tab.key === initialTab)
+type ConfirmDialogState = {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmText: string;
+  cancelText: string;
+  variant: "default" | "danger" | "warning";
+  onConfirm: (() => void | Promise<void>) | null;
+};
+
+type HistoryModalState = {
+  isOpen: boolean;
+  appointmentId: EntityId | null;
+  patientName: string;
+  appointmentTime: string;
+};
+
+type EditBlockedDialogState = {
+  isOpen: boolean;
+  activeEditor: AppointmentEditSessionActiveEditor;
+};
+
+type InsuranceMutationArgs = {
+  id?: EntityId | null;
+  values: InsurancePolicyFormValues | InsurancePolicyPayload;
+};
+
+type AppointmentFlowOptions = Parameters<typeof useAppointmentFlow>[0];
+
+function getSafeInitialTab(initialTab?: PatientHubTabKey): PatientHubTabKey {
+  return initialTab && HUB_TABS.some((tab) => tab.key === initialTab)
     ? initialTab
     : "registration";
 }
@@ -53,6 +107,10 @@ export function PatientHubContent({
   patientId,
   initialTab = "registration",
   onClose,
+}: {
+  patientId?: EntityId | null;
+  initialTab?: PatientHubTabKey;
+  onClose: () => void;
 }) {
   const queryClient = useQueryClient();
   const { selectedFacilityId, facility, selectedMembership } = useFacility();
@@ -66,6 +124,27 @@ export function PatientHubContent({
     statusOptions,
     typeOptions,
   } = useFacilityConfig();
+  const appointmentPhysicians = physicians as unknown as AppointmentStaff[];
+  const appointmentStaffs = staffs as unknown as AppointmentStaff[];
+  const appointmentResources = resources as unknown as AppointmentResource[];
+  const appointmentStatusOptions =
+    statusOptions as unknown as AppointmentStatusOption[];
+  const appointmentTypeOptions =
+    typeOptions as unknown as AppointmentTypeOption[];
+  const patientGenderOptions =
+    genderOptions as unknown as PatientGenderOption[];
+  const patientCareProviders =
+    careProviders as unknown as PatientCareProvider[];
+  const patientPharmacies = pharmacies as unknown as PharmacyRecord[];
+  const flowPhysicians =
+    physicians as unknown as AppointmentFlowOptions["physicians"];
+  const flowStaffs = staffs as unknown as AppointmentFlowOptions["staffs"];
+  const flowResources =
+    resources as unknown as AppointmentFlowOptions["resources"];
+  const flowStatusOptions =
+    statusOptions as unknown as AppointmentFlowOptions["statusOptions"];
+  const flowTypeOptions =
+    typeOptions as unknown as AppointmentFlowOptions["typeOptions"];
 
   const [activeTab, setActiveTab] = useState(() =>
     getSafeInitialTab(initialTab)
@@ -77,36 +156,41 @@ export function PatientHubContent({
   );
   const [appointmentError, setAppointmentError] = useState("");
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
-  const [editingPolicy, setEditingPolicy] = useState(null);
-  const [historyModalState, setHistoryModalState] = useState({
-    isOpen: false,
-    appointmentId: null,
-    patientName: "",
-    appointmentTime: "",
-  });
-  const [editBlockedDialogState, setEditBlockedDialogState] = useState({
-    isOpen: false,
-    activeEditor: null,
-  });
-  const [confirmDialogState, setConfirmDialogState] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    confirmText: "Confirm",
-    cancelText: "Cancel",
-    variant: "default",
-    onConfirm: null,
-  });
+  const [editingPolicy, setEditingPolicy] =
+    useState<PatientHubInsurancePolicy | null>(null);
+  const [historyModalState, setHistoryModalState] = useState<HistoryModalState>(
+    {
+      isOpen: false,
+      appointmentId: null,
+      patientName: "",
+      appointmentTime: "",
+    }
+  );
+  const [editBlockedDialogState, setEditBlockedDialogState] =
+    useState<EditBlockedDialogState>({
+      isOpen: false,
+      activeEditor: null,
+    });
+  const [confirmDialogState, setConfirmDialogState] =
+    useState<ConfirmDialogState>({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
   const appointmentSelectedDate = facility?.timezone
     ? getTodayInTimeZone(facility.timezone)
     : new Date().toISOString().slice(0, 10);
   const appointmentFlow = useAppointmentFlow({
     facility,
-    physicians,
-    staffs,
-    resources,
-    statusOptions,
-    typeOptions,
+    physicians: flowPhysicians,
+    staffs: flowStaffs,
+    resources: flowResources,
+    statusOptions: flowStatusOptions,
+    typeOptions: flowTypeOptions,
     selectedDate: appointmentSelectedDate,
   });
 
@@ -121,7 +205,11 @@ export function PatientHubContent({
       selectedFacilityId || null,
       patientId || null,
     ],
-    queryFn: () => fetchPatientById(patientId, selectedFacilityId),
+    queryFn: () =>
+      fetchPatientById(
+        patientId as EntityId,
+        selectedFacilityId
+      ) as Promise<PatientRecord>,
     enabled: !!selectedFacilityId && !!patientId,
   });
 
@@ -161,9 +249,13 @@ export function PatientHubContent({
   });
 
   const insuranceMutation = useMutation({
-    mutationFn: async ({ id, values }) => {
+    mutationFn: async ({ id, values }: InsuranceMutationArgs) => {
       if (id) {
-        return updatePatientInsurancePolicy(selectedFacilityId, id, values);
+        return updatePatientInsurancePolicy(
+          selectedFacilityId,
+          id,
+          values as ApiPayload
+        );
       }
       return createPatientInsurancePolicy(selectedFacilityId, {
         ...values,
@@ -185,7 +277,8 @@ export function PatientHubContent({
   });
 
   const deleteInsuranceMutation = useMutation({
-    mutationFn: (id) => deletePatientInsurancePolicy(selectedFacilityId, id),
+    mutationFn: (id: EntityId) =>
+      deletePatientInsurancePolicy(selectedFacilityId, id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [
@@ -211,7 +304,7 @@ export function PatientHubContent({
 
   const patient = patientQuery.data || null;
   const patientName = patient ? getPatientChartName(patient) : "Patient";
-  const emergencyContacts = useMemo(() => {
+  const emergencyContacts = useMemo<PatientEmergencyContact[]>(() => {
     const contacts = Array.isArray(patient?.emergency_contacts)
       ? patient.emergency_contacts
       : [];
@@ -225,10 +318,11 @@ export function PatientHubContent({
     ) {
       return [
         {
-          name: patient.emergency_contact_name,
-          relationship: patient.emergency_contact_relationship,
-          phone_number: patient.emergency_contact_phone,
+          name: patient.emergency_contact_name || "",
+          relationship: patient.emergency_contact_relationship || "",
+          phone_number: patient.emergency_contact_phone || "",
           is_primary: true,
+          notes: "",
         },
       ];
     }
@@ -238,22 +332,24 @@ export function PatientHubContent({
   const insurancePolicies = useMemo(
     () =>
       Array.isArray(insurancePoliciesQuery.data)
-        ? insurancePoliciesQuery.data
+        ? (insurancePoliciesQuery.data as PatientHubInsurancePolicy[])
         : [],
     [insurancePoliciesQuery.data]
   );
-  const carriers = Array.isArray(carriersQuery.data) ? carriersQuery.data : [];
+  const carriers: InsuranceCarrier[] = Array.isArray(carriersQuery.data)
+    ? (carriersQuery.data as InsuranceCarrier[])
+    : [];
   const appointments = useMemo(
     () => (Array.isArray(appointmentsQuery.data) ? appointmentsQuery.data : []),
     [appointmentsQuery.data]
   );
-  const appointmentGroups = useMemo(() => {
+  const appointmentGroups = useMemo<AppointmentGroup>(() => {
     const now = new Date();
-    const upcoming = [];
-    const recent = [];
+    const upcoming: AppointmentLike[] = [];
+    const recent: AppointmentLike[] = [];
 
     appointments.forEach((appointment) => {
-      const date = new Date(appointment.appointment_time);
+      const date = new Date(appointment.appointment_time || "");
       if (Number.isNaN(date.getTime())) return;
 
       if (date >= now) {
@@ -264,10 +360,14 @@ export function PatientHubContent({
     });
 
     upcoming.sort(
-      (a, b) => new Date(a.appointment_time) - new Date(b.appointment_time)
+      (a, b) =>
+        new Date(a.appointment_time || "").getTime() -
+        new Date(b.appointment_time || "").getTime()
     );
     recent.sort(
-      (a, b) => new Date(b.appointment_time) - new Date(a.appointment_time)
+      (a, b) =>
+        new Date(b.appointment_time || "").getTime() -
+        new Date(a.appointment_time || "").getTime()
     );
 
     return {
@@ -305,12 +405,15 @@ export function PatientHubContent({
     });
   }, []);
 
-  const showEditBlockedDialog = useCallback((activeEditor) => {
-    setEditBlockedDialogState({
-      isOpen: true,
-      activeEditor,
-    });
-  }, []);
+  const showEditBlockedDialog = useCallback(
+    (activeEditor: AppointmentEditSessionActiveEditor) => {
+      setEditBlockedDialogState({
+        isOpen: true,
+        activeEditor,
+      });
+    },
+    []
+  );
 
   const handleCloseAppointmentModal = useCallback(() => {
     setAppointmentError("");
@@ -328,10 +431,10 @@ export function PatientHubContent({
   });
 
   const handleSubmitAppointment = useCallback(
-    async (submittedData) => {
+    async (submittedData: AppointmentSubmitPayload) => {
       setAppointmentError("");
 
-      const buildPayload = (overrides = {}) => ({
+      const buildPayload = (overrides: ApiPayload = {}) => ({
         ...submittedData,
         patient: appointmentFlow.selectedPatient?.id || "",
         resource: submittedData.resource
@@ -389,7 +492,8 @@ export function PatientHubContent({
   );
 
   const handleDeleteAppointment = useCallback(() => {
-    if (!appointmentFlow.modal.editingId) return;
+    const appointmentId = appointmentFlow.modal.editingId;
+    if (!appointmentId) return;
 
     setConfirmDialogState({
       isOpen: true,
@@ -399,9 +503,7 @@ export function PatientHubContent({
       cancelText: "Cancel",
       variant: "danger",
       onConfirm: async () => {
-        await deleteAppointmentMutation.mutateAsync(
-          appointmentFlow.modal.editingId
-        );
+        await deleteAppointmentMutation.mutateAsync(appointmentId);
         await invalidatePatientHubAppointments();
         closeConfirmDialog();
       },
@@ -414,7 +516,7 @@ export function PatientHubContent({
   ]);
 
   const handleOpenAppointment = useCallback(
-    async (appointment) => {
+    async (appointment: AppointmentLike) => {
       if (!appointment?.id || !selectedFacilityId) return;
 
       setAppointmentError("");
@@ -426,7 +528,7 @@ export function PatientHubContent({
         );
 
         if (result?.status === "occupied") {
-          showEditBlockedDialog(result.active_editor);
+          showEditBlockedDialog(result.active_editor ?? null);
           return;
         }
 
@@ -462,12 +564,14 @@ export function PatientHubContent({
     patientName,
   ]);
 
-  const openPolicyModal = (policy = null) => {
+  const openPolicyModal = (policy: PatientHubInsurancePolicy | null = null) => {
     setEditingPolicy(policy);
     setIsPolicyModalOpen(true);
   };
 
-  const handleSubmitInsurancePolicy = (values) => {
+  const handleSubmitInsurancePolicy = (
+    values: InsurancePolicyFormValues | InsurancePolicyPayload
+  ) => {
     const editingPolicyId = editingPolicy?.id || null;
     const conflictingPolicy = findConflictingInsurancePolicy(
       insurancePolicies,
@@ -519,7 +623,7 @@ export function PatientHubContent({
     return null;
   }
 
-  let content = null;
+  let content: ReactNode = null;
 
   if (patientQuery.isLoading) {
     content = (
@@ -551,7 +655,8 @@ export function PatientHubContent({
       />
     );
   } else if (PATIENT_HUB_EMPTY_TABS[activeTab]) {
-    content = <EmptyClinicalTab {...PATIENT_HUB_EMPTY_TABS[activeTab]} />;
+    const emptyTab = PATIENT_HUB_EMPTY_TABS[activeTab];
+    content = emptyTab ? <EmptyClinicalTab {...emptyTab} /> : null;
   } else if (activeTab === "documents") {
     content = (
       <PatientDocumentsWorkspace
@@ -585,9 +690,9 @@ export function PatientHubContent({
       <HubRegistrationInline
         patient={patient}
         facilityId={selectedFacilityId}
-        genderOptions={genderOptions}
-        careProviders={careProviders}
-        pharmacies={pharmacies}
+        genderOptions={patientGenderOptions}
+        careProviders={patientCareProviders}
+        pharmacies={patientPharmacies}
         insurancePolicies={insurancePolicies}
         emergencyContacts={emergencyContacts}
         onSwitchToInsurance={() => setActiveTab("insurance")}
@@ -667,8 +772,13 @@ export function PatientHubContent({
                   confirmText: "Remove",
                   cancelText: "Cancel",
                   variant: "danger",
-                  onConfirm: async () =>
-                    deleteInsuranceMutation.mutateAsync(editingPolicy.id),
+                  onConfirm: async () => {
+                    if (editingPolicy.id) {
+                      await deleteInsuranceMutation.mutateAsync(
+                        editingPolicy.id
+                      );
+                    }
+                  },
                 })
             : undefined
         }
@@ -676,15 +786,15 @@ export function PatientHubContent({
 
       <AppointmentModal
         isOpen={appointmentFlow.modal.isOpen}
-        mode={appointmentFlow.modal.mode}
+        mode={appointmentFlow.modal.mode as AppointmentMode}
         appointmentId={appointmentFlow.modal.editingId}
         formData={appointmentFlow.modal.formData}
         facilityId={selectedFacilityId}
-        physicians={physicians}
-        staffs={staffs}
-        resources={resources}
-        statusOptions={statusOptions}
-        typeOptions={typeOptions}
+        physicians={appointmentPhysicians}
+        staffs={appointmentStaffs}
+        resources={appointmentResources}
+        statusOptions={appointmentStatusOptions}
+        typeOptions={appointmentTypeOptions}
         error={appointmentError}
         onSubmit={handleSubmitAppointment}
         onClose={handleCloseAppointmentModal}
@@ -720,7 +830,7 @@ export function PatientHubContent({
         confirmText={confirmDialogState.confirmText}
         cancelText={confirmDialogState.cancelText}
         variant={confirmDialogState.variant}
-        onConfirm={confirmDialogState.onConfirm}
+        onConfirm={confirmDialogState.onConfirm ?? undefined}
         onCancel={closeConfirmDialog}
       />
 

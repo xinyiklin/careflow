@@ -24,7 +24,44 @@ import PhonesSection from "./PhonesSection";
 import SsnSection from "./SsnSection";
 import { RegistrationSectionShell } from "./RegistrationSectionShell";
 
-function buildGenderOptions(genderOptions) {
+import type {
+  PatientAddress,
+  PatientPhoneEntryLike,
+} from "../../../../shared/types/domain";
+import type { EntityId } from "../../../../shared/api/types";
+import type {
+  EmergencyContactFormValues,
+  PatientCareProvider,
+  PatientGenderOption,
+  PatientHubInsurancePolicy,
+  PatientPatchPayload,
+  PatientRecord,
+  PharmacyRecord,
+} from "../../types";
+
+type SelectOption = {
+  value: string;
+  label: string;
+};
+
+type HubRegistrationInlineProps = {
+  patient: PatientRecord;
+  facilityId?: EntityId | null;
+  genderOptions?: PatientGenderOption[];
+  careProviders?: PatientCareProvider[];
+  pharmacies?: PharmacyRecord[];
+  insurancePolicies?: PatientHubInsurancePolicy[];
+  emergencyContacts?: EmergencyContactFormValues[];
+  onSwitchToInsurance?: () => void;
+};
+
+type RegistrationPhone = PatientPhoneEntryLike & {
+  label: "cell" | "home" | "work";
+};
+
+function buildGenderOptions(
+  genderOptions: PatientGenderOption[] | undefined
+): SelectOption[] {
   return [
     { value: "", label: "Select…" },
     ...(genderOptions || []).map((option) => ({
@@ -34,7 +71,10 @@ function buildGenderOptions(genderOptions) {
   ];
 }
 
-function buildProviderOptions(careProviders, emptyLabel) {
+function buildProviderOptions(
+  careProviders: PatientCareProvider[] | undefined,
+  emptyLabel: string
+): SelectOption[] {
   return [
     { value: "", label: emptyLabel },
     ...(careProviders || []).map((provider) => ({
@@ -46,7 +86,11 @@ function buildProviderOptions(careProviders, emptyLabel) {
   ];
 }
 
-function buildAddressPatch(currentAddress, key, nextValue) {
+function buildAddressPatch(
+  currentAddress: PatientAddress | null | undefined,
+  key: keyof PatientAddress,
+  nextValue: string
+): PatientAddress {
   const base = {
     line_1: "",
     line_2: "",
@@ -60,7 +104,19 @@ function buildAddressPatch(currentAddress, key, nextValue) {
 
 const DECLINED_VALUE = "__declined__";
 
-function buildDeclinableSelectOptions(options) {
+function toInlineString(value: string | number | null | undefined): string {
+  return String(value ?? "");
+}
+
+function isRegistrationPhone(
+  phone: PatientPhoneEntryLike
+): phone is RegistrationPhone {
+  return (
+    phone.label === "cell" || phone.label === "home" || phone.label === "work"
+  );
+}
+
+function buildDeclinableSelectOptions(options: SelectOption[]): SelectOption[] {
   return [
     ...options.map((option) => ({
       value: option.value,
@@ -70,12 +126,19 @@ function buildDeclinableSelectOptions(options) {
   ];
 }
 
-function getDeclinableSelectValue(value, declined) {
+function getDeclinableSelectValue(
+  value: string | null | undefined,
+  declined: boolean | null | undefined
+) {
   if (declined) return DECLINED_VALUE;
   return value || "";
 }
 
-function buildDeclinablePatch(field, declinedField, nextValue) {
+function buildDeclinablePatch(
+  field: "race" | "ethnicity",
+  declinedField: "race_declined" | "ethnicity_declined",
+  nextValue: string | number | null | undefined
+): PatientPatchPayload {
   if (nextValue === DECLINED_VALUE) {
     return { [field]: "", [declinedField]: true };
   }
@@ -92,12 +155,17 @@ export default function HubRegistrationInline({
   insurancePolicies,
   emergencyContacts,
   onSwitchToInsurance,
-}) {
+}: HubRegistrationInlineProps) {
   const queryClient = useQueryClient();
-  const sectionRefs = useRef({});
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const patchMutation = useMutation({
-    mutationFn: (partial) => patchPatient(patient.id, partial, facilityId),
+    mutationFn: (partial: PatientPatchPayload) => {
+      if (patient.id === undefined || patient.id === null) {
+        throw new Error("Patient is required.");
+      }
+      return patchPatient(patient.id, partial, facilityId);
+    },
     onSuccess: (savedPatient) => {
       queryClient.setQueryData(
         ["patientHub", "patient", facilityId || null, String(patient.id)],
@@ -106,7 +174,7 @@ export default function HubRegistrationInline({
     },
   });
 
-  const savePartial = async (partial) => {
+  const savePartial = async (partial: PatientPatchPayload) => {
     try {
       await patchMutation.mutateAsync(partial);
     } catch (error) {
@@ -114,10 +182,11 @@ export default function HubRegistrationInline({
     }
   };
 
-  const saveEmergencyContacts = (nextContacts) =>
+  const saveEmergencyContacts = (nextContacts: EmergencyContactFormValues[]) =>
     savePartial({ emergency_contacts: nextContacts });
 
-  const savePhones = (nextPhones) => savePartial({ phones: nextPhones });
+  const savePhones = (nextPhones: RegistrationPhone[]) =>
+    savePartial({ phones: nextPhones });
 
   const genderSelectOptions = useMemo(
     () => buildGenderOptions(genderOptions),
@@ -134,14 +203,14 @@ export default function HubRegistrationInline({
 
   // USCDI demographics live inside the Identity section, so banner keys for
   // those fields scroll to the same section ref.
-  const SECTION_KEY_ALIASES = {
+  const SECTION_KEY_ALIASES: Record<string, string> = {
     sexAtBirth: "identity",
     race: "identity",
     ethnicity: "identity",
     language: "identity",
   };
 
-  const handleJumpTo = (sectionKey) => {
+  const handleJumpTo = (sectionKey: string) => {
     if (sectionKey === "insurance") {
       onSwitchToInsurance?.();
       return true;
@@ -170,6 +239,7 @@ export default function HubRegistrationInline({
     patient.preferred_language,
     patient.preferred_language_declined
   );
+  const registrationPhones = (patient.phones || []).filter(isRegistrationPhone);
 
   return (
     <div className="space-y-4">
@@ -200,24 +270,36 @@ export default function HubRegistrationInline({
             <InlineEditField
               label="First name"
               value={patient.first_name || ""}
-              onSave={(next) => savePartial({ first_name: next.trim() })}
-              validate={(v) => (v.trim() ? null : "First name is required.")}
+              onSave={(next) =>
+                savePartial({ first_name: toInlineString(next).trim() })
+              }
+              validate={(v) =>
+                toInlineString(v).trim() ? null : "First name is required."
+              }
             />
             <InlineEditField
               label="Last name"
               value={patient.last_name || ""}
-              onSave={(next) => savePartial({ last_name: next.trim() })}
-              validate={(v) => (v.trim() ? null : "Last name is required.")}
+              onSave={(next) =>
+                savePartial({ last_name: toInlineString(next).trim() })
+              }
+              validate={(v) =>
+                toInlineString(v).trim() ? null : "Last name is required."
+              }
             />
             <InlineEditField
               label="Middle name"
               value={patient.middle_name || ""}
-              onSave={(next) => savePartial({ middle_name: next.trim() })}
+              onSave={(next) =>
+                savePartial({ middle_name: toInlineString(next).trim() })
+              }
             />
             <InlineEditField
               label="Preferred name"
               value={patient.preferred_name || ""}
-              onSave={(next) => savePartial({ preferred_name: next.trim() })}
+              onSave={(next) =>
+                savePartial({ preferred_name: toInlineString(next).trim() })
+              }
             />
             <InlineEditField
               label="Date of birth"
@@ -252,7 +334,9 @@ export default function HubRegistrationInline({
             <InlineEditField
               label="Pronouns"
               value={patient.pronouns || ""}
-              onSave={(next) => savePartial({ pronouns: next.trim() })}
+              onSave={(next) =>
+                savePartial({ pronouns: toInlineString(next).trim() })
+              }
             />
             <InlineEditField
               label="Race"
@@ -288,7 +372,7 @@ export default function HubRegistrationInline({
               displayValue={languageDisplay}
               onSave={(next) =>
                 savePartial({
-                  preferred_language: next.trim(),
+                  preferred_language: toInlineString(next).trim(),
                   preferred_language_declined: false,
                 })
               }
@@ -316,15 +400,18 @@ export default function HubRegistrationInline({
                 type="email"
                 value={patient.email || ""}
                 displayTitle={patient.email || ""}
-                onSave={(next) => savePartial({ email: next.trim() })}
+                onSave={(next) =>
+                  savePartial({ email: toInlineString(next).trim() })
+                }
                 validate={(v) =>
-                  !v.trim() || /\S+@\S+\.\S+/.test(v.trim())
+                  !toInlineString(v).trim() ||
+                  /\S+@\S+\.\S+/.test(toInlineString(v).trim())
                     ? null
                     : "Enter a valid email."
                 }
               />
               <PhonesSection
-                phones={patient.phones || []}
+                phones={registrationPhones}
                 onSavePhones={savePhones}
               />
             </div>
@@ -347,7 +434,7 @@ export default function HubRegistrationInline({
                     address: buildAddressPatch(
                       patient.address,
                       "line_1",
-                      next.trim()
+                      toInlineString(next).trim()
                     ),
                   })
                 }
@@ -360,7 +447,7 @@ export default function HubRegistrationInline({
                     address: buildAddressPatch(
                       patient.address,
                       "line_2",
-                      next.trim()
+                      toInlineString(next).trim()
                     ),
                   })
                 }
@@ -373,7 +460,7 @@ export default function HubRegistrationInline({
                     address: buildAddressPatch(
                       patient.address,
                       "city",
-                      next.trim()
+                      toInlineString(next).trim()
                     ),
                   })
                 }
@@ -386,7 +473,7 @@ export default function HubRegistrationInline({
                     address: buildAddressPatch(
                       patient.address,
                       "state",
-                      next.trim().toUpperCase()
+                      toInlineString(next).trim().toUpperCase()
                     ),
                   })
                 }
@@ -400,7 +487,7 @@ export default function HubRegistrationInline({
                     address: buildAddressPatch(
                       patient.address,
                       "zip_code",
-                      next.trim()
+                      toInlineString(next).trim()
                     ),
                   })
                 }

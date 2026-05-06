@@ -13,13 +13,29 @@ import {
   validateSsn,
 } from "../../utils/contactValidation";
 
-export default function SsnSection({ patient, facilityId, onSavePartial }) {
+import type { KeyboardEvent } from "react";
+import type { EntityId } from "../../../../shared/api/types";
+import type { PatientPatchPayload, PatientRecord } from "../../types";
+
+type SsnStatus = "idle" | "loading" | "saving";
+
+type SsnSectionProps = {
+  patient: PatientRecord;
+  facilityId?: EntityId | null;
+  onSavePartial: (partial: PatientPatchPayload) => Promise<void> | void;
+};
+
+export default function SsnSection({
+  patient,
+  facilityId,
+  onSavePartial,
+}: SsnSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [loadedSsn, setLoadedSsn] = useState("");
-  const [status, setStatus] = useState("idle");
+  const [status, setStatus] = useState<SsnStatus>("idle");
   const [error, setError] = useState("");
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const loadedSsnDigits = getDigits(loadedSsn);
   const hasStoredSsn = Boolean(patient?.ssn_last4 || loadedSsnDigits);
@@ -109,7 +125,7 @@ export default function SsnSection({ patient, facilityId, onSavePartial }) {
     }
   };
 
-  const handleKeyDown = (event) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
       cancelEdit();

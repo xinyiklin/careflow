@@ -5,7 +5,19 @@ import { formatAddress } from "../PatientHubSections";
 import InlineEditField from "./InlineEditField";
 import { RegistrationSectionShell } from "./RegistrationSectionShell";
 
-function buildPharmacyOptions(pharmacies) {
+import type {
+  PatientPatchPayload,
+  PatientRecord,
+  PharmacyRecord,
+} from "../../types";
+
+type PharmacySectionProps = {
+  patient: PatientRecord;
+  pharmacies?: PharmacyRecord[];
+  onSavePartial: (partial: PatientPatchPayload) => Promise<void> | void;
+};
+
+function buildPharmacyOptions(pharmacies: PharmacyRecord[]) {
   return [
     { value: "", label: "No preferred pharmacy" },
     ...(pharmacies || []).map((pharmacy) => ({
@@ -19,7 +31,7 @@ export default function PharmacySection({
   patient,
   pharmacies = [],
   onSavePartial,
-}) {
+}: PharmacySectionProps) {
   const options = buildPharmacyOptions(pharmacies);
   const selectedPharmacy = (pharmacies || []).find(
     (pharmacy) => String(pharmacy.id) === String(patient?.preferred_pharmacy)

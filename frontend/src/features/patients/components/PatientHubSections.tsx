@@ -14,8 +14,22 @@ import {
 } from "lucide-react";
 
 import { Badge } from "../../../shared/components/ui";
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import type {
+  AppointmentLike,
+  PatientAddress,
+} from "../../../shared/types/domain";
+import type {
+  InsurancePolicyFormValues,
+  PatientHubInsurancePolicy,
+  PatientHubTab,
+  PatientHubTabKey,
+  PatientPharmacyPreference,
+  PatientRecord,
+} from "../types";
 
-export const HUB_TABS = [
+export const HUB_TABS: PatientHubTab[] = [
   { key: "registration", label: "Registration", icon: IdCard },
   { key: "insurance", label: "Insurance", icon: ShieldCheck },
   { key: "medications", label: "Medications", icon: Pill },
@@ -25,7 +39,7 @@ export const HUB_TABS = [
   { key: "appointments", label: "Encounters", icon: CalendarClock },
 ];
 
-export const RACE_LABELS = {
+export const RACE_LABELS: Record<string, string> = {
   american_indian_or_alaska_native: "American Indian or Alaska Native",
   asian: "Asian",
   black_or_african_american: "Black or African American",
@@ -36,13 +50,13 @@ export const RACE_LABELS = {
   unknown: "Unknown",
 };
 
-export const ETHNICITY_LABELS = {
+export const ETHNICITY_LABELS: Record<string, string> = {
   hispanic_or_latino: "Hispanic or Latino",
   not_hispanic_or_latino: "Not Hispanic or Latino",
   unknown: "Unknown",
 };
 
-export function formatDate(value) {
+export function formatDate(value?: string | null) {
   if (!value) return "—";
   try {
     return new Date(`${value}T00:00:00`).toLocaleDateString();
@@ -51,30 +65,39 @@ export function formatDate(value) {
   }
 }
 
-export function formatCoverageOrder(value, isPrimary = false) {
+export function formatCoverageOrder(
+  value?: string | null,
+  isPrimary?: boolean | null
+) {
   if (isPrimary) return "Primary";
 
-  const labels = {
+  const labels: Record<string, string> = {
     secondary: "Secondary",
     tertiary: "Tertiary",
     other: "Other",
   };
 
-  return labels[value] || "Secondary";
+  return value ? labels[value] || "Secondary" : "Secondary";
 }
 
-export function getCoverageOrder(value, isPrimary = false) {
+export function getCoverageOrder(
+  value?: string | null,
+  isPrimary?: boolean | null
+) {
   if (value) return value;
   return isPrimary ? "primary" : "secondary";
 }
 
-function parsePolicyBoundary(value, fallback) {
+function parsePolicyBoundary(value: string | null | undefined, fallback: Date) {
   if (!value) return fallback;
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? fallback : date;
 }
 
-function policyTimeframesOverlap(left, right) {
+function policyTimeframesOverlap(
+  left: Pick<PatientHubInsurancePolicy, "effective_date" | "termination_date">,
+  right: Pick<InsurancePolicyFormValues, "effective_date" | "termination_date">
+) {
   const leftStart = parsePolicyBoundary(
     left.effective_date,
     new Date(-8640000000000000)
@@ -96,9 +119,9 @@ function policyTimeframesOverlap(left, right) {
 }
 
 export function findConflictingInsurancePolicy(
-  policies,
-  values,
-  editingPolicyId = null
+  policies: PatientHubInsurancePolicy[],
+  values: InsurancePolicyFormValues,
+  editingPolicyId: PatientHubInsurancePolicy["id"] | null = null
 ) {
   const coverageOrder = getCoverageOrder(
     values.coverage_order,
@@ -122,13 +145,13 @@ export function findConflictingInsurancePolicy(
   );
 }
 
-export function formatPolicyDateRange(policy) {
+export function formatPolicyDateRange(policy: PatientHubInsurancePolicy) {
   return `${formatDate(policy.effective_date)} to ${
     policy.termination_date ? formatDate(policy.termination_date) : "ongoing"
   }`;
 }
 
-export function formatDateTime(value) {
+export function formatDateTime(value?: string | Date | null) {
   if (!value) return "—";
   try {
     return new Date(value).toLocaleString([], {
@@ -139,11 +162,11 @@ export function formatDateTime(value) {
       minute: "2-digit",
     });
   } catch {
-    return value;
+    return String(value);
   }
 }
 
-export function formatAddress(address) {
+export function formatAddress(address?: PatientAddress | null) {
   if (!address?.line_1) return "";
 
   const cityStateZip = [
@@ -158,27 +181,41 @@ export function formatAddress(address) {
     .join(" • ");
 }
 
-export function formatMaskedSsn(patient) {
+export function formatMaskedSsn(patient?: PatientRecord | null) {
   const digits = String(patient?.ssn || "").replace(/\D/g, "");
   const last4 = digits.slice(-4) || patient?.ssn_last4 || "";
 
   return last4 ? `***-**-${last4}` : "—";
 }
 
-export function formatFullSsn(value) {
+export function formatFullSsn(value?: string | null) {
   const digits = String(value || "").replace(/\D/g, "");
   if (digits.length !== 9) return "";
 
   return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
 }
 
-export function formatDeclinableValue(value, declined, labels = null) {
+export function formatDeclinableValue(
+  value?: string | null,
+  declined?: boolean | null,
+  labels: Record<string, string> | null = null
+) {
   if (declined) return "Declined";
   if (!value) return "";
   return labels?.[value] || value;
 }
 
-export function DetailRow({ label, value, icon: Icon = null, className = "" }) {
+export function DetailRow({
+  label,
+  value,
+  icon: Icon = null,
+  className = "",
+}: {
+  label: string;
+  value?: ReactNode;
+  icon?: LucideIcon | null;
+  className?: string;
+}) {
   const hasValue = value !== null && value !== undefined && value !== "";
   const displayValue = hasValue ? value : "—";
   const titleValue =
@@ -209,7 +246,13 @@ export function DetailRow({ label, value, icon: Icon = null, className = "" }) {
   );
 }
 
-export function SectionHeader({ title, description }) {
+export function SectionHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) {
   return (
     <div>
       <h3 className="text-sm font-semibold text-cf-text">{title}</h3>
@@ -220,7 +263,15 @@ export function SectionHeader({ title, description }) {
   );
 }
 
-export function SummaryTile({ label, value, icon: Icon }) {
+export function SummaryTile({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value?: ReactNode;
+  icon?: LucideIcon | null;
+}) {
   const displayValue = value || "—";
 
   return (
@@ -239,7 +290,15 @@ export function SummaryTile({ label, value, icon: Icon }) {
   );
 }
 
-export function TabButton({ tab, isActive, onClick }) {
+export function TabButton({
+  tab,
+  isActive,
+  onClick,
+}: {
+  tab: PatientHubTab;
+  isActive: boolean;
+  onClick: (key: PatientHubTabKey) => void;
+}) {
   const Icon = tab.icon;
 
   return (
@@ -259,7 +318,11 @@ export function TabButton({ tab, isActive, onClick }) {
   );
 }
 
-export function AppointmentCard({ appointment }) {
+export function AppointmentCard({
+  appointment,
+}: {
+  appointment: AppointmentLike;
+}) {
   const appointmentDate = formatDateTime(appointment.appointment_time);
 
   return (
@@ -297,7 +360,13 @@ export function AppointmentCard({ appointment }) {
   );
 }
 
-export function InsurancePolicyCard({ policy, onClick }) {
+export function InsurancePolicyCard({
+  policy,
+  onClick,
+}: {
+  policy: PatientHubInsurancePolicy;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -349,7 +418,11 @@ export function InsurancePolicyCard({ policy, onClick }) {
   );
 }
 
-export function PharmacyPreferenceCard({ preference }) {
+export function PharmacyPreferenceCard({
+  preference,
+}: {
+  preference: PatientPharmacyPreference;
+}) {
   const pharmacy = preference.pharmacy || {};
 
   return (
@@ -398,7 +471,7 @@ export function PharmacyPreferenceCard({ preference }) {
   );
 }
 
-export function EmptyState({ title, body }) {
+export function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-cf-border bg-cf-surface-muted px-6 py-6 text-center">
       <div>

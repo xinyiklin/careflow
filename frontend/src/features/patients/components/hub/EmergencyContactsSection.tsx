@@ -13,7 +13,36 @@ import {
 import InlineEditField from "./InlineEditField";
 import { RegistrationSectionShell } from "./RegistrationSectionShell";
 
-const EMPTY_CONTACT = {
+import type { ChangeEvent, KeyboardEvent } from "react";
+import type { EmergencyContactFormValues } from "../../types";
+
+type EmergencyContactPatch = Partial<EmergencyContactFormValues>;
+
+type EmergencyContactsSectionProps = {
+  contacts?: EmergencyContactFormValues[] | null;
+  saving?: boolean;
+  onSaveContacts: (
+    contacts: EmergencyContactFormValues[]
+  ) => Promise<void> | void;
+};
+
+type ContactRowProps = {
+  contact: EmergencyContactFormValues;
+  index: number;
+  saving: boolean;
+  onPatch: (patch: EmergencyContactPatch) => Promise<void> | void;
+  onRemove: () => Promise<void> | void;
+  onSetPrimary: () => Promise<void> | void;
+};
+
+type AddContactRowProps = {
+  index: number;
+  saving: boolean;
+  onSave: (contact: EmergencyContactFormValues) => Promise<void> | void;
+  onCancel: () => void;
+};
+
+const EMPTY_CONTACT: EmergencyContactFormValues = {
   name: "",
   relationship: "",
   phone_number: "",
@@ -23,7 +52,10 @@ const EMPTY_CONTACT = {
 
 const MAX_CONTACTS = 3;
 
-function normalizeContact(contact = {}, index = 0) {
+function normalizeContact(
+  contact: Partial<EmergencyContactFormValues> = {},
+  index = 0
+): EmergencyContactFormValues {
   return {
     name: contact.name || "",
     relationship: contact.relationship || "",
@@ -33,8 +65,10 @@ function normalizeContact(contact = {}, index = 0) {
   };
 }
 
-function normalizeContacts(contacts = []) {
-  const cleaned = contacts
+function normalizeContacts(
+  contacts: EmergencyContactFormValues[] | null | undefined = []
+): EmergencyContactFormValues[] {
+  const cleaned = (contacts ?? [])
     .map(normalizeContact)
     .filter((contact) =>
       [
@@ -60,7 +94,7 @@ function ContactRow({
   onPatch,
   onRemove,
   onSetPrimary,
-}) {
+}: ContactRowProps) {
   const isPrimary = Boolean(contact.is_primary);
 
   return (
@@ -109,13 +143,15 @@ function ContactRow({
           label="Name"
           value={contact.name}
           placeholder="Full name"
-          onSave={(next) => onPatch({ name: next.trim() })}
+          onSave={(next) => onPatch({ name: String(next ?? "").trim() })}
         />
         <InlineEditField
           label="Relationship"
           value={contact.relationship}
           placeholder="Spouse, parent, friend…"
-          onSave={(next) => onPatch({ relationship: next.trim() })}
+          onSave={(next) =>
+            onPatch({ relationship: String(next ?? "").trim() })
+          }
         />
         <InlineEditField
           label="Phone"
@@ -146,14 +182,22 @@ function ContactRow({
   );
 }
 
-function AddContactRow({ index, saving, onSave, onCancel }) {
+function AddContactRow({
+  index,
+  saving,
+  onSave,
+  onCancel,
+}: AddContactRowProps) {
   const [draft, setDraft] = useState({
     ...EMPTY_CONTACT,
     is_primary: index === 0,
   });
   const [error, setError] = useState("");
 
-  const updateDraft = (key, value) => {
+  const updateDraft = (
+    key: keyof EmergencyContactFormValues,
+    value: string | boolean
+  ) => {
     setError("");
     setDraft((current) => ({ ...current, [key]: value }));
   };
@@ -181,7 +225,7 @@ function AddContactRow({ index, saving, onSave, onCancel }) {
           <input
             type="checkbox"
             checked={draft.is_primary}
-            onChange={(event) =>
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
               updateDraft("is_primary", event.target.checked)
             }
             className="h-3.5 w-3.5 rounded border-cf-border-strong"
@@ -193,22 +237,26 @@ function AddContactRow({ index, saving, onSave, onCancel }) {
       <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
         <Input
           value={draft.name}
-          onChange={(event) => updateDraft("name", event.target.value)}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            updateDraft("name", event.target.value)
+          }
           placeholder="Full name"
           className="h-9 py-0"
         />
         <Input
           value={draft.relationship}
-          onChange={(event) => updateDraft("relationship", event.target.value)}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            updateDraft("relationship", event.target.value)
+          }
           placeholder="Spouse, parent, friend…"
           className="h-9 py-0"
         />
         <Input
           value={draft.phone_number}
-          onChange={(event) =>
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
             updateDraft("phone_number", formatPhoneInput(event.target.value))
           }
-          onKeyDown={(event) =>
+          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) =>
             handleFormattedInputDeletion(event, formatPhoneInput, (nextValue) =>
               updateDraft("phone_number", nextValue)
             )
@@ -255,22 +303,22 @@ export default function EmergencyContactsSection({
   contacts = [],
   saving = false,
   onSaveContacts,
-}) {
+}: EmergencyContactsSectionProps) {
   const normalizedContacts = normalizeContacts(contacts);
   const [showAdd, setShowAdd] = useState(false);
 
-  const commitContacts = async (nextContacts) => {
+  const commitContacts = async (nextContacts: EmergencyContactFormValues[]) => {
     await onSaveContacts(normalizeContacts(nextContacts));
   };
 
-  const updateContact = (targetIndex, patch) =>
+  const updateContact = (targetIndex: number, patch: EmergencyContactPatch) =>
     commitContacts(
       normalizedContacts.map((contact, index) =>
         index === targetIndex ? { ...contact, ...patch } : contact
       )
     );
 
-  const addContact = async (contact) => {
+  const addContact = async (contact: EmergencyContactFormValues) => {
     const nextContact = normalizeContact(contact, normalizedContacts.length);
     await commitContacts(
       contact.is_primary
@@ -286,12 +334,12 @@ export default function EmergencyContactsSection({
     setShowAdd(false);
   };
 
-  const removeContact = (targetIndex) =>
+  const removeContact = (targetIndex: number) =>
     commitContacts(
       normalizedContacts.filter((_, index) => index !== targetIndex)
     );
 
-  const setPrimary = (targetIndex) =>
+  const setPrimary = (targetIndex: number) =>
     commitContacts(
       normalizedContacts.map((contact, index) => ({
         ...contact,

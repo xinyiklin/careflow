@@ -22,6 +22,7 @@ import {
 
 import { Badge, Button, Panel } from "../../../shared/components/ui";
 import { formatDOB } from "../../../shared/utils/dateTime";
+import type { UseQueryResult } from "@tanstack/react-query";
 import {
   formatPhoneDisplay,
   getPatientPhoneEntries,
@@ -44,11 +45,22 @@ import {
   SectionHeader,
   SummaryTile,
 } from "./PatientHubSections";
+import type {
+  AppointmentGroup,
+  PatientEmergencyContact,
+  PatientHubInsurancePolicy,
+  PatientPharmacyPreference,
+  PatientRecord,
+} from "../types";
 
 export function PatientPharmaciesPanel({
   activePatientPharmacies,
   defaultPharmacyName,
   erxPharmacyCount,
+}: {
+  activePatientPharmacies: PatientPharmacyPreference[];
+  defaultPharmacyName?: string | null;
+  erxPharmacyCount: number;
 }) {
   return (
     <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[0.78fr_1.22fr]">
@@ -118,6 +130,12 @@ export function PatientInsurancePanel({
   activeInsuranceCount,
   primaryInsurancePolicy,
   onOpenPolicy,
+}: {
+  insurancePoliciesQuery: UseQueryResult<PatientHubInsurancePolicy[]>;
+  insurancePolicies: PatientHubInsurancePolicy[];
+  activeInsuranceCount: number;
+  primaryInsurancePolicy?: PatientHubInsurancePolicy | null;
+  onOpenPolicy: (policy?: PatientHubInsurancePolicy | null) => void;
 }) {
   return (
     <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[0.78fr_1.22fr]">
@@ -198,7 +216,11 @@ export function PatientInsurancePanel({
   );
 }
 
-export function PatientAppointmentsPanel({ appointmentGroups }) {
+export function PatientAppointmentsPanel({
+  appointmentGroups,
+}: {
+  appointmentGroups: AppointmentGroup;
+}) {
   return (
     <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[0.75fr_1.25fr]">
       <div className="grid min-h-0 gap-4">
@@ -286,6 +308,11 @@ export function PatientDemographicsPanel({
   emergencyContacts,
   showFullSsn,
   onToggleSsn,
+}: {
+  patient: PatientRecord;
+  emergencyContacts: PatientEmergencyContact[];
+  showFullSsn: boolean;
+  onToggleSsn: () => void;
 }) {
   const phoneEntries = getPatientPhoneEntries(patient);
 

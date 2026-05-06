@@ -9,12 +9,23 @@ import {
   getPrimaryPatientPhoneDisplay,
 } from "../utils/contactValidation";
 import { getPatientInitials } from "../utils/patientDisplay";
+import type {
+  AppointmentGroup,
+  PatientHubInsurancePolicy,
+  PatientHubSidebarFactProps,
+  PatientHubSidebarSectionProps,
+  PatientRecord,
+} from "../types";
 
-export function getPrimaryPhone(patient) {
+export function getPrimaryPhone(patient: PatientRecord) {
   return getPrimaryPatientPhoneDisplay(patient);
 }
 
-function SidebarFact({ icon: Icon = null, prefix = null, value }) {
+function SidebarFact({
+  icon: Icon = null,
+  prefix = null,
+  value,
+}: PatientHubSidebarFactProps) {
   if (!value) return null;
 
   return (
@@ -36,7 +47,7 @@ function SidebarFact({ icon: Icon = null, prefix = null, value }) {
   );
 }
 
-function SidebarSection({ title, children }) {
+function SidebarSection({ title, children }: PatientHubSidebarSectionProps) {
   return (
     <div>
       <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-cf-sidebar-text-muted)]">
@@ -52,6 +63,11 @@ export default function PatientIdentitySidebar({
   patientName,
   insurancePolicies,
   appointmentGroups,
+}: {
+  patient: PatientRecord;
+  patientName: string;
+  insurancePolicies: PatientHubInsurancePolicy[];
+  appointmentGroups: AppointmentGroup;
 }) {
   const nextVisit = appointmentGroups.upcoming[0] || null;
   const pronouns = patient.pronouns || patient.gender_name || "";

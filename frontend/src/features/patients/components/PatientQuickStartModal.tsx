@@ -22,7 +22,48 @@ import {
   validatePhoneNumber,
 } from "../utils/contactValidation";
 
-const QUICK_START_DEFAULTS = {
+import type { KeyboardEvent } from "react";
+import type { FieldError } from "react-hook-form";
+import type { EntityId } from "../../../shared/api/types";
+import type { PatientLike } from "../../../shared/types/domain";
+import type { PatientGenderOption, PatientRecord } from "../types";
+
+type QuickStartPhoneField = "phone_cell" | "phone_home" | "phone_work";
+
+type QuickStartFormValues = {
+  first_name: string;
+  middle_name: string;
+  last_name: string;
+  date_of_birth: string;
+  phone_cell: string;
+  phone_home: string;
+  phone_work: string;
+  gender: string;
+  sex_at_birth: string;
+};
+
+type PatientQuickStartModalProps = {
+  isOpen: boolean;
+  facilityId?: EntityId | null;
+  genderOptions?: PatientGenderOption[];
+  onClose?: () => void;
+  onSaved?: (patient: PatientLike, options?: { useExisting?: boolean }) => void;
+};
+
+type QuickStartCandidate = PatientRecord & { id: EntityId };
+
+type CandidateRowProps = {
+  candidate: QuickStartCandidate;
+  onUseExisting?: (candidate: QuickStartCandidate) => void;
+  onDismiss?: (candidate: QuickStartCandidate) => void;
+};
+
+type CompletenessRingProps = {
+  filled: number;
+  total: number;
+};
+
+const QUICK_START_DEFAULTS: QuickStartFormValues = {
   first_name: "",
   middle_name: "",
   last_name: "",
@@ -39,14 +80,18 @@ const QUICK_START_PHONE_TYPE_OPTIONS = [
   { key: "phone_cell", label: "Cell", payloadLabel: "cell" },
   { key: "phone_home", label: "Home", payloadLabel: "home" },
   { key: "phone_work", label: "Work", payloadLabel: "work" },
-];
+] as const satisfies ReadonlyArray<{
+  key: QuickStartPhoneField;
+  label: string;
+  payloadLabel: string;
+}>;
 const REQUIRED_QUICK_START_FIELDS = [
   "first_name",
   "last_name",
   "date_of_birth",
   "gender",
   "sex_at_birth",
-];
+] as const satisfies ReadonlyArray<keyof QuickStartFormValues>;
 
 // USCDI v3 separates "sex assigned at birth" from "gender identity". Sex at
 // birth drives lab reference ranges and several clinical safety checks, so it
@@ -60,7 +105,7 @@ const SEX_AT_BIRTH_QUICK_OPTIONS = [
   { value: "undisclosed", label: "Choose not to disclose" },
 ];
 
-function countFilled(values) {
+function countFilled(values: QuickStartFormValues) {
   const requiredCount = REQUIRED_QUICK_START_FIELDS.reduce(
     (count, key) => (values?.[key]?.toString().trim() ? count + 1 : count),
     0
@@ -71,7 +116,7 @@ function countFilled(values) {
   return requiredCount + (hasPhone ? 1 : 0);
 }
 
-function FieldErrorSlot({ error }) {
+function FieldErrorSlot({ error }: { error?: FieldError }) {
   return (
     <div className="mt-1 min-h-5">
       {error ? (
@@ -81,7 +126,11 @@ function FieldErrorSlot({ error }) {
   );
 }
 
-function CandidateRow({ candidate, onUseExisting, onDismiss }) {
+function CandidateRow({
+  candidate,
+  onUseExisting,
+  onDismiss,
+}: CandidateRowProps) {
   const fullName = [candidate.last_name, candidate.first_name]
     .filter(Boolean)
     .join(", ");
@@ -128,7 +177,7 @@ function CandidateRow({ candidate, onUseExisting, onDismiss }) {
   );
 }
 
-function CompletenessRing({ filled, total }) {
+function CompletenessRing({ filled, total }: CompletenessRingProps) {
   const percent = total ? Math.round((filled / total) * 100) : 0;
   const dashLength = Math.max(0, Math.min(percent, 100));
 
@@ -176,7 +225,7 @@ export default function PatientQuickStartModal({
   genderOptions = [],
   onClose,
   onSaved,
-}) {
+}: PatientQuickStartModalProps) {
   const {
     register,
     handleSubmit,
@@ -185,10 +234,12 @@ export default function PatientQuickStartModal({
     setError,
     clearErrors,
     formState: { errors, isSubmitting },
-  } = useForm({ defaultValues: QUICK_START_DEFAULTS });
+  } = useForm<QuickStartFormValues>({ defaultValues: QUICK_START_DEFAULTS });
 
   const [submitError, setSubmitError] = useState("");
-  const [dismissedCandidateIds, setDismissedCandidateIds] = useState([]);
+  const [dismissedCandidateIds, setDismissedCandidateIds] = useState<
+    EntityId[]
+  >([]);
 
   const watchedFirstName = watch("first_name");
   const watchedLastName = watch("last_name");
@@ -215,7 +266,10 @@ export default function PatientQuickStartModal({
   const visibleCandidates = useMemo(
     () =>
       duplicateCheck.candidates.filter(
-        (candidate) => !dismissedCandidateIds.includes(candidate.id)
+        (candidate): candidate is QuickStartCandidate => {
+          if (candidate.id === undefined || candidate.id === null) return false;
+          return !dismissedCandidateIds.includes(candidate.id);
+        }
       ),
     [duplicateCheck.candidates, dismissedCandidateIds]
   );
@@ -227,7 +281,7 @@ export default function PatientQuickStartModal({
     onClose?.();
   };
 
-  const submitForm = async (data) => {
+  const submitForm = async (data: QuickStartFormValues) => {
     setSubmitError("");
 
     const phones = QUICK_START_PHONE_TYPE_OPTIONS.map(
@@ -261,7 +315,7 @@ export default function PatientQuickStartModal({
 
     try {
       const savedPatient = await createPatient(payload, facilityId);
-      onSaved?.(savedPatient);
+      if (savedPatient) onSaved?.(savedPatient);
       reset(QUICK_START_DEFAULTS);
       setDismissedCandidateIds([]);
     } catch (error) {
@@ -269,19 +323,17 @@ export default function PatientQuickStartModal({
     }
   };
 
-  const dismissCandidate = (candidate) => {
-    if (!candidate?.id) return;
+  const dismissCandidate = (candidate: QuickStartCandidate) => {
     setDismissedCandidateIds((current) => [...current, candidate.id]);
   };
 
-  const useExistingCandidate = (candidate) => {
-    if (!candidate?.id) return;
+  const useExistingCandidate = (candidate: QuickStartCandidate) => {
     onSaved?.(candidate, { useExisting: true });
     reset(QUICK_START_DEFAULTS);
     setDismissedCandidateIds([]);
   };
 
-  const registerQuickStartPhone = (name) =>
+  const registerQuickStartPhone = (name: QuickStartPhoneField) =>
     register(name, {
       setValueAs: getPhoneInputDigits,
       validate: (value) => {
@@ -449,11 +501,11 @@ export default function PatientQuickStartModal({
                         placeholder={PHONE_INPUT_PLACEHOLDER}
                         {...phoneRegistration}
                         onChange={(event) => {
-                          event.target.value = formatPhoneInput(
-                            event.target.value
+                          event.currentTarget.value = formatPhoneInput(
+                            event.currentTarget.value
                           );
                           phoneRegistration.onChange(event);
-                          if (getPhoneInputDigits(event.target.value)) {
+                          if (getPhoneInputDigits(event.currentTarget.value)) {
                             clearErrors([
                               "phone_cell",
                               "phone_home",
@@ -463,10 +515,10 @@ export default function PatientQuickStartModal({
                         }}
                         onKeyDown={(event) =>
                           handleFormattedInputDeletion(
-                            event,
+                            event as KeyboardEvent<HTMLInputElement>,
                             formatPhoneInput,
                             (nextValue) => {
-                              event.target.value = nextValue;
+                              event.currentTarget.value = nextValue;
                               phoneRegistration.onChange(event);
                             }
                           )
