@@ -6,12 +6,17 @@ import jsxA11yPlugin from "eslint-plugin-jsx-a11y";
 import prettierConfig from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 
+const tsFiles = ["**/*.{ts,tsx,mts,cts}"];
+const tsRecommended = tseslint.configs.recommended.map((config) =>
+  config.files ? config : { ...config, files: tsFiles }
+);
+
 export default tseslint.config(
   {
     ignores: ["dist", "build", "node_modules", "coverage"],
   },
   js.configs.recommended,
-  ...tseslint.configs.recommended,
+  ...tsRecommended,
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
