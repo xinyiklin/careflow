@@ -6,6 +6,21 @@ import type {
   EntityId,
 } from "../../../shared/api/types";
 
+type AppointmentEditSessionStatus = "active" | "available" | "occupied";
+
+export type AppointmentEditSessionActiveEditor = {
+  user_id?: EntityId | null;
+  user_name?: string | null;
+  started_at?: string | null;
+  last_seen_at?: string | null;
+} | null;
+
+export type AppointmentEditSessionResponse = {
+  status?: AppointmentEditSessionStatus;
+  can_override?: boolean;
+  active_editor?: AppointmentEditSessionActiveEditor;
+};
+
 type FetchAppointmentsParams = {
   facilityId?: EntityId | null;
   date?: ApiParamValue;
@@ -86,23 +101,38 @@ export function fetchAppointmentHistory(
   });
 }
 
-export function beginAppointmentEditSession(facilityId, id) {
-  return apiRequest(`/appointments/${id}/edit-session/`, {
-    method: "POST",
-    params: { facility_id: facilityId },
-    body: JSON.stringify({}),
-  });
+export function beginAppointmentEditSession(
+  facilityId: EntityId | null | undefined,
+  id: EntityId | null | undefined
+) {
+  return apiRequest<AppointmentEditSessionResponse>(
+    `/appointments/${id}/edit-session/`,
+    {
+      method: "POST",
+      params: { facility_id: facilityId },
+      body: JSON.stringify({}),
+    }
+  );
 }
 
-export function heartbeatAppointmentEditSession(facilityId, id) {
-  return apiRequest(`/appointments/${id}/edit-session/`, {
-    method: "PATCH",
-    params: { facility_id: facilityId },
-    body: JSON.stringify({}),
-  });
+export function heartbeatAppointmentEditSession(
+  facilityId: EntityId | null | undefined,
+  id: EntityId | null | undefined
+) {
+  return apiRequest<AppointmentEditSessionResponse>(
+    `/appointments/${id}/edit-session/`,
+    {
+      method: "PATCH",
+      params: { facility_id: facilityId },
+      body: JSON.stringify({}),
+    }
+  );
 }
 
-export function releaseAppointmentEditSession(facilityId, id) {
+export function releaseAppointmentEditSession(
+  facilityId: EntityId | null | undefined,
+  id: EntityId | null | undefined
+) {
   return apiRequest(`/appointments/${id}/edit-session/`, {
     method: "DELETE",
     params: { facility_id: facilityId },

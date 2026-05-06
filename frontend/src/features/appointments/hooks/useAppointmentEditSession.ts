@@ -5,6 +5,10 @@ import {
   heartbeatAppointmentEditSession,
   releaseAppointmentEditSession,
 } from "../api/appointments";
+import type {
+  AppointmentEditSessionActiveEditor,
+  AppointmentEditSessionResponse,
+} from "../api/appointments";
 import { getErrorMessage } from "../../../shared/utils/errors";
 
 const HEARTBEAT_INTERVAL_MS = 45_000;
@@ -16,18 +20,6 @@ type AppointmentEditSessionStatus =
   | "available"
   | "occupied"
   | "error";
-
-type AppointmentEditSessionActiveEditor = {
-  user_id?: number | string | null;
-  user_name?: string | null;
-  started_at?: string | null;
-  last_seen_at?: string | null;
-} | null;
-
-type AppointmentEditSessionResult = {
-  status?: AppointmentEditSessionStatus;
-  active_editor?: AppointmentEditSessionActiveEditor;
-};
 
 type AppointmentEditSessionState = {
   status: AppointmentEditSessionStatus;
@@ -61,7 +53,7 @@ export default function useAppointmentEditSession({
   );
 
   const applySessionResult = useCallback(
-    (result: AppointmentEditSessionResult | null) => {
+    (result: AppointmentEditSessionResponse | null) => {
       setState({
         status: result?.status || "idle",
         activeEditor: result?.active_editor || null,
@@ -83,10 +75,10 @@ export default function useAppointmentEditSession({
     }));
 
     try {
-      const result = (await beginAppointmentEditSession(
+      const result = await beginAppointmentEditSession(
         facilityId,
         appointmentId
-      )) as AppointmentEditSessionResult;
+      );
       if (requestIdRef.current === requestId) {
         applySessionResult(result);
       }
