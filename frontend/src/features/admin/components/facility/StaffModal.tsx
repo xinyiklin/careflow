@@ -12,15 +12,36 @@ import {
   getPermissionSummary,
 } from "./StaffModalSections";
 
+import type { ChangeEvent, FormEvent } from "react";
+import type { AdminSavePayload, AdminStaff, AdminStaffRole } from "../../types";
+import type { UserProfile } from "../../../../shared/types/domain";
+import type { SecurityPermissionKey } from "../../constants/securityPermissions";
+
+type AdminSelectOption = {
+  id?: string | number;
+  name?: string | null;
+  security_permissions?: Partial<Record<SecurityPermissionKey, boolean>> | null;
+};
+
 const DEFAULT_FORM = {
   user_id: "",
   role_id: "",
   title_id: "",
   is_active: true,
-  security_overrides: {},
+  security_overrides: {} as Partial<Record<SecurityPermissionKey, boolean>>,
 };
 
-function getUserDisplayName(user) {
+function getStaffRoleId(role: AdminStaff["role"]) {
+  return typeof role === "object" && role ? role.id || "" : role || "";
+}
+
+function getStaffTitleId(title: AdminStaff["title"]) {
+  return typeof title === "object" && title ? title.id || "" : title || "";
+}
+
+function getUserDisplayName(
+  user: UserProfile | AdminStaff["user"] | null | undefined
+) {
   if (!user) return "Select user";
   return user.first_name || user.last_name
     ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
@@ -39,6 +60,18 @@ export default function StaffModal({
   onSubmit,
   onDelete,
   recordLabel = "Staff Member",
+}: {
+  isOpen: boolean;
+  mode?: "create" | "edit";
+  initialValues?: AdminStaff | null;
+  roles?: AdminStaffRole[];
+  titles?: AdminSelectOption[];
+  users?: UserProfile[];
+  saving?: boolean;
+  onClose: () => void;
+  onSubmit: (values: AdminSavePayload["values"]) => Promise<void> | void;
+  onDelete?: () => void;
+  recordLabel?: string;
 }) {
   const [formData, setFormData] = useState(DEFAULT_FORM);
 
@@ -46,9 +79,9 @@ export default function StaffModal({
     if (!isOpen) return;
     if (initialValues) {
       setFormData({
-        user_id: initialValues.user?.id || "",
-        role_id: initialValues.role?.id || initialValues.role || "",
-        title_id: initialValues.title?.id || initialValues.title || "",
+        user_id: initialValues.user?.id ? String(initialValues.user.id) : "",
+        role_id: String(getStaffRoleId(initialValues.role) || ""),
+        title_id: String(getStaffTitleId(initialValues.title) || ""),
         is_active:
           typeof initialValues.is_active === "boolean"
             ? initialValues.is_active
@@ -60,15 +93,22 @@ export default function StaffModal({
     }
   }, [isOpen, initialValues]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value, type } = e.target;
+    const checked =
+      e.target instanceof HTMLInputElement ? e.target.checked : false;
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
 
-  const handleSecurityOverrideChange = (permissionKey, value) => {
+  const handleSecurityOverrideChange = (
+    permissionKey: SecurityPermissionKey,
+    value: "inherit" | "grant" | "revoke"
+  ) => {
     setFormData((prev) => {
       const nextOverrides = { ...(prev.security_overrides || {}) };
 
@@ -82,7 +122,7 @@ export default function StaffModal({
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit?.({
       user: formData.user_id ? Number(formData.user_id) : "",
@@ -98,7 +138,7 @@ export default function StaffModal({
     (candidate) => String(candidate.id) === String(formData.role_id)
   );
   const inheritedPermissions = normalizeSecurityPermissions(
-    role?.security_permissions
+    role?.security_permissions || undefined
   );
   const effectivePermissions = {
     ...inheritedPermissions,

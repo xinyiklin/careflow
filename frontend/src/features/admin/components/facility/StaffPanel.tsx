@@ -10,7 +10,6 @@ import useAdminListControls, {
 } from "../../hooks/shared/useAdminListControls";
 import useStaff from "../../hooks/facility/useStaff";
 import StaffModal from "./StaffModal";
-import { getResourceHoursLabel } from "./resourceScheduleUtils";
 import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
 import {
   AdminInlineNotice,
@@ -21,23 +20,47 @@ import {
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
 
-function isPhysicianStaff(staffRecord) {
-  const roleCode = staffRecord.role?.code || staffRecord.role_code || "";
-  const roleName = staffRecord.role?.name || staffRecord.role_name || "";
+import type {
+  AdminConfirmDialogState,
+  AdminSavePayload,
+  AdminSortOption,
+  AdminStaff,
+  AdminStaffRole,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
+import type { EntityId } from "../../../../shared/api/types";
+import type { UserProfile } from "../../../../shared/types/domain";
+
+function getRoleField(
+  role: AdminStaff["role"],
+  field: "code" | "name"
+): string {
+  return typeof role === "object" && role ? String(role[field] || "") : "";
+}
+
+function getTitleName(title: AdminStaff["title"]): string {
+  return typeof title === "object" && title ? String(title.name || "") : "";
+}
+
+function isPhysicianStaff(staffRecord: AdminStaff) {
+  const roleCode =
+    getRoleField(staffRecord.role, "code") || staffRecord.role_code || "";
+  const roleName =
+    getRoleField(staffRecord.role, "name") || staffRecord.role_name || "";
   return (
     roleCode.toLowerCase() === "physician" ||
     roleName.toLowerCase() === "physician"
   );
 }
 
-function getStaffDisplayName(record) {
+function getStaffDisplayName(record: AdminStaff) {
   return record.user
     ? `${record.user.first_name || ""} ${record.user.last_name || ""}`.trim() ||
         record.user.username
     : "";
 }
 
-const PHYSICIAN_FILTERS = [
+const STAFF_FILTERS = [
   { key: "all", label: "All", predicate: () => true },
   {
     key: "active",
@@ -47,14 +70,18 @@ const PHYSICIAN_FILTERS = [
   {
     key: "titled",
     label: "With title",
-    predicate: (record) => record.title_name || record.title?.name,
+    predicate: (record) =>
+      Boolean(
+        record.title_name ||
+        (typeof record.title === "object" && record.title?.name)
+      ),
   },
-];
+] satisfies AdminListFilter<AdminStaff>[];
 
-const PHYSICIAN_SORT_OPTIONS = [
+const STAFF_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Physician",
+    label: "Staff",
     compare: (a, b) =>
       compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
   },
@@ -62,8 +89,10 @@ const PHYSICIAN_SORT_OPTIONS = [
     key: "role",
     label: "Role",
     compare: (a, b) =>
-      compareText(a.role_name || a.role?.name, b.role_name || b.role?.name) ||
-      compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
+      compareText(
+        a.role_name || getRoleField(a.role, "name"),
+        b.role_name || getRoleField(b.role, "name")
+      ) || compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
   },
   {
     key: "active",
@@ -72,60 +101,65 @@ const PHYSICIAN_SORT_OPTIONS = [
       compareBoolean(a.is_active !== false, b.is_active !== false) ||
       compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
   },
-];
+] satisfies AdminSortOption<AdminStaff>[];
 
-export default function PhysiciansPanel() {
+export default function StaffPanel() {
   const { memberships } = useFacility();
   const { adminFacility } = useAdminFacility();
   const { roles = [], titles = [] } = useAdminFacilityConfig(adminFacility?.id);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPhysician, setEditingPhysician] = useState(null);
-  const [confirmDialogState, setConfirmDialogState] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    confirmText: "Confirm",
-    cancelText: "Cancel",
-    variant: "default",
-    onConfirm: null,
-  });
+  const [editingStaff, setEditingStaff] = useState<AdminStaff | null>(null);
+  const [confirmDialogState, setConfirmDialogState] =
+    useState<AdminConfirmDialogState>({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
 
   const canManageCurrentFacility = Boolean(adminFacility?.id);
   const { staff, loading, saving, error, reload, saveStaff, removeStaff } =
     useStaff(canManageCurrentFacility ? adminFacility?.id : null);
 
-  const physicians = useMemo(() => staff.filter(isPhysicianStaff), [staff]);
+  const nonPhysicianStaff = useMemo(
+    () => staff.filter((r) => !isPhysicianStaff(r)),
+    [staff]
+  );
   const {
     activeFilter,
     activeSort,
     filterOptions,
-    visibleRecords: visiblePhysicians,
+    visibleRecords: visibleStaff,
     setActiveFilter,
     setActiveSort,
-  } = useAdminListControls(physicians, {
-    filters: PHYSICIAN_FILTERS,
-    sortOptions: PHYSICIAN_SORT_OPTIONS,
+  } = useAdminListControls(nonPhysicianStaff, {
+    filters: STAFF_FILTERS,
+    sortOptions: STAFF_SORT_OPTIONS,
   });
-  const physicianRoles = useMemo(
+  const nonPhysicianRoles = useMemo(
     () =>
-      roles.filter((r) => {
+      (roles as AdminStaffRole[]).filter((r) => {
         const c = r.code || "";
         const n = r.name || "";
-        return (
+        return !(
           c.toLowerCase() === "physician" || n.toLowerCase() === "physician"
         );
       }),
     [roles]
   );
   const availableUsers = useMemo(() => {
-    const map = new Map();
-    (memberships || []).forEach((m) => {
-      if (m.user?.id && !map.has(m.user.id)) map.set(m.user.id, m.user);
+    const map = new Map<EntityId, UserProfile>();
+    (memberships || []).forEach((membership) => {
+      const user = (membership as { user?: UserProfile }).user;
+      if (user?.id && !map.has(user.id)) map.set(user.id, user);
     });
     return Array.from(map.values());
   }, [memberships]);
 
-  const openConfirmDialog = (opts) =>
+  const openConfirmDialog = (opts: Omit<AdminConfirmDialogState, "isOpen">) =>
     setConfirmDialogState({ isOpen: true, ...opts });
   const closeConfirmDialog = () =>
     setConfirmDialogState({
@@ -144,32 +178,32 @@ export default function PhysiciansPanel() {
   };
 
   const handleOpenCreate = () => {
-    setEditingPhysician(null);
+    setEditingStaff(null);
     setIsModalOpen(true);
   };
-  const handleOpenEdit = (r) => {
-    setEditingPhysician(r);
+  const handleOpenEdit = (r: AdminStaff) => {
+    setEditingStaff(r);
     setIsModalOpen(true);
   };
   const handleCloseModal = () => {
-    setEditingPhysician(null);
+    setEditingStaff(null);
     setIsModalOpen(false);
   };
-  const handleSave = async (values) => {
-    await saveStaff({ id: editingPhysician?.id || null, values });
+  const handleSave = async (values: AdminSavePayload["values"]) => {
+    await saveStaff({ id: editingStaff?.id || null, values });
     handleCloseModal();
   };
   const handleDelete = () => {
-    if (!editingPhysician?.id) return;
+    if (!editingStaff?.id) return;
     openConfirmDialog({
-      title: "Remove Physician",
+      title: "Remove Staff Member",
       message:
-        "Are you sure you want to remove this physician from the current facility?",
+        "Are you sure you want to remove this staff member from the current facility?",
       confirmText: "Remove",
       cancelText: "Cancel",
       variant: "danger",
       onConfirm: async () => {
-        await removeStaff(editingPhysician.id);
+        await removeStaff(editingStaff.id);
         handleCloseModal();
       },
     });
@@ -185,18 +219,13 @@ export default function PhysiciansPanel() {
       {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
 
       <AdminTableCard
-        description={
-          adminFacility?.name
-            ? `Manage physician assignments for ${adminFacility.name}.`
-            : "Select a facility to manage physicians."
-        }
         savingLabel={saving ? "Saving..." : ""}
         actions={
           <>
             <Button
               variant="default"
               size="sm"
-              onClick={reload}
+              onClick={() => reload()}
               disabled={loading || saving || !canManageCurrentFacility}
             >
               <RefreshCw
@@ -212,7 +241,7 @@ export default function PhysiciansPanel() {
               onClick={handleOpenCreate}
               disabled={!canManageCurrentFacility}
             >
-              <Plus className="h-3.5 w-3.5" /> New Physician
+              <Plus className="h-3.5 w-3.5" /> New Staff
             </Button>
           </>
         }
@@ -222,7 +251,7 @@ export default function PhysiciansPanel() {
           filters={filterOptions}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
-          sortOptions={PHYSICIAN_SORT_OPTIONS}
+          sortOptions={STAFF_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
         />
@@ -230,58 +259,53 @@ export default function PhysiciansPanel() {
           <table className="min-w-full text-sm">
             <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
               <tr>
-                {[
-                  "Physician",
-                  "Contact",
-                  "Role",
-                  "Title",
-                  "Hours",
-                  "Status",
-                ].map((heading, index) => (
-                  <th
-                    key={`${heading}-${index}`}
-                    className="px-5 py-3 text-left"
-                  >
-                    {heading}
-                  </th>
-                ))}
+                {["Staff", "Contact", "Role", "Title", "Status"].map(
+                  (heading, index) => (
+                    <th
+                      key={`${heading}-${index}`}
+                      className="px-5 py-3 text-left"
+                    >
+                      {heading}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
               {loading ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
-                    Loading physicians...
+                    Loading staff...
                   </td>
                 </tr>
-              ) : physicians.length === 0 ? (
+              ) : nonPhysicianStaff.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
-                    No physicians found yet.
+                    No staff found yet.
                   </td>
                 </tr>
-              ) : visiblePhysicians.length === 0 ? (
+              ) : visibleStaff.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
-                    No physicians match the selected filter.
+                    No staff match the selected filter.
                   </td>
                 </tr>
               ) : (
-                visiblePhysicians.map((r) => (
+                visibleStaff.map((r) => (
                   <tr
                     key={r.id}
                     {...getAdminRowActionProps({
                       disabled: !canManageCurrentFacility,
-                      label: `Edit physician ${
+                      label: `Edit staff member ${
                         r.user
                           ? `${r.user.first_name || ""} ${r.user.last_name || ""}`.trim() ||
                             r.user.username
@@ -295,8 +319,9 @@ export default function PhysiciansPanel() {
                         <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                           {(r.user
                             ? `${r.user.first_name || ""} ${r.user.last_name || ""}`.trim() ||
-                              r.user.username
-                            : "MD"
+                              r.user.username ||
+                              "ST"
+                            : "ST"
                           )
                             .split(/\s+/)
                             .slice(0, 2)
@@ -312,7 +337,7 @@ export default function PhysiciansPanel() {
                               : "—"}
                           </div>
                           <div className="text-[11px] text-cf-text-muted">
-                            {r.user?.username || "Physician assignment"}
+                            {r.user?.username || "Staff assignment"}
                           </div>
                         </div>
                       </div>
@@ -321,19 +346,10 @@ export default function PhysiciansPanel() {
                       <div>{r.user?.email || "—"}</div>
                     </td>
                     <td className="px-5 py-4 text-cf-text-muted">
-                      {r.role_name || r.role?.name || "—"}
+                      {r.role_name || getRoleField(r.role, "name") || "—"}
                     </td>
                     <td className="px-5 py-4 text-cf-text-muted">
-                      {r.title_name || r.title?.name || "—"}
-                    </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
-                      {getResourceHoursLabel(
-                        {
-                          operating_start_time: r.resource_operating_start_time,
-                          operating_end_time: r.resource_operating_end_time,
-                        },
-                        adminFacility
-                      )}
+                      {r.title_name || getTitleName(r.title) || "—"}
                     </td>
                     <td className="px-5 py-4">
                       <Badge variant={r.is_active ? "success" : "muted"}>
@@ -347,24 +363,23 @@ export default function PhysiciansPanel() {
           </table>
         </div>
         <AdminTableFooter
-          shown={visiblePhysicians.length}
-          total={physicians.length}
-          label="physicians"
+          shown={visibleStaff.length}
+          total={nonPhysicianStaff.length}
+          label="staff"
         />
       </AdminTableCard>
 
       <StaffModal
         isOpen={isModalOpen}
-        mode={editingPhysician ? "edit" : "create"}
-        initialValues={editingPhysician}
-        roles={physicianRoles}
-        titles={titles}
+        mode={editingStaff ? "edit" : "create"}
+        initialValues={editingStaff}
+        roles={nonPhysicianRoles}
+        titles={titles as Parameters<typeof StaffModal>[0]["titles"]}
         users={availableUsers}
         saving={saving}
         onClose={handleCloseModal}
         onSubmit={handleSave}
-        onDelete={editingPhysician ? handleDelete : undefined}
-        recordLabel="Physician"
+        onDelete={editingStaff ? handleDelete : undefined}
       />
       <ConfirmDialog
         isOpen={confirmDialogState.isOpen}

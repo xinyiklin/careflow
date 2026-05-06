@@ -2,27 +2,33 @@ import { apiRequest } from "../../../../shared/api/client";
 import { facilityParams } from "./scope";
 
 import type { ApiPayload, EntityId } from "../../../../shared/api/types";
-import type { ApiRecord } from "../../../../shared/types/domain";
+import type { AdminAppointmentStatus } from "../../types";
 
 export function fetchAppointmentStatuses(
   facilityId: EntityId | null | undefined
 ) {
-  return apiRequest<ApiRecord[]>("/facilities/appointment-statuses/", {
-    includeFacilityId: !facilityId,
-    params: facilityParams(facilityId),
-  });
+  return apiRequest<AdminAppointmentStatus[]>(
+    "/facilities/appointment-statuses/",
+    {
+      includeFacilityId: !facilityId,
+      params: facilityParams(facilityId),
+    }
+  );
 }
 
 export function createAppointmentStatus(
   facilityId: EntityId | null | undefined,
   data: ApiPayload
 ) {
-  return apiRequest<ApiRecord>("/facilities/appointment-statuses/", {
-    method: "POST",
-    includeFacilityId: !facilityId,
-    params: facilityParams(facilityId),
-    body: JSON.stringify(data),
-  });
+  return apiRequest<AdminAppointmentStatus>(
+    "/facilities/appointment-statuses/",
+    {
+      method: "POST",
+      includeFacilityId: !facilityId,
+      params: facilityParams(facilityId),
+      body: JSON.stringify(data),
+    }
+  );
 }
 
 export function updateAppointmentStatus(
@@ -30,21 +36,27 @@ export function updateAppointmentStatus(
   id: EntityId,
   data: ApiPayload
 ) {
-  return apiRequest<ApiRecord>(`/facilities/appointment-statuses/${id}/`, {
-    method: "PATCH",
-    includeFacilityId: !facilityId,
-    params: facilityParams(facilityId),
-    body: JSON.stringify(data),
-  });
+  return apiRequest<AdminAppointmentStatus>(
+    `/facilities/appointment-statuses/${id}/`,
+    {
+      method: "PATCH",
+      includeFacilityId: !facilityId,
+      params: facilityParams(facilityId),
+      body: JSON.stringify(data),
+    }
+  );
 }
 
 export function deleteAppointmentStatus(
   facilityId: EntityId | null | undefined,
   id: EntityId
 ) {
-  return apiRequest<ApiRecord>(`/facilities/appointment-statuses/${id}/`, {
-    method: "DELETE",
-    includeFacilityId: !facilityId,
-    params: facilityParams(facilityId),
-  });
+  return apiRequest<AdminAppointmentStatus>(
+    `/facilities/appointment-statuses/${id}/`,
+    {
+      method: "DELETE",
+      includeFacilityId: !facilityId,
+      params: facilityParams(facilityId),
+    }
+  );
 }

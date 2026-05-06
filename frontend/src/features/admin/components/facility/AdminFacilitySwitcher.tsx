@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Building2, Check, ChevronDown } from "lucide-react";
 import useAdminFacility from "../../hooks/shared/useAdminFacility";
 
+import type { EntityId } from "../../../../shared/api/types";
+
 export default function AdminFacilitySwitcher() {
   const {
     adminFacility,
@@ -11,17 +13,22 @@ export default function AdminFacilitySwitcher() {
   } = useAdminFacility();
 
   const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!menuRef.current?.contains(event.target)) setIsOpen(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        event.target instanceof Node &&
+        !menuRef.current?.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSelect = (facilityId) => {
+  const handleSelect = (facilityId: EntityId) => {
     setSelectedAdminFacilityId?.(String(facilityId));
     setIsOpen(false);
   };

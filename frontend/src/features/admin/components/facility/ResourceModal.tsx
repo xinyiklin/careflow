@@ -17,6 +17,13 @@ import {
   getResourceRoomLabel,
 } from "./resourceScheduleUtils";
 
+import type { ChangeEvent, FormEvent } from "react";
+import type {
+  AdminFacility,
+  AdminResource,
+  AdminSavePayload,
+} from "../../types";
+
 const DEFAULT_FORM = {
   name: "",
   default_room: "",
@@ -34,8 +41,17 @@ export default function ResourceModal({
   onClose,
   onSubmit,
   onDelete,
+}: {
+  isOpen: boolean;
+  mode?: "create" | "edit";
+  initialValues?: AdminResource | null;
+  facility?: AdminFacility | null;
+  saving?: boolean;
+  onClose: () => void;
+  onSubmit: (values: AdminSavePayload["values"]) => Promise<void> | void;
+  onDelete?: () => void;
 }) {
-  const [formData, setFormData] = useState(DEFAULT_FORM);
+  const [formData, setFormData] = useState<typeof DEFAULT_FORM>(DEFAULT_FORM);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,7 +72,7 @@ export default function ResourceModal({
     }
   }, [initialValues, isOpen]);
 
-  const handleChange = (event) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = event.target;
     setFormData((current) => ({
       ...current,
@@ -64,7 +80,7 @@ export default function ResourceModal({
     }));
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSubmit?.({
       ...formData,

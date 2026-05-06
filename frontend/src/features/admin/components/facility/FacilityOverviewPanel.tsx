@@ -2,7 +2,10 @@ import useAdminFacilityConfig from "../../hooks/facility/useAdminFacilityConfig"
 import useAdminFacility from "../../hooks/shared/useAdminFacility";
 import { AdminTableCard } from "../shared/AdminSurface";
 
-function formatAddress(address) {
+import type { ReactNode } from "react";
+import type { AdminAddress, AdminFacility } from "../../types";
+
+function formatAddress(address: AdminAddress | null | undefined) {
   if (!address?.line_1) return "—";
   return [
     address.line_1,
@@ -13,7 +16,15 @@ function formatAddress(address) {
     .join(", ");
 }
 
-function ProfileField({ label, value, className = "" }) {
+function ProfileField({
+  label,
+  value,
+  className = "",
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+}) {
   return (
     <div
       className={["border-t border-cf-border py-2.5", className]
@@ -30,7 +41,7 @@ function ProfileField({ label, value, className = "" }) {
   );
 }
 
-function SummaryTile({ label, value }) {
+function SummaryTile({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="border-t border-cf-border py-2.5">
       <div className="text-2xl font-semibold tracking-tight text-cf-text">
@@ -43,7 +54,7 @@ function SummaryTile({ label, value }) {
   );
 }
 
-const DAY_LABELS = {
+const DAY_LABELS: Record<number, string> = {
   1: "Mon",
   2: "Tue",
   3: "Wed",
@@ -53,7 +64,7 @@ const DAY_LABELS = {
   7: "Sun",
 };
 
-function formatTime(value) {
+function formatTime(value: string | null | undefined) {
   if (!value) return "";
   const [hourValue, minuteValue] = value.split(":");
   const hour = Number(hourValue);
@@ -65,7 +76,7 @@ function formatTime(value) {
   return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
-function formatOperatingDays(days) {
+function formatOperatingDays(days: Array<string | number> | null | undefined) {
   const normalizedDays = Array.isArray(days)
     ? days.map((day) => Number(day))
     : [];
@@ -77,7 +88,7 @@ function formatOperatingDays(days) {
     .join(", ");
 }
 
-function formatOperatingHours(facility) {
+function formatOperatingHours(facility: AdminFacility) {
   const window = [
     formatTime(facility.operating_start_time),
     formatTime(facility.operating_end_time),
@@ -89,7 +100,7 @@ function formatOperatingHours(facility) {
   return [days, window].filter(Boolean).join(" · ");
 }
 
-function getFacilityInitials(name) {
+function getFacilityInitials(name: string | null | undefined) {
   return (
     name
       ?.split(/\s+/)
@@ -118,6 +129,7 @@ export default function FacilityOverviewPanel() {
       </AdminTableCard>
     );
   }
+  const facility = adminFacility as AdminFacility;
 
   return (
     <AdminTableCard>
@@ -125,17 +137,17 @@ export default function FacilityOverviewPanel() {
         <header className="mb-4 border-b border-cf-border pb-4">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface text-sm font-bold text-cf-text">
-              {getFacilityInitials(adminFacility.name)}
+              {getFacilityInitials(facility.name)}
             </span>
             <div className="min-w-0">
               <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
                 Facility profile
               </div>
               <h3 className="mt-0.5 truncate text-xl font-semibold tracking-tight text-cf-text">
-                {adminFacility.name}
+                {facility.name}
               </h3>
               <div className="mt-0.5 text-sm font-medium text-cf-text-muted">
-                {adminFacility.facility_code || "No facility code"}
+                {facility.facility_code || "No facility code"}
               </div>
             </div>
           </div>
@@ -144,18 +156,18 @@ export default function FacilityOverviewPanel() {
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-              <ProfileField label="Facility name" value={adminFacility.name} />
-              <ProfileField label="Time zone" value={adminFacility.timezone} />
-              <ProfileField label="Phone" value={adminFacility.phone_number} />
-              <ProfileField label="Fax" value={adminFacility.fax_number} />
-              <ProfileField label="Email" value={adminFacility.email} />
+              <ProfileField label="Facility name" value={facility.name} />
+              <ProfileField label="Time zone" value={facility.timezone} />
+              <ProfileField label="Phone" value={facility.phone_number} />
+              <ProfileField label="Fax" value={facility.fax_number} />
+              <ProfileField label="Email" value={facility.email} />
               <ProfileField
                 label="Hours"
-                value={formatOperatingHours(adminFacility)}
+                value={formatOperatingHours(facility)}
               />
               <ProfileField
                 label="Address"
-                value={formatAddress(adminFacility.address)}
+                value={formatAddress(facility.address)}
                 className="sm:col-span-2"
               />
             </dl>
@@ -179,7 +191,7 @@ export default function FacilityOverviewPanel() {
                 Notes
               </div>
               <div className="mt-2 whitespace-pre-wrap text-sm leading-6 text-cf-text-muted">
-                {adminFacility.notes || "No notes yet."}
+                {facility.notes || "No notes yet."}
               </div>
             </section>
           </div>

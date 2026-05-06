@@ -16,6 +16,9 @@ import {
   CompactToggle,
 } from "../shared/AdminCompactModal";
 
+import type { ChangeEvent, FormEvent } from "react";
+import type { AdminAppointmentStatus, AdminSavePayload } from "../../types";
+
 const DEFAULT_FORM = {
   code: "",
   name: "",
@@ -31,8 +34,16 @@ export default function AppointmentStatusModal({
   onClose,
   onSubmit,
   onDelete,
+}: {
+  isOpen: boolean;
+  mode?: "create" | "edit";
+  initialValues?: AdminAppointmentStatus | null;
+  saving?: boolean;
+  onClose: () => void;
+  onSubmit: (values: AdminSavePayload["values"]) => Promise<void> | void;
+  onDelete?: () => void;
 }) {
-  const [formData, setFormData] = useState(DEFAULT_FORM);
+  const [formData, setFormData] = useState<typeof DEFAULT_FORM>(DEFAULT_FORM);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -51,7 +62,7 @@ export default function AppointmentStatusModal({
     }
   }, [isOpen, initialValues]);
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -59,7 +70,7 @@ export default function AppointmentStatusModal({
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit?.(formData);
   };

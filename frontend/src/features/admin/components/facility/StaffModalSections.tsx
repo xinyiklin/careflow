@@ -1,5 +1,11 @@
 import { Badge } from "../../../../shared/components/ui";
-import { SECURITY_PERMISSION_GROUPS } from "../../constants/securityPermissions";
+import {
+  SECURITY_PERMISSION_GROUPS,
+  type SecurityPermissionKey,
+  type SecurityPermissions,
+} from "../../constants/securityPermissions";
+
+import type { ReactNode } from "react";
 
 export const HIGH_IMPACT_PERMISSION_KEYS = new Set([
   "schedule.delete",
@@ -9,7 +15,13 @@ export const HIGH_IMPACT_PERMISSION_KEYS = new Set([
   "admin.facility.manage",
 ]);
 
-function getPermissionItems() {
+type OverrideMode = "inherit" | "grant" | "revoke";
+type PermissionItem =
+  (typeof SECURITY_PERMISSION_GROUPS)[number]["permissions"][number] & {
+    groupLabel: string;
+  };
+
+function getPermissionItems(): PermissionItem[] {
   return SECURITY_PERMISSION_GROUPS.flatMap((group) =>
     group.permissions.map((permission) => ({
       ...permission,
@@ -18,7 +30,7 @@ function getPermissionItems() {
   );
 }
 
-export function getPermissionSummary(permissions) {
+export function getPermissionSummary(permissions: SecurityPermissions) {
   const items = getPermissionItems();
   const allowed = items.filter((permission) => permissions[permission.key]);
   const highImpact = allowed.filter((permission) =>
@@ -32,7 +44,10 @@ export function getPermissionSummary(permissions) {
   };
 }
 
-export function getInitialsFromName(name, fallback = "CF") {
+export function getInitialsFromName(
+  name: string | null | undefined,
+  fallback = "CF"
+) {
   return (
     name
       ?.split(/\s+/)
@@ -43,7 +58,9 @@ export function getInitialsFromName(name, fallback = "CF") {
   );
 }
 
-export function getOverrideStats(overrides = {}) {
+export function getOverrideStats(
+  overrides: Partial<Record<SecurityPermissionKey, boolean>> = {}
+) {
   const values = Object.values(overrides);
   return {
     total: values.length,
@@ -52,7 +69,15 @@ export function getOverrideStats(overrides = {}) {
   };
 }
 
-export function CompactField({ label, children, className = "" }) {
+export function CompactField({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <label className={className}>
       <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
@@ -63,7 +88,13 @@ export function CompactField({ label, children, className = "" }) {
   );
 }
 
-export function AccessMetric({ label, value }) {
+export function AccessMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-cf-border bg-cf-surface-soft/60 px-3 py-2">
       <div className="text-lg font-semibold leading-none text-cf-text">
@@ -76,8 +107,14 @@ export function AccessMetric({ label, value }) {
   );
 }
 
-function OverrideModeControl({ value, onChange }) {
-  const options = [
+function OverrideModeControl({
+  value,
+  onChange,
+}: {
+  value: OverrideMode;
+  onChange: (value: OverrideMode) => void;
+}) {
+  const options: Array<{ value: OverrideMode; label: string }> = [
     { value: "inherit", label: "Role" },
     { value: "grant", label: "Allow" },
     { value: "revoke", label: "Block" },
@@ -112,6 +149,11 @@ export function SecurityOverrideBoard({
   effectivePermissions,
   securityOverrides,
   onChange,
+}: {
+  inheritedPermissions: SecurityPermissions;
+  effectivePermissions: SecurityPermissions;
+  securityOverrides: Partial<Record<SecurityPermissionKey, boolean>>;
+  onChange: (permissionKey: SecurityPermissionKey, value: OverrideMode) => void;
 }) {
   return (
     <section className="rounded-2xl border border-cf-border bg-cf-surface-soft/45 p-3 shadow-[var(--shadow-panel)]">

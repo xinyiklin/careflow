@@ -3,7 +3,18 @@ import { AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { normalizeSecurityPermissions } from "../../constants/securityPermissions";
 
-function getInitials(name = "") {
+import type { SECURITY_PERMISSION_GROUPS } from "../../constants/securityPermissions";
+import type { AdminStaffRole } from "../../types";
+
+type PermissionGroup = (typeof SECURITY_PERMISSION_GROUPS)[number];
+type PermissionItem = PermissionGroup["permissions"][number];
+type FlexiblePermissionGroup = {
+  key: string;
+  label: string;
+  permissions: readonly PermissionItem[];
+};
+
+function getInitials(name: string | null | undefined = "") {
   const words = String(name).trim().split(/\s+/).filter(Boolean);
   if (!words.length) return "R";
   return words
@@ -13,8 +24,10 @@ function getInitials(name = "") {
     .toUpperCase();
 }
 
-function getRoleStats(role) {
-  const permissions = normalizeSecurityPermissions(role?.security_permissions);
+function getRoleStats(role: AdminStaffRole) {
+  const permissions = normalizeSecurityPermissions(
+    role?.security_permissions || undefined
+  );
   const allowedCount = Object.values(permissions).filter(Boolean).length;
   const totalCount = Object.keys(permissions).length;
 
@@ -26,7 +39,7 @@ function getRoleStats(role) {
   };
 }
 
-function isDestructivePermission(permissionKey) {
+function isDestructivePermission(permissionKey: string) {
   return (
     permissionKey.includes(".delete") ||
     permissionKey.includes(".manage") ||
@@ -34,7 +47,13 @@ function isDestructivePermission(permissionKey) {
   );
 }
 
-function RoleHeader({ role, staffCount }) {
+function RoleHeader({
+  role,
+  staffCount,
+}: {
+  role: AdminStaffRole;
+  staffCount: number;
+}) {
   const { allowedCount, totalCount, allowedPercent } = getRoleStats(role);
 
   return (
@@ -52,7 +71,7 @@ function RoleHeader({ role, staffCount }) {
           <span className="min-w-0 flex-1">
             <span className="flex min-w-0 items-center gap-1.5">
               <span className="truncate text-sm font-semibold text-cf-text">
-                {role.name}
+                {role.name || "Role"}
               </span>
             </span>
             <span className="mt-0.5 block truncate text-[10px] font-medium text-cf-text-subtle">
@@ -83,6 +102,12 @@ function PermissionStateButton({
   requiresConfirmation,
   isSaving,
   onToggle,
+}: {
+  disabled: boolean;
+  isAllowed: boolean;
+  requiresConfirmation: boolean;
+  isSaving: boolean;
+  onToggle: () => void;
 }) {
   const label = isAllowed ? "Allow" : "Block";
 
@@ -122,7 +147,13 @@ function PermissionStateButton({
   );
 }
 
-function PermissionGroupHeader({ group, colSpan }) {
+function PermissionGroupHeader({
+  group,
+  colSpan,
+}: {
+  group: FlexiblePermissionGroup;
+  colSpan: number;
+}) {
   return (
     <tr>
       <td
@@ -150,6 +181,17 @@ function PermissionRow({
   savingCellKey,
   disabled,
   onToggle,
+}: {
+  group: FlexiblePermissionGroup;
+  permission: PermissionItem;
+  roles: AdminStaffRole[];
+  savingCellKey: string;
+  disabled: boolean;
+  onToggle: (
+    role: AdminStaffRole,
+    permission: PermissionItem,
+    isAllowed: boolean
+  ) => void;
 }) {
   const isDestructive = isDestructivePermission(permission.key);
 
@@ -176,9 +218,9 @@ function PermissionRow({
       </th>
       {roles.map((role) => {
         const permissions = normalizeSecurityPermissions(
-          role.security_permissions
+          role.security_permissions || undefined
         );
-        const requiresConfirmation = role.is_system_role;
+        const requiresConfirmation = Boolean(role.is_system_role);
         const cellKey = `${role.id}:${permission.key}`;
         const isCellSaving = savingCellKey === cellKey;
         return (
@@ -212,6 +254,17 @@ export default function PermissionsRolesMatrix({
   roles,
   savingCellKey,
   staffCounts,
+}: {
+  disabled: boolean;
+  groups: readonly FlexiblePermissionGroup[];
+  onToggle: (
+    role: AdminStaffRole,
+    permission: PermissionItem,
+    isAllowed: boolean
+  ) => void;
+  roles: AdminStaffRole[];
+  savingCellKey: string;
+  staffCounts: Map<string, number>;
 }) {
   return (
     <div className="min-h-[420px]">

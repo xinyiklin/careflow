@@ -2,10 +2,10 @@ import { apiRequest } from "../../../../shared/api/client";
 import { facilityParams } from "./scope";
 
 import type { ApiPayload, EntityId } from "../../../../shared/api/types";
-import type { ApiRecord } from "../../../../shared/types/domain";
+import type { AdminResource } from "../../types";
 
 export function fetchResources(facilityId: EntityId | null | undefined) {
-  return apiRequest<ApiRecord[]>("/facilities/resources/", {
+  return apiRequest<AdminResource[]>("/facilities/resources/", {
     includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
   });
@@ -15,7 +15,7 @@ export function createResource(
   facilityId: EntityId | null | undefined,
   data: ApiPayload
 ) {
-  return apiRequest<ApiRecord>("/facilities/resources/", {
+  return apiRequest<AdminResource>("/facilities/resources/", {
     method: "POST",
     includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
@@ -28,7 +28,7 @@ export function updateResource(
   id: EntityId,
   data: ApiPayload
 ) {
-  return apiRequest<ApiRecord>(`/facilities/resources/${id}/`, {
+  return apiRequest<AdminResource>(`/facilities/resources/${id}/`, {
     method: "PATCH",
     includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
@@ -40,7 +40,7 @@ export function deactivateResource(
   facilityId: EntityId | null | undefined,
   id: EntityId
 ) {
-  return apiRequest<ApiRecord>(`/facilities/resources/${id}/`, {
+  return apiRequest<AdminResource>(`/facilities/resources/${id}/`, {
     method: "DELETE",
     includeFacilityId: !facilityId,
     params: facilityParams(facilityId),

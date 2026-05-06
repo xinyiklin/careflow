@@ -22,6 +22,14 @@ import {
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
 
+import type {
+  AdminConfirmDialogState,
+  AdminResource,
+  AdminSavePayload,
+  AdminSortOption,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
+
 const RESOURCE_FILTERS = [
   { key: "all", label: "All", predicate: () => true },
   {
@@ -39,7 +47,7 @@ const RESOURCE_FILTERS = [
     label: "Unlinked",
     predicate: (resource) => !resource.linked_staff,
   },
-];
+] satisfies AdminListFilter<AdminResource>[];
 
 const RESOURCE_SORT_OPTIONS = [
   {
@@ -62,21 +70,24 @@ const RESOURCE_SORT_OPTIONS = [
       compareText(a.linked_staff_name, b.linked_staff_name) ||
       compareText(a.name, b.name),
   },
-];
+] satisfies AdminSortOption<AdminResource>[];
 
 export default function ResourcesPanel() {
   const { adminFacility } = useAdminFacility();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingResource, setEditingResource] = useState(null);
-  const [confirmDialogState, setConfirmDialogState] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    confirmText: "Confirm",
-    cancelText: "Cancel",
-    variant: "default",
-    onConfirm: null,
-  });
+  const [editingResource, setEditingResource] = useState<AdminResource | null>(
+    null
+  );
+  const [confirmDialogState, setConfirmDialogState] =
+    useState<AdminConfirmDialogState>({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
 
   const canManageCurrentFacility = Boolean(adminFacility?.id);
   const {
@@ -87,7 +98,7 @@ export default function ResourcesPanel() {
     reload,
     saveResource,
     removeResource,
-  } = useResources(canManageCurrentFacility ? adminFacility.id : null);
+  } = useResources(canManageCurrentFacility ? adminFacility?.id : null);
   const {
     activeFilter,
     activeSort,
@@ -104,13 +115,14 @@ export default function ResourcesPanel() {
       const name = (resource.name || "Unnamed resource").trim().toLowerCase();
       nextCounts.set(name, (nextCounts.get(name) || 0) + 1);
       return nextCounts;
-    }, new Map());
+    }, new Map<string, number>());
 
     return counts;
   }, [resources]);
 
-  const openConfirmDialog = (options) =>
-    setConfirmDialogState({ isOpen: true, ...options });
+  const openConfirmDialog = (
+    options: Omit<AdminConfirmDialogState, "isOpen">
+  ) => setConfirmDialogState({ isOpen: true, ...options });
   const closeConfirmDialog = () =>
     setConfirmDialogState({
       isOpen: false,
@@ -131,7 +143,7 @@ export default function ResourcesPanel() {
     setEditingResource(null);
     setIsModalOpen(true);
   };
-  const handleOpenEdit = (resource) => {
+  const handleOpenEdit = (resource: AdminResource) => {
     setEditingResource(resource);
     setIsModalOpen(true);
   };
@@ -139,7 +151,7 @@ export default function ResourcesPanel() {
     setEditingResource(null);
     setIsModalOpen(false);
   };
-  const handleSave = async (values) => {
+  const handleSave = async (values: AdminSavePayload["values"]) => {
     await saveResource({ id: editingResource?.id || null, values });
     handleCloseModal();
   };
@@ -183,7 +195,7 @@ export default function ResourcesPanel() {
             <Button
               variant="default"
               size="sm"
-              onClick={reload}
+              onClick={() => reload()}
               disabled={loading || saving || !canManageCurrentFacility}
             >
               <RefreshCw
@@ -231,7 +243,7 @@ export default function ResourcesPanel() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     Loading resources...
@@ -240,7 +252,7 @@ export default function ResourcesPanel() {
               ) : resources.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No resources found yet. Add one to start organizing your
@@ -250,7 +262,7 @@ export default function ResourcesPanel() {
               ) : visibleResources.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No resources match the selected filter.

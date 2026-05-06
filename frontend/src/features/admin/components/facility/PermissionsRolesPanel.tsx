@@ -17,8 +17,25 @@ import {
 import {
   SECURITY_PERMISSION_GROUPS,
   normalizeSecurityPermissions,
+  type SecurityPermissionKey,
 } from "../../constants/securityPermissions";
 import PermissionsRolesMatrix from "./PermissionsRolesMatrix";
+
+import type {
+  AdminConfirmDialogState,
+  AdminSortOption,
+  AdminStaff,
+  AdminStaffRole,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
+
+type PermissionGroup = (typeof SECURITY_PERMISSION_GROUPS)[number];
+type PermissionItem = PermissionGroup["permissions"][number];
+type FlexiblePermissionGroup = {
+  key: string;
+  label: string;
+  permissions: readonly PermissionItem[];
+};
 
 const ROLE_FILTERS = [
   { key: "all", label: "All", predicate: () => true },
@@ -27,9 +44,17 @@ const ROLE_FILTERS = [
     label: "Active",
     predicate: (role) => role.is_active !== false,
   },
-  { key: "system", label: "System", predicate: (role) => role.is_system_role },
-  { key: "custom", label: "Custom", predicate: (role) => !role.is_system_role },
-];
+  {
+    key: "system",
+    label: "System",
+    predicate: (role) => Boolean(role.is_system_role),
+  },
+  {
+    key: "custom",
+    label: "Custom",
+    predicate: (role) => !role.is_system_role,
+  },
+] satisfies AdminListFilter<AdminStaffRole>[];
 
 const ROLE_SORT_OPTIONS = [
   {
@@ -41,7 +66,7 @@ const ROLE_SORT_OPTIONS = [
     key: "system",
     label: "System first",
     compare: (a, b) =>
-      compareBoolean(a.is_system_role, b.is_system_role) ||
+      compareBoolean(Boolean(a.is_system_role), Boolean(b.is_system_role)) ||
       compareText(a.name, b.name),
   },
   {
@@ -51,9 +76,9 @@ const ROLE_SORT_OPTIONS = [
       compareBoolean(a.is_active !== false, b.is_active !== false) ||
       compareText(a.name, b.name),
   },
-];
+] satisfies AdminSortOption<AdminStaffRole>[];
 
-const DEFAULT_CONFIRM_DIALOG = {
+const DEFAULT_CONFIRM_DIALOG: AdminConfirmDialogState = {
   isOpen: false,
   title: "",
   message: "",
@@ -63,12 +88,16 @@ const DEFAULT_CONFIRM_DIALOG = {
   onConfirm: null,
 };
 
-function getStaffRoleId(record) {
-  return record?.role?.id || record?.role_id || record?.role;
+function getStaffRoleId(record: AdminStaff) {
+  return (
+    (typeof record?.role === "object" && record.role ? record.role.id : null) ||
+    record?.role_id ||
+    record?.role
+  );
 }
 
-function getStaffCounts(staffs) {
-  const counts = new Map();
+function getStaffCounts(staffs: AdminStaff[]) {
+  const counts = new Map<string, number>();
   staffs.forEach((staff) => {
     const roleId = getStaffRoleId(staff);
     if (!roleId) return;
@@ -78,7 +107,11 @@ function getStaffCounts(staffs) {
   return counts;
 }
 
-function permissionMatchesSearch(group, permission, query) {
+function permissionMatchesSearch(
+  group: FlexiblePermissionGroup,
+  permission: PermissionItem,
+  query: string
+) {
   if (!query) return true;
   const haystack = [
     group.label,
@@ -95,13 +128,15 @@ function permissionMatchesSearch(group, permission, query) {
   return haystack.includes(query.toLowerCase());
 }
 
-function getCellKey(roleId, permissionKey) {
+function getCellKey(roleId: string | number, permissionKey: string) {
   return `${roleId}:${permissionKey}`;
 }
 
 export default function PermissionsRolesPanel() {
   const { adminFacility } = useAdminFacility();
   const { roles = [], staffs = [] } = useAdminFacilityConfig(adminFacility?.id);
+  const adminRoles = roles as AdminStaffRole[];
+  const adminStaff = staffs as AdminStaff[];
   const [query, setQuery] = useState("");
   const [savingCellKey, setSavingCellKey] = useState("");
   const [confirmDialogState, setConfirmDialogState] = useState(
@@ -118,7 +153,7 @@ export default function PermissionsRolesPanel() {
     visibleRecords: filteredRoles,
     setActiveFilter,
     setActiveSort,
-  } = useAdminListControls(roles, {
+  } = useAdminListControls(adminRoles, {
     filters: ROLE_FILTERS,
     sortOptions: ROLE_SORT_OPTIONS,
     defaultSort: "system",
@@ -126,7 +161,9 @@ export default function PermissionsRolesPanel() {
 
   const visibleRoles = useMemo(() => filteredRoles, [filteredRoles]);
 
-  const visiblePermissionGroups = useMemo(() => {
+  const visiblePermissionGroups = useMemo<
+    readonly FlexiblePermissionGroup[]
+  >(() => {
     const trimmedQuery = query.trim();
     if (!trimmedQuery) return SECURITY_PERMISSION_GROUPS;
 
@@ -138,17 +175,21 @@ export default function PermissionsRolesPanel() {
     })).filter((group) => group.permissions.length > 0);
   }, [query]);
 
-  const staffCounts = useMemo(() => getStaffCounts(staffs), [staffs]);
+  const staffCounts = useMemo(() => getStaffCounts(adminStaff), [adminStaff]);
 
   const closeConfirmDialog = () => {
     setConfirmDialogState(DEFAULT_CONFIRM_DIALOG);
   };
 
-  const applyRoleSecurityChange = async (role, permissionKey, isAllowed) => {
+  const applyRoleSecurityChange = async (
+    role: AdminStaffRole,
+    permissionKey: SecurityPermissionKey,
+    isAllowed: boolean
+  ) => {
     const cellKey = getCellKey(role.id, permissionKey);
 
     const securityPermissions = {
-      ...normalizeSecurityPermissions(role.security_permissions),
+      ...normalizeSecurityPermissions(role.security_permissions || undefined),
       [permissionKey]: isAllowed,
     };
 
@@ -169,7 +210,11 @@ export default function PermissionsRolesPanel() {
     closeConfirmDialog();
   };
 
-  const handleRoleSecurityChange = async (role, permission, isAllowed) => {
+  const handleRoleSecurityChange = async (
+    role: AdminStaffRole,
+    permission: PermissionItem,
+    isAllowed: boolean
+  ) => {
     if (role.is_system_role) {
       setConfirmDialogState({
         isOpen: true,

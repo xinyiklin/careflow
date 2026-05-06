@@ -4,10 +4,11 @@ import { Plus, RefreshCw } from "lucide-react";
 import useAdminFacility from "../../hooks/shared/useAdminFacility";
 import useAdminListControls, {
   compareBoolean,
+  compareNumber,
   compareText,
 } from "../../hooks/shared/useAdminListControls";
-import useAppointmentStatuses from "../../hooks/facility/useAppointmentStatuses";
-import AppointmentStatusModal from "./AppointmentStatusModal";
+import useAppointmentTypes from "../../hooks/facility/useAppointmentTypes";
+import AppointmentTypeModal from "./AppointmentTypeModal";
 import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
 import {
   AdminInlineNotice,
@@ -18,35 +19,45 @@ import {
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
 
-const STATUS_FILTERS = [
+import type {
+  AdminAppointmentType,
+  AdminConfirmDialogState,
+  AdminSavePayload,
+  AdminSortOption,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
+
+const TYPE_FILTERS = [
   { key: "all", label: "All", predicate: () => true },
   {
     key: "active",
     label: "Active",
-    predicate: (status) => status.is_active !== false,
+    predicate: (type) => type.is_active !== false,
   },
   {
     key: "inactive",
     label: "Inactive",
-    predicate: (status) => status.is_active === false,
+    predicate: (type) => type.is_active === false,
   },
   {
     key: "protected",
     label: "Protected",
-    predicate: (status) => !status.is_deletable,
+    predicate: (type) => !type.is_deletable,
   },
-];
+] satisfies AdminListFilter<AdminAppointmentType>[];
 
-const STATUS_SORT_OPTIONS = [
+const TYPE_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Status",
+    label: "Type",
     compare: (a, b) => compareText(a.name, b.name),
   },
   {
-    key: "code",
-    label: "Code",
-    compare: (a, b) => compareText(a.code, b.code),
+    key: "duration",
+    label: "Duration",
+    compare: (a, b) =>
+      compareNumber(a.duration_minutes, b.duration_minutes) ||
+      compareText(a.name, b.name),
   },
   {
     key: "active",
@@ -62,38 +73,48 @@ const STATUS_SORT_OPTIONS = [
       compareBoolean(!a.is_deletable, !b.is_deletable) ||
       compareText(a.name, b.name),
   },
-];
+] satisfies AdminSortOption<AdminAppointmentType>[];
 
-export default function AppointmentStatusesPanel() {
+export default function AppointmentTypesPanel() {
   const { adminFacility } = useAdminFacility();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingStatus, setEditingStatus] = useState(null);
-  const [confirmDialogState, setConfirmDialogState] = useState({
-    isOpen: false,
-    title: "",
-    message: "",
-    confirmText: "Confirm",
-    cancelText: "Cancel",
-    variant: "default",
-    onConfirm: null,
-  });
+  const [editingType, setEditingType] = useState<AdminAppointmentType | null>(
+    null
+  );
+  const [confirmDialogState, setConfirmDialogState] =
+    useState<AdminConfirmDialogState>({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
 
   const canManageCurrentFacility = Boolean(adminFacility?.id);
-  const { statuses, loading, saving, error, reload, saveStatus, removeStatus } =
-    useAppointmentStatuses(canManageCurrentFacility ? adminFacility?.id : null);
+  const {
+    appointmentTypes,
+    loading,
+    saving,
+    error,
+    reload,
+    saveAppointmentType,
+    removeAppointmentType,
+  } = useAppointmentTypes(canManageCurrentFacility ? adminFacility?.id : null);
   const {
     activeFilter,
     activeSort,
     filterOptions,
-    visibleRecords: visibleStatuses,
+    visibleRecords: visibleAppointmentTypes,
     setActiveFilter,
     setActiveSort,
-  } = useAdminListControls(statuses, {
-    filters: STATUS_FILTERS,
-    sortOptions: STATUS_SORT_OPTIONS,
+  } = useAdminListControls(appointmentTypes, {
+    filters: TYPE_FILTERS,
+    sortOptions: TYPE_SORT_OPTIONS,
   });
 
-  const openConfirmDialog = (opts) =>
+  const openConfirmDialog = (opts: Omit<AdminConfirmDialogState, "isOpen">) =>
     setConfirmDialogState({ isOpen: true, ...opts });
   const closeConfirmDialog = () =>
     setConfirmDialogState({
@@ -112,52 +133,53 @@ export default function AppointmentStatusesPanel() {
   };
 
   const handleOpenCreate = () => {
-    setEditingStatus(null);
+    setEditingType(null);
     setIsModalOpen(true);
   };
-  const handleOpenEdit = (s) => {
-    setEditingStatus(s);
+  const handleOpenEdit = (type: AdminAppointmentType) => {
+    setEditingType(type);
     setIsModalOpen(true);
   };
   const handleCloseModal = () => {
-    setEditingStatus(null);
+    setEditingType(null);
     setIsModalOpen(false);
   };
-  const handleSave = async (values) => {
-    await saveStatus({ id: editingStatus?.id || null, values });
+  const handleSave = async (values: AdminSavePayload["values"]) => {
+    await saveAppointmentType({ id: editingType?.id || null, values });
     handleCloseModal();
   };
   const handleDelete = () => {
-    if (!editingStatus?.id) return;
-    if (editingStatus.is_deletable) {
+    if (!editingType?.id) return;
+    if (editingType.is_deletable) {
       openConfirmDialog({
-        title: "Delete Appointment Status",
+        title: "Delete Appointment Type",
         message:
-          "Are you sure you want to delete this appointment status? This action cannot be undone.",
+          "Are you sure you want to delete this appointment type? This action cannot be undone.",
         confirmText: "Delete",
         cancelText: "Cancel",
         variant: "danger",
         onConfirm: async () => {
-          await removeStatus(editingStatus.id);
+          await removeAppointmentType(editingType.id);
           handleCloseModal();
         },
       });
       return;
     }
     openConfirmDialog({
-      title: "Cannot Delete Appointment Status",
+      title: "Cannot Delete Appointment Type",
       message:
-        "This is a protected default status and cannot be deleted. You can mark it as inactive instead.",
+        "This is a protected default appointment type and cannot be deleted. You can mark it as inactive instead.",
       confirmText: "Mark Inactive",
       cancelText: "Cancel",
       variant: "warning",
       onConfirm: async () => {
-        await saveStatus({
-          id: editingStatus.id,
+        await saveAppointmentType({
+          id: editingType.id,
           values: {
-            code: editingStatus.code,
-            name: editingStatus.name,
-            color: editingStatus.color,
+            code: editingType.code,
+            name: editingType.name,
+            color: editingType.color,
+            duration_minutes: editingType.duration_minutes,
             is_active: false,
           },
         });
@@ -178,8 +200,8 @@ export default function AppointmentStatusesPanel() {
       <AdminTableCard
         description={
           adminFacility?.name
-            ? `Scheduler status labels and colors for ${adminFacility.name}.`
-            : "Select a facility to manage scheduler statuses."
+            ? `Control duration defaults and scheduling labels for ${adminFacility.name}.`
+            : "Select a facility to manage appointment types."
         }
         savingLabel={saving ? "Saving..." : ""}
         actions={
@@ -187,7 +209,7 @@ export default function AppointmentStatusesPanel() {
             <Button
               variant="default"
               size="sm"
-              onClick={reload}
+              onClick={() => reload()}
               disabled={loading || saving || !canManageCurrentFacility}
             >
               <RefreshCw
@@ -203,7 +225,7 @@ export default function AppointmentStatusesPanel() {
               onClick={handleOpenCreate}
               disabled={!canManageCurrentFacility}
             >
-              <Plus className="h-3.5 w-3.5" /> New Status
+              <Plus className="h-3.5 w-3.5" /> New Type
             </Button>
           </>
         }
@@ -213,7 +235,7 @@ export default function AppointmentStatusesPanel() {
           filters={filterOptions}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
-          sortOptions={STATUS_SORT_OPTIONS}
+          sortOptions={TYPE_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
         />
@@ -221,91 +243,99 @@ export default function AppointmentStatusesPanel() {
           <table className="min-w-full text-sm">
             <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
               <tr>
-                {["Status", "Code", "Color", "State"].map((heading, index) => (
-                  <th
-                    key={`${heading}-${index}`}
-                    className="px-5 py-3 text-left"
-                  >
-                    {heading}
-                  </th>
-                ))}
+                {["Type", "Code", "Duration", "Color", "State"].map(
+                  (heading, index) => (
+                    <th
+                      key={`${heading}-${index}`}
+                      className="px-5 py-3 text-left"
+                    >
+                      {heading}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
               {loading ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
-                    Loading statuses...
+                    Loading appointment types...
                   </td>
                 </tr>
-              ) : statuses.length === 0 ? (
+              ) : appointmentTypes.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
-                    No statuses found yet.
+                    No appointment types found yet. Add one to start shaping
+                    your scheduling templates.
                   </td>
                 </tr>
-              ) : visibleStatuses.length === 0 ? (
+              ) : visibleAppointmentTypes.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan={5}
                     className="px-5 py-12 text-center text-sm text-cf-text-muted"
                   >
-                    No statuses match the selected filter.
+                    No appointment types match the selected filter.
                   </td>
                 </tr>
               ) : (
-                visibleStatuses.map((status) => (
+                visibleAppointmentTypes.map((type) => (
                   <tr
-                    key={status.id}
+                    key={type.id}
                     {...getAdminRowActionProps({
                       disabled: !canManageCurrentFacility,
-                      label: `Edit appointment status ${status.name || status.code}`,
-                      onAction: () => handleOpenEdit(status),
+                      label: `Edit appointment type ${type.name || type.code}`,
+                      onAction: () => handleOpenEdit(type),
                     })}
                   >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <span
                           className="grid h-9 w-9 place-items-center rounded-xl text-[11px] font-semibold text-white"
-                          style={{ backgroundColor: status.color || "#94a3b8" }}
+                          style={{ backgroundColor: type.color || "#94a3b8" }}
                         >
-                          {(status.name || "ST").slice(0, 2).toUpperCase()}
+                          {(type.name || "TY").slice(0, 2).toUpperCase()}
                         </span>
                         <div>
                           <div className="font-semibold text-cf-text">
-                            {status.name}
+                            {type.name}
                           </div>
                           <div className="text-[11px] text-cf-text-muted">
-                            {status.is_deletable
-                              ? "Custom status"
-                              : "Protected default"}
+                            {type.is_deletable
+                              ? "Custom type"
+                              : "Protected default type"}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <Badge variant="neutral">{status.code}</Badge>
+                      <Badge variant="neutral">{type.code}</Badge>
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant="outline">
+                        {type.duration_minutes} min
+                      </Badge>
                     </td>
                     <td className="px-5 py-4">
                       <div className="inline-flex items-center gap-2 rounded-full border border-cf-border bg-cf-surface px-3 py-1.5">
                         <span
                           className="h-3.5 w-3.5 rounded-full border border-cf-border"
-                          style={{ backgroundColor: status.color }}
+                          style={{ backgroundColor: type.color || "#94a3b8" }}
                         />
                         <span className="text-sm font-medium text-cf-text-muted">
-                          {status.color}
+                          {type.color}
                         </span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <Badge variant={status.is_active ? "success" : "muted"}>
-                        {status.is_active ? "Active" : "Inactive"}
+                      <Badge variant={type.is_active ? "success" : "muted"}>
+                        {type.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </td>
                   </tr>
@@ -315,20 +345,20 @@ export default function AppointmentStatusesPanel() {
           </table>
         </div>
         <AdminTableFooter
-          shown={visibleStatuses.length}
-          total={statuses.length}
-          label="statuses"
+          shown={visibleAppointmentTypes.length}
+          total={appointmentTypes.length}
+          label="types"
         />
       </AdminTableCard>
 
-      <AppointmentStatusModal
+      <AppointmentTypeModal
         isOpen={isModalOpen}
-        mode={editingStatus ? "edit" : "create"}
-        initialValues={editingStatus}
+        mode={editingType ? "edit" : "create"}
+        initialValues={editingType}
         saving={saving}
         onClose={handleCloseModal}
         onSubmit={handleSave}
-        onDelete={editingStatus ? handleDelete : undefined}
+        onDelete={editingType ? handleDelete : undefined}
       />
       <ConfirmDialog
         isOpen={confirmDialogState.isOpen}
