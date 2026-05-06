@@ -4,14 +4,21 @@ import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
 import jsxA11yPlugin from "eslint-plugin-jsx-a11y";
 import prettierConfig from "eslint-config-prettier";
+import tseslint from "typescript-eslint";
 
-export default [
+const tsFiles = ["**/*.{ts,tsx,mts,cts}"];
+const tsRecommended = tseslint.configs.recommended.map((config) =>
+  config.files ? config : { ...config, files: tsFiles }
+);
+
+export default tseslint.config(
   {
     ignores: ["dist", "build", "node_modules", "coverage"],
   },
   js.configs.recommended,
+  ...tsRecommended,
   {
-    files: ["**/*.{js,jsx}"],
+    files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -56,5 +63,20 @@ export default [
       },
     },
   },
-  prettierConfig,
-];
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          vars: "all",
+          args: "after-used",
+          ignoreRestSiblings: true,
+          argsIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
+  prettierConfig
+);

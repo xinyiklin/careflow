@@ -30,12 +30,12 @@ repos:
         name: frontend-prettier
         entry: bash -c 'cd frontend && npx prettier --write "${@/#frontend\//}"' --
         language: system
-        files: ^frontend/.*\.(js|jsx|json|css|md|html)$
+        files: ^frontend/.*\.(js|jsx|ts|tsx|json|css|md|html)$
         pass_filenames: true
 
       - id: frontend-eslint
         name: frontend-eslint
         entry: bash -c 'cd frontend && npx eslint --fix "${@/#frontend\//}"' --
         language: system
-        files: ^frontend/.*\.(js|jsx)$
+        files: ^frontend/.*\.(js|jsx|ts|tsx)$
         pass_filenames: true
