@@ -8,15 +8,40 @@ import { useUserPreferences } from "../context/UserPreferencesProvider";
 import { useTheme } from "../context/ThemeProvider";
 import {
   buildQuickActions,
+  type BuiltQuickAction,
   getStoredQuickActionAssignments,
   isAllowedQuickActionCode,
   isAllowedQuickActionKey,
   QUICK_ACTION_SLOTS,
 } from "../constants/quickActions";
 
+import type { DragEvent, MouseEvent } from "react";
+import type { NavigateFunction } from "react-router-dom";
+import type { UserPreferences } from "../types/domain";
+
 const DELETE_DROP_ZONE = "delete-drop-zone";
 
-function matchesActionQuery(action, normalizedQuery) {
+type QuickActionsPaletteProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  canAccessFacilityAdmin?: boolean;
+  canAccessOrganizationAdmin?: boolean;
+  hasAnyAdminAccess?: boolean;
+  onOpenPatientSearch?: (source: string) => void;
+  onCreatePatient?: () => void;
+  onNewAppointment?: () => void;
+  onNavigate?: NavigateFunction | ((path: string) => void);
+  onOpenNotes?: () => void;
+  onOpenPreferences?: () => void;
+  onSetScheduleView?: (view: UserPreferences["scheduleViewMode"]) => void;
+  onShowScheduleToday?: () => void;
+  onToggleDemoBadge?: () => void;
+  onToggleSidebar?: () => void;
+  onToggleTheme?: () => void;
+  showDemoActions?: boolean;
+};
+
+function matchesActionQuery(action: BuiltQuickAction, normalizedQuery: string) {
   if (!normalizedQuery) return true;
 
   return [action.label, action.keywords, action.meta]
@@ -44,15 +69,15 @@ export default function QuickActionsPalette({
   onToggleSidebar,
   onToggleTheme,
   showDemoActions,
-}) {
+}: QuickActionsPaletteProps) {
   const [query, setQuery] = useState("");
-  const [editingSlotCode, setEditingSlotCode] = useState(null);
-  const [pickerSlotCode, setPickerSlotCode] = useState(null);
+  const [editingSlotCode, setEditingSlotCode] = useState<string | null>(null);
+  const [pickerSlotCode, setPickerSlotCode] = useState<string | null>(null);
   const [draftActionKey, setDraftActionKey] = useState("");
-  const [draggedSlotCode, setDraggedSlotCode] = useState(null);
-  const [dropTargetCode, setDropTargetCode] = useState(null);
-  const inputRef = useRef(null);
-  const contentRef = useRef(null);
+  const [draggedSlotCode, setDraggedSlotCode] = useState<string | null>(null);
+  const [dropTargetCode, setDropTargetCode] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const suppressOpenRef = useRef(false);
   const { preferences, updatePreferences } = useUserPreferences();
   const { toggleTheme } = useTheme();
@@ -221,7 +246,7 @@ export default function QuickActionsPalette({
   ]);
 
   const handleAssignShortcut = useCallback(
-    (actionKey, shortcutCode) => {
+    (actionKey: string, shortcutCode: string) => {
       if (!isAllowedQuickActionCode(shortcutCode)) return;
       if (!isAllowedQuickActionKey(actionKey, quickActionAccess)) return;
 
@@ -244,7 +269,7 @@ export default function QuickActionsPalette({
   );
 
   const handleRemoveAction = useCallback(
-    (slotCode) => {
+    (slotCode: string) => {
       updatePreferences((current) => ({
         quickActionAssignments: getStoredQuickActionAssignments(current).filter(
           (entry) => entry.code !== slotCode
@@ -257,7 +282,7 @@ export default function QuickActionsPalette({
   );
 
   const handleMoveOrSwapAction = useCallback(
-    (sourceCode, targetCode) => {
+    (sourceCode: string | null, targetCode: string | null) => {
       if (!sourceCode || !targetCode || sourceCode === targetCode) return;
 
       updatePreferences((current) => {
@@ -298,7 +323,7 @@ export default function QuickActionsPalette({
   );
 
   const handleDropOnDeleteRail = useCallback(
-    (sourceCode) => {
+    (sourceCode: string | null) => {
       if (!sourceCode) return;
       handleRemoveAction(sourceCode);
     },
@@ -329,7 +354,7 @@ export default function QuickActionsPalette({
       <div
         ref={contentRef}
         className="space-y-4"
-        onMouseDown={(event) => {
+        onMouseDown={(event: MouseEvent<HTMLDivElement>) => {
           if (!(event.target instanceof HTMLElement)) return;
           if (event.target.closest("button, input, select, textarea, a"))
             return;
@@ -401,7 +426,7 @@ export default function QuickActionsPalette({
                         handleAssignShortcut(draftActionKey, slot.code);
                       }}
                       onRemoveAction={() => handleRemoveAction(slot.code)}
-                      onDragStart={(event) => {
+                      onDragStart={(event: DragEvent<HTMLDivElement>) => {
                         if (!action) return;
                         suppressOpenRef.current = true;
                         event.dataTransfer.effectAllowed = "move";
@@ -409,14 +434,14 @@ export default function QuickActionsPalette({
                         setDraggedSlotCode(slot.code);
                         setDropTargetCode(slot.code);
                       }}
-                      onDragOver={(event) => {
+                      onDragOver={(event: DragEvent<HTMLDivElement>) => {
                         if (!draggedSlotCode || draggedSlotCode === slot.code)
                           return;
                         event.preventDefault();
                         event.dataTransfer.dropEffect = "move";
                         setDropTargetCode(slot.code);
                       }}
-                      onDrop={(event) => {
+                      onDrop={(event: DragEvent<HTMLDivElement>) => {
                         event.preventDefault();
                         const sourceCode =
                           event.dataTransfer.getData("text/plain") ||
@@ -436,7 +461,7 @@ export default function QuickActionsPalette({
 
           {draggedSlotCode ? (
             <div
-              onDragOver={(event) => {
+              onDragOver={(event: DragEvent<HTMLDivElement>) => {
                 event.preventDefault();
                 event.dataTransfer.dropEffect = "move";
                 setDropTargetCode(DELETE_DROP_ZONE);
@@ -446,7 +471,7 @@ export default function QuickActionsPalette({
                   current === DELETE_DROP_ZONE ? null : current
                 );
               }}
-              onDrop={(event) => {
+              onDrop={(event: DragEvent<HTMLDivElement>) => {
                 event.preventDefault();
                 const sourceCode =
                   event.dataTransfer.getData("text/plain") || draggedSlotCode;

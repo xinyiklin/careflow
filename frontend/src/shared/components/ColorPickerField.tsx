@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { Input } from "./ui";
 
+import type { ChangeEvent, MouseEvent } from "react";
+
 // Soft Tailwind 300/400 palette inspired by the Opus schedule preview. These
 // stay calm on dense schedule blocks while preserving enough contrast for text.
 const DEFAULT_PRESET_COLORS = [
@@ -17,7 +19,14 @@ const DEFAULT_PRESET_COLORS = [
   "#94a3b8", // slate-400   · neutral fallback
 ];
 
-function normalizeHex(value, fallback = "#94a3b8") {
+type ColorPickerFieldProps = {
+  label?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  presets?: string[];
+};
+
+function normalizeHex(value: unknown, fallback = "#94a3b8") {
   if (typeof value !== "string") return fallback;
   const trimmed = value.trim();
   const withHash = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
@@ -30,12 +39,14 @@ export default function ColorPickerField({
   value,
   onChange,
   presets = DEFAULT_PRESET_COLORS,
-}) {
+}: ColorPickerFieldProps) {
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const normalizedColor = useMemo(() => normalizeHex(value), [value]);
 
-  const handleColorChange = (nextColor) => onChange?.(normalizeHex(nextColor));
-  const handleTextInputChange = (e) => onChange?.(e.target.value);
+  const handleColorChange = (nextColor: string) =>
+    onChange?.(normalizeHex(nextColor));
+  const handleTextInputChange = (e: ChangeEvent<HTMLInputElement>) =>
+    onChange?.(e.target.value);
   const handleTextInputBlur = () => onChange?.(normalizeHex(value));
 
   return (
@@ -66,8 +77,8 @@ export default function ColorPickerField({
         {isPickerOpen && (
           <div
             className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-sm"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
+            onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}
           >
             <HexColorPicker
               color={normalizedColor}

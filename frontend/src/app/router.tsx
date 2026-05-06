@@ -15,6 +15,8 @@ import {
   SchedulePage,
 } from "./routeModules";
 
+import type { ReactNode } from "react";
+
 const devPreviewDocuments = {
   admin: "/dev-previews/opus/admin.preview.html",
   appointment: "/dev-previews/opus/appointment-modal.preview.html",
@@ -26,7 +28,7 @@ const devPreviewDocuments = {
   schedule: "/dev-previews/opus/schedule.preview.html",
 };
 
-function DevPreviewRoute({ children }) {
+function DevPreviewRoute({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
@@ -41,7 +43,7 @@ function DevPreviewRoute({ children }) {
   );
 }
 
-function DevPreviewDocument({ src, title }) {
+function DevPreviewDocument({ src, title }: { src: string; title: string }) {
   return (
     <DevPreviewRoute>
       <iframe
@@ -139,7 +141,7 @@ const devPreviewRoutes = import.meta.env.DEV
     ]
   : [];
 
-function PageRouteLoader({ children }) {
+function PageRouteLoader({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={

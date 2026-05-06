@@ -1,7 +1,9 @@
+import type { SVGProps } from "react";
+
 export default function CareFlowIcon({
   className = "h-5 w-5",
   strokeWidth = 5,
-}) {
+}: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className}>
       <path

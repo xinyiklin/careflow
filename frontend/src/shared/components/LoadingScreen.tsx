@@ -1,9 +1,14 @@
 import { CareFlowIcon } from "./icons";
 
+type LoadingScreenProps = {
+  title?: string;
+  message?: string;
+};
+
 export default function LoadingScreen({
   title = "Preparing workspace",
   message = "Syncing schedule, patients, and facility context.",
-}) {
+}: LoadingScreenProps) {
   return (
     <div className="cf-loading-screen flex h-[100dvh] w-full items-center justify-center bg-cf-page-bg px-6 text-cf-text">
       <div className="cf-loading-card relative w-full max-w-lg overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border-strong bg-cf-surface px-8 py-8 shadow-[var(--shadow-panel-lg)]">

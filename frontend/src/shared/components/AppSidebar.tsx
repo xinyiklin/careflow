@@ -10,7 +10,15 @@ import { getSidebarNavItems } from "../constants/navItems";
 import { CareFlowIcon } from "./icons";
 import SidebarItem from "./SidebarItem";
 
-export default function AppSidebar({ isCollapsed, onToggleCollapse }) {
+type AppSidebarProps = {
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+};
+
+export default function AppSidebar({
+  isCollapsed,
+  onToggleCollapse,
+}: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const {

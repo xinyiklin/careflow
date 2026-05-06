@@ -2,12 +2,45 @@ import { Check, Trash2, X } from "lucide-react";
 
 import { Badge, Input } from "./ui";
 
+import type { DragEvent } from "react";
+import type {
+  BuiltQuickAction,
+  QuickActionSlot,
+} from "../constants/quickActions";
+
+type ActionPickerOverlayProps = {
+  slot: QuickActionSlot;
+  availableActions: BuiltQuickAction[];
+  onAssignAction: (actionKey: string) => void;
+  onClose: () => void;
+};
+
+type SlotCardProps = {
+  slot: QuickActionSlot;
+  action: BuiltQuickAction | null;
+  isEditing: boolean;
+  isDragged: boolean;
+  isDropTarget: boolean;
+  draftActionKey: string;
+  availableActions: BuiltQuickAction[];
+  onOpenAction?: () => void;
+  onOpenPicker?: () => void;
+  onCancelEditing?: () => void;
+  onSelectAction?: (actionKey: string) => void;
+  onConfirmAction?: () => void;
+  onRemoveAction?: () => void;
+  onDragStart?: (event: DragEvent<HTMLDivElement>) => void;
+  onDragOver?: (event: DragEvent<HTMLDivElement>) => void;
+  onDrop?: (event: DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: (event: DragEvent<HTMLDivElement>) => void;
+};
+
 export function ActionPickerOverlay({
   slot,
   availableActions,
   onAssignAction,
   onClose,
-}) {
+}: ActionPickerOverlayProps) {
   return (
     <div className="absolute inset-0 z-30 flex flex-col bg-cf-surface/95 backdrop-blur-sm">
       <div className="flex shrink-0 items-center justify-between border-b border-cf-border bg-cf-surface-soft/55 px-6 py-4">
@@ -82,7 +115,7 @@ export function SlotCard({
   onDragOver,
   onDrop,
   onDragEnd,
-}) {
+}: SlotCardProps) {
   const Icon = action?.icon || null;
   const canConfirm =
     Boolean(draftActionKey) &&

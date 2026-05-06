@@ -4,7 +4,13 @@ import useAdminPermissions from "../features/admin/hooks/shared/useAdminPermissi
 import { getAdminLandingPath } from "../features/admin/utils/adminRoutes";
 import { useUserPreferences } from "../shared/context/UserPreferencesProvider";
 
-function getLandingPath(preferences, adminPermissions) {
+import type { AdminPermissions } from "../features/admin/hooks/shared/useAdminPermissions";
+import type { UserPreferences } from "../shared/types/domain";
+
+function getLandingPath(
+  preferences: UserPreferences,
+  adminPermissions: AdminPermissions
+) {
   if (preferences.defaultLandingPage === "schedule") return "/schedule";
 
   if (preferences.defaultLandingPage === "admin") {

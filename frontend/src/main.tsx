@@ -5,7 +5,13 @@ import "./index.css";
 import router from "./app/router";
 import AppProviders from "./app/providers";
 
-createRoot(document.getElementById("root")).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("CareFlow root element was not found.");
+}
+
+createRoot(rootElement).render(
   <StrictMode>
     <AppProviders>
       <RouterProvider router={router} />

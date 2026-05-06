@@ -76,6 +76,9 @@ export type UserPreferences = {
 export type UserProfile = ApiRecord & {
   id?: EntityId;
   username?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
   is_org_admin?: boolean;
   organization?: OrganizationLike | null;
   memberships?: UserMembership[];

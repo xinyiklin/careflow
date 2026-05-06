@@ -1,10 +1,20 @@
+import type { LucideIcon } from "lucide-react";
+
+type SidebarItemProps = {
+  icon: LucideIcon;
+  label: string;
+  isActive: boolean;
+  isCollapsed: boolean;
+  onClick: () => void;
+};
+
 export default function SidebarItem({
   icon: Icon,
   label,
   isActive,
   isCollapsed,
   onClick,
-}) {
+}: SidebarItemProps) {
   return (
     <button
       onClick={onClick}

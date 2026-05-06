@@ -1,10 +1,20 @@
+import type { ReactNode } from "react";
+
+type WorkspaceHeaderProps = {
+  eyebrow?: string;
+  title: string;
+  leftAccessory?: ReactNode;
+  rightAccessory?: ReactNode;
+  bottomAccessory?: ReactNode;
+};
+
 export default function WorkspaceHeader({
   eyebrow,
   title,
   leftAccessory = null,
   rightAccessory = null,
   bottomAccessory = null,
-}) {
+}: WorkspaceHeaderProps) {
   return (
     <div className="flex-none border-b border-cf-border bg-cf-surface-muted/55 px-4 py-2.5">
       <div className="flex flex-wrap items-center justify-between gap-3">

@@ -14,7 +14,27 @@ import { getPatientName } from "../../features/patients/utils/patientDisplay";
 import { Badge, Button, Input } from "./ui";
 import { NAVBAR_HEIGHT } from "../constants/layout";
 
-function getUserInitials(user) {
+import type { EntityId } from "../api/types";
+import type { ApiRecord, PatientLike, UserProfile } from "../types/domain";
+
+type NavigatorWithUserAgentData = Navigator & {
+  userAgentData?: {
+    platform?: string;
+  };
+};
+
+type AppNavbarProps = {
+  onLogout?: () => void;
+  user: UserProfile | null;
+  onOpenQuickActions?: () => void;
+  onOpenNotes?: () => void;
+  onOpenPreferences?: () => void;
+  onOpenPatientSearch?: () => void;
+  recentPatients?: PatientLike[];
+  onOpenRecentPatient?: (patient: PatientLike) => void;
+};
+
+function getUserInitials(user: UserProfile | null) {
   const initials = [user?.first_name, user?.last_name]
     .map((value) => (value || "").trim().charAt(0))
     .filter(Boolean)
@@ -24,7 +44,7 @@ function getUserInitials(user) {
   return (user?.username || "CF").slice(0, 2).toUpperCase();
 }
 
-function getUserDisplayName(user) {
+function getUserDisplayName(user: UserProfile | null) {
   const fullName = [user?.first_name, user?.last_name]
     .filter(Boolean)
     .join(" ")
@@ -32,11 +52,18 @@ function getUserDisplayName(user) {
   return fullName || user?.username || "CareFlow User";
 }
 
+function getRoleName(role: ApiRecord | string | null | undefined) {
+  if (!role || typeof role === "string") return "";
+  return typeof role.name === "string" ? role.name : "";
+}
+
 function getQuickActionsShortcutLabel() {
   if (typeof navigator === "undefined") return "Ctrl/Cmd K";
 
   const platform =
-    navigator.userAgentData?.platform || navigator.platform || "";
+    (navigator as NavigatorWithUserAgentData).userAgentData?.platform ||
+    navigator.platform ||
+    "";
   return /mac|iphone|ipad|ipod/i.test(platform) ? "Cmd K" : "Ctrl K";
 }
 
@@ -49,7 +76,7 @@ export default function AppNavbar({
   onOpenPatientSearch,
   recentPatients = [],
   onOpenRecentPatient,
-}) {
+}: AppNavbarProps) {
   const {
     memberships,
     selectedFacilityId,
@@ -60,20 +87,21 @@ export default function AppNavbar({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
 
-  const userMenuRef = useRef(null);
-  const patientMenuRef = useRef(null);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const patientMenuRef = useRef<HTMLDivElement | null>(null);
   const initials = useMemo(() => getUserInitials(user), [user]);
   const userDisplayName = useMemo(() => getUserDisplayName(user), [user]);
   const quickActionsShortcut = useMemo(getQuickActionsShortcutLabel, []);
+  const roleName = getRoleName(role);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!userMenuRef.current?.contains(event.target))
-        setIsUserMenuOpen(false);
-      if (!patientMenuRef.current?.contains(event.target))
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target instanceof Node ? event.target : null;
+      if (!userMenuRef.current?.contains(target)) setIsUserMenuOpen(false);
+      if (!patientMenuRef.current?.contains(target))
         setIsPatientMenuOpen(false);
     };
-    const handleEscape = (event) => {
+    const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setIsUserMenuOpen(false);
       setIsPatientMenuOpen(false);
@@ -219,8 +247,8 @@ export default function AppNavbar({
                       {user?.username || "User"}
                     </div>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {role?.name ? (
-                        <Badge variant="outline">{role.name}</Badge>
+                      {roleName ? (
+                        <Badge variant="outline">{roleName}</Badge>
                       ) : null}
                       {facility?.name ? (
                         <Badge variant="muted">{facility.name}</Badge>
@@ -246,7 +274,9 @@ export default function AppNavbar({
                       as="select"
                       value={selectedFacilityId ?? ""}
                       onChange={(event) =>
-                        setSelectedFacilityId(event.target.value || null)
+                        setSelectedFacilityId(
+                          (event.target.value || null) as EntityId | null
+                        )
                       }
                     >
                       {memberships.map((membership) => (

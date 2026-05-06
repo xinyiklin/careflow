@@ -7,6 +7,8 @@ import { FacilityProvider } from "../features/facilities/FacilityProvider";
 import { ThemeProvider } from "../shared/context/ThemeProvider";
 import { UserPreferencesProvider } from "../shared/context/UserPreferencesProvider";
 
+import type { ReactNode } from "react";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -17,7 +19,7 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function AppProviders({ children }) {
+export default function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>

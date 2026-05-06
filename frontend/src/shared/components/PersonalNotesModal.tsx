@@ -10,6 +10,23 @@ import {
 
 import { Button, Input, ModalShell } from "./ui";
 
+import type { LucideIcon } from "lucide-react";
+import type { ChangeEvent } from "react";
+
+type TemplateButtonProps = {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+};
+
+type PersonalNotesModalProps = {
+  isOpen: boolean;
+  note: string;
+  onChangeNote: (note: string) => void;
+  onClearNote: () => void;
+  onClose: () => void;
+};
+
 const NOTE_TEMPLATES = [
   {
     label: "Today",
@@ -33,7 +50,7 @@ const NOTE_TEMPLATES = [
   },
 ];
 
-function TemplateButton({ icon: Icon, label, onClick }) {
+function TemplateButton({ icon: Icon, label, onClick }: TemplateButtonProps) {
   return (
     <button
       type="button"
@@ -52,14 +69,14 @@ export default function PersonalNotesModal({
   onChangeNote,
   onClearNote,
   onClose,
-}) {
-  const editorRef = useRef(null);
+}: PersonalNotesModalProps) {
+  const editorRef = useRef<HTMLTextAreaElement | null>(null);
   const trimmedNote = note.trim();
   const wordCount = trimmedNote ? trimmedNote.split(/\s+/).length : 0;
   const characterCount = note.length;
   const lineCount = note ? note.split(/\r\n|\r|\n/).length : 0;
 
-  const handleInsertTemplate = (templateBody) => {
+  const handleInsertTemplate = (templateBody: string) => {
     const separator = note && !note.endsWith("\n") ? "\n\n" : "";
     onChangeNote(`${note}${separator}${templateBody}`);
     requestAnimationFrame(() => editorRef.current?.focus());
@@ -163,7 +180,9 @@ export default function PersonalNotesModal({
             ref={editorRef}
             as="textarea"
             value={note}
-            onChange={(event) => onChangeNote(event.target.value)}
+            onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+              onChangeNote(event.target.value)
+            }
             placeholder="Type anything you want to remember..."
             className="min-h-[27rem] flex-1 resize-none rounded-xl border-cf-border bg-cf-surface-muted px-4 py-4 text-[15px] leading-7 shadow-none focus:bg-cf-surface"
             autoFocus

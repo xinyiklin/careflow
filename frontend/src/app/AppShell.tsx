@@ -29,12 +29,25 @@ import {
 } from "../shared/constants/quickActions";
 import { useBootReadiness } from "./BootReadinessContext";
 
+import type { Dispatch, SetStateAction } from "react";
+import type { NavigateFunction } from "react-router-dom";
+import type { PatientLike, UserProfile } from "../shared/types/domain";
+
 const RECENT_PATIENTS_VISIBLE_COUNT = 6;
 
-function getPersonalNotesKey(user) {
+function getPersonalNotesKey(user: UserProfile | null) {
   if (!user) return null;
   return `cf-personal-notes:${user.id || user.username || "user"}`;
 }
+
+type AppNavbarContainerProps = {
+  onOpenPatientSearch: (source: string) => void;
+  onOpenQuickActions: () => void;
+  onOpenNotes: () => void;
+  onOpenPreferences: () => void;
+  recentPatients: PatientLike[];
+  onOpenRecentPatient: (patient: PatientLike) => void;
+};
 
 function AppNavbarContainer({
   onOpenPatientSearch,
@@ -43,7 +56,7 @@ function AppNavbarContainer({
   onOpenPreferences,
   recentPatients,
   onOpenRecentPatient,
-}) {
+}: AppNavbarContainerProps) {
   const { logout, user } = useAuth();
 
   return (
@@ -60,7 +73,15 @@ function AppNavbarContainer({
   );
 }
 
-function AppShellLayout({ isSidebarCollapsed, setIsSidebarCollapsed }) {
+type AppShellLayoutProps = {
+  isSidebarCollapsed: boolean;
+  setIsSidebarCollapsed: Dispatch<SetStateAction<boolean>>;
+};
+
+function AppShellLayout({
+  isSidebarCollapsed,
+  setIsSidebarCollapsed,
+}: AppShellLayoutProps) {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
@@ -81,7 +102,7 @@ function AppShellLayout({ isSidebarCollapsed, setIsSidebarCollapsed }) {
   const personalNote = preferences.personalNotes || "";
 
   const dispatchScheduleQuickAction = useCallback(
-    (type) => {
+    (type: string) => {
       sessionStorage.setItem(SCHEDULE_QUICK_ACTION_STORAGE_KEY, type);
       navigate("/schedule");
       window.dispatchEvent(
@@ -92,7 +113,7 @@ function AppShellLayout({ isSidebarCollapsed, setIsSidebarCollapsed }) {
   );
 
   const handleToggleSidebar = useCallback(() => {
-    setIsSidebarCollapsed((currentValue) => !currentValue);
+    setIsSidebarCollapsed((currentValue: boolean) => !currentValue);
   }, [setIsSidebarCollapsed]);
 
   const handleToggleDemoBadge = useCallback(() => {
@@ -115,7 +136,7 @@ function AppShellLayout({ isSidebarCollapsed, setIsSidebarCollapsed }) {
         onClose: () => setIsQuickActionsOpen(false),
         onCreatePatient: () => patientFlow.modal.open({ mode: "create" }),
         onNewAppointment: () => dispatchScheduleQuickAction("new-appointment"),
-        onNavigate: navigate,
+        onNavigate: navigate as NavigateFunction,
         onOpenNotes: () => setIsNotesOpen(true),
         onOpenPatientSearch: openPatientSearch,
         onOpenPreferences: () => setIsPreferencesOpen(true),
@@ -185,7 +206,7 @@ function AppShellLayout({ isSidebarCollapsed, setIsSidebarCollapsed }) {
   }, [personalNotesKey, preferences, updatePreferences]);
 
   useEffect(() => {
-    const isTypingTarget = (target) => {
+    const isTypingTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
 
       const tagName = target.tagName.toLowerCase();
@@ -197,7 +218,7 @@ function AppShellLayout({ isSidebarCollapsed, setIsSidebarCollapsed }) {
       );
     };
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || isTypingTarget(event.target)) return;
 
       const normalizedKey = event.key.toLowerCase();
@@ -352,7 +373,7 @@ export default function AppShell() {
   const { user } = useAuth();
   const { preferences, isHydrated } = useUserPreferences();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const initialSidebarUserIdRef = useRef(null);
+  const initialSidebarUserIdRef = useRef<string | number | null>(null);
   const {
     genderOptions,
     careProviders,

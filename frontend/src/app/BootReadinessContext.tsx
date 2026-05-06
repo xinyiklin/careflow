@@ -1,6 +1,13 @@
 import { createContext, useContext } from "react";
 
-const BootReadinessContext = createContext({
+import type { ReactNode } from "react";
+
+type BootReadinessContextValue = {
+  setShellReady: (isReady: boolean) => void;
+  setRouteReady: (isReady: boolean) => void;
+};
+
+const BootReadinessContext = createContext<BootReadinessContextValue>({
   setShellReady: () => {},
   setRouteReady: () => {},
 });
@@ -9,7 +16,7 @@ export function BootReadinessProvider({
   children,
   setShellReady,
   setRouteReady,
-}) {
+}: BootReadinessContextValue & { children: ReactNode }) {
   return (
     <BootReadinessContext.Provider value={{ setShellReady, setRouteReady }}>
       {children}

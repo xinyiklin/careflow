@@ -1,7 +1,15 @@
 import { lazy } from "react";
 
-function preloadableLazy(importer) {
-  let loadPromise;
+import type { ComponentType, LazyExoticComponent } from "react";
+
+type ComponentModule = { default: ComponentType<unknown> };
+type RouteImporter = () => Promise<ComponentModule>;
+type PreloadableComponent = LazyExoticComponent<ComponentType<unknown>> & {
+  preload: () => Promise<ComponentModule>;
+};
+
+function preloadableLazy(importer: RouteImporter): PreloadableComponent {
+  let loadPromise: Promise<ComponentModule> | null = null;
 
   const load = () => {
     if (!loadPromise) {
@@ -11,7 +19,7 @@ function preloadableLazy(importer) {
     return loadPromise;
   };
 
-  const Component = lazy(load);
+  const Component = lazy(load) as PreloadableComponent;
   Component.preload = load;
 
   return Component;
@@ -33,7 +41,7 @@ export const FacilityAdminPage = preloadableLazy(
   () => import("../features/admin/pages/FacilityAdminPage")
 );
 
-export function preloadRouteForPath(pathname) {
+export function preloadRouteForPath(pathname: string) {
   if (
     pathname.startsWith("/schedule") ||
     pathname.startsWith("/appointments")

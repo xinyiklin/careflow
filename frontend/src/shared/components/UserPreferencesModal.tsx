@@ -17,7 +17,21 @@ import {
 } from "../constants/appointmentBlockDisplay";
 import { Button, ModalShell } from "./ui";
 
-function Section({ icon: Icon, title, children }) {
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+import type {
+  AppointmentBlockDisplay,
+  AppointmentBlockDisplay as AppointmentBlockDisplayValue,
+} from "../constants/appointmentBlockDisplay";
+import type { UserPreferences } from "../types/domain";
+
+type SectionProps = {
+  icon?: LucideIcon;
+  title: string;
+  children: ReactNode;
+};
+
+function Section({ icon: Icon, title, children }: SectionProps) {
   return (
     <section className="border-b border-cf-border px-5 py-4 last:border-b-0">
       <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
@@ -29,7 +43,13 @@ function Section({ icon: Icon, title, children }) {
   );
 }
 
-function SettingGroup({ title, children }) {
+function SettingGroup({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <div className="grid gap-2">
       <div className="flex items-center gap-2 text-sm font-semibold text-cf-text">
@@ -40,12 +60,24 @@ function SettingGroup({ title, children }) {
   );
 }
 
-function SegmentedControl({
+type SegmentedOption<TValue extends string> = {
+  value: TValue;
+  label: string;
+};
+
+type SegmentedControlProps<TValue extends string> = {
+  options: SegmentedOption<TValue>[];
+  value: TValue;
+  onChange: (value: TValue) => void;
+  columns?: string;
+};
+
+function SegmentedControl<TValue extends string>({
   options,
   value,
   onChange,
   columns = "grid-cols-2",
-}) {
+}: SegmentedControlProps<TValue>) {
   return (
     <div className={["grid gap-2", columns].join(" ")}>
       {options.map(({ label, value: optionValue }) => {
@@ -71,7 +103,15 @@ function SegmentedControl({
   );
 }
 
-function ToggleRow({ title, checked, onChange }) {
+function ToggleRow({
+  title,
+  checked,
+  onChange,
+}: {
+  title: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
   return (
     <div className="flex min-h-11 items-center justify-between gap-4 rounded-lg border border-cf-border bg-cf-surface-muted px-3 py-2.5">
       <div className="truncate text-sm font-medium text-cf-text">{title}</div>
@@ -96,8 +136,15 @@ function ToggleRow({ title, checked, onChange }) {
   );
 }
 
-function AppointmentBlockDetailsControl({ value, onChange }) {
-  const updateValue = (nextValue) => onChange({ ...value, ...nextValue });
+function AppointmentBlockDetailsControl({
+  value,
+  onChange,
+}: {
+  value: AppointmentBlockDisplay;
+  onChange: (value: AppointmentBlockDisplay) => void;
+}) {
+  const updateValue = (nextValue: Partial<AppointmentBlockDisplayValue>) =>
+    onChange({ ...value, ...nextValue });
 
   return (
     <div className="rounded-xl border border-cf-border bg-cf-surface-muted p-2.5">
@@ -129,13 +176,14 @@ function AppointmentBlockDetailsControl({ value, onChange }) {
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {APPOINTMENT_BLOCK_DISPLAY_OPTIONS.map((option) => {
-          const isActive = Boolean(value?.[option.key]);
+          const optionKey = option.key as keyof AppointmentBlockDisplay;
+          const isActive = Boolean(value?.[optionKey]);
 
           return (
             <button
               key={option.key}
               type="button"
-              onClick={() => updateValue({ [option.key]: !isActive })}
+              onClick={() => updateValue({ [optionKey]: !isActive })}
               className={[
                 "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
                 isActive
@@ -153,12 +201,18 @@ function AppointmentBlockDetailsControl({ value, onChange }) {
   );
 }
 
-export default function UserPreferencesModal({ isOpen, onClose }) {
+export default function UserPreferencesModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const { preferences, updatePreferences, resetPreferences } =
     useUserPreferences();
   const { setTheme } = useTheme();
 
-  const handleThemeChange = (nextTheme) => {
+  const handleThemeChange = (nextTheme: UserPreferences["theme"]) => {
     setTheme(nextTheme);
     updatePreferences({ theme: nextTheme });
   };

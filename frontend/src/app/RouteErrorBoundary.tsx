@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { isRouteErrorResponse, useRouteError } from "react-router-dom";
 
-function getErrorCopy(error) {
+function getErrorCopy(error: unknown) {
   if (isRouteErrorResponse(error)) {
     if (error.status === 404) {
       return {

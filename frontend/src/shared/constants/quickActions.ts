@@ -69,6 +69,7 @@ export type BuiltQuickAction = {
 };
 
 type BuildQuickActionsOptions = {
+  hasAnyAdminAccess?: boolean;
   canAccessFacilityAdmin?: boolean;
   canAccessOrganizationAdmin?: boolean;
   onClose?: () => void;
