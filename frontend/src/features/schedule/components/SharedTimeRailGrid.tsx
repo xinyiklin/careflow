@@ -8,6 +8,8 @@ import {
   ResourceColumnHeader,
 } from "./ScheduleGridPieces";
 
+import type { ScheduleGridCommonProps, ScheduleTimeSlot } from "../types";
+
 export default function SharedTimeRailGrid({
   appointmentBlockDisplay,
   appointmentsByColumn,
@@ -25,6 +27,11 @@ export default function SharedTimeRailGrid({
   timeZoneAbbreviation,
   visibleDayCount,
   visibleDayEntries,
+}: ScheduleGridCommonProps & {
+  sharedSlotRowHeight: number;
+  sharedTimeRailGridTemplate: string;
+  sharedTimeSlots: ScheduleTimeSlot[];
+  timeZoneAbbreviation: string;
 }) {
   return (
     <div className="grid h-full min-w-0 grid-rows-[auto_minmax(0,1fr)] bg-cf-surface/60">

@@ -1,12 +1,23 @@
 import AppointmentBlock from "../../appointments/components/AppointmentBlock";
 import { getRenderedSpan } from "../utils/scheduleGridMath";
 
+import type { CSSProperties } from "react";
+import type {
+  ScheduleAppointment,
+  ScheduleAppointmentContextMenuHandler,
+  ScheduleDragState,
+  ScheduleDayEntry,
+  SchedulePointerDragStartHandler,
+  SchedulePreviewBlock,
+} from "../types";
+import type { AppointmentBlockDisplay } from "../../../shared/constants/appointmentBlockDisplay";
+
 function getBlockLayoutStyle(
-  block,
-  slotRowHeight,
-  visibleDayCount,
-  zIndexBase
-) {
+  block: ScheduleAppointment | SchedulePreviewBlock,
+  slotRowHeight: number,
+  visibleDayCount: number,
+  zIndexBase: number
+): CSSProperties {
   const hasLanes = block.laneCount > 1;
 
   return {
@@ -33,6 +44,15 @@ export function AppointmentLayer({
   onPointerDragStart,
   slotRowHeight,
   visibleDayCount,
+}: {
+  appointment: ScheduleAppointment;
+  appointmentBlockDisplay: AppointmentBlockDisplay;
+  dragState: ScheduleDragState;
+  entry: ScheduleDayEntry;
+  onAppointmentContextMenu?: ScheduleAppointmentContextMenuHandler;
+  onPointerDragStart: SchedulePointerDragStartHandler;
+  slotRowHeight: number;
+  visibleDayCount: number;
 }) {
   return (
     <AppointmentBlock
@@ -70,6 +90,12 @@ export function PreviewLayer({
   slotAppointments,
   slotRowHeight,
   visibleDayCount,
+}: {
+  appointmentBlockDisplay: AppointmentBlockDisplay;
+  previewBlock?: SchedulePreviewBlock | null;
+  slotAppointments: ScheduleAppointment[];
+  slotRowHeight: number;
+  visibleDayCount: number;
 }) {
   if (
     !previewBlock ||
@@ -98,7 +124,13 @@ export function PreviewLayer({
   );
 }
 
-export function ScheduleDragGhost({ appointmentBlockDisplay, dragState }) {
+export function ScheduleDragGhost({
+  appointmentBlockDisplay,
+  dragState,
+}: {
+  appointmentBlockDisplay: AppointmentBlockDisplay;
+  dragState: ScheduleDragState;
+}) {
   if (!dragState?.activated) return null;
 
   return (

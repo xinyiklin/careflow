@@ -8,6 +8,9 @@ import {
 } from "../../../shared/utils/dateTime";
 import { formatPickerDateToApi } from "../utils/scheduleDateUtils";
 
+import type { Dispatch, SetStateAction } from "react";
+import type { ScheduleDragState } from "../types";
+
 export { ScheduleDayColumns } from "./ScheduleGridColumns";
 export { ScheduleDragGhost } from "./ScheduleGridAppointmentLayers";
 export { default as SharedTimeRailGrid } from "./SharedTimeRailGrid";
@@ -20,6 +23,14 @@ export function ScheduleGridToolbar({
   onOpenDatePicker,
   resourceColumnMode,
   timeZone,
+}: {
+  dragState: ScheduleDragState;
+  formattedSelectedDate: string;
+  onChangeDay: (offset: number) => void;
+  onDateChange?: (date: string) => void;
+  onOpenDatePicker: () => void;
+  resourceColumnMode?: boolean;
+  timeZone: string;
 }) {
   return (
     <div className="border-b border-cf-border bg-cf-surface-muted/70 px-3 py-2">
@@ -98,6 +109,14 @@ export function ScheduleDatePicker({
   setActiveDatePickerIndex,
   setIsDatePickerOpen,
   timeZone,
+}: {
+  activeDatePickerIndex: number | null;
+  handleChangeVisibleDate: (index: number, date: string) => void;
+  isDatePickerOpen: boolean;
+  resolvedVisibleDates: string[];
+  setActiveDatePickerIndex: Dispatch<SetStateAction<number | null>>;
+  setIsDatePickerOpen: Dispatch<SetStateAction<boolean>>;
+  timeZone: string;
 }) {
   return (
     <div className="pointer-events-none absolute opacity-0">

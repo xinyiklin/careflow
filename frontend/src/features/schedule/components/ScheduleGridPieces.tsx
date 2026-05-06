@@ -4,6 +4,8 @@ import { formatDateOnlyInTimeZone } from "../../../shared/utils/dateTime";
 import { SLOT_INTERVAL_OPTIONS } from "../utils/scheduleConstants";
 import { getTimeZoneAbbreviation } from "../utils/scheduleDateUtils";
 
+import type { ResourceDefinition } from "../../../shared/types/domain";
+
 const SCHEDULE_COLUMN_HEADER_HEIGHT = "h-12";
 
 export function DayCardHeader({
@@ -19,6 +21,19 @@ export function DayCardHeader({
   isOperatingDay = true,
   showIntervalSelector = true,
   showResourceSelector = true,
+}: {
+  date: string;
+  timeZone: string;
+  resourceKey: string;
+  resourceOptions: ResourceDefinition[];
+  intervalMinutes: number;
+  canRemoveDay: boolean;
+  onRemove: () => void;
+  onChangeResource: (resourceKey: string) => void;
+  onChangeInterval: (intervalMinutes: number) => void;
+  isOperatingDay?: boolean;
+  showIntervalSelector?: boolean;
+  showResourceSelector?: boolean;
 }) {
   const showHeaderControls = showResourceSelector || showIntervalSelector;
   const timeZoneAbbreviation = getTimeZoneAbbreviation(date, timeZone);
@@ -117,7 +132,13 @@ export function DayCardHeader({
   );
 }
 
-export function ResourceColumnHeader({ resource, isOperatingDay = true }) {
+export function ResourceColumnHeader({
+  resource,
+  isOperatingDay = true,
+}: {
+  resource?: ResourceDefinition;
+  isOperatingDay?: boolean;
+}) {
   const label = resource?.label || "Unassigned resource";
 
   return (

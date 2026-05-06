@@ -7,6 +7,13 @@ import {
 } from "./ScheduleGridAppointmentLayers";
 import { ClosedScheduleMessage, DayCardHeader } from "./ScheduleGridPieces";
 
+import type {
+  ScheduleGridCommonProps,
+  ScheduleTimeSlot,
+  SharedScrollRef,
+} from "../types";
+import type { ResourceDefinition } from "../../../shared/types/domain";
+
 export function ScheduleDayColumns({
   appointmentBlockDisplay,
   appointmentsByColumn,
@@ -39,6 +46,26 @@ export function ScheduleDayColumns({
   timeZone,
   visibleDayCount,
   visibleDayEntries,
+}: ScheduleGridCommonProps & {
+  applyingSharedScrollRef: SharedScrollRef;
+  canAddDay: boolean;
+  canRemoveDay: boolean;
+  embedded?: boolean;
+  embeddedColumnTemplate?: string;
+  handleAddDay: () => void;
+  handleChangeInterval: (index: number, intervalMinutes: number) => void;
+  handleChangeResourceKey: (index: number, resourceKey: string) => void;
+  handleRemoveDay: (index: number) => void;
+  linkScroll?: boolean;
+  onSharedScrollChange?: (scrollTop: number) => void;
+  resourceOptions: ResourceDefinition[];
+  shouldScrollColumns: boolean;
+  showIntervalSelector?: boolean;
+  showResourceSelector?: boolean;
+  slotRowHeightByColumn: Map<string, number>;
+  syncDayScrollTops: (scrollTop: number, sourceKey: string) => void;
+  timeSlotsByColumn: Map<string, ScheduleTimeSlot[]>;
+  timeZone: string;
 }) {
   return (
     <div
