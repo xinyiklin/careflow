@@ -3,7 +3,11 @@ import { Building2, Landmark } from "lucide-react";
 
 import useAdminPermissions from "../../hooks/shared/useAdminPermissions";
 
-export default function AdminScopeSwitch({ mobile = false }) {
+export default function AdminScopeSwitch({
+  mobile = false,
+}: {
+  mobile?: boolean;
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const { canAccessFacilityAdmin, canAccessOrganizationAdmin } =
@@ -18,7 +22,7 @@ export default function AdminScopeSwitch({ mobile = false }) {
   const wrapperClass = mobile
     ? "grid grid-cols-2 gap-1 rounded-2xl border border-cf-border bg-cf-surface p-1 shadow-[var(--shadow-panel)]"
     : "mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-cf-border bg-cf-page-bg p-1";
-  const buttonClass = (active) =>
+  const buttonClass = (active: boolean) =>
     [
       "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl px-2 font-semibold transition",
       mobile ? "text-sm" : "text-xs",

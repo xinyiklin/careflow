@@ -1,10 +1,14 @@
 import { Button, ModalShell } from "../../../../shared/components/ui";
 
-function joinClasses(...classes) {
+import type { ChangeEventHandler, ReactNode } from "react";
+
+type AdminModalMaxWidth = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl";
+
+function joinClasses(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function getReadablePreviewTextColor(color) {
+export function getReadablePreviewTextColor(color: unknown) {
   if (typeof color !== "string") return "white";
   const hex = color.trim().replace("#", "");
   if (!/^[0-9a-f]{6}$/i.test(hex)) return "white";
@@ -26,6 +30,17 @@ export function AdminFormModal({
   deleteLabel = "",
   onDelete,
   children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  scope: string;
+  title: string;
+  maxWidth?: AdminModalMaxWidth;
+  formId: string;
+  saving?: boolean;
+  deleteLabel?: string;
+  onDelete?: () => void;
+  children: ReactNode;
 }) {
   return (
     <ModalShell
@@ -81,7 +96,15 @@ export function AdminFormModal({
   );
 }
 
-export function AdminFormSection({ title, children, className = "" }) {
+export function AdminFormSection({
+  title,
+  children,
+  className = "",
+}: {
+  title?: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section
       className={joinClasses(
@@ -101,7 +124,15 @@ export function AdminFormSection({ title, children, className = "" }) {
   );
 }
 
-export function AdminField({ label, children, className = "" }) {
+export function AdminField({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div className={className}>
       <label className="mb-1.5 block text-sm font-medium text-cf-text-muted">
@@ -112,7 +143,13 @@ export function AdminField({ label, children, className = "" }) {
   );
 }
 
-export function AdminEditorGrid({ fields, preview }) {
+export function AdminEditorGrid({
+  fields,
+  preview,
+}: {
+  fields: ReactNode;
+  preview: ReactNode;
+}) {
   return (
     <div className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]">
       <div className="grid min-h-0 md:grid-cols-[minmax(0,1fr)_300px]">
@@ -125,7 +162,13 @@ export function AdminEditorGrid({ fields, preview }) {
   );
 }
 
-export function AdminFieldGrid({ children, columns = 2 }) {
+export function AdminFieldGrid({
+  children,
+  columns = 2,
+}: {
+  children: ReactNode;
+  columns?: 1 | 2;
+}) {
   const columnClass =
     columns === 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2";
 
@@ -134,7 +177,7 @@ export function AdminFieldGrid({ children, columns = 2 }) {
   );
 }
 
-export function AdminModalSummary({ children }) {
+export function AdminModalSummary({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface-soft/65 px-4 py-3 shadow-[var(--shadow-panel)]">
       {children}
@@ -142,7 +185,15 @@ export function AdminModalSummary({ children }) {
   );
 }
 
-export function AdminPreviewRail({ title, children, actions = null }) {
+export function AdminPreviewRail({
+  title,
+  children,
+  actions = null,
+}: {
+  title?: string;
+  children: ReactNode;
+  actions?: ReactNode;
+}) {
   return (
     <div className="grid content-start gap-3 md:sticky md:top-0">
       {title ? (
@@ -163,6 +214,13 @@ export function AdminToggleField({
   checked,
   onChange,
   disabled = false,
+}: {
+  label: string;
+  description?: string;
+  name: string;
+  checked: boolean;
+  onChange: ChangeEventHandler<HTMLInputElement>;
+  disabled?: boolean;
 }) {
   return (
     <label className="flex w-full items-center justify-between gap-4 rounded-2xl border border-cf-border bg-cf-surface-soft/60 px-4 py-3 transition hover:bg-cf-surface-soft">
@@ -199,6 +257,13 @@ export function AdminRecordPreview({
   meta = [],
   color = "var(--color-cf-accent)",
   children,
+}: {
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  meta?: Array<string | number>;
+  color?: string;
+  children?: ReactNode;
 }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] ring-1 ring-black/[0.015]">

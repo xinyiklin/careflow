@@ -3,17 +3,27 @@ import { createPortal } from "react-dom";
 import { Badge } from "../../../../shared/components/ui";
 import AdminToolbarSlotContext from "./AdminToolbarSlotContext";
 
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
+import type { AdminConfirmVariant, AdminListFilterOption } from "../../types";
+
 export { default as AdminWorkspaceShell } from "./AdminWorkspaceShell";
 
 export const ADMIN_INTERACTIVE_ROW_CLASS =
   "group cursor-pointer outline-none transition hover:bg-cf-surface-soft/50 focus-visible:bg-cf-surface-soft/75 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cf-accent/30";
+
+type AdminRowActionProps = {
+  disabled?: boolean;
+  label: string;
+  onAction?: (event: MouseEvent | KeyboardEvent) => void;
+  className?: string;
+};
 
 export function getAdminRowActionProps({
   disabled = false,
   label,
   onAction,
   className = "",
-}) {
+}: AdminRowActionProps) {
   if (disabled) {
     return {
       "aria-disabled": true,
@@ -26,7 +36,7 @@ export function getAdminRowActionProps({
     tabIndex: 0,
     "aria-label": label,
     onClick: onAction,
-    onKeyDown: (event) => {
+    onKeyDown: (event: KeyboardEvent) => {
       if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       onAction?.(event);
@@ -42,6 +52,12 @@ export function AdminTableCard({
   savingLabel = "",
   actions = null,
   children,
+}: {
+  title?: string;
+  description?: string;
+  savingLabel?: string;
+  actions?: ReactNode;
+  children: ReactNode;
 }) {
   const toolbarSlot = useContext(AdminToolbarSlotContext);
   const useSharedToolbar = Boolean(toolbarSlot && (savingLabel || actions));
@@ -56,7 +72,7 @@ export function AdminTableCard({
 
   return (
     <section className="cf-admin-table-card overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ring-1 ring-black/[0.015]">
-      {useSharedToolbar && toolbarContent
+      {useSharedToolbar && toolbarContent && toolbarSlot
         ? createPortal(toolbarContent, toolbarSlot)
         : null}
       {title || (!useSharedToolbar && (savingLabel || actions)) ? (
@@ -92,6 +108,16 @@ export function AdminListToolbar({
   sortLabel = "Name",
   savingLabel = "",
   children = null,
+}: {
+  filters?: AdminListFilterOption[];
+  activeFilter?: string;
+  onFilterChange?: (key: string) => void;
+  sortOptions?: Array<{ key: string; label: string }>;
+  activeSort?: string;
+  onSortChange?: (key: string) => void;
+  sortLabel?: string;
+  savingLabel?: string;
+  children?: ReactNode;
 }) {
   const sortSelectId = useId();
   const hasInteractiveFilters = Boolean(onFilterChange);
@@ -133,7 +159,7 @@ export function AdminListToolbar({
             <button
               key={filterKey}
               type="button"
-              onClick={() => onFilterChange(filterKey)}
+              onClick={() => onFilterChange?.(filterKey)}
               className={className}
               aria-pressed={isActive}
             >
@@ -169,7 +195,7 @@ export function AdminListToolbar({
             <select
               id={sortSelectId}
               value={activeSort}
-              onChange={(event) => onSortChange(event.target.value)}
+              onChange={(event) => onSortChange?.(event.target.value)}
               className="rounded-lg border border-cf-border bg-cf-surface px-2 py-1 font-semibold text-cf-text-muted outline-none transition hover:bg-cf-surface-soft focus:border-cf-border-strong"
             >
               {sortOptions.map((option) => (
@@ -189,7 +215,15 @@ export function AdminListToolbar({
   );
 }
 
-export function AdminTableFooter({ shown, total, label = "items" }) {
+export function AdminTableFooter({
+  shown,
+  total,
+  label = "items",
+}: {
+  shown: number;
+  total: number;
+  label?: string;
+}) {
   return (
     <div className="border-t border-cf-border bg-cf-surface-soft/40 px-5 py-3 text-xs text-cf-text-muted">
       Showing {shown} of {total} {label}
@@ -198,7 +232,13 @@ export function AdminTableFooter({ shown, total, label = "items" }) {
 }
 
 /* Inline notice banner */
-export function AdminInlineNotice({ tone = "warning", children }) {
+export function AdminInlineNotice({
+  tone = "warning",
+  children,
+}: {
+  tone?: Exclude<AdminConfirmVariant, "default">;
+  children: ReactNode;
+}) {
   const toneClasses = {
     warning: "border-cf-warning-text bg-cf-warning-bg text-cf-warning-text",
     danger: "border-cf-danger-text bg-cf-danger-bg text-cf-danger-text",

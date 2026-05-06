@@ -1,8 +1,16 @@
-function joinClasses(...classes) {
+import type { ChangeEventHandler, ReactNode } from "react";
+
+function joinClasses(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-export function CompactModalGrid({ children, className = "" }) {
+export function CompactModalGrid({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div
       className={joinClasses(
@@ -15,7 +23,13 @@ export function CompactModalGrid({ children, className = "" }) {
   );
 }
 
-export function CompactModalLane({ children, className = "" }) {
+export function CompactModalLane({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section className={joinClasses("space-y-3", className)}>
       {children}
@@ -29,6 +43,12 @@ export function CompactCard({
   action = null,
   children,
   className = "",
+}: {
+  eyebrow?: string;
+  title?: string;
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
 }) {
   return (
     <section
@@ -59,7 +79,15 @@ export function CompactCard({
   );
 }
 
-export function CompactField({ label, children, className = "" }) {
+export function CompactField({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <label className={className}>
       <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
@@ -76,6 +104,12 @@ export function CompactToggle({
   checked,
   onChange,
   className = "",
+}: {
+  label: string;
+  name: string;
+  checked: boolean;
+  onChange: ChangeEventHandler<HTMLInputElement>;
+  className?: string;
 }) {
   return (
     <label
@@ -96,7 +130,13 @@ export function CompactToggle({
   );
 }
 
-export function CompactMetric({ label, value }) {
+export function CompactMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: ReactNode;
+}) {
   return (
     <div className="rounded-xl border border-cf-border bg-cf-surface-soft/60 px-3 py-2">
       <div className="text-lg font-semibold leading-none text-cf-text">
@@ -109,7 +149,15 @@ export function CompactMetric({ label, value }) {
   );
 }
 
-export function CompactPill({ children, tone = "muted", className = "" }) {
+export function CompactPill({
+  children,
+  tone = "muted",
+  className = "",
+}: {
+  children: ReactNode;
+  tone?: "muted" | "success" | "warning";
+  className?: string;
+}) {
   const toneClass =
     tone === "success"
       ? "bg-cf-success-bg text-cf-success-text ring-cf-success-text/20"
@@ -136,6 +184,12 @@ export function CompactRecordHeader({
   meta,
   accent,
   action = null,
+}: {
+  initials: string;
+  title: string;
+  meta?: ReactNode;
+  accent?: string | null;
+  action?: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3">

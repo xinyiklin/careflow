@@ -7,6 +7,13 @@ import {
 import AdminScopeSwitch from "./AdminScopeSwitch";
 import AdminToolbarSlotContext from "./AdminToolbarSlotContext";
 
+import type { ReactNode } from "react";
+
+export type AdminWorkspaceSection = {
+  key: string;
+  label: string;
+};
+
 export default function AdminWorkspaceShell({
   sections,
   activeSection,
@@ -14,8 +21,15 @@ export default function AdminWorkspaceShell({
   workspaceLabel = "Facility",
   leadingAccessory = null,
   children,
+}: {
+  sections: AdminWorkspaceSection[];
+  activeSection: string;
+  onSelectSection: (sectionKey: string) => void;
+  workspaceLabel?: string;
+  leadingAccessory?: ReactNode;
+  children: ReactNode;
 }) {
-  const [toolbarSlot, setToolbarSlot] = useState(null);
+  const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null);
   const toolbarContextValue = useMemo(() => toolbarSlot, [toolbarSlot]);
   const activeSectionConfig =
     sections.find((section) => section.key === activeSection) || sections[0];

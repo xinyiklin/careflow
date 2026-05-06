@@ -1,5 +1,5 @@
 import { createContext } from "react";
 
-const AdminToolbarSlotContext = createContext(null);
+const AdminToolbarSlotContext = createContext<HTMLElement | null>(null);
 
 export default AdminToolbarSlotContext;
