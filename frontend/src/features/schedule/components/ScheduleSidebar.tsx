@@ -127,7 +127,13 @@ export default function ScheduleSidebar({
   );
   const selectedResourceCount = selectedResourceKeySet.size;
   const heatmapMonth = displayMonth ? displayMonth.slice(0, 7) : "";
-  const { counts: heatmapCounts } = useScheduleHeatmap({
+  const {
+    counts: heatmapCounts,
+    loading: heatmapLoading,
+    refreshing: heatmapRefreshing,
+    error: heatmapError,
+    reload: reloadHeatmap,
+  } = useScheduleHeatmap({
     facilityId,
     month: heatmapMonth,
   });
@@ -269,7 +275,10 @@ export default function ScheduleSidebar({
             <div key={`${day}-${index}`}>{day}</div>
           ))}
         </div>
-        <div className="mt-1 grid grid-cols-7 gap-1 text-[11px]">
+        <div
+          className="mt-1 grid grid-cols-7 gap-1 text-[11px]"
+          aria-busy={heatmapLoading || heatmapRefreshing}
+        >
           {calendarDayCells.map((cell, index) => {
             if (!cell) {
               return <div key={`empty-${index}`} />;
@@ -297,6 +306,9 @@ export default function ScheduleSidebar({
                 aria-label={`${cell.date}: ${appointmentCount} ${
                   appointmentCount === 1 ? "appointment" : "appointments"
                 }`}
+                title={`${cell.date}: ${appointmentCount} ${
+                  appointmentCount === 1 ? "appointment" : "appointments"
+                }`}
               >
                 {cell.day}
               </button>
@@ -313,6 +325,18 @@ export default function ScheduleSidebar({
           </div>
           <span>Busy</span>
         </div>
+        {heatmapError ? (
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-cf-surface-soft px-2.5 py-2 text-[11px] text-cf-text-subtle">
+            <span>Heat map unavailable</span>
+            <button
+              type="button"
+              onClick={() => void reloadHeatmap()}
+              className="rounded-md px-2 py-1 font-semibold text-cf-text transition hover:bg-cf-surface hover:text-cf-accent"
+            >
+              Retry
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-4">

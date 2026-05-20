@@ -31,6 +31,7 @@ type FetchAppointmentsParams = {
 };
 
 export type AppointmentHeatmapResponse = {
+  month?: string;
   counts?: Record<string, number>;
 };
 
