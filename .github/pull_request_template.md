@@ -3,18 +3,18 @@ Solo project template: keep this concise, but include enough context for
 future self-review and portfolio/code-history clarity.
 
 Title format:
-- lowercase
-- verb first
-- no punctuation
+- Uppercase first letter
+- Verb first
+- No punctuation
 
 Examples:
-- harden auth and document workflows
-- split patient modal registration sections
-- fix schedule column scroll behavior
+- Harden auth and document workflows
+- Split patient modal registration sections
+- Fix schedule column scroll behavior
 -->
 
 ## Summary
-Describe what this PR does and why it matters in 1-2 sentences.
+<!-- Describe what changed and why it matters in 1-2 sentences. -->
 
 ## Changes
 - 
@@ -22,6 +22,7 @@ Describe what this PR does and why it matters in 1-2 sentences.
 - 
 
 ## Type of Change
+<!-- Check every category that applies. -->
 - [ ] Feature
 - [ ] Bug Fix
 - [ ] Refactor
@@ -31,8 +32,7 @@ Describe what this PR does and why it matters in 1-2 sentences.
 - [ ] Tests
 
 ## User Impact
-- What changes for users or admins?
-- If there is no user-facing change, say so.
+- 
 
 ## Verification
 - [ ] Frontend lint/build
@@ -42,6 +42,4 @@ Describe what this PR does and why it matters in 1-2 sentences.
 - [ ] Not run; reason:
 
 ## Notes / Follow-ups
-- Any additional context
-- Breaking changes or deployment notes, if any
-- Follow-up work intentionally left out
+- 
