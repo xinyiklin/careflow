@@ -34,6 +34,7 @@ docker-compose.*.override.yml
 
 # Local agent/session guidance
 AGENTS.md
+CLAUDE.md
 CONTINUITY.md
 
 # Node / Frontend

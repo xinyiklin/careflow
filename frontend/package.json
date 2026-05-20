@@ -8,6 +8,7 @@
     "build": "npm run typecheck && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "postinstall": "node scripts/patch-react-hook-form-types.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "format": "prettier . --write",

@@ -13,6 +13,7 @@ from .models import (
     PatientPharmacy,
     PatientPhone,
     Pharmacy,
+    ensure_default_document_categories,
     validate_phone_number,
 )
 
@@ -69,6 +70,48 @@ class PatientDocumentSerializer(serializers.ModelSerializer):
             "original_filename",
             "notes",
         ]
+        read_only_fields = [
+            "id",
+            "title",
+            "category_name",
+            "category_label",
+            "date",
+            "uploaded_at",
+            "uploaded_by_name",
+            "size",
+            "file_size_display",
+            "file_size_bytes",
+            "content_type",
+            "original_filename",
+        ]
+
+    def validate_name(self, value):
+        name = (value or "").strip()
+        if not name:
+            raise serializers.ValidationError("Document name is required.")
+        return name
+
+    def validate_category(self, value):
+        category = (value or "").strip()
+        facility = self.context.get("facility")
+        if not facility and self.instance:
+            facility = self.instance.patient.facility
+
+        if not category or not facility:
+            raise serializers.ValidationError("Select an active document category.")
+
+        ensure_default_document_categories(facility)
+        if not PatientDocumentCategory.objects.filter(
+            facility=facility,
+            code=category,
+            is_active=True,
+        ).exists():
+            raise serializers.ValidationError("Select an active document category.")
+
+        return category
+
+    def validate_notes(self, value):
+        return (value or "").strip()
 
     def get_category_label(self, obj):
         category = PatientDocumentCategory.objects.filter(
@@ -299,12 +342,8 @@ class PatientSerializer(AddressModelSerializerMixin, serializers.ModelSerializer
     primary_phone_number = serializers.SerializerMethodField()
     phones = PatientPhoneSerializer(many=True, required=False)
     emergency_contacts = PatientEmergencyContactSerializer(many=True, required=False)
-    patient_documents = PatientDocumentSerializer(many=True, read_only=True)
-    documents = PatientDocumentSerializer(
-        source="patient_documents",
-        many=True,
-        read_only=True,
-    )
+    patient_documents = serializers.SerializerMethodField()
+    documents = serializers.SerializerMethodField()
     patient_pharmacies = PatientPharmacySerializer(
         source="pharmacy_preferences",
         many=True,
@@ -328,6 +367,17 @@ class PatientSerializer(AddressModelSerializerMixin, serializers.ModelSerializer
         if obj.ssn:
             return obj.ssn[-4:]
         return obj.ssn_last4 or ""
+
+    def get_patient_documents(self, obj):
+        documents = obj.patient_documents.filter(is_active=True)
+        return PatientDocumentSerializer(
+            documents,
+            many=True,
+            context=self.context,
+        ).data
+
+    def get_documents(self, obj):
+        return self.get_patient_documents(obj)
 
     def validate_ssn(self, value):
         digits = "".join(char for char in str(value or "") if char.isdigit())

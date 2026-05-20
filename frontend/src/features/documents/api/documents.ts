@@ -2,7 +2,11 @@ import { apiBlobRequest, apiRequest } from "../../../shared/api/client";
 
 import type { ApiPayload, EntityId } from "../../../shared/api/types";
 import type { ApiRecord } from "../../../shared/types/domain";
-import type { DocumentCategory, PatientDocument } from "../types";
+import type {
+  DocumentCategory,
+  PatientDocument,
+  SavePatientDocumentMetadataPayload,
+} from "../types";
 
 type FacilityScopedParams = {
   facilityId?: EntityId | null;
@@ -67,21 +71,56 @@ export function uploadPatientDocument({
   facilityId,
   patientId,
   file,
+  name,
   category = "admin",
+  documentDate = "",
+  notes = "",
 }: PatientScopedParams & {
   file: File;
+  name?: string;
   category?: string;
+  documentDate?: string;
+  notes?: string;
 }) {
   const formData = new FormData();
   formData.append("patient_id", String(patientId));
   formData.append("file", file);
-  formData.append("name", file.name);
+  formData.append("name", name || file.name);
   formData.append("category", category);
+  if (documentDate) formData.append("document_date", documentDate);
+  if (notes) formData.append("notes", notes);
 
   return apiRequest<PatientDocument>("/patients/documents/", {
     method: "POST",
     params: { facility_id: facilityId },
     body: formData,
+  });
+}
+
+export function updatePatientDocument({
+  facilityId,
+  documentId,
+  values,
+}: FacilityScopedParams & {
+  documentId: EntityId;
+  values: SavePatientDocumentMetadataPayload;
+}) {
+  return apiRequest<PatientDocument>(`/patients/documents/${documentId}/`, {
+    method: "PATCH",
+    params: { facility_id: facilityId },
+    body: JSON.stringify(values),
+  });
+}
+
+export function deletePatientDocument({
+  facilityId,
+  documentId,
+}: FacilityScopedParams & {
+  documentId: EntityId;
+}) {
+  return apiRequest<ApiRecord>(`/patients/documents/${documentId}/`, {
+    method: "DELETE",
+    params: { facility_id: facilityId },
   });
 }
 
