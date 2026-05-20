@@ -19,6 +19,13 @@ type PdfLayer = {
   file: string;
   filename?: string;
   key: number;
+  pageHeight: number | null;
+  pageWidth: number | null;
+};
+
+type PdfViewSettings = {
+  fitMode: FitMode;
+  zoom: number;
 };
 
 type PdfPreviewViewerProps = {
@@ -37,6 +44,11 @@ const MIN_ZOOM = 0.75;
 const MAX_ZOOM = 1.75;
 const ZOOM_STEP = 0.15;
 const PDF_VIEWER_VERTICAL_GUTTER = 0;
+const PDF_VIEWER_WIDTH_SETTLE_MS = 180;
+let lastPdfViewSettings: PdfViewSettings = {
+  fitMode: "height",
+  zoom: 1,
+};
 
 export default function PdfPreviewViewer({
   file,
@@ -46,65 +58,30 @@ export default function PdfPreviewViewer({
 }: PdfPreviewViewerProps) {
   const layerKeyRef = useRef(0);
   const [activeLayer, setActiveLayer] = useState(() =>
-    createPdfLayer({ file, filename, key: layerKeyRef.current })
+    createPdfLayer({
+      file,
+      filename,
+      key: layerKeyRef.current,
+      pageHeight: null,
+      pageWidth: null,
+    })
   );
   const [pendingLayer, setPendingLayer] = useState<PdfLayer | null>(null);
   const [numPages, setNumPages] = useState(0);
   const [pendingNumPages, setPendingNumPages] = useState(0);
   const [pendingRenderedPages, setPendingRenderedPages] = useState(0);
   const [pageNumber, setPageNumber] = useState(1);
-  const [fitMode, setFitMode] = useState<FitMode>("height");
-  const [zoom, setZoom] = useState(1);
+  const [fitMode, setFitMode] = useState<FitMode>(
+    () => lastPdfViewSettings.fitMode
+  );
+  const [zoom, setZoom] = useState(() => lastPdfViewSettings.zoom);
   const [viewerHeight, setViewerHeight] = useState(0);
   const [viewerWidth, setViewerWidth] = useState(0);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Array<HTMLDivElement | null>>([]);
-
-  useEffect(() => {
-    const node = scrollRef.current;
-    if (!node) return undefined;
-
-    const observer = new ResizeObserver(([entry]) => {
-      setViewerHeight(entry.contentRect.height);
-      setViewerWidth(entry.contentRect.width);
-    });
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (file === activeLayer.file || file === pendingLayer?.file) return;
-
-    layerKeyRef.current += 1;
-    setPendingLayer(
-      createPdfLayer({ file, filename, key: layerKeyRef.current })
-    );
-    setPendingNumPages(0);
-    setPendingRenderedPages(0);
-  }, [activeLayer.file, file, filename, pendingLayer?.file]);
-
-  useEffect(() => {
-    setPageNumber(1);
-    setFitMode("height");
-    setZoom(1);
-    pageRefs.current = [];
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
-      scrollRef.current.scrollLeft = 0;
-    }
-  }, [activeLayer.key]);
-
-  useEffect(() => {
-    if (!pendingLayer || pendingNumPages === 0) return;
-    if (pendingRenderedPages < pendingNumPages) return;
-
-    setActiveLayer(pendingLayer);
-    setNumPages(pendingNumPages);
-    setPendingLayer(null);
-    setPendingNumPages(0);
-    setPendingRenderedPages(0);
-  }, [pendingLayer, pendingNumPages, pendingRenderedPages]);
-
+  const widthSettleTimerRef = useRef<number | null>(null);
+  const pendingViewerWidthRef = useRef(0);
+  const hasMeasuredWidthRef = useRef(false);
   const isFitToWidth = fitMode === "width";
   const isFitToHeight = fitMode === "height";
   const availablePageWidth = Math.max(
@@ -123,6 +100,119 @@ export default function PdfPreviewViewer({
       ? Math.round(availablePageHeight * zoom)
       : null;
   const pageWidth = pageHeight ? null : Math.round(basePageWidth * zoom);
+
+  useEffect(() => {
+    const node = scrollRef.current;
+    if (!node) return undefined;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const nextHeight = Math.round(entry.contentRect.height);
+      const nextWidth = Math.round(entry.contentRect.width);
+      setViewerHeight(nextHeight);
+
+      pendingViewerWidthRef.current = nextWidth;
+      if (!hasMeasuredWidthRef.current) {
+        hasMeasuredWidthRef.current = true;
+        setViewerWidth(nextWidth);
+        return;
+      }
+
+      if (widthSettleTimerRef.current) {
+        window.clearTimeout(widthSettleTimerRef.current);
+      }
+      // Sidebar expand/collapse animates width; wait for it to settle before
+      // asking react-pdf to repaint the filled-width canvas.
+      widthSettleTimerRef.current = window.setTimeout(() => {
+        setViewerWidth(pendingViewerWidthRef.current);
+        widthSettleTimerRef.current = null;
+      }, PDF_VIEWER_WIDTH_SETTLE_MS);
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      if (widthSettleTimerRef.current) {
+        window.clearTimeout(widthSettleTimerRef.current);
+        widthSettleTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const activeLayerMatches =
+      file === activeLayer.file &&
+      filename === activeLayer.filename &&
+      pageHeight === activeLayer.pageHeight &&
+      pageWidth === activeLayer.pageWidth;
+    const pendingLayerMatches =
+      file === pendingLayer?.file &&
+      filename === pendingLayer?.filename &&
+      pageHeight === pendingLayer?.pageHeight &&
+      pageWidth === pendingLayer?.pageWidth;
+
+    if (activeLayerMatches) {
+      if (pendingLayer && !pendingLayerMatches) {
+        setPendingLayer(null);
+        setPendingNumPages(0);
+        setPendingRenderedPages(0);
+      }
+      return;
+    }
+    if (pendingLayerMatches) return;
+
+    layerKeyRef.current += 1;
+    setPendingLayer(
+      createPdfLayer({
+        file,
+        filename,
+        key: layerKeyRef.current,
+        pageHeight,
+        pageWidth,
+      })
+    );
+    setPendingNumPages(0);
+    setPendingRenderedPages(0);
+  }, [
+    activeLayer.file,
+    activeLayer.filename,
+    activeLayer.pageHeight,
+    activeLayer.pageWidth,
+    file,
+    filename,
+    pageHeight,
+    pageWidth,
+    pendingLayer,
+    pendingLayer?.file,
+    pendingLayer?.filename,
+    pendingLayer?.pageHeight,
+    pendingLayer?.pageWidth,
+  ]);
+
+  useEffect(() => {
+    pageRefs.current = [];
+  }, [activeLayer.key]);
+
+  useEffect(() => {
+    lastPdfViewSettings = { fitMode, zoom };
+  }, [fitMode, zoom]);
+
+  useEffect(() => {
+    setPageNumber(1);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+      scrollRef.current.scrollLeft = 0;
+    }
+  }, [activeLayer.file]);
+
+  useEffect(() => {
+    if (!pendingLayer || pendingNumPages === 0) return;
+    if (pendingRenderedPages < pendingNumPages) return;
+
+    setActiveLayer(pendingLayer);
+    setNumPages(pendingNumPages);
+    setPendingLayer(null);
+    setPendingNumPages(0);
+    setPendingRenderedPages(0);
+  }, [pendingLayer, pendingNumPages, pendingRenderedPages]);
 
   const goToPage = (nextPage: number) => {
     const safePage = Math.min(Math.max(nextPage, 1), numPages || 1);
@@ -157,22 +247,17 @@ export default function PdfPreviewViewer({
     >
       <div
         className={[
-          "flex shrink-0 flex-wrap items-center gap-2 border-b border-cf-border bg-cf-surface px-3 py-2",
-          showDocumentHeader ? "justify-between" : "justify-end",
+          "flex shrink-0 flex-col border-b border-cf-border bg-cf-surface px-3 py-2",
+          showDocumentHeader ? "gap-2" : "items-end",
         ].join(" ")}
       >
         {showDocumentHeader ? (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-cf-text">
-              {activeLayer.filename || "PDF preview"}
-            </p>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-              CareFlow PDF viewer
-            </p>
-          </div>
+          <p className="w-full min-w-0 truncate text-sm font-semibold text-cf-text">
+            {activeLayer.filename || "PDF preview"}
+          </p>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex w-full flex-wrap items-center justify-start gap-1.5">
           <Button
             type="button"
             size="sm"
@@ -183,7 +268,7 @@ export default function PdfPreviewViewer({
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
           <span className="rounded-full border border-cf-border bg-cf-surface-muted px-2.5 py-1 text-xs font-semibold text-cf-text-muted">
-            {numPages ? `${pageNumber} / ${numPages}` : "— / —"}
+            {numPages ? `${pageNumber} / ${numPages}` : "- / -"}
           </span>
           <Button
             type="button"
@@ -276,9 +361,9 @@ export default function PdfPreviewViewer({
                 <PdfPreviewDocument
                   file={layer.file}
                   numPages={layerNumPages}
-                  pageHeight={pageHeight}
+                  pageHeight={layer.pageHeight}
                   pageRefs={isActive ? pageRefs : null}
-                  pageWidth={pageWidth}
+                  pageWidth={layer.pageWidth}
                   onLoadSuccess={({
                     numPages: loadedPages,
                   }: {
@@ -309,10 +394,18 @@ export default function PdfPreviewViewer({
   );
 }
 
-function createPdfLayer({ file, filename, key }: PdfLayer): PdfLayer {
+function createPdfLayer({
+  file,
+  filename,
+  key,
+  pageHeight,
+  pageWidth,
+}: PdfLayer): PdfLayer {
   return {
     file,
     filename,
     key,
+    pageHeight,
+    pageWidth,
   };
 }

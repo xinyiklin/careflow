@@ -34,6 +34,8 @@ type PatientDocumentsWorkspaceProps = {
   | "documentLoadError"
   | "onRetryDocuments"
   | "onDocumentUploaded"
+  | "onDocumentUpdated"
+  | "onDocumentDeleted"
 >;
 
 function getInitialDocuments(patient?: PatientWithDocuments | null) {
@@ -95,7 +97,31 @@ export default function PatientDocumentsWorkspace({
       return [document, ...currentDocuments];
     });
     queryClient.invalidateQueries({ queryKey });
+    categoriesQuery.reload();
     onDocumentUploaded?.(document);
+  };
+
+  const handleDocumentUpdated = (document: PatientDocument | null) => {
+    if (!document) return;
+    queryClient.setQueryData<PatientDocument[]>(queryKey, (current = []) => {
+      const currentDocuments = Array.isArray(current) ? current : [];
+      return currentDocuments.map((item) =>
+        String(item.id) === String(document.id) ? document : item
+      );
+    });
+    queryClient.invalidateQueries({ queryKey });
+    categoriesQuery.reload();
+  };
+
+  const handleDocumentDeleted = (documentId: EntityId) => {
+    queryClient.setQueryData<PatientDocument[]>(queryKey, (current = []) => {
+      const currentDocuments = Array.isArray(current) ? current : [];
+      return currentDocuments.filter(
+        (item) => String(item.id) !== String(documentId)
+      );
+    });
+    queryClient.invalidateQueries({ queryKey });
+    categoriesQuery.reload();
   };
 
   return (
@@ -115,6 +141,8 @@ export default function PatientDocumentsWorkspace({
           categoriesQuery.reload();
         }}
         onDocumentUploaded={handleDocumentUploaded}
+        onDocumentUpdated={handleDocumentUpdated}
+        onDocumentDeleted={handleDocumentDeleted}
       />
       <DocumentCategoriesModal
         isOpen={isCategoryModalOpen}

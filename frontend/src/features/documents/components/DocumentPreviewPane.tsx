@@ -303,15 +303,10 @@ function NoDocumentPreview({
       ].join(" ")}
     >
       {showDocumentHeader ? (
-        <div className="flex shrink-0 items-center justify-between border-b border-cf-border bg-cf-surface px-3 py-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-cf-text">
-              {documentName || "No document selected"}
-            </p>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-              CareFlow viewer
-            </p>
-          </div>
+        <div className="flex shrink-0 items-center border-b border-cf-border bg-cf-surface px-3 py-2">
+          <p className="min-w-0 truncate text-sm font-semibold text-cf-text">
+            {documentName || "CareFlow Viewer"}
+          </p>
         </div>
       ) : null}
 
@@ -321,13 +316,13 @@ function NoDocumentPreview({
             <FileText className="h-6 w-6" />
           </div>
           <p className="mt-3 text-sm font-semibold text-cf-text">
-            {documentName || "No document selected"}
+            {documentName || "CareFlow Viewer"}
           </p>
-          <p className="mt-1 max-w-[220px] text-xs leading-relaxed text-cf-text-muted">
-            {documentName
-              ? "The preview will appear here."
-              : "Choose a document to preview it here."}
-          </p>
+          {documentName ? (
+            <p className="mt-1 max-w-[220px] text-xs leading-relaxed text-cf-text-muted">
+              The preview will appear here.
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

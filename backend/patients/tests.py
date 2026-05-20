@@ -256,6 +256,158 @@ class PatientViewSetTests(TestCase):
         self.assertNotIn("file_url", response.data[0])
         self.assertNotIn("url", response.data[0])
 
+    def test_patient_response_excludes_inactive_documents(self):
+        active_document = PatientDocument.objects.create(
+            patient=self.patient,
+            name="Active document.pdf",
+            category="admin",
+            file_url="https://example.com/active.pdf",
+        )
+        PatientDocument.objects.create(
+            patient=self.patient,
+            name="Deleted document.pdf",
+            category="admin",
+            file_url="https://example.com/deleted.pdf",
+            is_active=False,
+        )
+
+        response = self.client.get(
+            f"/v1/patients/{self.patient.id}/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            [document["id"] for document in response.data["patient_documents"]],
+            [active_document.id],
+        )
+        self.assertEqual(
+            [document["id"] for document in response.data["documents"]],
+            [active_document.id],
+        )
+
+    def test_document_metadata_can_be_updated_and_audited(self):
+        document = PatientDocument.objects.create(
+            patient=self.patient,
+            name="Old file name.pdf",
+            category="admin",
+            document_date=date(2026, 4, 1),
+            notes="Initial note",
+            file_url="https://example.com/private.pdf",
+        )
+
+        response = self.client.patch(
+            (
+                f"/v1/patients/documents/{document.id}/"
+                f"?facility_id={self.facility.id}"
+            ),
+            {
+                "name": "Lab results.pdf",
+                "category": "lab",
+                "document_date": "2026-04-20",
+                "notes": "Reviewed before visit.",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["name"], "Lab results.pdf")
+        self.assertEqual(response.data["category"], "lab")
+        self.assertEqual(response.data["document_date"], "2026-04-20")
+        self.assertEqual(response.data["notes"], "Reviewed before visit.")
+        document.refresh_from_db()
+        self.assertEqual(document.name, "Lab results.pdf")
+        self.assertEqual(document.category, "lab")
+        self.assertEqual(document.document_date, date(2026, 4, 20))
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                actor=self.user,
+                patient=self.patient,
+                action="update",
+                model_name="patientdocument",
+                object_pk=document.pk,
+                summary="Updated document Lab results.pdf",
+            ).exists()
+        )
+
+    def test_document_metadata_update_validates_category_and_permission(self):
+        document = PatientDocument.objects.create(
+            patient=self.patient,
+            name="Clinical note.pdf",
+            category="admin",
+            file_url="https://example.com/private.pdf",
+        )
+
+        invalid_response = self.client.patch(
+            (
+                f"/v1/patients/documents/{document.id}/"
+                f"?facility_id={self.facility.id}"
+            ),
+            {"category": "missing-category"},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(invalid_response.status_code, 400)
+        self.assertIn("category", invalid_response.data)
+
+        unsupported_response = self.client.patch(
+            (
+                f"/v1/patients/documents/{document.id}/"
+                f"?facility_id={self.facility.id}"
+            ),
+            {"original_filename": "tampered.pdf"},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(unsupported_response.status_code, 400)
+        self.assertIn("original_filename", unsupported_response.data)
+
+        self.staff.role = StaffRole.objects.get(facility=self.facility, code="biller")
+        self.staff.save()
+        permission_response = self.client.patch(
+            (
+                f"/v1/patients/documents/{document.id}/"
+                f"?facility_id={self.facility.id}"
+            ),
+            {"name": "Restricted edit.pdf"},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(permission_response.status_code, 403)
+
+    def test_document_delete_soft_deletes_and_audits(self):
+        document = PatientDocument.objects.create(
+            patient=self.patient,
+            name="Delete me.pdf",
+            category="admin",
+            file_url="https://example.com/private.pdf",
+        )
+
+        response = self.client.delete(
+            (
+                f"/v1/patients/documents/{document.id}/"
+                f"?facility_id={self.facility.id}"
+            ),
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 204)
+        document.refresh_from_db()
+        self.assertFalse(document.is_active)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                actor=self.user,
+                patient=self.patient,
+                action="delete",
+                model_name="patientdocument",
+                object_pk=document.pk,
+            ).exists()
+        )
+
     def test_document_category_management_requires_permission(self):
         self.staff.role = StaffRole.objects.get(facility=self.facility, code="staff")
         self.staff.save()

@@ -379,7 +379,12 @@ class PatientDocumentViewSet(FacilityScopedPatientMixin, viewsets.ModelViewSet):
     serializer_class = PatientDocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-    http_method_names = ["get", "post", "delete", "head", "options"]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["facility"] = self.get_facility()
+        return context
 
     def get_queryset(self):
         facility = self.get_facility()
@@ -452,41 +457,42 @@ class PatientDocumentViewSet(FacilityScopedPatientMixin, viewsets.ModelViewSet):
         if not patient:
             raise PermissionDenied("You do not have access to this patient.")
 
-        storage = get_patient_document_storage()
-        storage_key = storage.save(uploaded_file, patient.id)
-        name = (
-            request.data.get("name") or uploaded_file.name or "Untitled document"
-        ).strip()
-        content_type = uploaded_file.content_type or "application/octet-stream"
-        file_size = uploaded_file.size or 0
-        category = (
-            request.data.get("category") or PatientDocument.CATEGORY_ADMIN
-        ).strip()
-        ensure_default_document_categories(facility)
-        if not PatientDocumentCategory.objects.filter(
-            facility=facility,
-            code=category,
-            is_active=True,
-        ).exists():
+        metadata_serializer = self.get_serializer(
+            data={
+                "name": request.data.get("name")
+                or uploaded_file.name
+                or "Untitled document",
+                "category": request.data.get("category")
+                or PatientDocument.CATEGORY_ADMIN,
+                "document_date": request.data.get("document_date") or None,
+                "notes": request.data.get("notes") or "",
+            }
+        )
+        if not metadata_serializer.is_valid():
             return Response(
-                {"category": "Select an active document category."},
+                metadata_serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        storage = get_patient_document_storage()
+        storage_key = storage.save(uploaded_file, patient.id)
+        metadata = metadata_serializer.validated_data
+        content_type = uploaded_file.content_type or "application/octet-stream"
+        file_size = uploaded_file.size or 0
         document = PatientDocument.objects.create(
             patient=patient,
-            name=name,
-            category=category,
-            document_date=request.data.get("document_date") or None,
+            name=metadata["name"],
+            category=metadata["category"],
+            document_date=metadata.get("document_date"),
             uploaded_by_name=request.user.get_full_name()
             or request.user.get_username()
             or "",
             file_size_display=format_file_size(file_size),
             file_size_bytes=file_size,
             content_type=content_type,
-            original_filename=uploaded_file.name or name,
+            original_filename=uploaded_file.name or metadata["name"],
             storage_key=storage_key,
-            notes=(request.data.get("notes") or "").strip(),
+            notes=metadata.get("notes") or "",
             is_active=True,
         )
         record_audit_event(
@@ -507,6 +513,66 @@ class PatientDocumentViewSet(FacilityScopedPatientMixin, viewsets.ModelViewSet):
 
         serializer = self.get_serializer(document)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        allowed_fields = {"name", "category", "document_date", "notes"}
+        unsupported_fields = sorted(set(request.data.keys()) - allowed_fields)
+        if unsupported_fields:
+            return Response(
+                {
+                    field: "This field cannot be updated."
+                    for field in unsupported_fields
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return super().partial_update(request, *args, **kwargs)
+
+    def perform_update(self, serializer):
+        facility = self.get_facility()
+        if not user_has_facility_permission(
+            self.request.user,
+            facility.id,
+            "patients.update",
+        ):
+            raise PermissionDenied(
+                "You do not have access to update patient documents."
+            )
+
+        tracked_fields = {
+            "name": "Name",
+            "category": "Category",
+            "document_date": "Document date",
+            "notes": "Notes",
+        }
+        previous_values = {
+            field: getattr(serializer.instance, field)
+            for field in tracked_fields
+            if field in serializer.validated_data
+        }
+        document = serializer.save()
+        changed_fields = [
+            tracked_fields[field]
+            for field, previous_value in previous_values.items()
+            if previous_value != getattr(document, field)
+        ]
+
+        if changed_fields:
+            record_audit_event(
+                actor=self.request.user,
+                facility=facility,
+                patient=document.patient,
+                action="update",
+                app_label="patients",
+                model_name="patientdocument",
+                object_pk=document.pk,
+                summary=f"Updated document {document.name}",
+                metadata={
+                    "document_id": document.pk,
+                    "category": document.category,
+                    "changed_fields": changed_fields,
+                },
+            )
 
     @action(detail=True, methods=["get"])
     def view(self, request, pk=None):

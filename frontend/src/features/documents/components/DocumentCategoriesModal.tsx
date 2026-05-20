@@ -1,28 +1,28 @@
-import { useEffect, useMemo, useState } from "react";
-import { GripVertical, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  GripVertical,
+  Lock,
+  Pencil,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 
 import ConfirmDialog from "../../../shared/components/ConfirmDialog";
 import {
-  Badge,
   Button,
   Input,
   ModalShell,
   Notice,
 } from "../../../shared/components/ui";
-import {
-  AdminField,
-  AdminFormModal as UntypedAdminFormModal,
-  AdminFormSection,
-} from "../../admin/components/shared/AdminFormModal";
-import type { ComponentType, FormEvent, ReactNode } from "react";
+
+import type { FormEvent } from "react";
 import type { EntityId } from "../../../shared/api/types";
 import type { DocumentCategory, SaveDocumentCategoryPayload } from "../types";
 
-const EMPTY_FORM = {
-  name: "",
-  sort_order: 10,
-};
-
+const EMPTY_FORM = { name: "", sort_order: 10 };
 type DocumentCategoryForm = typeof EMPTY_FORM;
 
 type DocumentCategoriesModalProps = {
@@ -36,33 +36,213 @@ type DocumentCategoriesModalProps = {
   onDelete?: (categoryId: EntityId) => Promise<unknown> | unknown;
 };
 
-type AdminFormModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  scope: string;
-  title: string;
-  description?: string;
-  maxWidth?: string;
-  formId: string;
-  saving?: boolean;
-  deleteLabel?: string;
-  onDelete?: () => void;
-  children: ReactNode;
-};
-
-const AdminFormModal =
-  UntypedAdminFormModal as ComponentType<AdminFormModalProps>;
-
 function getNextSortOrder(categories: DocumentCategory[]) {
-  const orders = categories.map((category) => Number(category.sort_order) || 0);
+  const orders = categories.map((c) => Number(c.sort_order) || 0);
   return (Math.max(0, ...orders) || 0) + 10;
 }
 
-function getCategoryStatus(category: DocumentCategory) {
-  if (category.is_system) return <Badge variant="neutral">System</Badge>;
-  if (Number(category.document_count) > 0)
-    return <Badge variant="muted">In use</Badge>;
-  return <Badge variant="outline">Custom</Badge>;
+type StatusKind = "system" | "in-use" | "custom";
+
+function getStatusKind(category: DocumentCategory): StatusKind {
+  if (category.is_system) return "system";
+  if (Number(category.document_count) > 0) return "in-use";
+  return "custom";
+}
+
+const STATUS_CONFIG: Record<
+  StatusKind,
+  { label: string; dotClass: string; textClass: string }
+> = {
+  system: {
+    label: "System",
+    dotClass: "bg-cf-text-subtle",
+    textClass: "text-cf-text-subtle",
+  },
+  "in-use": {
+    label: "In use",
+    dotClass: "bg-cf-success-text",
+    textClass: "text-cf-success-text",
+  },
+  custom: {
+    label: "Custom",
+    dotClass: "bg-cf-text-subtle/40",
+    textClass: "text-cf-text-subtle",
+  },
+};
+
+function StatusPip({ category }: { category: DocumentCategory }) {
+  const kind = getStatusKind(category);
+  const { label, dotClass, textClass } = STATUS_CONFIG[kind];
+  return (
+    <span
+      className={`flex items-center gap-1.5 text-[11px] font-medium ${textClass}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+      {label}
+    </span>
+  );
+}
+
+type EditorPanelProps = {
+  editing: DocumentCategory | null;
+  form: DocumentCategoryForm;
+  saving: boolean;
+  localError: string;
+  onNameChange: (value: string) => void;
+  onSave: (event: FormEvent<HTMLFormElement>) => void;
+  onClose: () => void;
+  onDelete: (() => void) | null;
+  deleteBlockReason: string;
+};
+
+function EditorPanel({
+  editing,
+  form,
+  saving,
+  localError,
+  onNameChange,
+  onSave,
+  onClose,
+  onDelete,
+  deleteBlockReason,
+}: EditorPanelProps) {
+  const nameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // focus name field when panel opens
+    const t = setTimeout(() => nameRef.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, [editing]);
+
+  const isSystem = Boolean(editing?.is_system);
+  const isInUse = Number(editing?.document_count) > 0;
+
+  return (
+    <div className="border-t border-cf-border">
+      {/* Panel header */}
+      <div className="flex items-center justify-between border-b border-cf-border bg-cf-surface-muted/40 px-6 py-3">
+        <div>
+          <p className="text-sm font-semibold text-cf-text">
+            {editing ? "Edit category" : "New category"}
+          </p>
+          {editing ? (
+            <p className="mt-0.5 text-[11px] text-cf-text-muted">
+              Code:{" "}
+              <span className="font-mono font-semibold text-cf-text-subtle">
+                {editing.code}
+              </span>
+            </p>
+          ) : (
+            <p className="mt-0.5 text-[11px] text-cf-text-muted">
+              Names can be changed later without affecting the filing code.
+            </p>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="flex h-7 w-7 items-center justify-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-subtle transition hover:border-cf-border-strong hover:text-cf-text disabled:opacity-40"
+          aria-label="Close editor"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Notices */}
+      {localError ? (
+        <div className="px-6 pt-3">
+          <div className="flex items-start gap-2 rounded-xl border border-cf-danger-bg bg-cf-danger-bg px-3 py-2.5 text-xs font-medium text-cf-danger-text">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            {localError}
+          </div>
+        </div>
+      ) : null}
+
+      {editing && deleteBlockReason ? (
+        <div className="px-6 pt-3">
+          <div className="flex items-start gap-2 rounded-xl border border-cf-border bg-cf-surface-soft px-3 py-2.5 text-xs font-medium text-cf-text-muted">
+            <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cf-text-subtle" />
+            {isSystem
+              ? "System category - rename only, cannot be deleted."
+              : isInUse
+                ? "This category has filed documents and cannot be deleted while in use."
+                : deleteBlockReason}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Form */}
+      <form id="document-category-form" onSubmit={onSave} className="px-6 py-4">
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold text-cf-text-subtle">
+            Category name
+          </span>
+          <Input
+            ref={nameRef}
+            value={form.name}
+            placeholder="e.g. Pre-Op Clearance"
+            onChange={(e) => onNameChange(e.target.value)}
+            disabled={saving}
+          />
+        </label>
+
+        <div className="mt-3 flex items-center justify-between gap-2">
+          {/* Delete left side */}
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={saving}
+              className="flex items-center gap-1.5 rounded-lg border border-cf-danger-bg bg-cf-danger-bg px-3 py-1.5 text-xs font-semibold text-cf-danger-text transition hover:opacity-80 disabled:opacity-40"
+            >
+              <Trash2 className="h-3 w-3" />
+              Delete
+            </button>
+          ) : (
+            <span />
+          )}
+
+          {/* Save / Cancel right side */}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={onClose}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="document-category-form"
+              size="sm"
+              variant="primary"
+              disabled={saving}
+            >
+              {saving ? (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Saving...
+                </span>
+              ) : editing ? (
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Save
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <Plus className="h-3.5 w-3.5" />
+                  Add category
+                </span>
+              )}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 export default function DocumentCategoriesModal({
@@ -136,13 +316,9 @@ export default function DocumentCategoriesModal({
       setLocalError("Category name is required.");
       return;
     }
-
     await onSave?.({
       categoryId: editingCategory?.id || null,
-      values: {
-        name,
-        sort_order: Number(form.sort_order) || 0,
-      },
+      values: { name, sort_order: Number(form.sort_order) || 0 },
     });
     resetEditor();
   };
@@ -157,35 +333,29 @@ export default function DocumentCategoriesModal({
         ({ category, sortOrder }) =>
           Number(category.sort_order) !== Number(sortOrder)
       );
-
     await Promise.all(
       updates.map(({ category, sortOrder }) =>
-        onSave?.({
-          categoryId: category.id,
-          values: { sort_order: sortOrder },
-        })
+        onSave?.({ categoryId: category.id, values: { sort_order: sortOrder } })
       )
     );
   };
 
   const handleDrop = async (targetCategory: DocumentCategory) => {
     const draggedCategory = orderedCategories.find(
-      (category) => category.id === dragCategoryId
+      (c) => c.id === dragCategoryId
     );
     if (!draggedCategory || draggedCategory.id === targetCategory.id) {
       setDragCategoryId(null);
       setDropTargetId(null);
       return;
     }
-
     const nextCategories = orderedCategories.filter(
-      (category) => category.id !== draggedCategory.id
+      (c) => c.id !== draggedCategory.id
     );
     const targetIndex = nextCategories.findIndex(
-      (category) => category.id === targetCategory.id
+      (c) => c.id === targetCategory.id
     );
     nextCategories.splice(targetIndex, 0, draggedCategory);
-
     try {
       await persistOrder(nextCategories);
     } catch {
@@ -199,9 +369,7 @@ export default function DocumentCategoriesModal({
   const confirmDelete = async () => {
     if (!deleteCandidate) return;
     await onDelete?.(deleteCandidate.id);
-    if (editingCategory?.id === deleteCandidate.id) {
-      resetEditor();
-    }
+    if (editingCategory?.id === deleteCandidate.id) resetEditor();
     setDeleteCandidate(null);
   };
 
@@ -219,97 +387,129 @@ export default function DocumentCategoriesModal({
       <ModalShell
         isOpen={isOpen}
         onClose={onClose}
-        title="Document Categories"
+        title="Manage Categories"
         eyebrow="Document Center"
-        description="Manage the filing categories available for this facility."
-        maxWidth="3xl"
+        maxWidth="2xl"
+        bodyClassName="p-0"
         footer={
-          <>
-            <Button type="button" variant="default" onClick={onClose}>
-              Close
-            </Button>
-            <div className="ml-auto text-xs font-medium text-cf-text-subtle">
-              {orderedCategories.length} active categories
+          <div className="flex w-full items-center justify-between gap-3">
+            <span className="text-xs font-medium text-cf-text-subtle">
+              {orderedCategories.length}{" "}
+              {orderedCategories.length === 1 ? "category" : "categories"}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="primary"
+                onClick={
+                  isEditorOpen && !editingCategory ? resetEditor : beginCreate
+                }
+                disabled={saving}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                New
+              </Button>
+              <Button type="button" variant="default" onClick={onClose}>
+                Done
+              </Button>
             </div>
-          </>
+          </div>
         }
       >
-        {error || localError ? (
-          <Notice tone="danger" className="mb-3">
-            {localError || error}
+        {error ? (
+          <Notice tone="danger" className="mx-6 mt-4">
+            {error}
           </Notice>
         ) : null}
 
-        <div className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface-soft/65 px-4 py-3">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-              Categories
+        {/* Column labels */}
+        <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_5rem_2rem] items-center gap-2 border-b border-cf-border bg-cf-surface-muted/40 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-cf-text-subtle sm:px-6">
+          <span />
+          <span>Name</span>
+          <span>Status</span>
+          <span />
+        </div>
+
+        {/* Rows */}
+        <div className="divide-y divide-cf-border">
+          {loading ? (
+            <div className="space-y-2 px-6 py-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="cf-loading-skeleton h-11 rounded-xl bg-cf-surface-soft"
+                />
+              ))}
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="primary"
-              onClick={beginCreate}
-              disabled={saving}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New Category
-            </Button>
-          </div>
+          ) : orderedCategories.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+              <p className="text-sm font-semibold text-cf-text">
+                No categories yet
+              </p>
+              <p className="text-xs text-cf-text-muted">
+                Add your first category to start filing documents.
+              </p>
+              <Button
+                type="button"
+                size="sm"
+                className="mt-2"
+                onClick={beginCreate}
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add category
+              </Button>
+            </div>
+          ) : (
+            orderedCategories.map((category) => {
+              const isDragging = dragCategoryId === category.id;
+              const isDropTarget =
+                dropTargetId === category.id && dragCategoryId !== category.id;
+              const isEditing =
+                isEditorOpen && editingCategory?.id === category.id;
 
-          <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_3.5rem] gap-2 border-b border-cf-border bg-cf-surface px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.1em] text-cf-text-subtle sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3.5rem] sm:px-4">
-            <span />
-            <span>Category</span>
-            <span className="hidden sm:block">Status</span>
-            <span className="text-right">Files</span>
-          </div>
-
-          <div className="divide-y divide-cf-border">
-            {loading ? (
-              <div className="px-4 py-8 text-center text-sm text-cf-text-muted">
-                Loading categories...
-              </div>
-            ) : orderedCategories.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-cf-text-muted">
-                No categories yet.
-              </div>
-            ) : (
-              orderedCategories.map((category) => {
-                const isDragging = dragCategoryId === category.id;
-                const isDropTarget =
-                  dropTargetId === category.id &&
-                  dragCategoryId !== category.id;
-
-                return (
+              return (
+                <div
+                  key={category.id}
+                  className={[
+                    "group transition-colors",
+                    isEditing
+                      ? "bg-cf-accent/5"
+                      : isDropTarget
+                        ? "bg-cf-accent/8"
+                        : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                >
                   <div
-                    key={category.id}
                     role="button"
                     tabIndex={0}
                     draggable={!saving}
                     aria-label={`Edit category ${category.name}`}
-                    title="Double-click to edit"
                     onDoubleClick={() => beginEdit(category)}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
+                    onClick={() => beginEdit(category)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.key !== " ") return;
+                      e.preventDefault();
                       beginEdit(category);
                     }}
-                    onDragStart={(event) => {
-                      event.dataTransfer.effectAllowed = "move";
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
                       setDragCategoryId(category.id);
                     }}
-                    onDragOver={(event) => {
+                    onDragOver={(e) => {
                       if (!dragCategoryId || dragCategoryId === category.id)
                         return;
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
                       setDropTargetId(category.id);
                     }}
                     onDragLeave={() => {
                       if (dropTargetId === category.id) setDropTargetId(null);
                     }}
-                    onDrop={(event) => {
-                      event.preventDefault();
+                    onDrop={(e) => {
+                      e.preventDefault();
                       handleDrop(category);
                     }}
                     onDragEnd={() => {
@@ -317,100 +517,74 @@ export default function DocumentCategoriesModal({
                       setDropTargetId(null);
                     }}
                     className={[
-                      "grid cursor-grab grid-cols-[1.5rem_minmax(0,1fr)_3.5rem] items-center gap-2 px-3 py-3 outline-none transition hover:bg-cf-surface-soft/55 focus-visible:bg-cf-surface-soft focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cf-accent/30 active:cursor-grabbing sm:grid-cols-[1.5rem_minmax(0,1fr)_5.5rem_3.5rem] sm:px-4",
-                      isDragging ? "opacity-45" : "",
-                      isDropTarget ? "bg-cf-accent/10" : "",
+                      "grid cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)_5rem_2rem] items-center gap-2 px-4 py-3 outline-none transition sm:px-6",
+                      "hover:bg-cf-surface-soft/55 focus-visible:bg-cf-surface-soft focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cf-accent/30",
+                      isDragging ? "opacity-40" : "",
+                      isEditing ? "bg-cf-accent/5" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <GripVertical className="h-4 w-4 text-cf-text-subtle" />
+                    {/* Drag handle */}
+                    <GripVertical className="h-4 w-4 cursor-grab text-cf-text-subtle/50 active:cursor-grabbing" />
+
+                    {/* Name + code */}
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-cf-text">
-                        {category.name}
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-cf-text">
+                          {category.name}
+                        </span>
+                        {category.is_system ? (
+                          <Lock className="h-3 w-3 shrink-0 text-cf-text-subtle/60" />
+                        ) : null}
                       </div>
-                      <div className="mt-0.5 truncate text-xs text-cf-text-subtle">
+                      <div className="mt-0.5 truncate font-mono text-[10px] text-cf-text-subtle/70">
                         {category.code}
                       </div>
-                      <div className="mt-2 sm:hidden">
-                        {getCategoryStatus(category)}
-                      </div>
                     </div>
-                    <div className="hidden sm:block">
-                      {getCategoryStatus(category)}
-                    </div>
-                    <div className="text-right text-sm font-semibold text-cf-text-muted">
-                      {category.document_count || 0}
+
+                    {/* Status pip */}
+                    <StatusPip category={category} />
+
+                    {/* Edit icon revealed on hover */}
+                    <div className="flex justify-end">
+                      <Pencil className="h-3.5 w-3.5 text-cf-text-subtle opacity-0 transition group-hover:opacity-60" />
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </ModalShell>
-
-      <AdminFormModal
-        isOpen={isEditorOpen}
-        onClose={resetEditor}
-        scope="Document Center"
-        title={editingCategory ? "Edit Category" : "New Category"}
-        description="Category names can be changed without changing the underlying filing code."
-        formId="document-category-form"
-        saving={saving}
-        deleteLabel={canDeleteEditingCategory ? "Delete" : ""}
-        onDelete={
-          canDeleteEditingCategory
-            ? () => setDeleteCandidate(editingCategory)
-            : undefined
-        }
-      >
-        <form id="document-category-form" onSubmit={handleSave}>
-          <AdminFormSection title="Category">
-            {localError ? (
-              <Notice tone="danger" className="mb-4">
-                {localError}
-              </Notice>
-            ) : null}
-            {editingCategory && deleteBlockReason ? (
-              <Notice tone="info" className="mb-4">
-                {deleteBlockReason === "System category"
-                  ? "This default category is protected. You can rename it, but it cannot be deleted."
-                  : "This category has filed documents, so it cannot be deleted."}
-              </Notice>
-            ) : null}
-
-            <div className="grid gap-4">
-              <AdminField label="Name">
-                <Input
-                  value={form.name}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
-                  }
-                  autoFocus
-                />
-              </AdminField>
-
-              {editingCategory ? (
-                <div className="flex flex-wrap gap-2 text-xs text-cf-text-subtle">
-                  <Badge variant="muted">{editingCategory.code}</Badge>
-                  {getCategoryStatus(editingCategory)}
                 </div>
-              ) : null}
-            </div>
-          </AdminFormSection>
-        </form>
-      </AdminFormModal>
+              );
+            })
+          )}
+        </div>
+
+        {/* Inline editor sits flush below the list */}
+        {isEditorOpen ? (
+          <EditorPanel
+            editing={editingCategory}
+            form={form}
+            saving={saving}
+            localError={localError}
+            onNameChange={(value) =>
+              setForm((current) => ({ ...current, name: value }))
+            }
+            onSave={handleSave}
+            onClose={resetEditor}
+            onDelete={
+              canDeleteEditingCategory
+                ? () => setDeleteCandidate(editingCategory)
+                : null
+            }
+            deleteBlockReason={deleteBlockReason}
+          />
+        ) : null}
+      </ModalShell>
 
       <ConfirmDialog
         isOpen={Boolean(deleteCandidate)}
         title="Delete Category"
         message={
           deleteCandidate
-            ? `Delete ${deleteCandidate.name}? It will no longer be available for filing documents.`
+            ? `Delete "${deleteCandidate.name}"? It will no longer be available for filing documents.`
             : ""
         }
         confirmText="Delete"
