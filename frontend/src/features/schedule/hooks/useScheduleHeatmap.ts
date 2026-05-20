@@ -17,12 +17,16 @@ export default function useScheduleHeatmap({
     queryKey: ["appointmentHeatmap", facilityId, month],
     queryFn: () => fetchAppointmentHeatmap({ facilityId, month }),
     enabled: !!facilityId && !!month,
+    placeholderData: (previousData) => previousData,
     staleTime: 60_000,
   });
 
   return {
+    month: heatmapQuery.data?.month || "",
     counts: heatmapQuery.data?.counts || {},
     loading: heatmapQuery.isLoading,
+    refreshing: heatmapQuery.isFetching && !heatmapQuery.isLoading,
     error: heatmapQuery.error?.message || "",
+    reload: heatmapQuery.refetch,
   };
 }

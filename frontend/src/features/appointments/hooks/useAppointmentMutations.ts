@@ -46,8 +46,11 @@ export default function useAppointmentMutations({
   const queryClient = useQueryClient();
   const { selectedFacilityId } = useFacility();
 
-  const invalidateAppointments = async () => {
-    await queryClient.invalidateQueries({ queryKey: ["appointments"] });
+  const invalidateAppointmentViews = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+      queryClient.invalidateQueries({ queryKey: ["appointmentHeatmap"] }),
+    ]);
   };
 
   const getDuplicateDayAppointmentError = (err: unknown) =>
@@ -60,7 +63,7 @@ export default function useAppointmentMutations({
         ? updateAppointment(selectedFacilityId, id, data)
         : createAppointment(selectedFacilityId, data),
     onSuccess: async () => {
-      await invalidateAppointments();
+      await invalidateAppointmentViews();
       onCloseModal();
       setError("");
     },
@@ -74,7 +77,7 @@ export default function useAppointmentMutations({
   const deleteMutation = useMutation({
     mutationFn: (id: EntityId) => deleteAppointment(selectedFacilityId, id),
     onSuccess: async () => {
-      await invalidateAppointments();
+      await invalidateAppointmentViews();
       onCloseModal();
       setError("");
     },
@@ -153,7 +156,7 @@ export default function useAppointmentMutations({
       }
     },
     onSettled: async () => {
-      await invalidateAppointments();
+      await invalidateAppointmentViews();
     },
   });
 
