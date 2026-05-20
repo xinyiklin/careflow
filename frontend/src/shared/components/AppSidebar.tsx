@@ -43,11 +43,11 @@ export default function AppSidebar({
       }}
     >
       <div className="h-full">
-        <div className="cf-sidebar flex h-full flex-col px-3 py-3">
+        <div className="cf-sidebar flex h-full flex-col px-2.5 py-3">
           <div
             className={[
               "cf-sidebar-brand flex min-h-14 items-center",
-              isCollapsed ? "justify-center px-1" : "gap-3 px-2.5",
+              isCollapsed ? "gap-0 px-0.5" : "gap-2.5 px-0.5",
             ].join(" ")}
           >
             <button
@@ -62,10 +62,10 @@ export default function AppSidebar({
 
             <div
               className={[
-                "min-w-0 overflow-hidden text-left transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "min-w-0 origin-left overflow-hidden text-left transition-[max-width,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
                 isCollapsed
-                  ? "max-w-0 translate-x-1 opacity-0"
-                  : "max-w-[140px] translate-x-0 opacity-100 delay-75",
+                  ? "max-w-0 -translate-x-1 scale-x-95 opacity-0"
+                  : "max-w-[124px] translate-x-0 scale-x-100 opacity-100 delay-75",
               ].join(" ")}
             >
               <div className="truncate text-sm font-semibold text-[var(--color-cf-sidebar-text)]">
