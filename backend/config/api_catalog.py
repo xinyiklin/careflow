@@ -240,6 +240,36 @@ API_ENDPOINT_SECTIONS = [
         ],
     },
     {
+        "title": "Clinical",
+        "summary": "Facility-scoped encounters and progress note charting.",
+        "endpoints": [
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/clinical/encounters/?facility_id=<id>&patient_id=<id>",
+                "description": "List patient encounters and nested progress notes.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/clinical/encounters/?facility_id=<id>",
+                "description": "Start a clinical encounter with an optional draft progress note.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/clinical/progress-notes/<id>/?facility_id=<id>",
+                "description": "Update a draft progress note.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/clinical/progress-notes/<id>/sign/?facility_id=<id>",
+                "description": "Sign a progress note and lock it from further edits.",
+            },
+        ],
+    },
+    {
         "title": "System",
         "summary": "Health and operational entrypoints.",
         "endpoints": [

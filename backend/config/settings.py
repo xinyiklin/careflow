@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "colorfield",
     "shared",
     "appointments",
+    "clinical",
     "users",
     "organizations",
     "facilities",
