@@ -241,3 +241,69 @@ export type PatientPharmacyPreference = {
     address?: PatientAddress | null;
   } | null;
 };
+
+export type ClinicalEncounterStatus = "in_progress" | "signed" | "cancelled";
+
+export type ProgressNoteStatus = "draft" | "signed";
+
+export type ProgressNote = {
+  id?: EntityId;
+  encounter?: EntityId;
+  status?: ProgressNoteStatus | null;
+  subjective?: string | null;
+  objective?: string | null;
+  assessment?: string | null;
+  plan?: string | null;
+  created_by?: EntityId | null;
+  signed_by?: EntityId | null;
+  signed_by_name?: string | null;
+  signed_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type ClinicalEncounter = {
+  id?: EntityId;
+  patient?: EntityId;
+  patient_name?: string | null;
+  patient_chart_number?: string | number | null;
+  facility?: EntityId | null;
+  appointment?: EntityId | null;
+  appointment_time?: string | null;
+  appointment_type_name?: string | null;
+  rendering_provider?: EntityId | null;
+  rendering_provider_name?: string | null;
+  status?: ClinicalEncounterStatus | null;
+  reason?: string | null;
+  started_at?: string | null;
+  ended_at?: string | null;
+  created_by?: EntityId | null;
+  created_by_name?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  progress_note?: ProgressNote | null;
+};
+
+export type ProgressNoteFormValues = {
+  reason: string;
+  rendering_provider: EntityId | "";
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+};
+
+export type ProgressNotePayload = ApiPayload & {
+  subjective: string;
+  objective: string;
+  assessment: string;
+  plan: string;
+};
+
+export type ClinicalEncounterPayload = ApiPayload & {
+  patient: number;
+  appointment: number | null;
+  rendering_provider: number | null;
+  reason: string;
+  progress_note: ProgressNotePayload;
+};

@@ -31,7 +31,13 @@ import {
   InsuranceTab,
   PATIENT_HUB_EMPTY_TABS,
 } from "./components/PatientHubTabPanels";
+import {
+  ClinicalEncountersTab,
+  ProgressNotesTab,
+} from "./components/PatientClinicalTabs";
+import ProgressNoteModal from "./components/ProgressNoteModal";
 import HubRegistrationInline from "./components/hub/HubRegistrationInline";
+import usePatientClinical from "./hooks/usePatientClinical";
 import {
   findConflictingInsurancePolicy,
   formatCoverageOrder,
@@ -40,7 +46,7 @@ import {
   TabButton,
 } from "./components/PatientHubSections";
 import ConfirmDialog from "../../shared/components/ConfirmDialog";
-import { Panel } from "../../shared/components/ui";
+import { Button, Panel } from "../../shared/components/ui";
 import { getTodayInTimeZone } from "../../shared/utils/dateTime";
 import { getPatientChartName } from "./utils/patientDisplay";
 import type { ApiPayload, EntityId } from "../../shared/api/types";
@@ -56,6 +62,8 @@ import type {
 } from "../appointments/types";
 import type {
   AppointmentGroup,
+  ClinicalEncounter,
+  ClinicalEncounterPayload,
   InsuranceCarrier,
   InsurancePolicyPayload,
   InsurancePolicyFormValues,
@@ -66,6 +74,8 @@ import type {
   PatientHubTabKey,
   PatientRecord,
   PharmacyRecord,
+  ProgressNoteFormValues,
+  ProgressNotePayload,
 } from "./types";
 
 type ConfirmDialogState = {
@@ -90,6 +100,12 @@ type EditBlockedDialogState = {
   activeEditor: AppointmentEditSessionActiveEditor;
 };
 
+type ProgressNoteModalState = {
+  isOpen: boolean;
+  encounter: ClinicalEncounter | null;
+  appointment: AppointmentLike | null;
+};
+
 type InsuranceMutationArgs = {
   id?: EntityId | null;
   values: InsurancePolicyFormValues | InsurancePolicyPayload;
@@ -101,6 +117,23 @@ function getSafeInitialTab(initialTab?: PatientHubTabKey): PatientHubTabKey {
   return initialTab && HUB_TABS.some((tab) => tab.key === initialTab)
     ? initialTab
     : "registration";
+}
+
+function toNumberOrNull(value?: EntityId | "" | null) {
+  if (value === "" || value === null || value === undefined) return null;
+  const numericValue = Number(value);
+  return Number.isNaN(numericValue) ? null : numericValue;
+}
+
+function buildProgressNotePayload(
+  values: ProgressNoteFormValues
+): ProgressNotePayload {
+  return {
+    subjective: values.subjective.trim(),
+    objective: values.objective.trim(),
+    assessment: values.assessment.trim(),
+    plan: values.plan.trim(),
+  };
 }
 
 export function PatientHubContent({
@@ -149,15 +182,26 @@ export function PatientHubContent({
   const [activeTab, setActiveTab] = useState(() =>
     getSafeInitialTab(initialTab)
   );
+  const securityPermissions =
+    selectedMembership?.effective_security_permissions || {};
   const canManageDocumentCategories = Boolean(
-    selectedMembership?.effective_security_permissions?.[
-      "documents.categories.manage"
-    ]
+    securityPermissions["documents.categories.manage"]
   );
+  const canViewClinical = Boolean(securityPermissions["clinical.view"]);
+  const canCreateClinical = Boolean(securityPermissions["clinical.create"]);
+  const canUpdateClinical = Boolean(securityPermissions["clinical.update"]);
+  const canSignClinical = Boolean(securityPermissions["clinical.sign"]);
   const [appointmentError, setAppointmentError] = useState("");
+  const [progressNoteError, setProgressNoteError] = useState("");
   const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
   const [editingPolicy, setEditingPolicy] =
     useState<PatientHubInsurancePolicy | null>(null);
+  const [progressNoteModalState, setProgressNoteModalState] =
+    useState<ProgressNoteModalState>({
+      isOpen: false,
+      encounter: null,
+      appointment: null,
+    });
   const [historyModalState, setHistoryModalState] = useState<HistoryModalState>(
     {
       isOpen: false,
@@ -246,6 +290,12 @@ export function PatientHubContent({
         patientId,
       }),
     enabled: !!selectedFacilityId && !!patientId,
+  });
+
+  const patientClinical = usePatientClinical({
+    facilityId: selectedFacilityId,
+    patientId,
+    enabled: canViewClinical,
   });
 
   const insuranceMutation = useMutation({
@@ -343,6 +393,7 @@ export function PatientHubContent({
     () => (Array.isArray(appointmentsQuery.data) ? appointmentsQuery.data : []),
     [appointmentsQuery.data]
   );
+  const clinicalEncounters = patientClinical.encounters;
   const appointmentGroups = useMemo<AppointmentGroup>(() => {
     const now = new Date();
     const upcoming: AppointmentLike[] = [];
@@ -402,6 +453,15 @@ export function PatientHubContent({
     setEditBlockedDialogState({
       isOpen: false,
       activeEditor: null,
+    });
+  }, []);
+
+  const closeProgressNoteModal = useCallback(() => {
+    setProgressNoteError("");
+    setProgressNoteModalState({
+      isOpen: false,
+      encounter: null,
+      appointment: null,
     });
   }, []);
 
@@ -549,6 +609,112 @@ export function PatientHubContent({
     );
   }, [appointmentFlow, patient]);
 
+  const handleStartClinicalEncounter = useCallback(
+    (appointment: AppointmentLike | null = null) => {
+      if (!canCreateClinical) return;
+
+      setProgressNoteError("");
+      setProgressNoteModalState({
+        isOpen: true,
+        encounter: null,
+        appointment,
+      });
+    },
+    [canCreateClinical]
+  );
+
+  const handleOpenProgressNote = useCallback((encounter: ClinicalEncounter) => {
+    setProgressNoteError("");
+    setProgressNoteModalState({
+      isOpen: true,
+      encounter,
+      appointment: null,
+    });
+  }, []);
+
+  const persistProgressNoteDraft = useCallback(
+    async (values: ProgressNoteFormValues) => {
+      const notePayload = buildProgressNotePayload(values);
+      const encounter = progressNoteModalState.encounter;
+      const encounterPayload = {
+        reason: values.reason.trim(),
+        rendering_provider: toNumberOrNull(values.rendering_provider),
+      };
+
+      if (encounter?.id) {
+        await patientClinical.updateEncounterMutation.mutateAsync({
+          encounterId: encounter.id,
+          values: encounterPayload,
+        });
+
+        const noteId = encounter.progress_note?.id;
+        if (!noteId) return null;
+
+        await patientClinical.updateProgressNoteMutation.mutateAsync({
+          noteId,
+          values: notePayload,
+        });
+        return noteId;
+      }
+
+      if (!patientId) return null;
+
+      const createdEncounter =
+        await patientClinical.createEncounterMutation.mutateAsync({
+          patient: Number(patientId),
+          appointment: toNumberOrNull(progressNoteModalState.appointment?.id),
+          rendering_provider: toNumberOrNull(values.rendering_provider),
+          reason: values.reason.trim(),
+          progress_note: notePayload,
+        } satisfies ClinicalEncounterPayload);
+
+      return createdEncounter?.progress_note?.id || null;
+    },
+    [
+      patientClinical.createEncounterMutation,
+      patientClinical.updateEncounterMutation,
+      patientClinical.updateProgressNoteMutation,
+      patientId,
+      progressNoteModalState.appointment?.id,
+      progressNoteModalState.encounter,
+    ]
+  );
+
+  const handleSaveProgressNoteDraft = useCallback(
+    async (values: ProgressNoteFormValues) => {
+      setProgressNoteError("");
+      try {
+        await persistProgressNoteDraft(values);
+        closeProgressNoteModal();
+      } catch {
+        setProgressNoteError("Progress note could not be saved. Try again.");
+      }
+    },
+    [closeProgressNoteModal, persistProgressNoteDraft]
+  );
+
+  const handleSignProgressNote = useCallback(
+    async (values: ProgressNoteFormValues) => {
+      setProgressNoteError("");
+      try {
+        const noteId = await persistProgressNoteDraft(values);
+        if (!noteId) {
+          setProgressNoteError("Progress note could not be signed. Try again.");
+          return;
+        }
+        await patientClinical.signProgressNoteMutation.mutateAsync(noteId);
+        closeProgressNoteModal();
+      } catch {
+        setProgressNoteError("Progress note could not be signed. Try again.");
+      }
+    },
+    [
+      closeProgressNoteModal,
+      patientClinical.signProgressNoteMutation,
+      persistProgressNoteDraft,
+    ]
+  );
+
   const handleOpenAppointmentHistory = useCallback(() => {
     if (!appointmentFlow.modal.editingId) return;
 
@@ -633,7 +799,28 @@ export function PatientHubContent({
         className="h-full min-h-[360px]"
       />
     );
-  } else if (patientQuery.error || !patient) {
+  } else if (patientQuery.error) {
+    content = (
+      <Panel
+        icon={CircleUserRound}
+        title="Couldn't load this patient"
+        tone="subtle"
+        className="h-full min-h-[360px]"
+      >
+        <div className="text-sm text-cf-text-muted">
+          Check your connection and try again.
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          className="mt-3"
+          onClick={() => void patientQuery.refetch()}
+        >
+          Retry
+        </Button>
+      </Panel>
+    );
+  } else if (!patient) {
     content = (
       <Panel
         icon={CircleUserRound}
@@ -653,6 +840,31 @@ export function PatientHubContent({
         insurancePoliciesQuery={insurancePoliciesQuery}
         onOpenPolicy={openPolicyModal}
       />
+    );
+  } else if (activeTab === "notes") {
+    content = canViewClinical ? (
+      <ProgressNotesTab
+        encounters={clinicalEncounters}
+        queryState={{
+          isLoading: patientClinical.encountersQuery.isLoading,
+          error: patientClinical.encountersQuery.error,
+          refetch: () => void patientClinical.encountersQuery.refetch(),
+        }}
+        canCreate={canCreateClinical}
+        onOpenEncounter={handleOpenProgressNote}
+        onNewNote={() => handleStartClinicalEncounter()}
+      />
+    ) : (
+      <Panel
+        icon={CircleUserRound}
+        title="Clinical charting unavailable"
+        tone="subtle"
+        className="h-full min-h-[260px]"
+      >
+        <div className="text-sm text-cf-text-muted">
+          This role cannot view clinical notes.
+        </div>
+      </Panel>
     );
   } else if (PATIENT_HUB_EMPTY_TABS[activeTab]) {
     const emptyTab = PATIENT_HUB_EMPTY_TABS[activeTab];
@@ -678,7 +890,21 @@ export function PatientHubContent({
       />
     );
   } else if (activeTab === "appointments") {
-    content = (
+    content = canViewClinical ? (
+      <ClinicalEncountersTab
+        encounters={clinicalEncounters}
+        appointmentGroups={appointmentGroups}
+        queryState={{
+          isLoading: patientClinical.encountersQuery.isLoading,
+          error: patientClinical.encountersQuery.error,
+          refetch: () => void patientClinical.encountersQuery.refetch(),
+        }}
+        canCreate={canCreateClinical}
+        onOpenEncounter={handleOpenProgressNote}
+        onStartEncounter={handleStartClinicalEncounter}
+        onOpenAppointment={handleOpenAppointment}
+      />
+    ) : (
       <AppointmentsTab
         appointmentGroups={appointmentGroups}
         onOpenAppointment={handleOpenAppointment}
@@ -821,6 +1047,30 @@ export function PatientHubContent({
             appointmentTime: "",
           })
         }
+      />
+
+      <ProgressNoteModal
+        isOpen={progressNoteModalState.isOpen}
+        encounter={progressNoteModalState.encounter}
+        appointment={progressNoteModalState.appointment}
+        patientName={patientName}
+        providers={appointmentPhysicians as unknown as PatientCareProvider[]}
+        canEdit={
+          progressNoteModalState.encounter
+            ? canUpdateClinical
+            : canCreateClinical
+        }
+        canSign={canSignClinical}
+        saving={
+          patientClinical.createEncounterMutation.isPending ||
+          patientClinical.updateEncounterMutation.isPending ||
+          patientClinical.updateProgressNoteMutation.isPending
+        }
+        signing={patientClinical.signProgressNoteMutation.isPending}
+        error={progressNoteError}
+        onClose={closeProgressNoteModal}
+        onSaveDraft={handleSaveProgressNoteDraft}
+        onSign={handleSignProgressNote}
       />
 
       <ConfirmDialog

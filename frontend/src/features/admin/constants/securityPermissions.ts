@@ -20,6 +20,16 @@ export const SECURITY_PERMISSION_GROUPS = [
     ],
   },
   {
+    key: "clinical",
+    label: "Clinical Charting",
+    permissions: [
+      { key: "clinical.view", label: "View clinical charting" },
+      { key: "clinical.create", label: "Start encounters" },
+      { key: "clinical.update", label: "Edit draft notes" },
+      { key: "clinical.sign", label: "Sign progress notes" },
+    ],
+  },
+  {
     key: "documents",
     label: "Documents",
     permissions: [
