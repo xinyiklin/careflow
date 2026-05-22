@@ -17,7 +17,7 @@ import useSchedulePageColumns from "../hooks/useSchedulePageColumns";
 import useFacility from "../../facilities/hooks/useFacility";
 import useFacilityConfig from "../../facilities/hooks/useFacilityConfig";
 import { usePatientFlowContext } from "../../patients/PatientFlowProvider";
-import { Notice } from "../../../shared/components/ui";
+import { Button, Notice } from "../../../shared/components/ui";
 import WorkspaceShell from "../../../shared/components/WorkspaceShell";
 import { useBootReadiness } from "../../../app/BootReadinessContext";
 import { useUserPreferences } from "../../../shared/context/UserPreferencesProvider";
@@ -143,6 +143,7 @@ export default function SchedulePage() {
     appointments,
     loading: appointmentsLoading,
     error: appointmentsError,
+    reload: reloadAppointments,
   } = useAppointments({
     facilityId: selectedFacilityId,
     date: queryDate,
@@ -594,10 +595,22 @@ export default function SchedulePage() {
           {appointmentsError ? (
             <Notice
               tone="danger"
-              title="Appointments could not be loaded"
+              title="Couldn't load appointments"
               className="mb-4 shrink-0"
             >
-              Failed to load appointments. {appointmentsError}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>
+                  The schedule may be out of date. Check your connection and try
+                  again.
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void reloadAppointments()}
+                >
+                  Retry
+                </Button>
+              </div>
             </Notice>
           ) : null}
         </>
