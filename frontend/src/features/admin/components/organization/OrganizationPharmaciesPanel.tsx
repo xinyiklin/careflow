@@ -14,9 +14,11 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import OrganizationPharmacyModal from "./OrganizationPharmacyModal";
+import { getServiceTypeLabel } from "./OrganizationPharmacyModalSections";
 
 import type {
   AdminAddress,
@@ -121,6 +123,7 @@ export default function OrganizationPharmaciesPanel() {
     loading,
     saving,
     error,
+    loadError,
     reload,
     savePharmacyPreference,
   } = useOrganizationPharmacies();
@@ -150,6 +153,7 @@ export default function OrganizationPharmaciesPanel() {
       filters: PHARMACY_FILTERS,
       sortOptions: PHARMACY_SORT_OPTIONS,
       defaultSort: "order",
+      storageKey: "pharmacies",
     }
   );
 
@@ -207,7 +211,7 @@ export default function OrganizationPharmaciesPanel() {
 
   return (
     <div className="space-y-4">
-      {error ? (
+      {error && !loadError ? (
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       ) : null}
 
@@ -283,6 +287,12 @@ export default function OrganizationPharmaciesPanel() {
                     Loading pharmacies...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={5}
+                  message="Couldn't load pharmacies."
+                  onRetry={() => void reload()}
+                />
               ) : preferences.length === 0 ? (
                 <tr>
                   <td
@@ -334,7 +344,9 @@ export default function OrganizationPharmaciesPanel() {
                             </div>
                             <div className="text-[11px] text-cf-text-muted">
                               {formatDirectorySource(pharmacy)} ·{" "}
-                              {pharmacy?.service_type || "retail"}
+                              {getServiceTypeLabel(
+                                pharmacy?.service_type || "retail"
+                              )}
                             </div>
                           </div>
                         </div>

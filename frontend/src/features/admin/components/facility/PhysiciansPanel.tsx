@@ -17,6 +17,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -124,8 +125,16 @@ export default function PhysiciansPanel() {
     });
 
   const canManageCurrentFacility = Boolean(adminFacility?.id);
-  const { staff, loading, saving, error, reload, saveStaff, removeStaff } =
-    useStaff(canManageCurrentFacility ? adminFacility?.id : null);
+  const {
+    staff,
+    loading,
+    saving,
+    error,
+    loadError,
+    reload,
+    saveStaff,
+    removeStaff,
+  } = useStaff(canManageCurrentFacility ? adminFacility?.id : null);
 
   const physicians = useMemo(() => staff.filter(isPhysicianStaff), [staff]);
   const {
@@ -138,6 +147,7 @@ export default function PhysiciansPanel() {
   } = useAdminListControls(physicians, {
     filters: PHYSICIAN_FILTERS,
     sortOptions: PHYSICIAN_SORT_OPTIONS,
+    storageKey: "physicians",
   });
   const physicianRoles = useMemo(
     () =>
@@ -216,7 +226,9 @@ export default function PhysiciansPanel() {
           You do not have admin access to the currently selected facility.
         </AdminInlineNotice>
       )}
-      {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
 
       <AdminTableCard
         description={
@@ -291,6 +303,12 @@ export default function PhysiciansPanel() {
                     Loading physicians...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={6}
+                  message="Couldn't load physicians."
+                  onRetry={() => void reload()}
+                />
               ) : physicians.length === 0 ? (
                 <tr>
                   <td

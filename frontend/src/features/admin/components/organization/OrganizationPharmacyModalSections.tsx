@@ -279,7 +279,10 @@ export function PharmacyDetailsLane({
             label="Hours"
             value={formData.is_24_hour ? "24h" : "Std"}
           />
-          <CompactMetric label="Sort" value={formData.sort_order} />
+          <CompactMetric
+            label="Service"
+            value={getServiceTypeLabel(formData.service_type)}
+          />
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
           <CompactToggle

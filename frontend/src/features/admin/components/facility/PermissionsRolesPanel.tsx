@@ -157,6 +157,7 @@ export default function PermissionsRolesPanel() {
     filters: ROLE_FILTERS,
     sortOptions: ROLE_SORT_OPTIONS,
     defaultSort: "system",
+    storageKey: "roles",
   });
 
   const visibleRoles = useMemo(() => filteredRoles, [filteredRoles]);

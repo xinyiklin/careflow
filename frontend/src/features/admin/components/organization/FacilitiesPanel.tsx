@@ -11,6 +11,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -63,8 +64,15 @@ const FACILITY_SORT_OPTIONS = [
 ] satisfies AdminSortOption<AdminFacility>[];
 
 export default function FacilitiesPanel() {
-  const { facilities, loading, saving, error, reload, saveFacility } =
-    useOrganizationFacilities();
+  const {
+    facilities,
+    loading,
+    saving,
+    error,
+    loadError,
+    reload,
+    saveFacility,
+  } = useOrganizationFacilities();
   const adminFacilities = facilities as AdminFacility[];
   const {
     activeFilter,
@@ -76,6 +84,7 @@ export default function FacilitiesPanel() {
   } = useAdminListControls(adminFacilities, {
     filters: FACILITY_FILTERS,
     sortOptions: FACILITY_SORT_OPTIONS,
+    storageKey: "facilities",
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,7 +114,9 @@ export default function FacilitiesPanel() {
 
   return (
     <div className="space-y-4">
-      {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
 
       <AdminTableCard
         description="Manage facilities within the organization."
@@ -172,6 +183,12 @@ export default function FacilitiesPanel() {
                     Loading facilities...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={4}
+                  message="Couldn't load facilities."
+                  onRetry={() => void reload()}
+                />
               ) : adminFacilities.length === 0 ? (
                 <tr>
                   <td

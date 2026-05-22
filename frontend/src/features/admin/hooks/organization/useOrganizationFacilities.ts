@@ -54,6 +54,7 @@ export default function useOrganizationFacilities() {
     facilities: Array.isArray(facilitiesQuery.data) ? facilitiesQuery.data : [],
     loading: facilitiesQuery.isLoading,
     error: facilitiesQuery.error?.message || "",
+    loadError: facilitiesQuery.error?.message || "",
     reload: facilitiesQuery.refetch,
     saving: saveMutation.isPending || removeMutation.isPending,
     saveFacility: ({ id, values }: SaveFacilityPayload) =>

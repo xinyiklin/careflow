@@ -107,6 +107,7 @@ export default function useStaff(facilityId: EntityId | null | undefined) {
       removeMutation.error?.message ||
       staffQuery.error?.message ||
       "",
+    loadError: staffQuery.error?.message || "",
     reload: staffQuery.refetch,
     saveStaff,
     removeStaff,

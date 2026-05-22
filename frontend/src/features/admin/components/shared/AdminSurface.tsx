@@ -1,6 +1,6 @@
 import { useContext, useId } from "react";
 import { createPortal } from "react-dom";
-import { Badge } from "../../../../shared/components/ui";
+import { Badge, Button } from "../../../../shared/components/ui";
 import AdminToolbarSlotContext from "./AdminToolbarSlotContext";
 
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
@@ -228,6 +228,28 @@ export function AdminTableFooter({
     <div className="border-t border-cf-border bg-cf-surface-soft/40 px-5 py-3 text-xs text-cf-text-muted">
       Showing {shown} of {total} {label}
     </div>
+  );
+}
+
+/* Table-body row shown when a list fails to load */
+export function AdminTableLoadError({
+  colSpan,
+  message,
+  onRetry,
+}: {
+  colSpan: number;
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-5 py-12 text-center">
+        <p className="text-sm text-cf-text-muted">{message}</p>
+        <Button type="button" size="sm" className="mt-3" onClick={onRetry}>
+          Retry
+        </Button>
+      </td>
+    </tr>
   );
 }
 

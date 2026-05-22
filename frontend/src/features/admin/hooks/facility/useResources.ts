@@ -82,6 +82,7 @@ export default function useResources(facilityId: EntityId | null | undefined) {
       removeMutation.error?.message ||
       resourcesQuery.error?.message ||
       "",
+    loadError: resourcesQuery.error?.message || "",
     reload: resourcesQuery.refetch,
     saveResource,
     removeResource,

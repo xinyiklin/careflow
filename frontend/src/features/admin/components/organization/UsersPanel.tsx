@@ -11,6 +11,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -76,7 +77,7 @@ const USER_SORT_OPTIONS = [
 ] satisfies AdminSortOption<AdminOrganizationUser>[];
 
 export default function UsersPanel() {
-  const { people, loading, saving, error, reload, savePerson } =
+  const { people, loading, saving, error, loadError, reload, savePerson } =
     useOrganizationPeople();
   const organizationPeople = people as AdminOrganizationUser[];
   const {
@@ -89,6 +90,7 @@ export default function UsersPanel() {
   } = useAdminListControls(organizationPeople, {
     filters: USER_FILTERS,
     sortOptions: USER_SORT_OPTIONS,
+    storageKey: "users",
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,7 +119,9 @@ export default function UsersPanel() {
 
   return (
     <div className="space-y-4">
-      {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
 
       <AdminTableCard
         description="Manage organization users and their access roles."
@@ -184,6 +188,12 @@ export default function UsersPanel() {
                     Loading users...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={5}
+                  message="Couldn't load users."
+                  onRetry={() => void reload()}
+                />
               ) : organizationPeople.length === 0 ? (
                 <tr>
                   <td

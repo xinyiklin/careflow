@@ -18,6 +18,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -95,6 +96,7 @@ export default function ResourcesPanel() {
     loading,
     saving,
     error,
+    loadError,
     reload,
     saveResource,
     removeResource,
@@ -109,6 +111,7 @@ export default function ResourcesPanel() {
   } = useAdminListControls(resources, {
     filters: RESOURCE_FILTERS,
     sortOptions: RESOURCE_SORT_OPTIONS,
+    storageKey: "resources",
   });
   const duplicateResourceNames = useMemo(() => {
     const counts = resources.reduce((nextCounts, resource) => {
@@ -179,7 +182,7 @@ export default function ResourcesPanel() {
           You do not have admin access to the currently selected facility.
         </AdminInlineNotice>
       ) : null}
-      {error ? (
+      {error && !loadError ? (
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       ) : null}
 
@@ -249,6 +252,12 @@ export default function ResourcesPanel() {
                     Loading resources...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={5}
+                  message="Couldn't load resources."
+                  onRetry={() => void reload()}
+                />
               ) : resources.length === 0 ? (
                 <tr>
                   <td

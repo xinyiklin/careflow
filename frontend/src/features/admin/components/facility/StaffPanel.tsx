@@ -16,6 +16,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -121,8 +122,16 @@ export default function StaffPanel() {
     });
 
   const canManageCurrentFacility = Boolean(adminFacility?.id);
-  const { staff, loading, saving, error, reload, saveStaff, removeStaff } =
-    useStaff(canManageCurrentFacility ? adminFacility?.id : null);
+  const {
+    staff,
+    loading,
+    saving,
+    error,
+    loadError,
+    reload,
+    saveStaff,
+    removeStaff,
+  } = useStaff(canManageCurrentFacility ? adminFacility?.id : null);
 
   const nonPhysicianStaff = useMemo(
     () => staff.filter((r) => !isPhysicianStaff(r)),
@@ -138,6 +147,7 @@ export default function StaffPanel() {
   } = useAdminListControls(nonPhysicianStaff, {
     filters: STAFF_FILTERS,
     sortOptions: STAFF_SORT_OPTIONS,
+    storageKey: "staff",
   });
   const nonPhysicianRoles = useMemo(
     () =>
@@ -216,7 +226,9 @@ export default function StaffPanel() {
           You do not have admin access to the currently selected facility.
         </AdminInlineNotice>
       )}
-      {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
 
       <AdminTableCard
         savingLabel={saving ? "Saving..." : ""}
@@ -281,6 +293,12 @@ export default function StaffPanel() {
                     Loading staff...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={5}
+                  message="Couldn't load staff."
+                  onRetry={() => void reload()}
+                />
               ) : nonPhysicianStaff.length === 0 ? (
                 <tr>
                   <td

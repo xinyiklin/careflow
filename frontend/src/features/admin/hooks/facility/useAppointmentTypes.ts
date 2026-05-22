@@ -89,6 +89,7 @@ export default function useAppointmentTypes(
       removeMutation.error?.message ||
       appointmentTypesQuery.error?.message ||
       "",
+    loadError: appointmentTypesQuery.error?.message || "",
     reload: appointmentTypesQuery.refetch,
     saveAppointmentType,
     removeAppointmentType,

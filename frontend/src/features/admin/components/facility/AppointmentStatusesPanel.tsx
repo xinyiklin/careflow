@@ -14,6 +14,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -89,8 +90,18 @@ export default function AppointmentStatusesPanel() {
     });
 
   const canManageCurrentFacility = Boolean(adminFacility?.id);
-  const { statuses, loading, saving, error, reload, saveStatus, removeStatus } =
-    useAppointmentStatuses(canManageCurrentFacility ? adminFacility?.id : null);
+  const {
+    statuses,
+    loading,
+    saving,
+    error,
+    loadError,
+    reload,
+    saveStatus,
+    removeStatus,
+  } = useAppointmentStatuses(
+    canManageCurrentFacility ? adminFacility?.id : null
+  );
   const {
     activeFilter,
     activeSort,
@@ -101,6 +112,7 @@ export default function AppointmentStatusesPanel() {
   } = useAdminListControls(statuses, {
     filters: STATUS_FILTERS,
     sortOptions: STATUS_SORT_OPTIONS,
+    storageKey: "appointmentStatuses",
   });
 
   const openConfirmDialog = (opts: Omit<AdminConfirmDialogState, "isOpen">) =>
@@ -183,7 +195,9 @@ export default function AppointmentStatusesPanel() {
           You do not have admin access to the currently selected facility.
         </AdminInlineNotice>
       )}
-      {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
 
       <AdminTableCard
         description={
@@ -251,6 +265,12 @@ export default function AppointmentStatusesPanel() {
                     Loading statuses...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={4}
+                  message="Couldn't load statuses."
+                  onRetry={() => void reload()}
+                />
               ) : statuses.length === 0 ? (
                 <tr>
                   <td

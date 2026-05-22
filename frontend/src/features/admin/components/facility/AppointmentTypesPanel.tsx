@@ -15,6 +15,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -98,6 +99,7 @@ export default function AppointmentTypesPanel() {
     loading,
     saving,
     error,
+    loadError,
     reload,
     saveAppointmentType,
     removeAppointmentType,
@@ -112,6 +114,7 @@ export default function AppointmentTypesPanel() {
   } = useAdminListControls(appointmentTypes, {
     filters: TYPE_FILTERS,
     sortOptions: TYPE_SORT_OPTIONS,
+    storageKey: "appointmentTypes",
   });
 
   const openConfirmDialog = (opts: Omit<AdminConfirmDialogState, "isOpen">) =>
@@ -195,7 +198,9 @@ export default function AppointmentTypesPanel() {
           You do not have admin access to the currently selected facility.
         </AdminInlineNotice>
       )}
-      {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
 
       <AdminTableCard
         description={
@@ -265,6 +270,12 @@ export default function AppointmentTypesPanel() {
                     Loading appointment types...
                   </td>
                 </tr>
+              ) : loadError ? (
+                <AdminTableLoadError
+                  colSpan={5}
+                  message="Couldn't load appointment types."
+                  onRetry={() => void reload()}
+                />
               ) : appointmentTypes.length === 0 ? (
                 <tr>
                   <td
