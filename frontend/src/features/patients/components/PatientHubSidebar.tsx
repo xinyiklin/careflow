@@ -195,23 +195,23 @@ export default function PatientIdentitySidebar({
       <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 text-[12px]">
         <SidebarSection title="Care Team" icon={Stethoscope}>
           <div className="space-y-1.5">
-            <div className="flex justify-between items-center bg-white/[0.03] border border-white/[0.04] rounded-xl px-2.5 py-1.5">
-              <span className="text-[var(--color-cf-sidebar-text-muted)] font-medium">
+            <div className="flex justify-between items-center gap-2 bg-white/[0.03] border border-white/[0.04] rounded-xl px-2.5 py-1.5">
+              <span className="shrink-0 text-[var(--color-cf-sidebar-text-muted)] font-medium">
                 PCP
               </span>
               <span
-                className="text-[var(--color-cf-sidebar-text)] font-semibold truncate max-w-[110px] text-right"
+                className="min-w-0 text-[var(--color-cf-sidebar-text)] font-semibold truncate text-right"
                 title={patient.pcp_name || undefined}
               >
                 {patient.pcp_name || "—"}
               </span>
             </div>
-            <div className="flex justify-between items-center bg-white/[0.03] border border-white/[0.04] rounded-xl px-2.5 py-1.5">
-              <span className="text-[var(--color-cf-sidebar-text-muted)] font-medium">
+            <div className="flex justify-between items-center gap-2 bg-white/[0.03] border border-white/[0.04] rounded-xl px-2.5 py-1.5">
+              <span className="shrink-0 text-[var(--color-cf-sidebar-text-muted)] font-medium">
                 Ref.
               </span>
               <span
-                className="text-[var(--color-cf-sidebar-text)] font-semibold truncate max-w-[110px] text-right"
+                className="min-w-0 text-[var(--color-cf-sidebar-text)] font-semibold truncate text-right"
                 title={patient.referring_provider_name || undefined}
               >
                 {patient.referring_provider_name || "—"}

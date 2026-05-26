@@ -86,7 +86,7 @@ export default function ScheduleWorkspaceLayout({
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-cf-surface">
-        <div className="grid min-h-0 flex-1 overflow-hidden bg-cf-surface lg:grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid min-h-0 flex-1 overflow-hidden bg-cf-surface lg:grid-cols-[280px_minmax(0,1fr)]">
           <ScheduleSidebar
             facilityId={facilityId}
             facility={facility}
