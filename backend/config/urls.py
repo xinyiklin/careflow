@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
+from drf_spectacular.views import SpectacularAPIView
 
 from config.views import api_home
 from users.views import CookieTokenObtainPairView, CookieTokenRefreshView, health_check
@@ -23,4 +24,9 @@ urlpatterns = [
     path("v1/insurance/", include("insurance.urls")),
     path("v1/appointments/", include("appointments.urls")),
     path("v1/clinical/", include("clinical.urls")),
+    path("v1/allergies/", include("allergies.urls")),
+    path("v1/medications/", include("medications.urls")),
+    path("v1/billing/", include("billing.urls")),
+    path("v1/audit/", include("audit.urls")),
+    path("v1/schema/", SpectacularAPIView.as_view(), name="schema"),
 ]

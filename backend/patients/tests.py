@@ -286,6 +286,25 @@ class PatientViewSetTests(TestCase):
             [active_document.id],
         )
 
+    def test_patient_response_hides_documents_without_document_view_permission(self):
+        PatientDocument.objects.create(
+            patient=self.patient,
+            name="Restricted document.pdf",
+            category="admin",
+            file_url="https://example.com/restricted.pdf",
+        )
+        self.staff.security_overrides = {"documents.view": False}
+        self.staff.save()
+
+        response = self.client.get(
+            f"/v1/patients/{self.patient.id}/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["patient_documents"], [])
+        self.assertEqual(response.data["documents"], [])
+
     def test_document_metadata_can_be_updated_and_audited(self):
         document = PatientDocument.objects.create(
             patient=self.patient,
@@ -378,6 +397,55 @@ class PatientViewSetTests(TestCase):
         )
 
         self.assertEqual(permission_response.status_code, 403)
+
+    def test_document_manage_permission_can_update_without_patient_update(self):
+        document = PatientDocument.objects.create(
+            patient=self.patient,
+            name="Managed document.pdf",
+            category="admin",
+            file_url="https://example.com/private.pdf",
+        )
+        self.staff.role = StaffRole.objects.get(facility=self.facility, code="biller")
+        self.staff.security_overrides = {
+            "documents.manage": True,
+            "patients.update": False,
+        }
+        self.staff.save()
+
+        response = self.client.patch(
+            (
+                f"/v1/patients/documents/{document.id}/"
+                f"?facility_id={self.facility.id}"
+            ),
+            {"name": "Document permission edit.pdf"},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        document.refresh_from_db()
+        self.assertEqual(document.name, "Document permission edit.pdf")
+
+    def test_document_view_permission_can_list_without_patient_view(self):
+        PatientDocument.objects.create(
+            patient=self.patient,
+            name="Visible document.pdf",
+            category="admin",
+            file_url="https://example.com/private.pdf",
+        )
+        self.staff.security_overrides = {
+            "documents.view": True,
+            "patients.view": False,
+        }
+        self.staff.save()
+
+        response = self.client.get(
+            f"/v1/patients/documents/?facility_id={self.facility.id}",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data), 1)
 
     def test_document_delete_soft_deletes_and_audits(self):
         document = PatientDocument.objects.create(

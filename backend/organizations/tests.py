@@ -167,3 +167,43 @@ class OrganizationPharmacyPermissionTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("pharmacy_id", response.data)
+
+    def test_org_admin_can_update_organization(self):
+        user = self.create_member_user(
+            "org_admin_user",
+            OrganizationMembership.ROLE_ADMIN,
+            self.admin_role,
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.patch(
+            f"/v1/organizations/{self.organization.pk}/",
+            {
+                "name": "Updated Org Name",
+                "slug": "updated-org-name",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.organization.refresh_from_db()
+        self.assertEqual(self.organization.name, "Updated Org Name")
+
+    def test_org_member_cannot_update_organization(self):
+        user = self.create_member_user(
+            "org_member_user",
+            OrganizationMembership.ROLE_MEMBER,
+            self.staff_role,
+        )
+        self.client.force_authenticate(user=user)
+
+        response = self.client.patch(
+            f"/v1/organizations/{self.organization.pk}/",
+            {
+                "name": "Updated Org Name By Member",
+                "slug": "updated-org-name-member",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 403)

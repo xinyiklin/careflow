@@ -27,12 +27,51 @@ export const SECURITY_PERMISSION_GROUPS = [
       { key: "clinical.create", label: "Start encounters" },
       { key: "clinical.update", label: "Edit draft notes" },
       { key: "clinical.sign", label: "Sign progress notes" },
+      { key: "clinical.unsign", label: "Unsign progress notes" },
+    ],
+  },
+  {
+    key: "medications",
+    label: "Medications",
+    permissions: [
+      { key: "medications.view", label: "View medications" },
+      { key: "medications.manage", label: "Manage medications" },
+    ],
+  },
+  {
+    key: "allergies",
+    label: "Allergies",
+    permissions: [
+      { key: "allergies.view", label: "View allergies" },
+      { key: "allergies.manage", label: "Manage allergies" },
+    ],
+  },
+  {
+    key: "insurance",
+    label: "Insurance",
+    permissions: [
+      { key: "insurance.view", label: "View insurance policies" },
+      { key: "insurance.manage", label: "Manage insurance policies" },
+    ],
+  },
+  {
+    key: "billing",
+    label: "Billing",
+    permissions: [
+      { key: "billing.view", label: "View billing" },
+      { key: "billing.manage", label: "Manage charge capture" },
+      {
+        key: "billing.fee_schedules.manage",
+        label: "Manage fee schedules",
+      },
     ],
   },
   {
     key: "documents",
     label: "Documents",
     permissions: [
+      { key: "documents.view", label: "View documents" },
+      { key: "documents.manage", label: "Upload and edit documents" },
       {
         key: "documents.categories.manage",
         label: "Manage document categories",
@@ -43,7 +82,14 @@ export const SECURITY_PERMISSION_GROUPS = [
     key: "pharmacies",
     label: "Pharmacies",
     permissions: [
-      { key: "pharmacies.manage", label: "Manage organization pharmacies" },
+      {
+        key: "pharmacies.organization.manage",
+        label: "Manage organization pharmacies",
+      },
+      {
+        key: "pharmacies.facility.manage",
+        label: "Manage facility pharmacies",
+      },
     ],
   },
   {
@@ -51,6 +97,7 @@ export const SECURITY_PERMISSION_GROUPS = [
     label: "Administration",
     permissions: [
       { key: "admin.facility.manage", label: "Manage facility settings" },
+      { key: "admin.security.manage", label: "Manage security permissions" },
     ],
   },
 ] as const;

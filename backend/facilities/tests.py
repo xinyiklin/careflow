@@ -95,3 +95,85 @@ class FacilitySecurityPermissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         status.refresh_from_db()
         self.assertEqual(status.name, "Pending Review")
+
+    def test_facility_admin_can_update_facility(self):
+        facility_admin = User.objects.create_user(
+            username="fac_admin",
+            password="testpass123",
+            email="fac-admin@example.com",
+        )
+        OrganizationMembership.objects.create(
+            user=facility_admin,
+            organization=self.organization,
+            role=OrganizationMembership.ROLE_MEMBER,
+            is_active=True,
+        )
+        Staff.objects.create(
+            user=facility_admin,
+            facility=self.facility,
+            role=StaffRole.objects.get(facility=self.facility, code="admin"),
+            is_active=True,
+            is_default=True,
+        )
+        client = APIClient()
+        client.force_authenticate(facility_admin)
+
+        response = client.patch(
+            f"/v1/facilities/{self.facility.pk}/",
+            {
+                "name": "Updated Clinic Name",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.facility.refresh_from_db()
+        self.assertEqual(self.facility.name, "Updated Clinic Name")
+
+    def test_org_admin_can_update_facility(self):
+        client = APIClient()
+        client.force_authenticate(self.user)
+
+        response = client.patch(
+            f"/v1/facilities/{self.facility.pk}/",
+            {
+                "name": "Updated Clinic Name By Org Admin",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.facility.refresh_from_db()
+        self.assertEqual(self.facility.name, "Updated Clinic Name By Org Admin")
+
+    def test_facility_non_admin_cannot_update_facility(self):
+        facility_staff = User.objects.create_user(
+            username="fac_staff",
+            password="testpass123",
+            email="fac-staff@example.com",
+        )
+        OrganizationMembership.objects.create(
+            user=facility_staff,
+            organization=self.organization,
+            role=OrganizationMembership.ROLE_MEMBER,
+            is_active=True,
+        )
+        Staff.objects.create(
+            user=facility_staff,
+            facility=self.facility,
+            role=StaffRole.objects.get(facility=self.facility, code="staff"),
+            is_active=True,
+            is_default=True,
+        )
+        client = APIClient()
+        client.force_authenticate(facility_staff)
+
+        response = client.patch(
+            f"/v1/facilities/{self.facility.pk}/",
+            {
+                "name": "Updated Clinic Name By Staff",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 403)

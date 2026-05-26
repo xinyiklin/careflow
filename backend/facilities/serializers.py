@@ -80,6 +80,9 @@ class StaffSerializer(serializers.ModelSerializer):
     )
     title_name = serializers.CharField(source="title.name", read_only=True)
     title_code = serializers.CharField(source="title.code", read_only=True)
+    fee_schedule_name = serializers.CharField(
+        source="fee_schedule.name", read_only=True, default=""
+    )
     can_render_claims = serializers.SerializerMethodField()
     effective_security_permissions = serializers.SerializerMethodField()
     resource_default_room = serializers.CharField(
@@ -109,6 +112,16 @@ class StaffSerializer(serializers.ModelSerializer):
             "title_id",
             "title_name",
             "title_code",
+            "npi",
+            "dea_number",
+            "state_license_number",
+            "state_license_state",
+            "state_license_expiration",
+            "dea_expiration",
+            "specialty",
+            "taxonomy_code",
+            "fee_schedule",
+            "fee_schedule_name",
             "is_active",
             "is_default",
             "can_render_claims",
@@ -119,6 +132,9 @@ class StaffSerializer(serializers.ModelSerializer):
             "effective_security_permissions",
         ]
         read_only_fields = ["facility"]
+        extra_kwargs = {
+            "fee_schedule": {"required": False, "allow_null": True},
+        }
 
     def get_display_name(self, obj):
         full_name = " ".join(
@@ -147,6 +163,11 @@ class StaffSerializer(serializers.ModelSerializer):
 
     def validate_security_overrides(self, value):
         return normalize_security_overrides(value)
+
+    def validate_npi(self, value):
+        if value and (len(value) != 10 or not value.isdigit()):
+            raise serializers.ValidationError("NPI must be exactly 10 digits.")
+        return value
 
     def validate(self, attrs):
         facility = self.context["view"].get_facility()
@@ -187,6 +208,9 @@ class FacilitySerializer(FacilityAddressMixin, serializers.ModelSerializer):
     organization_name = serializers.CharField(
         source="organization.name", read_only=True
     )
+    fee_schedule_name = serializers.CharField(
+        source="fee_schedule.name", read_only=True, default=""
+    )
 
     class Meta:
         model = Facility
@@ -204,11 +228,17 @@ class FacilitySerializer(FacilityAddressMixin, serializers.ModelSerializer):
             "operating_start_time",
             "operating_end_time",
             "operating_days",
+            "custom_operating_hours",
             "notes",
             "is_active",
+            "fee_schedule",
+            "fee_schedule_name",
             "created_at",
         ]
         read_only_fields = ["organization", "organization_name", "created_at"]
+        extra_kwargs = {
+            "fee_schedule": {"required": False, "allow_null": True},
+        }
 
     def validate_operating_days(self, value):
         if value in (None, ""):
@@ -283,6 +313,7 @@ class AppointmentStatusSerializer(serializers.ModelSerializer):
             "name",
             "color",
             "is_active",
+            "is_billable",
             "is_deletable",
         ]
         read_only_fields = ["facility"]
@@ -299,6 +330,7 @@ class AppointmentTypeSerializer(serializers.ModelSerializer):
             "color",
             "duration_minutes",
             "is_active",
+            "is_billable",
             "is_deletable",
         ]
         read_only_fields = ["facility"]

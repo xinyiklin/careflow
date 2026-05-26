@@ -26,18 +26,18 @@ router.register(r"staff-titles", StaffTitleViewSet, basename="staff-title")
 router.register(r"patient-genders", PatientGenderViewSet, basename="patient-gender")
 
 urlpatterns = [
-    path("", include(router.urls)),
     path(
-        "manage/",
+        "",
         FacilityViewSet.as_view(
             {
                 "get": "list",
                 "post": "create",
             }
         ),
+        name="facility-list",
     ),
     path(
-        "manage/<int:pk>/",
+        "<int:pk>/",
         FacilityViewSet.as_view(
             {
                 "get": "retrieve",
@@ -45,5 +45,7 @@ urlpatterns = [
                 "delete": "destroy",
             }
         ),
+        name="facility-detail",
     ),
+    path("", include(router.urls)),
 ]

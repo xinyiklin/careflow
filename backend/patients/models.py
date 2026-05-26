@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils.text import slugify
 
 from facilities.models import Facility
+from shared.fields import EncryptedCharField
 
 
 def validate_phone_number(value):
@@ -358,19 +359,16 @@ class PatientPharmacy(models.Model):
         if not self.patient_id or not self.pharmacy_id:
             return
 
-        from organizations.models import OrganizationPharmacyPreference
+        from .pharmacy_access import facility_can_use_pharmacy
 
-        has_organization_access = OrganizationPharmacyPreference.objects.filter(
-            organization_id=self.patient.facility.organization_id,
-            pharmacy_id=self.pharmacy_id,
-            is_active=True,
-            is_hidden=False,
-            pharmacy__is_active=True,
-        ).exists()
+        has_facility_access = facility_can_use_pharmacy(
+            self.patient.facility,
+            self.pharmacy,
+        )
 
-        if not has_organization_access:
+        if not has_facility_access:
             raise ValidationError(
-                {"pharmacy": "Pharmacy must be enabled for this organization."}
+                {"pharmacy": "Pharmacy must be enabled for this facility."}
             )
 
     def save(self, *args, **kwargs):
@@ -578,11 +576,11 @@ class Patient(models.Model):
         blank=True,
         validators=[phone_validator],
     )
-    ssn = models.CharField(
-        max_length=9,
+    ssn = EncryptedCharField(
+        max_length=256,
         blank=True,
         validators=[ssn_validator],
-        help_text="Full SSN. Display masked by default in the application.",
+        help_text="Encrypted at rest. Display masked by default.",
     )
     ssn_last4 = models.CharField(
         max_length=4,
@@ -633,6 +631,16 @@ class Patient(models.Model):
     class Meta:
         unique_together = ("facility", "first_name", "last_name", "date_of_birth")
         ordering = ["last_name", "first_name"]
+        indexes = [
+            models.Index(
+                fields=["facility", "last_name", "first_name"],
+                name="patient_facility_name",
+            ),
+            models.Index(
+                fields=["facility", "date_of_birth"],
+                name="patient_facility_dob",
+            ),
+        ]
         constraints = [
             models.UniqueConstraint(
                 fields=["facility", "chart_number"],
@@ -668,21 +676,18 @@ class Patient(models.Model):
             )
 
         if self.preferred_pharmacy_id:
-            from organizations.models import OrganizationPharmacyPreference
+            from .pharmacy_access import facility_can_use_pharmacy
 
-            has_organization_access = OrganizationPharmacyPreference.objects.filter(
-                organization_id=self.facility.organization_id,
-                pharmacy_id=self.preferred_pharmacy_id,
-                is_active=True,
-                is_hidden=False,
-                pharmacy__is_active=True,
-            ).exists()
+            has_facility_access = facility_can_use_pharmacy(
+                self.facility,
+                self.preferred_pharmacy,
+            )
 
-            if not has_organization_access:
+            if not has_facility_access:
                 raise ValidationError(
                     {
                         "preferred_pharmacy": (
-                            "Preferred pharmacy must be enabled for this organization."
+                            "Preferred pharmacy must be enabled for this facility."
                         )
                     }
                 )

@@ -42,8 +42,16 @@ class Facility(models.Model):
     operating_start_time = models.TimeField(default=time(8, 0))
     operating_end_time = models.TimeField(default=time(17, 0))
     operating_days = models.JSONField(default=default_operating_days, blank=True)
+    custom_operating_hours = models.JSONField(null=True, blank=True)
     notes = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    fee_schedule = models.ForeignKey(
+        "billing.OrganizationFeeSchedule",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="linked_facilities",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -53,7 +61,102 @@ class Facility(models.Model):
     def __str__(self):
         return self.name
 
+    def clean(self):
+        super().clean()
+        if self.custom_operating_hours:
+            if not isinstance(self.custom_operating_hours, list):
+                raise ValidationError({"custom_operating_hours": "Must be a list."})
+
+            computed_days = set()
+            start_times = []
+            end_times = []
+
+            for index, block in enumerate(self.custom_operating_hours):
+                if not isinstance(block, dict):
+                    raise ValidationError(
+                        {
+                            "custom_operating_hours": f"Block at index {index} must be an object."
+                        }
+                    )
+                days = block.get("days")
+                start_time = block.get("start_time")
+                end_time = block.get("end_time")
+
+                if not isinstance(days, list) or not all(
+                    isinstance(d, int) and 1 <= d <= 7 for d in days
+                ):
+                    raise ValidationError(
+                        {
+                            "custom_operating_hours": f"Block at index {index} must have a list of integers 1-7 for 'days'."
+                        }
+                    )
+
+                if not start_time or not end_time:
+                    raise ValidationError(
+                        {
+                            "custom_operating_hours": f"Block at index {index} must have 'start_time' and 'end_time'."
+                        }
+                    )
+
+                try:
+                    from datetime import datetime
+
+                    for t_str in [start_time, end_time]:
+                        for fmt in ("%H:%M", "%H:%M:%S"):
+                            try:
+                                datetime.strptime(t_str, fmt)
+                                break
+                            except ValueError:
+                                continue
+                        else:
+                            raise ValueError
+                except ValueError:
+                    raise ValidationError(
+                        {
+                            "custom_operating_hours": f"Block at index {index} has invalid time format. Use HH:MM."
+                        }
+                    )
+
+                computed_days.update(days)
+
+                from datetime import datetime
+
+                t_start = None
+                t_end = None
+                for fmt in ("%H:%M", "%H:%M:%S"):
+                    try:
+                        t_start = datetime.strptime(start_time, fmt).time()
+                        break
+                    except ValueError:
+                        continue
+                for fmt in ("%H:%M", "%H:%M:%S"):
+                    try:
+                        t_end = datetime.strptime(end_time, fmt).time()
+                        break
+                    except ValueError:
+                        continue
+
+                if t_start and t_end and t_start >= t_end:
+                    raise ValidationError(
+                        {
+                            "custom_operating_hours": f"Block at index {index} start time must be before end time."
+                        }
+                    )
+
+                if t_start:
+                    start_times.append(t_start)
+                if t_end:
+                    end_times.append(t_end)
+
+            if computed_days:
+                self.operating_days = sorted(list(computed_days))
+            if start_times:
+                self.operating_start_time = min(start_times)
+            if end_times:
+                self.operating_end_time = max(end_times)
+
     def save(self, *args, **kwargs):
+        self.full_clean()
         is_new = self.pk is None
         super().save(*args, **kwargs)
 
@@ -66,6 +169,7 @@ class Facility(models.Model):
                         "name": status["name"],
                         "color": status["color"],
                         "is_active": True,
+                        "is_billable": status.get("is_billable", True),
                         "is_deletable": False,
                     },
                 )
@@ -206,6 +310,7 @@ class AppointmentStatus(models.Model):
     name = models.CharField(max_length=50)
     color = ColorField(default="#94a3b8")
     is_active = models.BooleanField(default=True)
+    is_billable = models.BooleanField(default=True)
     is_deletable = models.BooleanField(default=True)
 
     class Meta:
@@ -232,6 +337,7 @@ class AppointmentType(models.Model):
     color = ColorField(default="#c084fc")
     duration_minutes = models.PositiveIntegerField(default=15)
     is_active = models.BooleanField(default=True)
+    is_billable = models.BooleanField(default=True)
     is_deletable = models.BooleanField(default=True)
 
     class Meta:
@@ -340,6 +446,21 @@ class Staff(models.Model):
     is_active = models.BooleanField(default=True)
     is_default = models.BooleanField(default=False)
     security_overrides = models.JSONField(default=dict, blank=True)
+    npi = models.CharField(max_length=10, blank=True)
+    dea_number = models.CharField(max_length=20, blank=True)
+    state_license_number = models.CharField(max_length=50, blank=True)
+    state_license_state = models.CharField(max_length=2, blank=True)
+    state_license_expiration = models.DateField(null=True, blank=True)
+    dea_expiration = models.DateField(null=True, blank=True)
+    specialty = models.CharField(max_length=100, blank=True)
+    taxonomy_code = models.CharField(max_length=20, blank=True)
+    fee_schedule = models.ForeignKey(
+        "billing.OrganizationFeeSchedule",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="linked_staff",
+    )
 
     class Meta:
         unique_together = ("user", "facility")
@@ -351,6 +472,9 @@ class Staff(models.Model):
 
         if self.title and self.title.facility_id != self.facility_id:
             raise ValidationError({"title": "Title must belong to the same facility."})
+
+        if self.npi and (len(self.npi) != 10 or not self.npi.isdigit()):
+            raise ValidationError({"npi": "NPI must be exactly 10 digits."})
 
         membership = getattr(self.user, "org_membership", None)
         if not membership or not membership.is_active:

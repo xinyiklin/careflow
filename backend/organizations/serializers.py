@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from rest_framework import serializers
 
 from patients.models import Pharmacy
@@ -6,10 +7,13 @@ from patients.serializers import PharmacySerializer
 from shared.serializers import AddressSerializer
 
 from .models import (
+    FacilityPharmacyPreferenceOverride,
     Organization,
     OrganizationMembership,
     OrganizationPharmacyPreference,
+    OrganizationRole,
 )
+from .security import normalize_org_security_permissions
 
 User = get_user_model()
 
@@ -31,9 +35,34 @@ class OrganizationMembershipSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "role",
+            "security_permissions",
             "is_active",
             "created_at",
         ]
+
+
+class OrganizationRoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrganizationRole
+        fields = [
+            "id",
+            "code",
+            "name",
+            "description",
+            "security_permissions",
+            "is_system_role",
+            "is_deletable",
+            "is_active",
+        ]
+        read_only_fields = ["id", "is_system_role", "is_deletable"]
+
+
+class OrganizationSecuritySerializer(serializers.Serializer):
+    role = serializers.CharField(max_length=50)
+    security_permissions = serializers.DictField(child=serializers.BooleanField())
+
+    def validate_security_permissions(self, value):
+        return normalize_org_security_permissions(value)
 
 
 class OrganizationAddressMixin:
@@ -144,6 +173,14 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(
         source="user.last_name", allow_blank=True, required=False
     )
+    facility_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False
+    )
+    admin_facility_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False
+    )
+    facility_names = serializers.SerializerMethodField()
+    admin_facility_names = serializers.SerializerMethodField()
 
     class Meta:
         model = OrganizationMembership
@@ -156,12 +193,64 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
             "last_name",
             "role",
             "is_active",
+            "facility_ids",
+            "admin_facility_ids",
+            "facility_names",
+            "admin_facility_names",
             "created_at",
         ]
         read_only_fields = ["id", "user_id", "created_at"]
 
+    def _get_active_staff_profiles(self, obj):
+        cache = getattr(self, "_staff_profile_cache", None)
+        if cache is None:
+            cache = {}
+            self._staff_profile_cache = cache
+        if obj.pk in cache:
+            return cache[obj.pk]
+
+        profiles = getattr(obj.user, "staff_profiles", None)
+        if profiles is None:
+            return []
+        cache[obj.pk] = list(
+            profiles.filter(
+                facility__organization=obj.organization,
+                is_active=True,
+            )
+            .select_related("facility", "role")
+            .order_by("facility__name")
+        )
+        return cache[obj.pk]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        profiles = self._get_active_staff_profiles(instance)
+        ret["facility_ids"] = [p.facility_id for p in profiles]
+        ret["admin_facility_ids"] = [
+            p.facility_id
+            for p in profiles
+            if p.facility and p.role and p.role.code == "admin"
+        ]
+        return ret
+
+    def get_facility_names(self, obj):
+        return [
+            profile.facility.name
+            for profile in self._get_active_staff_profiles(obj)
+            if profile.facility
+        ]
+
+    def get_admin_facility_names(self, obj):
+        return [
+            profile.facility.name
+            for profile in self._get_active_staff_profiles(obj)
+            if profile.facility and profile.role and profile.role.code == "admin"
+        ]
+
     def update(self, instance, validated_data):
         user_data = validated_data.pop("user", {})
+        facility_ids = validated_data.pop("facility_ids", None)
+        admin_facility_ids = validated_data.pop("admin_facility_ids", None)
 
         user = instance.user
         for attr, value in user_data.items():
@@ -172,6 +261,56 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
 
+        if facility_ids is not None:
+            from facilities.models import Facility, Staff, StaffRole
+
+            org_facilities = Facility.objects.filter(organization=instance.organization)
+            org_facility_ids = set(org_facilities.values_list("id", flat=True))
+
+            target_facility_ids = set(facility_ids) & org_facility_ids
+            target_admin_ids = set(admin_facility_ids or []) & target_facility_ids
+
+            with transaction.atomic():
+                Staff.objects.filter(
+                    user=user, facility__organization=instance.organization
+                ).exclude(facility_id__in=target_facility_ids).update(is_active=False)
+
+                for fac in org_facilities:
+                    if fac.id in target_facility_ids:
+                        staff, created = Staff.objects.get_or_create(
+                            user=user,
+                            facility=fac,
+                            defaults={
+                                "role": StaffRole.objects.filter(
+                                    facility=fac, code="front_desk"
+                                ).first()
+                                or StaffRole.objects.filter(facility=fac).first(),
+                                "is_active": True,
+                            },
+                        )
+                        if not created:
+                            staff.is_active = True
+
+                        is_admin = fac.id in target_admin_ids
+                        current_role_code = staff.role.code if staff.role else ""
+
+                        if is_admin and current_role_code != "admin":
+                            admin_role = StaffRole.objects.filter(
+                                facility=fac, code="admin"
+                            ).first()
+                            if admin_role:
+                                staff.role = admin_role
+                        elif not is_admin and current_role_code == "admin":
+                            non_admin_role = (
+                                StaffRole.objects.filter(facility=fac)
+                                .exclude(code="admin")
+                                .first()
+                            )
+                            if non_admin_role:
+                                staff.role = non_admin_role
+
+                        staff.save()
+
         return instance
 
 
@@ -180,7 +319,13 @@ class OrganizationPersonCreateSerializer(serializers.Serializer):
     email = serializers.EmailField()
     first_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
     last_name = serializers.CharField(max_length=150, allow_blank=True, required=False)
-    role = serializers.ChoiceField(choices=OrganizationMembership.ROLE_CHOICES)
+    role = serializers.CharField(max_length=50)
+    facility_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list
+    )
+    admin_facility_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list
+    )
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -196,6 +341,8 @@ class OrganizationPersonCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         organization = self.context["organization"]
+        facility_ids = validated_data.pop("facility_ids", [])
+        admin_facility_ids = validated_data.pop("admin_facility_ids", [])
 
         user = User.objects.create_user(
             username=validated_data["username"],
@@ -210,6 +357,35 @@ class OrganizationPersonCreateSerializer(serializers.Serializer):
             role=validated_data["role"],
             is_active=True,
         )
+
+        from facilities.models import Facility, Staff, StaffRole
+
+        org_facilities = Facility.objects.filter(organization=organization)
+        org_facility_ids = set(org_facilities.values_list("id", flat=True))
+
+        target_facility_ids = set(facility_ids) & org_facility_ids
+        target_admin_ids = set(admin_facility_ids) & target_facility_ids
+
+        with transaction.atomic():
+            for fac in org_facilities:
+                if fac.id in target_facility_ids:
+                    is_admin = fac.id in target_admin_ids
+                    if is_admin:
+                        role = StaffRole.objects.filter(
+                            facility=fac, code="admin"
+                        ).first()
+                    else:
+                        role = (
+                            StaffRole.objects.filter(
+                                facility=fac, code="front_desk"
+                            ).first()
+                            or StaffRole.objects.filter(facility=fac).first()
+                        )
+
+                    Staff.objects.create(
+                        user=user, facility=fac, role=role, is_active=True
+                    )
+
         return membership
 
 
@@ -358,6 +534,111 @@ class OrganizationPharmacyPreferenceWriteSerializer(serializers.Serializer):
                 )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+
+class FacilityPharmacyPreferenceOverrideSerializer(serializers.ModelSerializer):
+    pharmacy = PharmacySerializer(read_only=True)
+    pharmacy_id = serializers.PrimaryKeyRelatedField(
+        queryset=Pharmacy.objects.all(),
+        source="pharmacy",
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+    pharmacy_details = PharmacySerializer(required=False, write_only=True)
+    effective_pharmacy = PharmacySerializer(read_only=True)
+
+    class Meta:
+        model = FacilityPharmacyPreferenceOverride
+        fields = [
+            "id",
+            "facility",
+            "organization_preference",
+            "pharmacy",
+            "pharmacy_id",
+            "pharmacy_details",
+            "is_preferred",
+            "is_hidden",
+            "is_active",
+            "notes",
+            "sort_order",
+            "effective_pharmacy",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "facility",
+            "pharmacy",
+            "effective_pharmacy",
+            "created_at",
+            "updated_at",
+        ]
+        extra_kwargs = {
+            "organization_preference": {"required": False, "allow_null": True},
+            "is_preferred": {"required": False},
+            "is_hidden": {"required": False},
+            "is_active": {"required": False},
+            "notes": {"required": False, "allow_blank": True},
+            "sort_order": {"required": False},
+        }
+
+    def validate_organization_preference(self, value):
+        facility = self.context.get("facility")
+        if value and facility and value.organization_id != facility.organization_id:
+            raise serializers.ValidationError(
+                "Selected pharmacy does not belong to this organization."
+            )
+        return value
+
+    def validate(self, attrs):
+        pharmacy_details = attrs.get("pharmacy_details")
+        has_org_preference = bool(attrs.get("organization_preference"))
+        has_local_pharmacy = bool(attrs.get("pharmacy") or pharmacy_details)
+
+        if self.instance:
+            has_org_preference = bool(
+                attrs.get(
+                    "organization_preference", self.instance.organization_preference
+                )
+            )
+            has_local_pharmacy = bool(
+                attrs.get("pharmacy", self.instance.pharmacy) or pharmacy_details
+            )
+
+        if has_org_preference == has_local_pharmacy:
+            raise serializers.ValidationError(
+                "Provide either an organization pharmacy or a local pharmacy."
+            )
+        return attrs
+
+    def create(self, validated_data):
+        pharmacy_details = validated_data.pop("pharmacy_details", None)
+        if pharmacy_details:
+            serializer = PharmacySerializer(data=pharmacy_details)
+            serializer.is_valid(raise_exception=True)
+            validated_data["pharmacy"] = serializer.save()
+
+        return FacilityPharmacyPreferenceOverride.objects.create(
+            facility=self.context["facility"],
+            **validated_data,
+        )
+
+    def update(self, instance, validated_data):
+        pharmacy_details = validated_data.pop("pharmacy_details", None)
+        if pharmacy_details:
+            serializer = PharmacySerializer(
+                instance.pharmacy if instance.pharmacy_id else None,
+                data=pharmacy_details,
+                partial=bool(instance.pharmacy_id),
+            )
+            serializer.is_valid(raise_exception=True)
+            validated_data["pharmacy"] = serializer.save()
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
