@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from rest_framework import serializers
 
+from facilities.security import user_has_facility_permission
 from shared.serializers import AddressSerializer
 
 from .models import (
@@ -369,6 +370,14 @@ class PatientSerializer(AddressModelSerializerMixin, serializers.ModelSerializer
         return obj.ssn_last4 or ""
 
     def get_patient_documents(self, obj):
+        request = self.context.get("request")
+        if not request or not user_has_facility_permission(
+            request.user,
+            obj.facility_id,
+            "documents.view",
+        ):
+            return []
+
         documents = obj.patient_documents.filter(is_active=True)
         return PatientDocumentSerializer(
             documents,

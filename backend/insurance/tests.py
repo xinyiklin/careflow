@@ -82,6 +82,26 @@ class PatientInsurancePolicyViewSetTests(TestCase):
             ).exists()
         )
 
+    def test_insurance_manage_permission_is_required_for_policy_mutations(self):
+        self.user.staff_profiles.update(
+            role=StaffRole.objects.get(facility=self.facility, code="physician")
+        )
+
+        response = self.client.post(
+            "/v1/insurance/policies/",
+            {
+                "patient": self.patient.id,
+                "carrier": self.carrier.id,
+                "member_id": "ABC123",
+                "coverage_order": "primary",
+                "relationship_to_subscriber": "self",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
     def test_destroy_soft_deletes_insurance_policy(self):
         policy = PatientInsurancePolicy.objects.create(
             patient=self.patient,

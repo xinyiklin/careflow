@@ -2,9 +2,9 @@ from rest_framework import permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
 
 from audit.models import AuditEvent
-from organizations.permissions import get_user_organization_membership
+from organizations.permissions import get_user_organization_membership, is_org_admin
+from shared.scoping import OrgAdminFacilityScopedViewSetMixin
 
-from .access import get_facility_for_user
 from .models import (
     AppointmentStatus,
     AppointmentType,
@@ -15,7 +15,10 @@ from .models import (
     StaffRole,
     StaffTitle,
 )
-from .permissions import IsFacilityAdminOrReadOnly, IsOrgAdmin
+from .permissions import (
+    IsFacilityAdminOrReadOnly,
+    IsOrgAdminOrFacilityAdmin,
+)
 from .security import get_role_security_template
 from .serializers import (
     AppointmentStatusSerializer,
@@ -44,28 +47,26 @@ def create_security_audit_event(
     )
 
 
-class FacilityScopedMixin:
-    def get_facility(self):
-        if hasattr(self, "_facility"):
-            return self._facility
-
-        facility_id = self.request.query_params.get("facility_id")
-        self._facility = get_facility_for_user(self.request.user, facility_id)
-        return self._facility
-
-
 class FacilityViewSet(viewsets.ModelViewSet):
     serializer_class = FacilitySerializer
-    permission_classes = [permissions.IsAuthenticated, IsOrgAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsOrgAdminOrFacilityAdmin]
 
     def get_queryset(self):
         membership = get_user_organization_membership(self.request.user)
         if not membership:
             return Facility.objects.none()
 
-        return Facility.objects.filter(
+        queryset = Facility.objects.filter(
             organization_id=membership.organization_id
         ).order_by("name")
+
+        if not is_org_admin(self.request.user):
+            facility_ids = Staff.objects.filter(
+                user=self.request.user, is_active=True
+            ).values_list("facility_id", flat=True)
+            queryset = queryset.filter(id__in=facility_ids)
+
+        return queryset
 
     def perform_create(self, serializer):
         membership = get_user_organization_membership(self.request.user)
@@ -76,7 +77,7 @@ class FacilityViewSet(viewsets.ModelViewSet):
         instance.save()
 
 
-class StaffViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+class StaffViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = StaffSerializer
     permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 
@@ -123,7 +124,9 @@ class StaffViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
         instance.save()
 
 
-class AppointmentStatusViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+class AppointmentStatusViewSet(
+    OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
+):
     serializer_class = AppointmentStatusSerializer
     permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 
@@ -143,11 +146,12 @@ class AppointmentStatusViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
             "code": serializer.instance.code,
             "color": str(serializer.instance.color),
             "is_active": serializer.instance.is_active,
+            "is_billable": serializer.instance.is_billable,
         }
         serializer.save()
         changed_fields = [
             field
-            for field in ["name", "code", "color", "is_active"]
+            for field in ["name", "code", "color", "is_active", "is_billable"]
             if field in serializer.validated_data
             and previous_values[field] != getattr(serializer.instance, field)
         ]
@@ -166,6 +170,7 @@ class AppointmentStatusViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
                         "code": serializer.instance.code,
                         "color": str(serializer.instance.color),
                         "is_active": serializer.instance.is_active,
+                        "is_billable": serializer.instance.is_billable,
                     },
                 },
             )
@@ -177,7 +182,7 @@ class AppointmentStatusViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
         instance.save()
 
 
-class AppointmentTypeViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+class AppointmentTypeViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = AppointmentTypeSerializer
     permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 
@@ -201,7 +206,9 @@ class AppointmentTypeViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
         instance.save()
 
 
-class FacilityResourceViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+class FacilityResourceViewSet(
+    OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
+):
     serializer_class = FacilityResourceSerializer
     permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 
@@ -230,7 +237,7 @@ class FacilityResourceViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
         instance.save(update_fields=["is_active"])
 
 
-class StaffRoleViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = StaffRoleSerializer
     permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 
@@ -249,6 +256,21 @@ class StaffRoleViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
     def perform_update(self, serializer):
         if serializer.instance.facility_id != self.get_facility().id:
             raise PermissionDenied("Invalid facility.")
+
+        new_perms = serializer.validated_data.get("security_permissions")
+        if new_perms is not None and not new_perms.get("admin.security.manage", False):
+            user_has_role = Staff.objects.filter(
+                user=self.request.user,
+                facility=self.get_facility(),
+                role=serializer.instance,
+                is_active=True,
+            ).exists()
+            if user_has_role:
+                raise PermissionDenied(
+                    "Cannot remove security management from your own role. "
+                    "This would lock you out of the security panel."
+                )
+
         serializer.save()
 
     def perform_destroy(self, instance):
@@ -263,7 +285,7 @@ class StaffRoleViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
         instance.delete()
 
 
-class StaffTitleViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+class StaffTitleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = StaffTitleSerializer
     permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 
@@ -293,7 +315,7 @@ class StaffTitleViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
         instance.delete()
 
 
-class PatientGenderViewSet(FacilityScopedMixin, viewsets.ModelViewSet):
+class PatientGenderViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = PatientGenderSerializer
     permission_classes = [permissions.IsAuthenticated, IsFacilityAdminOrReadOnly]
 

@@ -31,6 +31,9 @@ export const SchedulePage = preloadableLazy(
 export const DocumentsPage = preloadableLazy(
   () => import("../features/documents/pages/DocumentsPage")
 );
+export const BillingPage = preloadableLazy(
+  () => import("../features/billing/pages/BillingPage")
+);
 export const AdminRedirect = preloadableLazy(
   () => import("../features/admin/pages/AdminRedirect")
 );
@@ -51,6 +54,10 @@ export function preloadRouteForPath(pathname: string) {
 
   if (pathname.startsWith("/documents")) {
     return DocumentsPage.preload();
+  }
+
+  if (pathname.startsWith("/billing")) {
+    return BillingPage.preload();
   }
 
   if (pathname.startsWith("/admin/organization")) {

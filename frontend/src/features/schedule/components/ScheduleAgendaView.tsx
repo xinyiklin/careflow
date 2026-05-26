@@ -15,7 +15,11 @@ import {
   getAppointmentTimeLabel,
 } from "../../../shared/utils/appointmentBlockDetails";
 import { MAX_SCHEDULE_COLUMNS } from "../utils/scheduleConstants";
-import { isFacilityOperatingDate } from "../utils/scheduleOperatingHours";
+import {
+  isFacilityOperatingDate,
+  parseTimeToMinutes,
+  getFacilityOperatingWindow,
+} from "../utils/scheduleOperatingHours";
 
 import type {
   ScheduleDayEntry,
@@ -425,10 +429,10 @@ export default function ScheduleAgendaView({
 
                 <div className="min-h-0 flex-1 overflow-auto p-3">
                   {hourGroups.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-cf-border bg-cf-surface-muted px-4 py-6 text-center text-sm text-cf-text-muted">
-                      {entry.isOperatingDay
-                        ? "No appointments scheduled."
-                        : "This facility is closed on this day."}
+                    <div className="space-y-2">
+                      <div className="rounded-2xl border border-dashed border-cf-border bg-cf-surface-muted px-4 py-6 text-center text-sm text-cf-text-muted">
+                        No appointments scheduled.
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -449,13 +453,41 @@ export default function ScheduleAgendaView({
                                 appointment,
                                 display
                               );
+                              const dateObj = parseDateOnlyInTimeZone(
+                                entry.date,
+                                timeZone
+                              );
+                              const isoDay = dateObj
+                                ? Number(
+                                    formatDateOnlyInTimeZone(
+                                      dateObj,
+                                      timeZone,
+                                      "i"
+                                    )
+                                  )
+                                : null;
+                              const operatingWindow =
+                                getFacilityOperatingWindow(facility, isoDay);
+                              const apptMinutes = parseTimeToMinutes(
+                                appointment.time,
+                                -1
+                              );
+                              const isOutsideHours =
+                                apptMinutes !== -1 &&
+                                (apptMinutes < operatingWindow.startMinute ||
+                                  apptMinutes >= operatingWindow.endMinute);
+                              const isBlocked =
+                                !entry.isOperatingDay || isOutsideHours;
 
                               return (
                                 <button
                                   key={appointment.id}
                                   type="button"
                                   onDoubleClick={() => appointment.onEdit?.()}
-                                  className="w-full rounded-2xl border border-white/70 px-3 py-3 text-left shadow-sm transition hover:shadow-md"
+                                  className={[
+                                    "w-full rounded-2xl border border-white/70 px-3 py-3 text-left shadow-sm transition hover:shadow-md",
+                                    isBlocked ? "cf-appointment-override" : "",
+                                  ].join(" ")}
                                   style={{ backgroundColor: blockColor }}
                                 >
                                   <div className="flex items-start gap-2">

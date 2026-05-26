@@ -18,21 +18,28 @@ compliance.
 
 ## Highlights
 
-- Appointment scheduling with facility-local time, configurable statuses,
-  visit types, resources, rooms, blocks, and multi-column schedule views.
-- Patient workflows with smart search, Quick Start registration, inline
-  demographics editing, masked sensitive fields, emergency contacts, insurance,
-  care-team details, and a modal-based Patient Hub.
-- Document Center with patient-scoped uploads, preview/download actions,
-  category management, local development storage, optional Cloudflare R2/S3
-  storage, and combined PDF export for selected documents.
-- Facility and organization administration for resources, staff, roles,
-  permissions, appointment configuration, document categories, pharmacy
-  preferences, and organization profile data.
-- Authentication hardened around short-lived access tokens and HTTP-only
-  refresh cookies, with facility-scoped API access and user preferences.
-- Design-system-oriented React UI using shared tokens, reusable primitives, and
-  modular feature boundaries for future growth.
+- **Scheduling** with facility-local time, configurable statuses, visit types,
+  resources, rooms, and blocks. Multi-column views, drag-to-reschedule guards,
+  appointment heatmap, and per-day interval customization.
+- **Patient Hub** with smart search, Quick Start registration, inline
+  demographics editing, masked SSN with auditable reveal, emergency contacts,
+  care-team details, pharmacy preferences, and security-aware tabs.
+- **Clinical charting** with encounters and SOAP progress notes per
+  appointment, draft and signed states, sign/unsign workflow, and
+  encounter-linked billing handoff.
+- **Medications and allergies** tracked per patient with active/historical
+  status, severity, reaction, prescriber, and audit history.
+- **Billing** with encounter-linked superbills, organization fee schedules,
+  facility-level overrides, and a predefined CPT catalog for bulk-populating
+  schedules.
+- **Document Center** with patient-scoped uploads, preview/download, category
+  management, optional Cloudflare R2/S3 storage, and combined PDF export.
+- **Org and facility admin** for staff, role types, a security permission
+  matrix at both org and facility scope, payer preferences, pharmacy
+  preferences, fee schedules, and a read-only activity log.
+- **Hardening**: facility-scoped APIs, short-lived JWT access plus HTTP-only
+  refresh cookies, CSRF on cookie-backed routes, SSN encrypted at rest with
+  Fernet, and audit events for sensitive mutations.
 
 ## Tech Stack
 
@@ -48,10 +55,14 @@ compliance.
 
 ```text
 backend/
+  allergies/        Patient allergy and adverse reaction records
   appointments/     Scheduling and appointment activity APIs
   audit/            Audit-style event records
+  billing/          Encounter-linked superbills, fee schedules, and CPT catalog
+  clinical/         Encounters and progress note charting
   facilities/       Facilities, staff, resources, roles, and configuration
   insurance/        Insurance carriers and patient policies
+  medications/      Patient medication records
   organizations/    Organization profile and membership APIs
   patients/         Patients, search, demographics, documents, pharmacies
   shared/           Cross-domain models, serializers, and seed utilities
@@ -59,7 +70,8 @@ backend/
 
 frontend/src/
   app/              App shell, routing, providers, and error boundary
-  features/         Admin, auth, appointments, documents, patients, schedule
+  features/         Admin, appointments, auth, billing, documents,
+                    facilities, patients, schedule
   shared/           API client, UI primitives, constants, hooks, tokens
 ```
 
@@ -85,7 +97,9 @@ DB_PASSWORD=password
 DB_HOST=localhost
 DB_PORT=5433
 DEMO_MODE=True
-DEMO_USERNAME=demo_admin
+DEMO_USERNAME=demo
+# FIELD_ENCRYPTION_KEY is required when DEBUG=False; a dev default is used
+# in DEBUG mode so local setup does not need to set one.
 ```
 
 Run migrations, seed synthetic demo data, and start the API:
@@ -131,12 +145,13 @@ restart with `npm run dev`.
 After running `python manage.py seed_demo`:
 
 ```text
-Username: demo_admin
+Username: demo
 Password: Admin123!
 ```
 
-Additional seeded users include demo physician, nursing, staff, and facility
-admin accounts for role-based workflow testing.
+The demo user is granted full security permissions across every facility in
+the seeded organization. Additional seeded accounts cover physician, nursing,
+staff, and facility-admin roles for role-based workflow testing.
 
 ## Verification
 
@@ -153,6 +168,7 @@ Frontend:
 ```bash
 cd frontend
 npx eslint src
+npx tsc --noEmit
 npm run build
 ```
 

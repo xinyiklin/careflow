@@ -27,7 +27,7 @@ export default function useAdminPermissions() {
       );
 
     const canManageOrganizationPharmacies =
-      isOrgAdmin || hasPermission("pharmacies.manage");
+      isOrgAdmin || hasPermission("pharmacies.organization.manage");
     const canAccessOrganizationAdmin = canManageOrganizationPharmacies;
     const canAccessFacilityAdmin = isOrgAdmin || adminFacilityIds.length > 0;
     const hasAnyAdminAccess =

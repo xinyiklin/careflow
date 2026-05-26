@@ -6,6 +6,7 @@ from .models import (
     Organization,
     OrganizationMembership,
     OrganizationPharmacyPreference,
+    OrganizationRole,
 )
 
 
@@ -46,6 +47,14 @@ class OrganizationMembershipAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ["user", "organization"]
     ordering = ("id",)
+
+
+@admin.register(OrganizationRole)
+class OrganizationRoleAdmin(admin.ModelAdmin):
+    list_display = ("id", "organization", "code", "name", "is_system_role", "is_active")
+    list_filter = ("organization", "is_system_role", "is_active")
+    search_fields = ("code", "name", "organization__name")
+    ordering = ("organization__name", "name")
 
 
 @admin.register(OrganizationPharmacyPreference)

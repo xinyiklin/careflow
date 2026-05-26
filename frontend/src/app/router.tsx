@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Navigate, createBrowserRouter } from "react-router-dom";
 
 import App from "./App";
@@ -9,6 +9,7 @@ import LoadingScreen from "../shared/components/LoadingScreen";
 import LoginPage from "../features/auth/pages/LoginPage";
 import {
   AdminRedirect,
+  BillingPage,
   DocumentsPage,
   FacilityAdminPage,
   OrganizationAdminPage,
@@ -24,7 +25,7 @@ const devPreviewDocuments = {
   documents: "/dev-previews/opus/documents.preview.html",
   index: "/dev-previews/opus/index.html",
   patientSearch: "/dev-previews/patient-search.preview.html",
-  permissionsRoles: "/dev-previews/opus/permissions-roles.preview.html",
+  security: "/dev-previews/opus/permissions-roles.preview.html",
   schedule: "/dev-previews/opus/schedule.preview.html",
 };
 
@@ -121,11 +122,11 @@ const devPreviewRoutes = import.meta.env.DEV
         ),
       },
       {
-        path: "/__permissions-roles-preview",
+        path: "/__security-preview",
         element: (
           <DevPreviewDocument
-            src={devPreviewDocuments.permissionsRoles}
-            title="Permissions and roles preview"
+            src={devPreviewDocuments.security}
+            title="Security preview"
           />
         ),
       },
@@ -141,24 +142,43 @@ const devPreviewRoutes = import.meta.env.DEV
     ]
   : [];
 
+function DelayedFallback({
+  children,
+  delayMs = 150,
+}: {
+  children: ReactNode;
+  delayMs?: number;
+}) {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), delayMs);
+    return () => clearTimeout(timer);
+  }, [delayMs]);
+
+  return show ? <>{children}</> : null;
+}
+
 function PageRouteLoader({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <div className="flex h-full min-h-0 items-center justify-center bg-cf-page-bg px-4">
-          <div className="cf-ui-panel w-full max-w-sm px-5 py-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-              CareFlow
-            </div>
-            <div className="mt-1 text-base font-semibold text-cf-text">
-              Preparing view
-            </div>
-            <div className="mt-4 space-y-2" aria-hidden="true">
-              <div className="cf-loading-skeleton h-2.5 w-11/12 rounded-full bg-cf-surface-soft" />
-              <div className="cf-loading-skeleton h-2.5 w-8/12 rounded-full bg-cf-surface-soft" />
+        <DelayedFallback>
+          <div className="flex h-full min-h-0 items-center justify-center bg-cf-page-bg px-4">
+            <div className="cf-ui-panel w-full max-w-sm px-5 py-5">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+                CareFlow
+              </div>
+              <div className="mt-1 text-base font-semibold text-cf-text">
+                Preparing view
+              </div>
+              <div className="mt-4 space-y-2" aria-hidden="true">
+                <div className="h-2.5 w-11/12 rounded-full bg-cf-surface-soft" />
+                <div className="h-2.5 w-8/12 rounded-full bg-cf-surface-soft" />
+              </div>
             </div>
           </div>
-        </div>
+        </DelayedFallback>
       }
     >
       {children}
@@ -206,6 +226,14 @@ const router = createBrowserRouter([
             element: (
               <PageRouteLoader>
                 <DocumentsPage />
+              </PageRouteLoader>
+            ),
+          },
+          {
+            path: "billing",
+            element: (
+              <PageRouteLoader>
+                <BillingPage />
               </PageRouteLoader>
             ),
           },

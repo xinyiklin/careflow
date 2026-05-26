@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 
 from appointments.models import Appointment, AppointmentEditSession
 from audit.models import AuditEvent
+from clinical.models import Encounter, ProgressNote
 from facilities.models import (
     AppointmentStatus,
     AppointmentType,
@@ -415,6 +416,73 @@ class AppointmentViewSetTests(TestCase):
         self.assertIsNone(appointment.rendering_provider)
         self.assertEqual(appointment.rendering_provider_name, "")
         self.assertEqual(response.data["rendering_provider_name"], "")
+
+    def test_signed_clinical_encounter_locks_clinical_appointment_fields(self):
+        facility_tz = ZoneInfo(str(self.facility.timezone))
+        appointment = self.create_appointment(
+            local_time=datetime(2026, 4, 22, 9, 0, tzinfo=facility_tz),
+        )
+        encounter = Encounter.objects.create(
+            patient=self.patient,
+            facility=self.facility,
+            appointment=appointment,
+            rendering_provider=self.rendering_provider,
+            reason="Follow up",
+            created_by=self.user,
+        )
+        note = ProgressNote.objects.create(
+            encounter=encounter,
+            created_by=self.user,
+            assessment="Stable.",
+        )
+        note.sign(self.user)
+
+        response = self.client.patch(
+            f"/v1/appointments/{appointment.pk}/",
+            {"appointment_time": "2026-04-22T11:00"},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(
+            response.data["clinical_encounter"][0],
+            "Signed clinical encounters lock these appointment fields: Appointment time.",
+        )
+
+    def test_signed_clinical_encounter_allows_operational_appointment_updates(self):
+        facility_tz = ZoneInfo(str(self.facility.timezone))
+        appointment = self.create_appointment(
+            local_time=datetime(2026, 4, 22, 9, 0, tzinfo=facility_tz),
+        )
+        encounter = Encounter.objects.create(
+            patient=self.patient,
+            facility=self.facility,
+            appointment=appointment,
+            rendering_provider=self.rendering_provider,
+            reason="Follow up",
+            created_by=self.user,
+        )
+        note = ProgressNote.objects.create(
+            encounter=encounter,
+            created_by=self.user,
+            assessment="Stable.",
+        )
+        note.sign(self.user)
+
+        response = self.client.patch(
+            f"/v1/appointments/{appointment.pk}/",
+            {"notes": "Patient requested a printed visit summary."},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        appointment.refresh_from_db()
+        self.assertEqual(
+            appointment.notes,
+            "Patient requested a printed visit summary.",
+        )
 
     def test_edit_session_acquires_current_user_lease(self):
         facility_tz = ZoneInfo(str(self.facility.timezone))

@@ -48,6 +48,7 @@ export default function useOrganizationPharmacies() {
       : [],
     loading: pharmaciesQuery.isLoading,
     error: pharmaciesQuery.error?.message || "",
+    loadError: pharmaciesQuery.error?.message || "",
     reload: pharmaciesQuery.refetch,
     saving: saveMutation.isPending,
     savePharmacyPreference: (payload: SavePharmacyPreferencePayload) =>

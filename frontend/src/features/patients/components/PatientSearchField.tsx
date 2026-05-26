@@ -183,12 +183,7 @@ export default function PatientSearchField({
                     resultsDropdownClassName || "w-full",
                   ].join(" ")}
                 >
-                  {loading && (
-                    <div className="space-y-2 px-1 py-1">
-                      <div className="cf-loading-skeleton h-12 rounded-xl bg-cf-surface-soft" />
-                      <div className="cf-loading-skeleton h-12 rounded-xl bg-cf-surface-soft" />
-                    </div>
-                  )}
+                  {loading && null}
                   {!loading && error && <Notice tone="danger">{error}</Notice>}
                   {!loading && !error && results.length > 0 && (
                     <ul className="space-y-1">

@@ -29,17 +29,19 @@ export function AdminFormModal({
   saving = false,
   deleteLabel = "",
   onDelete,
+  bodyClassName = "",
   children,
 }: {
   isOpen: boolean;
   onClose: () => void;
   scope: string;
-  title: string;
+  title: ReactNode;
   maxWidth?: AdminModalMaxWidth;
   formId: string;
   saving?: boolean;
   deleteLabel?: string;
   onDelete?: () => void;
+  bodyClassName?: string;
   children: ReactNode;
 }) {
   return (
@@ -54,7 +56,10 @@ export function AdminFormModal({
         "cf-admin-record-modal rounded-[var(--radius-cf-shell)] border-cf-border-strong bg-cf-surface shadow-[var(--shadow-panel-lg)]",
         "[&>div:first-child_p]:hidden",
       ].join(" ")}
-      bodyClassName="bg-cf-page-bg px-4 py-4"
+      bodyClassName={
+        bodyClassName ||
+        "bg-cf-surface px-6 py-5 border-t border-b border-cf-border/60"
+      }
       footerClassName="justify-between bg-cf-surface"
       footer={
         <>
@@ -124,6 +129,8 @@ export function AdminFormSection({
   );
 }
 
+// Admin form primitives stay here rather than shared/ui — they carry admin-specific label
+// styling and are only consumed within features/admin modal forms.
 export function AdminField({
   label,
   children,

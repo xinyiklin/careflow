@@ -12,6 +12,7 @@ type FormTextProps = {
 type FormLabelProps = FormTextProps & {
   required?: boolean;
   compact?: boolean;
+  htmlFor?: string;
 };
 
 export function FieldError({ error }: FieldErrorProps) {
@@ -27,9 +28,11 @@ export function FormLabel({
   children,
   required = false,
   compact = false,
+  htmlFor,
 }: FormLabelProps) {
   return (
     <label
+      htmlFor={htmlFor}
       className={
         compact
           ? "mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-cf-text-subtle"

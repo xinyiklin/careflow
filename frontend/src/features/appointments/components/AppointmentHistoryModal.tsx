@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarClock, Clock3, History, UserRound } from "lucide-react";
+import { Clock3, History } from "lucide-react";
 
 import { fetchAppointmentHistory } from "../api/appointments";
 import { Badge, Button, ModalShell } from "../../../shared/components/ui";
+import { useModalPresence } from "../../../shared/hooks/useModalPresence";
 import {
   formatDateOnlyInTimeZone,
   formatTimeInTimeZone,
@@ -89,50 +90,55 @@ function HistoryRow({ entry, timeZone }: HistoryRowProps) {
   const { date, time } = formatTimestamp(entry.created_at, timeZone);
 
   return (
-    <div className="relative grid gap-3 pl-8">
-      <div className="absolute top-0 bottom-[-0.75rem] left-[0.45rem] w-px bg-cf-border" />
+    <div className="relative pl-8 pb-1">
+      {/* Dot marker */}
       <div
         className={[
-          "absolute top-4 left-0 h-4 w-4 rounded-full border-4 border-cf-page-bg",
-          actionStyle.dot,
+          "absolute left-0 top-1 h-3.5 w-3.5 rounded-full border-2 border-cf-surface bg-cf-surface shadow-sm flex items-center justify-center ring-4 ring-cf-surface",
         ].join(" ")}
-      />
+      >
+        <span
+          className={["h-1.5 w-1.5 rounded-full", actionStyle.dot].join(" ")}
+        />
+      </div>
 
-      <article className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface-muted/45 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <Badge variant={actionStyle.badge}>{actionStyle.label}</Badge>
-            <div className="truncate text-sm font-semibold text-cf-text">
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-cf-text">
               {entry.actor_name || "Unknown user"}
-            </div>
+            </span>
+            <Badge
+              variant={actionStyle.badge}
+              className="text-[10px] px-2 py-0"
+            >
+              {actionStyle.label}
+            </Badge>
           </div>
-
-          <div className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-cf-text-subtle">
-            <Clock3 className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 text-xs text-cf-text-subtle">
+            <Clock3 className="h-3.5 w-3.5 text-cf-text-subtle" />
             <span>{[date, time].filter(Boolean).join(" at ")}</span>
           </div>
         </div>
 
-        <div className="px-4 py-4">
-          <p className="text-sm leading-6 text-cf-text">
-            {entry.summary || "Appointment activity recorded."}
-          </p>
+        <p className="text-sm text-cf-text-muted leading-relaxed">
+          {entry.summary || "Appointment activity recorded."}
+        </p>
 
-          {entry.changed_fields?.length ? (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {entry.changed_fields.map((field) => (
-                <Badge key={field} variant="muted">
-                  {field}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-2 text-xs text-cf-text-subtle">
-              No individual fields were listed for this event.
-            </p>
-          )}
-        </div>
-      </article>
+        {entry.changed_fields?.length ? (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {entry.changed_fields.map((field) => (
+              <Badge
+                key={field}
+                variant="muted"
+                className="text-[10px] px-2 py-0"
+              >
+                {field}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -168,6 +174,7 @@ export default function AppointmentHistoryModal({
   timeZone,
   onClose,
 }: AppointmentHistoryModalProps) {
+  const { shouldRender } = useModalPresence(isOpen);
   const [entries, setEntries] = useState<AppointmentHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -211,12 +218,11 @@ export default function AppointmentHistoryModal({
   }, [appointmentId, facilityId, isOpen]);
 
   useEffect(() => {
-    if (!isOpen) {
-      setEntries([]);
-      setLoading(false);
-      setError("");
-    }
-  }, [isOpen]);
+    if (shouldRender) return;
+    setEntries([]);
+    setLoading(false);
+    setError("");
+  }, [shouldRender]);
 
   const appointmentSummary = useMemo(() => {
     if (!appointmentTime) return null;
@@ -233,91 +239,64 @@ export default function AppointmentHistoryModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
+      eyebrow={patientName ? `Patient: ${patientName}` : "Patient Activity"}
       title="Appointment Activity Log"
-      maxWidth="4xl"
+      description={
+        appointmentSummary ? `Schedule: ${appointmentSummary}` : undefined
+      }
+      maxWidth="lg"
       zIndex={90}
-      bodyClassName="bg-cf-page-bg"
-      footerClassName="justify-end"
       footer={
-        <Button type="button" variant="default" onClick={onClose}>
+        <Button
+          type="button"
+          variant="default"
+          onClick={onClose}
+          className="w-full sm:w-auto"
+        >
           Close
         </Button>
       }
+      footerClassName="justify-end"
     >
-      <div className="space-y-5">
-        <div className="grid gap-3 rounded-2xl border border-cf-border bg-cf-surface px-4 py-4 shadow-sm sm:grid-cols-2">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface-soft text-cf-text-subtle">
-              <UserRound className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-                Patient
-              </div>
-              <div className="mt-0.5 truncate text-sm font-semibold text-cf-text">
-                {patientName || "Unknown patient"}
-              </div>
-            </div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b border-cf-border pb-3">
+          <div className="flex items-center gap-2 text-sm font-semibold text-cf-text">
+            <History className="h-4.5 w-4.5 text-cf-text-subtle" />
+            Change History
           </div>
-
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface-soft text-cf-text-subtle">
-              <CalendarClock className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-                Appointment
-              </div>
-              <div className="mt-0.5 truncate text-sm font-semibold text-cf-text">
-                {appointmentSummary || "No appointment time"}
-              </div>
-            </div>
-          </div>
+          <Badge variant="outline">
+            {loading
+              ? "Loading..."
+              : `${entries.length} event${entries.length === 1 ? "" : "s"}`}
+          </Badge>
         </div>
 
-        <section className="rounded-2xl border border-cf-border bg-cf-surface-muted/45 p-4">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2 text-sm font-semibold text-cf-text">
-                <History className="h-4 w-4 text-cf-text-subtle" />
-                Activity Log
-              </div>
-              <p className="mt-1 text-sm text-cf-text-muted">
-                Review who changed this appointment and which fields were
-                touched.
-              </p>
-            </div>
-            <Badge variant="outline">
-              {loading
-                ? "Loading"
-                : `${entries.length} event${entries.length === 1 ? "" : "s"}`}
-            </Badge>
-          </div>
-
-          {loading ? (
-            <HistoryState
-              title="Loading activity log"
-              body="Pulling the latest activity for this appointment."
-            />
-          ) : error ? (
-            <HistoryState
-              tone="danger"
-              title="Unable to load activity log"
-              body={error}
-            />
-          ) : entries.length === 0 ? (
-            <HistoryState
-              title="No activity yet"
-              body="Changes will appear here after this appointment is updated."
-            />
-          ) : (
-            <div className="space-y-3">
+        {loading ? (
+          <HistoryState
+            title="Loading activity log"
+            body="Pulling the latest activity for this appointment."
+          />
+        ) : error ? (
+          <HistoryState
+            tone="danger"
+            title="Unable to load activity log"
+            body={error}
+          />
+        ) : entries.length === 0 ? (
+          <HistoryState
+            title="No activity yet"
+            body="Changes will appear here after this appointment is updated."
+          />
+        ) : (
+          <div className="relative pl-1 py-1">
+            <div className="absolute left-[7px] top-2 bottom-3 w-px bg-cf-border" />
+            <div className="space-y-6">
               {entries.map((entry) => (
                 <HistoryRow key={entry.id} entry={entry} timeZone={timeZone} />
               ))}
             </div>
-          )}
-        </section>
+          </div>
+        )}
       </div>
     </ModalShell>
   );

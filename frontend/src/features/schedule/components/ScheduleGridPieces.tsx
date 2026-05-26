@@ -84,7 +84,7 @@ export function DayCardHeader({
               className={[
                 "grid gap-2",
                 showResourceSelector && showIntervalSelector
-                  ? "md:grid-cols-[minmax(0,1fr)_6.5rem]"
+                  ? "md:grid-cols-[minmax(0,1fr)_4rem]"
                   : "grid-cols-1",
               ].join(" ")}
             >
@@ -114,12 +114,12 @@ export function DayCardHeader({
                   onChange={(event) =>
                     onChangeInterval(Number(event.target.value))
                   }
-                  className="h-8 w-full rounded-xl border border-cf-border bg-cf-surface px-3 text-sm font-semibold text-cf-text shadow-[var(--shadow-panel)] outline-none transition focus:border-cf-border-strong"
+                  className="h-8 w-full rounded-xl border border-cf-border bg-cf-surface px-2 text-xs font-semibold text-cf-text shadow-[var(--shadow-panel)] outline-none transition focus:border-cf-border-strong"
                   aria-label={`Interval for ${date}`}
                 >
                   {SLOT_INTERVAL_OPTIONS.map((option) => (
                     <option key={option} value={option}>
-                      {option} min
+                      {option}
                     </option>
                   ))}
                 </select>
@@ -158,16 +158,6 @@ export function ResourceColumnHeader({
             isOperatingDay ? "bg-cf-accent" : "bg-cf-text-subtle",
           ].join(" ")}
         />
-      </div>
-    </div>
-  );
-}
-
-export function ClosedScheduleMessage() {
-  return (
-    <div className="flex h-full min-h-40 items-center justify-center bg-cf-surface/45 px-4 text-center">
-      <div className="rounded-2xl border border-dashed border-cf-border bg-cf-surface-muted px-4 py-5 text-sm text-cf-text-muted">
-        This facility is closed on this day.
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import { Children } from "react";
 import type { ChangeEventHandler, ReactNode } from "react";
 
 function joinClasses(...classes: Array<string | false | null | undefined>) {
@@ -14,7 +15,7 @@ export function CompactModalGrid({
   return (
     <div
       className={joinClasses(
-        "grid gap-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]",
+        "grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]",
         className
       )}
     >
@@ -30,9 +31,17 @@ export function CompactModalLane({
   children: ReactNode;
   className?: string;
 }) {
+  const validChildren = Children.toArray(children).filter(Boolean);
   return (
-    <section className={joinClasses("space-y-3", className)}>
-      {children}
+    <section className={joinClasses("space-y-6", className)}>
+      {validChildren.map((child, idx) => (
+        <div
+          key={idx}
+          className={idx > 0 ? "border-t border-cf-border/60 pt-6" : ""}
+        >
+          {child}
+        </div>
+      ))}
     </section>
   );
 }
@@ -51,22 +60,17 @@ export function CompactCard({
   className?: string;
 }) {
   return (
-    <section
-      className={joinClasses(
-        "rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]",
-        className
-      )}
-    >
+    <section className={joinClasses("space-y-3 py-1", className)}>
       {eyebrow || title || action ? (
-        <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
           <div className="min-w-0">
             {eyebrow ? (
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+              <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
                 {eyebrow}
               </div>
             ) : null}
             {title ? (
-              <div className="truncate text-base font-semibold text-cf-text">
+              <div className="truncate text-base font-extrabold tracking-tight text-cf-text">
                 {title}
               </div>
             ) : null}

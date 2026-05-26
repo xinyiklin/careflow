@@ -9,11 +9,13 @@ import type { LucideIcon } from "lucide-react";
 import type { ApiPayload, EntityId } from "../../shared/api/types";
 import type {
   AppointmentLike,
+  CareProviderRecord,
   PatientAddress,
+  PatientGenderOption as SharedPatientGenderOption,
   PatientInsurancePolicy,
   PatientLike,
   PatientPhoneEntryLike,
-  StaffLike,
+  PharmacyRecord as SharedPharmacyRecord,
 } from "../../shared/types/domain";
 
 export type PatientSelectOption = {
@@ -21,9 +23,7 @@ export type PatientSelectOption = {
   name: string;
 };
 
-export type PatientCareProvider = StaffLike & {
-  id: EntityId;
-};
+export type PatientCareProvider = CareProviderRecord;
 
 export type EmergencyContactFormValues = {
   name: string;
@@ -110,6 +110,7 @@ export type PatientHubTabKey =
   | "allergies"
   | "documents"
   | "notes"
+  | "billing"
   | "appointments";
 
 export type PatientHubTab = {
@@ -160,6 +161,15 @@ export type InsurancePolicyFormValues = {
 export type InsuranceCarrier = {
   id: EntityId;
   name?: string | null;
+  payer_id?: string | null;
+  phone_number?: string | null;
+  website?: string | null;
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  is_active?: boolean | null;
 };
 
 export type InsurancePolicyPayload = ApiPayload & {
@@ -188,18 +198,9 @@ export type PatientEmergencyContact = EmergencyContactFormValues & {
 
 export type PatientPatchPayload = ApiPayload;
 
-export type PatientGenderOption = {
-  id: EntityId;
-  name: string;
-};
+export type PatientGenderOption = SharedPatientGenderOption;
 
-export type PharmacyRecord = {
-  id: EntityId;
-  name?: string | null;
-  phone_number?: string | null;
-  address?: PatientAddress | null;
-  accepts_erx?: boolean | null;
-};
+export type PharmacyRecord = SharedPharmacyRecord;
 
 export type PatientHubEmptyTab = {
   title: string;

@@ -14,6 +14,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -48,20 +49,14 @@ const STATUS_FILTERS = [
 const STATUS_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Status",
+    label: "Name",
     compare: (a, b) => compareText(a.name, b.name),
   },
   {
     key: "code",
     label: "Code",
-    compare: (a, b) => compareText(a.code, b.code),
-  },
-  {
-    key: "active",
-    label: "Active first",
     compare: (a, b) =>
-      compareBoolean(a.is_active !== false, b.is_active !== false) ||
-      compareText(a.name, b.name),
+      compareText(a.code, b.code) || compareText(a.name, b.name),
   },
   {
     key: "protected",
@@ -89,8 +84,18 @@ export default function AppointmentStatusesPanel() {
     });
 
   const canManageCurrentFacility = Boolean(adminFacility?.id);
-  const { statuses, loading, saving, error, reload, saveStatus, removeStatus } =
-    useAppointmentStatuses(canManageCurrentFacility ? adminFacility?.id : null);
+  const {
+    statuses,
+    loading,
+    saving,
+    error,
+    loadError,
+    reload,
+    saveStatus,
+    removeStatus,
+  } = useAppointmentStatuses(
+    canManageCurrentFacility ? adminFacility?.id : null
+  );
   const {
     activeFilter,
     activeSort,
@@ -101,6 +106,7 @@ export default function AppointmentStatusesPanel() {
   } = useAdminListControls(statuses, {
     filters: STATUS_FILTERS,
     sortOptions: STATUS_SORT_OPTIONS,
+    storageKey: "appointmentStatuses",
   });
 
   const openConfirmDialog = (opts: Omit<AdminConfirmDialogState, "isOpen">) =>
@@ -183,41 +189,11 @@ export default function AppointmentStatusesPanel() {
           You do not have admin access to the currently selected facility.
         </AdminInlineNotice>
       )}
-      {error && <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
 
-      <AdminTableCard
-        description={
-          adminFacility?.name
-            ? `Scheduler status labels and colors for ${adminFacility.name}.`
-            : "Select a facility to manage scheduler statuses."
-        }
-        savingLabel={saving ? "Saving..." : ""}
-        actions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => reload()}
-              disabled={loading || saving || !canManageCurrentFacility}
-            >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              disabled={!canManageCurrentFacility}
-            >
-              <Plus className="h-3.5 w-3.5" /> New Status
-            </Button>
-          </>
-        }
-      >
+      <AdminTableCard>
         <AdminListToolbar
           savingLabel={saving ? "Saving..." : ""}
           filters={filterOptions}
@@ -226,6 +202,27 @@ export default function AppointmentStatusesPanel() {
           sortOptions={STATUS_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving || !canManageCurrentFacility}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                disabled={!canManageCurrentFacility}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
         />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -242,15 +239,12 @@ export default function AppointmentStatusesPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    Loading statuses...
-                  </td>
-                </tr>
+              {loading ? null : loadError ? (
+                <AdminTableLoadError
+                  colSpan={4}
+                  message="Couldn't load statuses."
+                  onRetry={() => void reload()}
+                />
               ) : statuses.length === 0 ? (
                 <tr>
                   <td
@@ -314,9 +308,14 @@ export default function AppointmentStatusesPanel() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <Badge variant={status.is_active ? "success" : "muted"}>
-                        {status.is_active ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant={status.is_active ? "success" : "muted"}>
+                          {status.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                        {status.is_billable === false && (
+                          <Badge variant="muted">Non-billable</Badge>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

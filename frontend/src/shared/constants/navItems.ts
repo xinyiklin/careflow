@@ -1,4 +1,4 @@
-import { CalendarDays, FileText, ShieldCheck } from "lucide-react";
+import { CalendarDays, FileText, ShieldCheck, CreditCard } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
 import type { Location, NavigateFunction } from "react-router-dom";
@@ -18,6 +18,7 @@ type SidebarNavOptions = {
   canAccessFacilityAdmin: boolean;
   canAccessOrganizationAdmin: boolean;
   hasAnyAdminAccess: boolean;
+  canViewBilling?: boolean;
 };
 
 export function getSidebarNavItems({
@@ -26,6 +27,7 @@ export function getSidebarNavItems({
   canAccessFacilityAdmin,
   canAccessOrganizationAdmin,
   hasAnyAdminAccess,
+  canViewBilling = false,
 }: SidebarNavOptions): SidebarNavItem[] {
   const adminItems = [
     {
@@ -57,6 +59,14 @@ export function getSidebarNavItems({
       icon: FileText,
       isActive: location.pathname.startsWith("/documents"),
       onClick: () => navigate("/documents"),
+    },
+    {
+      key: "billing",
+      label: "Billing",
+      icon: CreditCard,
+      isActive: location.pathname.startsWith("/billing"),
+      onClick: () => navigate("/billing"),
+      isVisible: canViewBilling,
     },
     ...adminItems,
   ];

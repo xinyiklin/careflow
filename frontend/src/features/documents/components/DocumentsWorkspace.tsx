@@ -12,6 +12,7 @@ import {
   Trash2,
   UploadCloud,
   X,
+  ChevronDown,
 } from "lucide-react";
 
 import ConfirmDialog from "../../../shared/components/ConfirmDialog";
@@ -21,21 +22,13 @@ import {
   CategoryRailItem,
   Notice,
 } from "../../../shared/components/ui";
-import { getErrorMessage } from "../../../shared/utils/errors";
-import {
-  deletePatientDocument,
-  downloadPatientDocumentBundle,
-  downloadPatientDocument,
-  updatePatientDocument,
-  uploadPatientDocument,
-} from "../api/documents";
+import useDocumentMutations from "../hooks/useDocumentMutations";
 import DocumentMetadataModal from "./DocumentMetadataModal";
 import DocumentPreviewPane from "./DocumentPreviewPane";
 
 import type { ReactNode } from "react";
 import type { EntityId } from "../../../shared/api/types";
 import type { PatientLike } from "../../../shared/types/domain";
-import type { DocumentMetadataSubmitValues } from "./DocumentMetadataModal";
 import type {
   DocumentCategoryNavItem,
   NormalizedPatientDocument,
@@ -92,6 +85,7 @@ export type DocumentsWorkspaceProps = {
   selectedPatient?: PatientLike | null;
   selectedFacilityId?: EntityId | null;
   toolbarAccessory?: ReactNode;
+  canManageDocuments?: boolean;
   canManageCategories?: boolean;
   onManageCategories?: (() => void) | null;
   onDocumentUploaded?: ((document: PatientDocument | null) => void) | null;
@@ -301,9 +295,7 @@ function sortDocuments(
 }
 
 function DocumentSkeleton() {
-  return (
-    <div className="cf-loading-skeleton h-[72px] rounded-xl bg-cf-surface-soft" />
-  );
+  return null;
 }
 
 export default function DocumentsWorkspace({
@@ -314,6 +306,7 @@ export default function DocumentsWorkspace({
   selectedPatient = null,
   selectedFacilityId = null,
   toolbarAccessory = null,
+  canManageDocuments = true,
   canManageCategories = false,
   onManageCategories = null,
   onDocumentUploaded = null,
@@ -329,17 +322,6 @@ export default function DocumentsWorkspace({
   const [sortMode, setSortMode] = useState<DocumentSortMode>("newest");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [focusedDocumentId, setFocusedDocumentId] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [metadataModalMode, setMetadataModalMode] = useState<
-    "upload" | "edit" | null
-  >(null);
-  const [editingDocument, setEditingDocument] =
-    useState<NormalizedPatientDocument | null>(null);
-  const [metadataError, setMetadataError] = useState("");
-  const [isSavingMetadata, setIsSavingMetadata] = useState(false);
-  const [deleteCandidate, setDeleteCandidate] =
-    useState<NormalizedPatientDocument | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const normalizedDocuments = useMemo(
     () => documents.map(normalizeDocument),
@@ -354,6 +336,23 @@ export default function DocumentsWorkspace({
           ),
     [activeCategory, normalizedDocuments]
   );
+  const selectedDocuments = normalizedDocuments.filter((document) =>
+    selectedIds.includes(document.id)
+  );
+
+  const mutations = useDocumentMutations({
+    facilityId: selectedFacilityId,
+    selectedPatient,
+    focusedDocumentId,
+    setFocusedDocumentId,
+    setSelectedIds,
+    selectedDocuments,
+    canManageDocuments,
+    onDocumentUploaded,
+    onDocumentUpdated,
+    onDocumentDeleted,
+  });
+
   const filteredDocuments = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     const matchedDocuments = categoryDocuments.filter((document) => {
@@ -364,23 +363,16 @@ export default function DocumentsWorkspace({
 
     return sortDocuments(matchedDocuments, sortMode, categories);
   }, [categories, categoryDocuments, searchTerm, sortMode, typeFilter]);
-  const selectedDocuments = normalizedDocuments.filter((document) =>
-    selectedIds.includes(document.id)
-  );
+
   const activeLabel =
     categories.find((category) => category.id === activeCategory)?.label ||
     "Documents";
   const focusedDocument = normalizedDocuments.find(
     (document) => document.id === focusedDocumentId
   );
-  const inspectorDocument =
-    focusedDocument || selectedDocuments[0] || filteredDocuments[0] || null;
+  const inspectorDocument = focusedDocument || null;
   const showManageCategories =
     Boolean(canManageCategories) && typeof onManageCategories === "function";
-  const canUpload =
-    Boolean(selectedPatient) &&
-    Boolean(selectedFacilityId) &&
-    !isSavingMetadata;
   const hasActiveDocumentFilters =
     searchTerm.trim().length > 0 || typeFilter !== "all";
   const hasFilteredOutDocuments =
@@ -403,180 +395,12 @@ export default function DocumentsWorkspace({
 
   const handlePreviewDocument = (document: NormalizedPatientDocument) => {
     setFocusedDocumentId(document.id);
-    setErrorMessage("");
-  };
-
-  const handleUploadClick = () => {
-    if (!canUpload) return;
-    setMetadataModalMode("upload");
-    setEditingDocument(null);
-    setMetadataError("");
+    mutations.setErrorMessage("");
   };
 
   const clearDocumentFilters = () => {
     setSearchTerm("");
     setTypeFilter("all");
-  };
-
-  const handleEditDocument = (document: NormalizedPatientDocument) => {
-    setEditingDocument(document);
-    setMetadataModalMode("edit");
-    setMetadataError("");
-  };
-
-  const closeMetadataModal = () => {
-    if (isSavingMetadata) return;
-    setMetadataModalMode(null);
-    setEditingDocument(null);
-    setMetadataError("");
-  };
-
-  const handleMetadataSubmit = async (values: DocumentMetadataSubmitValues) => {
-    if (!selectedFacilityId) return;
-
-    try {
-      setIsSavingMetadata(true);
-      setMetadataError("");
-      setErrorMessage("");
-
-      if (metadataModalMode === "upload") {
-        const uploadItems =
-          values.files && values.files.length > 0
-            ? values.files
-            : values.file
-              ? [{ id: "upload-1", file: values.file, name: values.name }]
-              : [];
-
-        if (!selectedPatient || uploadItems.length === 0) return;
-
-        const uploadResults = await Promise.allSettled(
-          uploadItems.map((item) =>
-            uploadPatientDocument({
-              facilityId: selectedFacilityId,
-              patientId: selectedPatient.id,
-              file: item.file,
-              name: item.name || item.file.name,
-              category: values.category,
-              documentDate: values.documentDate,
-              notes: values.notes,
-            })
-          )
-        );
-        const uploadedDocuments = uploadResults
-          .filter(
-            (result): result is PromiseFulfilledResult<PatientDocument> =>
-              result.status === "fulfilled"
-          )
-          .map((result) => result.value);
-        const failedCount = uploadResults.length - uploadedDocuments.length;
-
-        if (uploadedDocuments.length === 0) {
-          const failedResult = uploadResults.find(
-            (result): result is PromiseRejectedResult =>
-              result.status === "rejected"
-          );
-          throw (
-            failedResult?.reason || new Error("Failed to upload documents.")
-          );
-        }
-
-        uploadedDocuments.forEach((uploadedDocument) => {
-          onDocumentUploaded?.(uploadedDocument);
-        });
-
-        const lastUploadedDocument =
-          uploadedDocuments[uploadedDocuments.length - 1];
-        if (lastUploadedDocument?.id) {
-          setFocusedDocumentId(String(lastUploadedDocument.id));
-        }
-
-        if (failedCount > 0) {
-          setErrorMessage(
-            `Uploaded ${uploadedDocuments.length} of ${uploadItems.length} documents. ${failedCount} failed.`
-          );
-        }
-      }
-
-      if (metadataModalMode === "edit" && editingDocument) {
-        const updatedDocument = await updatePatientDocument({
-          facilityId: selectedFacilityId,
-          documentId: editingDocument.id,
-          values: {
-            name: values.name,
-            category: values.category,
-            document_date: values.documentDate || null,
-            notes: values.notes,
-          },
-        });
-        onDocumentUpdated?.(updatedDocument);
-        if (updatedDocument?.id) {
-          setFocusedDocumentId(String(updatedDocument.id));
-        }
-      }
-
-      setMetadataModalMode(null);
-      setEditingDocument(null);
-    } catch (error) {
-      setMetadataError(getErrorMessage(error, "Failed to save document."));
-    } finally {
-      setIsSavingMetadata(false);
-    }
-  };
-
-  const handleDownloadDocument = async (
-    document: PatientDocument | NormalizedPatientDocument
-  ) => {
-    if (!selectedFacilityId) return;
-    try {
-      setErrorMessage("");
-      await downloadPatientDocument({
-        facilityId: selectedFacilityId,
-        document,
-      });
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to download document."));
-    }
-  };
-
-  const handleBatchAction = async (action: "download") => {
-    if (!selectedDocuments.length) return;
-    if (action === "download") {
-      try {
-        setErrorMessage("");
-        await downloadPatientDocumentBundle({
-          facilityId: selectedFacilityId,
-          documents: selectedDocuments,
-        });
-      } catch (error) {
-        setErrorMessage(
-          getErrorMessage(error, "Failed to download document bundle.")
-        );
-      }
-    }
-  };
-
-  const handleDeleteDocument = async () => {
-    if (!selectedFacilityId || !deleteCandidate) return;
-    try {
-      setIsDeleting(true);
-      setErrorMessage("");
-      await deletePatientDocument({
-        facilityId: selectedFacilityId,
-        documentId: deleteCandidate.id,
-      });
-      onDocumentDeleted?.(deleteCandidate.id);
-      setSelectedIds((current) =>
-        current.filter((documentId) => documentId !== deleteCandidate.id)
-      );
-      if (focusedDocumentId === deleteCandidate.id) {
-        setFocusedDocumentId("");
-      }
-      setDeleteCandidate(null);
-    } catch (error) {
-      setErrorMessage(getErrorMessage(error, "Failed to delete document."));
-    } finally {
-      setIsDeleting(false);
-    }
   };
 
   return (
@@ -585,52 +409,51 @@ export default function DocumentsWorkspace({
         className={
           compact
             ? "grid min-h-0 flex-1 grid-cols-1 xl:grid-cols-[minmax(560px,1fr)_minmax(400px,1.15fr)]"
-            : "cf-preview-surface grid h-full min-h-0 grid-cols-1 overflow-y-auto xl:grid-cols-[minmax(580px,1fr)_minmax(420px,1.15fr)] xl:overflow-hidden"
+            : "grid h-full min-h-0 grid-cols-1 overflow-y-auto bg-cf-surface xl:grid-cols-[minmax(580px,1fr)_minmax(420px,1.15fr)] xl:overflow-hidden"
         }
       >
         {/* Left panel: list + toolbar */}
         <section className="flex min-h-0 min-w-0 flex-col border-b border-cf-border bg-cf-page-bg xl:border-r xl:border-b-0">
           {/* Header */}
-          <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/55 px-4 py-3">
-            <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-              <div className="min-w-0">
-                <div className="shrink-0 text-xl font-semibold tracking-tight text-cf-text">
-                  {compact ? activeLabel : title}
+          {!compact ? (
+            <div className="shrink-0 border-b border-cf-border bg-cf-surface px-5 py-1.5 transition-[background-color,border-color] duration-150">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="shrink-0 text-sm font-extrabold tracking-tight text-cf-text leading-none">
+                    {title}
+                  </div>
+                  {normalizedDocuments.length > 0 && (
+                    <span className="text-[11px] text-cf-text-subtle font-medium leading-none">
+                      {normalizedDocuments.length}{" "}
+                      {normalizedDocuments.length === 1
+                        ? "document"
+                        : "documents"}
+                      {activeCategory !== "all" ? ` in ${activeLabel}` : ""}
+                    </span>
+                  )}
                 </div>
-                {!compact ? (
-                  <p className="mt-0.5 text-xs text-cf-text-muted">
-                    {normalizedDocuments.length}{" "}
-                    {normalizedDocuments.length === 1
-                      ? "document"
-                      : "documents"}
-                    {activeCategory !== "all" ? ` in ${activeLabel}` : " total"}
-                  </p>
+                {toolbarAccessory ? (
+                  <div className="min-w-[200px] flex-1 md:max-w-[280px]">
+                    {toolbarAccessory}
+                  </div>
                 ) : null}
               </div>
-              {toolbarAccessory ? (
-                <div className="min-w-[200px] flex-1 md:max-w-[280px]">
-                  {toolbarAccessory}
-                </div>
-              ) : null}
             </div>
-          </div>
+          ) : null}
 
-          {errorMessage ? (
+          {mutations.errorMessage ? (
             <div className="shrink-0 px-4 pt-3">
-              <Notice tone="danger">{errorMessage}</Notice>
+              <Notice tone="danger">{mutations.errorMessage}</Notice>
             </div>
           ) : null}
 
           <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden md:grid-cols-[196px_minmax(0,1fr)]">
             {/* Sidebar: categories */}
             <div className="flex min-h-0 min-w-0 flex-col border-b border-cf-border bg-cf-surface-muted/70 md:border-r md:border-b-0">
-              <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2 md:block">
+              <div className="flex items-center justify-between gap-2 px-3 pt-2 pb-1.5 md:block">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                     File cabinet
-                  </p>
-                  <p className="mt-0.5 hidden text-xs font-medium text-cf-text-muted md:block">
-                    Filter by category
                   </p>
                 </div>
                 {showManageCategories ? (
@@ -648,7 +471,7 @@ export default function DocumentsWorkspace({
 
               <CategoryRail
                 label="Document categories"
-                className="flex min-w-0 gap-1 overflow-x-auto px-3 pb-3 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden md:overscroll-contain"
+                className="flex min-w-0 gap-1 overflow-x-auto px-3 pb-2 md:min-h-0 md:flex-1 md:flex-col md:overflow-y-auto md:overflow-x-hidden md:overscroll-contain"
               >
                 {categories.map((category) => (
                   <CategoryRailItem
@@ -665,60 +488,19 @@ export default function DocumentsWorkspace({
             {/* Main panel: document list */}
             <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
               {/* Toolbar */}
-              <div className="shrink-0 border-b border-cf-border bg-cf-page-bg/95 px-3 py-2">
-                <div className="flex min-w-0 flex-col gap-2">
-                  <div className="flex min-w-0 flex-wrap items-center justify-between gap-1.5">
-                    {selectedDocuments.length > 0 ? (
-                      <span className="text-xs font-semibold text-cf-text-muted">
-                        {selectedDocuments.length} selected
-                      </span>
-                    ) : (
-                      <span className="hidden text-[11px] text-cf-text-subtle md:block">
-                        {visibleDocumentCountLabel}
-                      </span>
-                    )}
-
-                    <div className="flex items-center gap-1.5">
-                      {selectedDocuments.length > 0 ? (
-                        <Button
-                          size="sm"
-                          className="px-2.5 py-1 text-xs"
-                          onClick={() => handleBatchAction("download")}
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          Download {selectedDocuments.length}
-                        </Button>
-                      ) : null}
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        className="px-2.5 py-1 text-xs"
-                        onClick={handleUploadClick}
-                        disabled={!canUpload}
-                        title={
-                          !selectedPatient
-                            ? "Select a patient first"
-                            : !selectedFacilityId
-                              ? "No facility selected"
-                              : undefined
-                        }
-                      >
-                        <UploadCloud className="h-3.5 w-3.5" />
-                        Upload
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                    <label className="relative min-w-[13rem] flex-1">
+              <div className="shrink-0 border-b border-cf-border bg-cf-surface px-5 py-1.5 transition-[background-color,border-color] duration-150">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  {/* Left Side: Search and Selectors */}
+                  <div className="flex flex-1 min-w-[20rem] items-center gap-2">
+                    <label className="relative flex-1 max-w-md">
                       <span className="sr-only">Search documents</span>
-                      <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cf-text-subtle" />
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-cf-text-subtle" />
                       <input
                         type="search"
                         value={searchTerm}
                         onChange={(event) => setSearchTerm(event.target.value)}
                         placeholder="Search documents"
-                        className="h-8 w-full rounded-lg border border-cf-border bg-cf-surface py-1 pr-8 pl-8 text-xs text-cf-text outline-none transition placeholder:text-cf-text-subtle focus:border-cf-accent"
+                        className="h-8 w-full rounded-lg border border-cf-border bg-cf-surface py-1 pr-8 pl-9 text-xs text-cf-text outline-none transition placeholder:text-cf-text-subtle focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/10"
                       />
                       {searchTerm ? (
                         <button
@@ -735,44 +517,97 @@ export default function DocumentsWorkspace({
                     <label className="sr-only" htmlFor="document-type-filter">
                       Filter document type
                     </label>
-                    <select
-                      id="document-type-filter"
-                      value={typeFilter}
-                      onChange={(event) =>
-                        setTypeFilter(event.target.value as DocumentTypeFilter)
-                      }
-                      className="h-8 rounded-lg border border-cf-border bg-cf-surface px-2 text-xs font-medium text-cf-text-muted outline-none transition focus:border-cf-accent"
-                    >
-                      {DOCUMENT_TYPE_FILTERS.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative flex items-center">
+                      <select
+                        id="document-type-filter"
+                        value={typeFilter}
+                        onChange={(event) =>
+                          setTypeFilter(
+                            event.target.value as DocumentTypeFilter
+                          )
+                        }
+                        className="h-8 appearance-none rounded-lg border border-cf-border bg-cf-surface pr-8 pl-3 text-xs font-semibold text-cf-text-muted outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/10 cursor-pointer"
+                      >
+                        {DOCUMENT_TYPE_FILTERS.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-cf-text-subtle/80" />
+                    </div>
 
                     <label className="sr-only" htmlFor="document-sort">
                       Sort documents
                     </label>
-                    <select
-                      id="document-sort"
-                      value={sortMode}
-                      onChange={(event) =>
-                        setSortMode(event.target.value as DocumentSortMode)
-                      }
-                      className="h-8 rounded-lg border border-cf-border bg-cf-surface px-2 text-xs font-medium text-cf-text-muted outline-none transition focus:border-cf-accent"
-                    >
-                      {DOCUMENT_SORT_OPTIONS.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative flex items-center">
+                      <select
+                        id="document-sort"
+                        value={sortMode}
+                        onChange={(event) =>
+                          setSortMode(event.target.value as DocumentSortMode)
+                        }
+                        className="h-8 appearance-none rounded-lg border border-cf-border bg-cf-surface pr-8 pl-3 text-xs font-semibold text-cf-text-muted outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/10 cursor-pointer"
+                      >
+                        {DOCUMENT_SORT_OPTIONS.map((option) => (
+                          <option key={option.id} value={option.id}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2.5 h-3.5 w-3.5 text-cf-text-subtle/80" />
+                    </div>
+                  </div>
+
+                  {/* Right Side: Count and Actions */}
+                  <div className="flex items-center gap-3">
+                    {selectedDocuments.length > 0 ? (
+                      <span className="text-xs font-bold text-cf-text-muted">
+                        {selectedDocuments.length} selected
+                      </span>
+                    ) : (
+                      <span className="hidden text-[11px] font-semibold text-cf-text-subtle md:block">
+                        {visibleDocumentCountLabel}
+                      </span>
+                    )}
+
+                    <div className="flex items-center gap-1.5">
+                      {selectedDocuments.length > 0 ? (
+                        <Button
+                          size="sm"
+                          className="px-2.5 py-1 text-xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                          onClick={mutations.handleBatchDownload}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download {selectedDocuments.length}
+                        </Button>
+                      ) : null}
+                      {canManageDocuments ? (
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          className="px-2.5 py-1 text-xs hover:scale-[1.02] active:scale-[0.98] transition-transform"
+                          onClick={mutations.handleUploadClick}
+                          disabled={!mutations.canUpload}
+                          title={
+                            !selectedPatient
+                              ? "Select a patient first"
+                              : !selectedFacilityId
+                                ? "No facility selected"
+                                : undefined
+                          }
+                        >
+                          <UploadCloud className="h-3.5 w-3.5" />
+                          Upload
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Document list */}
-              <div className="min-h-0 flex-1 overflow-y-auto p-3">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-cf-surface-muted/30 p-5">
                 {isLoadingDocuments && filteredDocuments.length === 0 ? (
                   <div className="space-y-2">
                     {[0, 1, 2, 3].map((item) => (
@@ -835,7 +670,7 @@ export default function DocumentsWorkspace({
                       <p className="mt-1 text-xs leading-relaxed text-cf-text-muted">
                         {hasFilteredOutDocuments
                           ? "Try a different search or file type."
-                          : activeCategory === "all"
+                          : activeCategory === "all" && canManageDocuments
                             ? "Upload the first document for this patient."
                             : `No files in ${activeLabel} yet.`}
                       </p>
@@ -848,12 +683,12 @@ export default function DocumentsWorkspace({
                         >
                           Clear filters
                         </Button>
-                      ) : canUpload ? (
+                      ) : mutations.canUpload && canManageDocuments ? (
                         <Button
                           type="button"
                           size="sm"
                           className="mt-3"
-                          onClick={handleUploadClick}
+                          onClick={mutations.handleUploadClick}
                         >
                           <UploadCloud className="h-3.5 w-3.5" />
                           Upload
@@ -871,7 +706,7 @@ export default function DocumentsWorkspace({
                         <div
                           key={document.id}
                           className={[
-                            "group rounded-xl border bg-cf-surface transition-all hover:border-cf-border-strong hover:shadow-[var(--shadow-panel)]",
+                            "group rounded-xl border bg-cf-surface transition-all duration-150 hover:-translate-y-[0.5px] hover:border-cf-border-strong hover:shadow-[var(--shadow-panel)]",
                             isSelected
                               ? "border-cf-accent/30 bg-cf-surface ring-1 ring-inset ring-cf-accent/10"
                               : isFocused
@@ -937,33 +772,43 @@ export default function DocumentsWorkspace({
                               >
                                 <Eye className="h-3.5 w-3.5" />
                               </button>
+                              {canManageDocuments ? (
+                                <button
+                                  type="button"
+                                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-subtle transition hover:border-cf-border-strong hover:text-cf-text"
+                                  onClick={() =>
+                                    mutations.handleEditDocument(document)
+                                  }
+                                  aria-label={`Edit ${document.name}`}
+                                  title="Edit"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              ) : null}
                               <button
                                 type="button"
                                 className="flex h-7 w-7 items-center justify-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-subtle transition hover:border-cf-border-strong hover:text-cf-text"
-                                onClick={() => handleEditDocument(document)}
-                                aria-label={`Edit ${document.name}`}
-                                title="Edit"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-subtle transition hover:border-cf-border-strong hover:text-cf-text"
-                                onClick={() => handleDownloadDocument(document)}
+                                onClick={() =>
+                                  mutations.handleDownloadDocument(document)
+                                }
                                 aria-label={`Download ${document.name}`}
                                 title="Download"
                               >
                                 <Download className="h-3.5 w-3.5" />
                               </button>
-                              <button
-                                type="button"
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-cf-danger-bg bg-cf-surface text-cf-danger-text transition hover:bg-cf-danger-bg"
-                                onClick={() => setDeleteCandidate(document)}
-                                aria-label={`Delete ${document.name}`}
-                                title="Delete"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              {canManageDocuments ? (
+                                <button
+                                  type="button"
+                                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-cf-danger-bg bg-cf-surface text-cf-danger-text transition hover:bg-cf-danger-bg"
+                                  onClick={() =>
+                                    mutations.setDeleteCandidate(document)
+                                  }
+                                  aria-label={`Delete ${document.name}`}
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -981,39 +826,43 @@ export default function DocumentsWorkspace({
           <DocumentPreviewPane
             document={inspectorDocument}
             facilityId={selectedFacilityId}
-            onDownload={handleDownloadDocument}
+            onDownload={mutations.handleDownloadDocument}
             flush
           />
         </aside>
       </div>
 
       <DocumentMetadataModal
-        isOpen={metadataModalMode !== null}
-        mode={metadataModalMode || "upload"}
-        document={editingDocument}
+        isOpen={mutations.metadataModalMode !== null}
+        mode={mutations.metadataModalMode || "upload"}
+        document={mutations.editingDocument}
         categories={categories}
         activeCategory={activeCategory}
         acceptedExtensions={ACCEPTED_DOCUMENT_EXTENSIONS}
-        saving={isSavingMetadata}
-        error={metadataError}
-        onClose={closeMetadataModal}
-        onSubmit={handleMetadataSubmit}
+        saving={mutations.isSavingMetadata}
+        error={mutations.metadataError}
+        onClose={mutations.closeMetadataModal}
+        onSubmit={mutations.handleMetadataSubmit}
         isAcceptedFile={isAcceptedDocumentFile}
       />
 
       <ConfirmDialog
-        isOpen={deleteCandidate !== null}
+        isOpen={mutations.deleteCandidate !== null}
         title="Delete Document"
         message={
-          deleteCandidate
-            ? `Delete "${deleteCandidate.name}"? This action cannot be undone and the file will be permanently removed.`
+          mutations.deleteCandidate
+            ? `Delete "${mutations.deleteCandidate.name}"? This action cannot be undone and the file will be permanently removed.`
             : ""
         }
-        confirmText={isDeleting ? "Deleting..." : "Delete"}
+        confirmText={mutations.isDeleting ? "Deleting..." : "Delete"}
         cancelText="Cancel"
         variant="danger"
-        onConfirm={isDeleting ? undefined : handleDeleteDocument}
-        onCancel={() => (isDeleting ? undefined : setDeleteCandidate(null))}
+        onConfirm={
+          mutations.isDeleting ? undefined : mutations.handleDeleteDocument
+        }
+        onCancel={() =>
+          mutations.isDeleting ? undefined : mutations.setDeleteCandidate(null)
+        }
       />
     </>
   );

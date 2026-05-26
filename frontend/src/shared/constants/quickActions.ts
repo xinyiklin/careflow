@@ -81,11 +81,9 @@ type BuildQuickActionsOptions = {
   onOpenPreferences?: () => void;
   onSetScheduleView?: (viewMode: UserPreferences["scheduleViewMode"]) => void;
   onShowScheduleToday?: () => void;
-  onToggleDemoBadge?: () => void;
   onToggleSidebar?: () => void;
   onToggleTheme?: () => void;
   preferences?: QuickActionPreferences;
-  showDemoActions?: boolean;
 };
 
 export const QUICK_ACTION_SLOTS = [
@@ -144,11 +142,6 @@ export const QUICK_ACTION_OPTIONS = [
     requiresAdmin: false,
   },
   { key: "toggle-sidebar", label: "Toggle Sidebar", requiresAdmin: false },
-  {
-    key: "toggle-demo-badge",
-    label: "Toggle Demo Badge",
-    requiresAdmin: false,
-  },
   {
     key: "go-facility-admin",
     label: "Go to Facility Admin",
@@ -368,11 +361,9 @@ export function buildQuickActions({
   onOpenPreferences,
   onSetScheduleView,
   onShowScheduleToday,
-  onToggleDemoBadge,
   onToggleSidebar,
   onToggleTheme,
   preferences,
-  showDemoActions = false,
 }: BuildQuickActionsOptions): BuiltQuickAction[] {
   const actionDefinitions = [
     {
@@ -485,20 +476,6 @@ export function buildQuickActions({
         onToggleSidebar?.();
       },
     },
-    ...(showDemoActions
-      ? [
-          {
-            key: "toggle-demo-badge",
-            icon: SlidersHorizontal,
-            label: "Toggle Demo Badge",
-            keywords: "demo badge environment show hide",
-            onClick: () => {
-              onClose?.();
-              onToggleDemoBadge?.();
-            },
-          },
-        ]
-      : []),
     ...(canAccessFacilityAdmin
       ? [
           {

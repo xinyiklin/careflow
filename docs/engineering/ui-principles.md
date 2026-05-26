@@ -60,6 +60,10 @@ scrolling or clips an animation/surface.
   header height.
 - Do not add helper text when the surrounding workflow already explains the
   state.
+- Do not teach the user how to use the app inline. Avoid writing manuals or
+  explaining basic interactions inside the UI. A simple, obvious hint or
+  placeholder is acceptable, but do not write multi-sentence explanations or
+  essays.
 - Fix stale or misleading visible copy during the same UI polish pass.
 - Keep modal headers readable and consistent; use the established eyebrow +
   title pattern when it helps match the rest of the app.
@@ -72,6 +76,22 @@ scrolling or clips an animation/surface.
 - Preserve layout stability silently while data loads.
 - Empty states should be calm, short, and actionable.
 - Do not build fake loading states or mock systems.
+
+## Sanctioned Visual Exceptions
+
+### Insurance Card Treatment
+
+Patient insurance policy cards (`PatientHubTabPanels`, `PatientHubSidebar`,
+`InsurancePolicyModal`) use carrier-branded gradients and accent colors to give
+insurance cards a real card feel. This is a deliberate visual departure from the
+flat token-based design system. Rules within this exception:
+
+- Carrier accent colors are data-driven (from `insuranceCardBranding.ts`).
+- Do not add transient animation (`animate-ping`, `animate-pulse`) to insurance
+  cards.
+- Keep text contrast accessible on gradient backgrounds.
+- This exception applies only to insurance card surfaces — do not extend
+  gradient-heavy styling to other areas.
 
 ## Error UX
 
@@ -93,6 +113,20 @@ Never show:
 - SQL/database errors
 - endpoint or internal path details
 - secrets, tokens, PHI, or sensitive identifiers
+
+## Selector Controls
+
+When the user picks one option from a fixed set (view mode, scope, category),
+use a shared selector component so behavior and layout are consistent:
+
+- **SegmentedControl** (`shared/components/ui/SegmentedControl`) for horizontal
+  toggles between 2–N options. Each option fills an equal share of the track —
+  the selected state takes up the whole section, not a floating pill.
+- **CategoryRail / CategoryRailItem** (`shared/components/ui/CategoryRail`) for
+  vertical sidebar navigation between workspace sections.
+
+Do not hand-roll new inline segmented toggles or tab-strip selectors. Use the
+shared components and extend them if a new variant is genuinely needed.
 
 ## Interaction
 

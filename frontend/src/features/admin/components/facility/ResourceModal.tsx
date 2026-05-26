@@ -1,17 +1,8 @@
 import { useEffect, useState } from "react";
+import { MapPin, Clock, Eye } from "lucide-react";
 
 import { Button, Input } from "../../../../shared/components/ui";
 import { AdminFormModal } from "../shared/AdminFormModal";
-import {
-  CompactCard,
-  CompactField,
-  CompactMetric,
-  CompactModalGrid,
-  CompactModalLane,
-  CompactPill,
-  CompactRecordHeader,
-  CompactToggle,
-} from "../shared/AdminCompactModal";
 import {
   getResourceHoursLabel,
   getResourceRoomLabel,
@@ -99,134 +90,192 @@ export default function ResourceModal({
     }));
   };
 
+  const isEditMode = mode === "edit";
+  const initials = (formData.name || "RS").slice(0, 2).toUpperCase();
+
+  const modalTitle = isEditMode ? (
+    <div className="flex flex-wrap items-center justify-between gap-4 mr-6">
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-xl bg-cf-accent/10 border border-cf-accent/30 text-cf-accent flex items-center justify-center text-xs font-bold shadow-sm">
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <h4 className="truncate text-sm font-bold tracking-tight text-cf-text leading-snug">
+            {formData.name || "Unnamed Resource"}
+          </h4>
+          <p className="truncate text-[11px] text-cf-text-muted mt-0.5 font-normal">
+            Room · {getResourceRoomLabel(formData)}
+          </p>
+        </div>
+      </div>
+
+      <label className="flex shrink-0 items-center gap-1.5 rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted hover:bg-cf-surface-soft cursor-pointer transition select-none">
+        <input
+          type="checkbox"
+          name="is_active"
+          form="resource-form"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        Active
+      </label>
+    </div>
+  ) : (
+    <div className="flex items-center justify-between gap-4 mr-6">
+      <span className="text-sm font-semibold text-cf-text">New Resource</span>
+      <label className="flex shrink-0 items-center gap-1.5 rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted hover:bg-cf-surface-soft cursor-pointer transition select-none">
+        <input
+          type="checkbox"
+          name="is_active"
+          form="resource-form"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        Active
+      </label>
+    </div>
+  );
+
   return (
     <AdminFormModal
       isOpen={isOpen}
       onClose={onClose}
-      scope="Facility admin"
-      title={mode === "edit" ? "Edit Resource" : "New Resource"}
+      scope="Facility Admin"
+      title={modalTitle}
       formId="resource-form"
       saving={saving}
-      deleteLabel={mode === "edit" && onDelete ? "Deactivate" : ""}
-      onDelete={mode === "edit" ? onDelete : undefined}
-      maxWidth="3xl"
+      deleteLabel={isEditMode && onDelete ? "Deactivate" : ""}
+      onDelete={isEditMode ? onDelete : undefined}
+      maxWidth="lg"
+      bodyClassName="bg-cf-surface px-6 py-5 border-t border-b border-cf-border/60 overflow-y-auto max-h-[75vh] flex-1"
     >
-      <form id="resource-form" onSubmit={handleSubmit}>
-        <CompactModalGrid>
-          <CompactModalLane>
-            <CompactCard>
-              <CompactRecordHeader
-                initials={(formData.name || "RS").slice(0, 2).toUpperCase()}
-                title={formData.name || "Unnamed resource"}
-                meta={`Room · ${getResourceRoomLabel(formData)}`}
-                action={
-                  <CompactToggle
-                    label="Active"
-                    name="is_active"
-                    checked={formData.is_active}
-                    onChange={handleChange}
-                  />
-                }
+      <form id="resource-form" onSubmit={handleSubmit} className="space-y-6">
+        {/* Section 1: Resource Information */}
+        <div className="space-y-4">
+          <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+            <MapPin className="h-4 w-4 text-cf-accent" />
+            Resource Information
+          </h3>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                Resource Name
+              </span>
+              <Input
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                placeholder="e.g. Exam Room 1"
               />
-            </CompactCard>
+            </label>
 
-            <CompactCard eyebrow="Resource">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <CompactField label="Name">
-                  <Input
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </CompactField>
-                <CompactField label="Default room">
-                  <Input
-                    name="default_room"
-                    value={formData.default_room}
-                    onChange={handleChange}
-                  />
-                </CompactField>
-              </div>
-            </CompactCard>
+            <label className="block">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                Default Room
+              </span>
+              <Input
+                name="default_room"
+                value={formData.default_room}
+                onChange={handleChange}
+                placeholder="e.g. Room A"
+              />
+            </label>
+          </div>
+        </div>
 
-            <CompactCard eyebrow="Hours">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <CompactField label="Start">
-                  <Input
-                    type="time"
-                    name="operating_start_time"
-                    value={formData.operating_start_time}
-                    onChange={handleChange}
-                  />
-                </CompactField>
-                <CompactField label="End">
-                  <Input
-                    type="time"
-                    name="operating_end_time"
-                    value={formData.operating_end_time}
-                    onChange={handleChange}
-                  />
-                </CompactField>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-cf-border bg-cf-surface-soft/55 px-3 py-2 text-sm font-semibold text-cf-text-muted">
-                <span>{getResourceHoursLabel(formData, facility)}</span>
-                <Button
-                  variant="default"
-                  size="sm"
-                  type="button"
-                  onClick={handleUseFacilityHours}
-                >
-                  Use facility hours
-                </Button>
-              </div>
-            </CompactCard>
-          </CompactModalLane>
+        {/* Section 2: Operating Hours */}
+        <div className="border-t border-cf-border/60 pt-5 space-y-4">
+          <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+            <Clock className="h-4 w-4 text-cf-accent" />
+            Operating Hours
+          </h3>
 
-          <CompactCard eyebrow="Preview" title="Resource lane">
-            <div className="rounded-2xl border border-cf-border bg-cf-surface-soft/55 p-3">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-cf-text">
-                    {formData.name || "Resource"}
-                  </div>
-                  <div className="mt-1 text-xs font-semibold text-cf-text-muted">
-                    {getResourceRoomLabel(formData)}
-                  </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                Start Time
+              </span>
+              <Input
+                type="time"
+                name="operating_start_time"
+                value={formData.operating_start_time}
+                onChange={handleChange}
+              />
+            </label>
+
+            <label className="block">
+              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                End Time
+              </span>
+              <Input
+                type="time"
+                name="operating_end_time"
+                value={formData.operating_end_time}
+                onChange={handleChange}
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-cf-accent/5 border border-cf-accent/15 rounded-xl p-3 text-xs leading-relaxed text-cf-text-muted shadow-sm">
+            <span>{getResourceHoursLabel(formData, facility)}</span>
+            <Button
+              variant="default"
+              size="sm"
+              type="button"
+              onClick={handleUseFacilityHours}
+            >
+              Use facility hours
+            </Button>
+          </div>
+        </div>
+
+        {/* Section 3: Live Preview */}
+        <div className="border-t border-cf-border/60 pt-5 space-y-4">
+          <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+            <Eye className="h-4 w-4 text-cf-accent" />
+            Live Preview
+          </h3>
+
+          <div className="rounded-xl border border-cf-border bg-cf-surface-soft/55 p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold text-cf-text">
+                  {formData.name || "Resource"}
                 </div>
-                <CompactPill tone={formData.is_active ? "success" : "muted"}>
-                  {formData.is_active ? "Active" : "Inactive"}
-                </CompactPill>
+                <div className="mt-1 text-[11px] font-medium text-cf-text-muted">
+                  {getResourceRoomLabel(formData)}
+                </div>
               </div>
-              <div className="grid grid-cols-[4rem_1fr] gap-2 text-xs">
-                {["08:00", "09:00", "10:00"].map((time) => (
-                  <div key={time} className="contents">
-                    <span className="pt-2 font-semibold text-cf-text-subtle">
-                      {time}
-                    </span>
-                    <span className="rounded-lg border border-cf-border bg-cf-surface px-3 py-2 font-semibold text-cf-text-muted">
-                      Open
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <span
+                className={[
+                  "rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-black/5",
+                  formData.is_active
+                    ? "bg-emerald-500/10 text-emerald-500 ring-emerald-500/20"
+                    : "bg-slate-500/10 text-slate-500 ring-slate-500/20",
+                ].join(" ")}
+              >
+                {formData.is_active ? "Active" : "Inactive"}
+              </span>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <CompactMetric
-                label="Room"
-                value={formData.default_room || "—"}
-              />
-              <CompactMetric
-                label="Hours"
-                value={
-                  formData.operating_start_time || formData.operating_end_time
-                    ? "Custom"
-                    : "Facility"
-                }
-              />
+
+            <div className="grid grid-cols-[4rem_1fr] gap-2 text-xs">
+              {["08:00", "09:00", "10:00"].map((time) => (
+                <div key={time} className="contents">
+                  <span className="pt-2 font-semibold text-cf-text-subtle">
+                    {time}
+                  </span>
+                  <span className="rounded-lg border border-cf-border bg-cf-surface px-3 py-2 font-semibold text-cf-text-muted">
+                    Open
+                  </span>
+                </div>
+              ))}
             </div>
-          </CompactCard>
-        </CompactModalGrid>
+          </div>
+        </div>
       </form>
     </AdminFormModal>
   );

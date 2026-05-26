@@ -1,10 +1,12 @@
 import type {
-  ApiRecord,
   AppointmentLike,
+  AppointmentStatusOption as SharedAppointmentStatusOption,
+  AppointmentTypeOption as SharedAppointmentTypeOption,
+  ApiRecord,
   PatientInsurancePolicy,
   PatientLike,
-  ResourceLike,
-  StaffLike,
+  ResourceRecord,
+  StaffRecord,
 } from "../../shared/types/domain";
 import type { EntityId } from "../../shared/api/types";
 
@@ -35,29 +37,18 @@ export type AppointmentFormValues = {
   status: string;
   appointment_type: string;
   facility: string;
+  is_billable: boolean;
 };
 
-export type AppointmentResource = ResourceLike &
-  ApiRecord & {
-    id: EntityId;
-    name?: string | null;
-  };
+export type AppointmentResource = ResourceRecord;
 
-export type AppointmentStaff = StaffLike & {
-  id: EntityId;
-};
+export type AppointmentStaff = StaffRecord;
 
 export type AppointmentPatient = PatientLike;
 
-export type AppointmentStatusOption = ApiRecord & {
-  id: EntityId;
-  name?: string | null;
-  color?: string | null;
-};
+export type AppointmentStatusOption = SharedAppointmentStatusOption;
 
-export type AppointmentTypeOption = AppointmentStatusOption & {
-  duration_minutes?: string | number | null;
-};
+export type AppointmentTypeOption = SharedAppointmentTypeOption;
 
 export type AppointmentPickerOption =
   | AppointmentStatusOption

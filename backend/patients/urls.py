@@ -1,12 +1,8 @@
 from rest_framework.routers import DefaultRouter
 
-from .views import (
-    CareProviderViewSet,
-    PatientDocumentCategoryViewSet,
-    PatientDocumentViewSet,
-    PatientViewSet,
-    PharmacyViewSet,
-)
+from .views import PatientViewSet
+from .views_documents import PatientDocumentCategoryViewSet, PatientDocumentViewSet
+from .views_supporting import CareProviderViewSet, PharmacyViewSet
 
 router = DefaultRouter()
 router.register(

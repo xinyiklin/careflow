@@ -1,21 +1,15 @@
-import {
-  BadgeCheck,
-  CalendarDays,
-  History,
-  PanelLeftOpen,
-  Sun,
-} from "lucide-react";
+import { CalendarDays, History, PanelLeftOpen, Sun } from "lucide-react";
 
 import {
   DEFAULT_USER_PREFERENCES,
   useUserPreferences,
-} from "../context/UserPreferencesProvider";
+} from "../../app/context/UserPreferencesProvider";
 import { useTheme } from "../context/ThemeProvider";
 import {
   APPOINTMENT_BLOCK_COLOR_MODE_OPTIONS,
   APPOINTMENT_BLOCK_DISPLAY_OPTIONS,
 } from "../constants/appointmentBlockDisplay";
-import { Button, ModalShell } from "./ui";
+import { Button, ModalShell, SegmentedControl } from "./ui";
 
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -60,49 +54,6 @@ function SettingGroup({
   );
 }
 
-type SegmentedOption<TValue extends string> = {
-  value: TValue;
-  label: string;
-};
-
-type SegmentedControlProps<TValue extends string> = {
-  options: SegmentedOption<TValue>[];
-  value: TValue;
-  onChange: (value: TValue) => void;
-  columns?: string;
-};
-
-function SegmentedControl<TValue extends string>({
-  options,
-  value,
-  onChange,
-  columns = "grid-cols-2",
-}: SegmentedControlProps<TValue>) {
-  return (
-    <div className={["grid gap-2", columns].join(" ")}>
-      {options.map(({ label, value: optionValue }) => {
-        const isActive = value === optionValue;
-
-        return (
-          <button
-            key={optionValue}
-            type="button"
-            onClick={() => onChange(optionValue)}
-            className={[
-              "flex min-h-9 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition",
-              isActive
-                ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
-                : "border-cf-border bg-cf-surface-muted text-cf-text-muted hover:border-cf-border-strong hover:text-cf-text",
-            ].join(" ")}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function ToggleRow({
   title,
   checked,
@@ -113,22 +64,22 @@ function ToggleRow({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <div className="flex min-h-11 items-center justify-between gap-4 rounded-lg border border-cf-border bg-cf-surface-muted px-3 py-2.5">
-      <div className="truncate text-sm font-medium text-cf-text">{title}</div>
+    <div className="flex min-h-11 items-center justify-between gap-4 rounded-xl border border-cf-border bg-cf-surface-muted/50 px-3.5 py-2.5 transition-all hover:bg-cf-surface-muted">
+      <div className="truncate text-sm font-semibold text-cf-text">{title}</div>
       <button
         type="button"
         onClick={() => onChange(!checked)}
         className={[
-          "inline-flex h-6 w-11 shrink-0 rounded-full p-1 transition",
-          checked ? "bg-cf-accent" : "bg-cf-border-strong",
+          "inline-flex h-6 w-10 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-cf-accent-soft",
+          checked ? "bg-cf-accent" : "bg-cf-border-strong/75",
         ].join(" ")}
         aria-pressed={checked}
         aria-label={title}
       >
         <span
           className={[
-            "h-4 w-4 rounded-full bg-cf-page-bg shadow-sm ring-1 ring-cf-border/70 transition",
-            checked ? "translate-x-5" : "translate-x-0",
+            "pointer-events-none block h-5 w-5 rounded-full bg-cf-surface shadow-xs transition-transform duration-200 ease-in-out",
+            checked ? "translate-x-4" : "translate-x-0",
           ].join(" ")}
         />
       </button>
@@ -147,34 +98,14 @@ function AppointmentBlockDetailsControl({
     onChange({ ...value, ...nextValue });
 
   return (
-    <div className="rounded-xl border border-cf-border bg-cf-surface-muted p-2.5">
-      <div className="grid gap-2 sm:grid-cols-2">
-        {APPOINTMENT_BLOCK_COLOR_MODE_OPTIONS.map((option) => {
-          const isActive = value.colorMode === option.value;
+    <div className="rounded-xl border border-cf-border bg-cf-surface-muted/50 p-3 space-y-3">
+      <SegmentedControl
+        value={value.colorMode}
+        onChange={(colorMode) => updateValue({ colorMode })}
+        options={APPOINTMENT_BLOCK_COLOR_MODE_OPTIONS}
+      />
 
-          return (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => updateValue({ colorMode: option.value })}
-              className={[
-                "flex min-h-10 items-center justify-between rounded-lg border px-3 text-left transition",
-                isActive
-                  ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
-                  : "border-cf-border bg-cf-surface text-cf-text-muted hover:border-cf-border-strong hover:text-cf-text",
-              ].join(" ")}
-              aria-pressed={isActive}
-            >
-              <span className="text-sm font-semibold">{option.label}</span>
-              <span className="text-[11px] font-semibold opacity-75">
-                {option.chipLabel}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
         {APPOINTMENT_BLOCK_DISPLAY_OPTIONS.map((option) => {
           const optionKey = option.key as keyof AppointmentBlockDisplay;
           const isActive = Boolean(value?.[optionKey]);
@@ -185,10 +116,10 @@ function AppointmentBlockDetailsControl({
               type="button"
               onClick={() => updateValue({ [optionKey]: !isActive })}
               className={[
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
                 isActive
-                  ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
-                  : "border-cf-border bg-cf-surface text-cf-text-muted hover:border-cf-border-strong hover:text-cf-text",
+                  ? "border-cf-accent bg-cf-accent text-cf-surface shadow-xs scale-[1.02]"
+                  : "border-cf-border bg-cf-surface text-cf-text-subtle hover:border-cf-border-strong hover:text-cf-text",
               ].join(" ")}
               aria-pressed={isActive}
             >
@@ -250,7 +181,6 @@ export default function UserPreferencesModal({
           <SegmentedControl
             value={preferences.theme}
             onChange={handleThemeChange}
-            columns="grid-cols-2"
             options={[
               { value: "light", label: "Light" },
               { value: "dark", label: "Dark" },
@@ -267,7 +197,6 @@ export default function UserPreferencesModal({
                   onChange={(value) =>
                     updatePreferences({ scheduleStartMode: value })
                   }
-                  columns="grid-cols-2"
                   options={[
                     { value: "resources", label: "Resource" },
                     { value: "days", label: "Multi-day" },
@@ -281,7 +210,6 @@ export default function UserPreferencesModal({
                   onChange={(value) =>
                     updatePreferences({ scheduleViewMode: value })
                   }
-                  columns="grid-cols-2"
                   options={[
                     { value: "slot", label: "Slot" },
                     { value: "agenda", label: "Agenda" },
@@ -306,6 +234,55 @@ export default function UserPreferencesModal({
                 }
               />
             </SettingGroup>
+
+            <ToggleRow
+              title="Show calendar heatmap"
+              checked={preferences.showScheduleHeatmap}
+              onChange={(nextValue) =>
+                updatePreferences({ showScheduleHeatmap: nextValue })
+              }
+            />
+
+            {preferences.showScheduleHeatmap ? (
+              <SettingGroup title="Heatmap scale">
+                <SegmentedControl
+                  value={preferences.scheduleHeatmapMode}
+                  onChange={(value) =>
+                    updatePreferences({ scheduleHeatmapMode: value })
+                  }
+                  options={[
+                    { value: "auto", label: "Auto" },
+                    { value: "target", label: "Daily target" },
+                  ]}
+                />
+                {preferences.scheduleHeatmapMode === "target" ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-cf-border bg-cf-surface-muted/50 px-3.5 py-2.5">
+                    <label
+                      htmlFor="heatmap-daily-target"
+                      className="shrink-0 text-sm font-semibold text-cf-text"
+                    >
+                      Appointments per day
+                    </label>
+                    <input
+                      id="heatmap-daily-target"
+                      type="number"
+                      min={1}
+                      max={200}
+                      value={preferences.scheduleHeatmapDailyTarget}
+                      onChange={(event) => {
+                        const parsed = parseInt(event.target.value, 10);
+                        if (parsed > 0 && parsed <= 200) {
+                          updatePreferences({
+                            scheduleHeatmapDailyTarget: parsed,
+                          });
+                        }
+                      }}
+                      className="w-20 rounded-lg border border-cf-border bg-cf-surface px-2.5 py-1.5 text-center text-sm font-semibold text-cf-text outline-none transition focus:border-cf-accent focus:ring-1 focus:ring-cf-accent-soft"
+                    />
+                  </div>
+                ) : null}
+              </SettingGroup>
+            ) : null}
           </div>
         </Section>
 
@@ -337,16 +314,6 @@ export default function UserPreferencesModal({
               }
             />
           </div>
-        </Section>
-
-        <Section icon={BadgeCheck} title="Environment">
-          <ToggleRow
-            title="Show demo badge"
-            checked={preferences.showDemoBadge}
-            onChange={(nextValue) =>
-              updatePreferences({ showDemoBadge: nextValue })
-            }
-          />
         </Section>
       </>
     </ModalShell>

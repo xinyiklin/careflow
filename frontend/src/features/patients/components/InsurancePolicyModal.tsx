@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import {
   CalendarDays,
-  CheckCircle2,
   CreditCard,
   FileText,
   ShieldCheck,
@@ -10,12 +9,8 @@ import {
 } from "lucide-react";
 
 import { FieldError, FormLabel as Label } from "./PatientFormFields";
-import {
-  Badge,
-  Button,
-  Input,
-  ModalShell,
-} from "../../../shared/components/ui";
+import { Button, Input, ModalShell } from "../../../shared/components/ui";
+import { getCarrierBranding } from "../utils/insuranceCardBranding";
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -159,8 +154,10 @@ export default function InsurancePolicyModal({
   }, [isOpen, policy, reset]);
 
   const watchedCarrier = watch("carrier");
+  const watchedPlanName = watch("plan_name");
   const watchedMemberId = watch("member_id");
   const watchedGroupNumber = watch("group_number");
+  const watchedSubscriberName = watch("subscriber_name");
   const watchedRelationship = watch("relationship_to_subscriber");
   const watchedEffectiveDate = watch("effective_date");
   const watchedTerminationDate = watch("termination_date");
@@ -177,6 +174,13 @@ export default function InsurancePolicyModal({
       (option) => option.value === watchedCoverageOrder
     )?.label || "Primary";
   const isEditing = Boolean(policy);
+
+  const branding = getCarrierBranding(selectedCarrier?.name);
+
+  const formatMemberId = (id: string) => {
+    if (!id) return "•••• •••• ••••";
+    return id.replace(/(.{4})/g, "$1 ").trim();
+  };
 
   return (
     <ModalShell
@@ -243,202 +247,295 @@ export default function InsurancePolicyModal({
         })}
         className="flex min-h-0 flex-col"
       >
-        <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/50 px-5 py-2.5">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <div className="flex min-w-0 items-center gap-2">
-              <ShieldCheck className="h-4 w-4 shrink-0 text-cf-text-subtle" />
-              <Badge variant={isEditing ? "outline" : "success"}>
-                {isEditing ? "Edit policy" : "New policy"}
-              </Badge>
-              <span className="max-w-56 truncate font-semibold text-cf-text">
-                {selectedCarrier?.name || "Select carrier"}
-              </span>
-            </div>
-
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-cf-text-muted">
-              <span className="inline-flex items-center gap-1">
-                <CreditCard className="h-3.5 w-3.5" />
-                {watchedMemberId || "Member ID"}
-              </span>
-              {watchedGroupNumber ? (
-                <span>Group {watchedGroupNumber}</span>
-              ) : null}
-              <span>{selectedRelationship}</span>
-              <span>
-                {formatPolicyDate(watchedEffectiveDate)} -{" "}
-                {formatPolicyDate(watchedTerminationDate)}
-              </span>
-            </div>
-
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              <Badge
-                variant={
-                  watchedCoverageOrder === "primary" ? "success" : "muted"
-                }
-              >
-                {selectedCoverageOrder}
-              </Badge>
-              <Badge variant={watchedIsActive ? "outline" : "warning"}>
-                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                {watchedIsActive ? "Active" : "Terminated"}
-              </Badge>
-            </div>
-          </div>
+        <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/50 px-5 py-2 text-xs text-cf-text-subtle">
+          Compile and verify the patient's insurance details. Changes update the
+          visual card preview in real-time.
         </div>
 
-        <div className="min-h-0 max-h-[calc(94dvh-12rem)] overflow-y-auto bg-cf-surface px-5 py-3">
-          <div className="grid gap-x-6 gap-y-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-            <FieldSection icon={ShieldCheck} title="Coverage">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label compact required>
-                    Carrier
-                  </Label>
-                  <Input
-                    as="select"
-                    {...register("carrier", {
-                      required: "Carrier is required.",
-                    })}
+        <div className="min-h-0 flex-1 overflow-y-auto bg-cf-surface">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
+            {/* Form Fields: Left Column */}
+            <div className="lg:col-span-7 order-2 lg:order-1 space-y-6">
+              <FieldSection icon={ShieldCheck} title="Coverage">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label compact required>
+                      Carrier
+                    </Label>
+                    <Input
+                      as="select"
+                      {...register("carrier", {
+                        required: "Carrier is required.",
+                      })}
+                    >
+                      <option value="">Select carrier</option>
+                      {carriers.map((carrier) => (
+                        <option key={carrier.id} value={carrier.id}>
+                          {carrier.name}
+                        </option>
+                      ))}
+                    </Input>
+                    <FieldError error={errors.carrier} />
+                  </div>
+
+                  <div>
+                    <Label compact>Plan Name</Label>
+                    <Input {...register("plan_name")} />
+                  </div>
+
+                  <div>
+                    <Label compact required>
+                      Member ID
+                    </Label>
+                    <Input
+                      {...register("member_id", {
+                        required: "Member ID is required.",
+                      })}
+                    />
+                    <FieldError error={errors.member_id} />
+                  </div>
+
+                  <div>
+                    <Label compact>Group Number</Label>
+                    <Input {...register("group_number")} />
+                  </div>
+                </div>
+              </FieldSection>
+
+              <FieldSection icon={UserRoundCheck} title="Subscriber">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <Label compact>Subscriber Name</Label>
+                    <Input {...register("subscriber_name")} />
+                  </div>
+
+                  <div>
+                    <Label compact>Relationship</Label>
+                    <Input
+                      as="select"
+                      {...register("relationship_to_subscriber")}
+                    >
+                      {RELATIONSHIP_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </Input>
+                  </div>
+                </div>
+              </FieldSection>
+
+              <FieldSection icon={CalendarDays} title="Dates and Status">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label compact>Effective Date</Label>
+                    <Input type="date" {...register("effective_date")} />
+                  </div>
+
+                  <div>
+                    <Label compact>Termination Date</Label>
+                    <Input type="date" {...register("termination_date")} />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label compact>Coverage Level</Label>
+                    <input type="hidden" {...register("coverage_order")} />
+                    <div className="grid gap-2 grid-cols-2 sm:grid-cols-4">
+                      {COVERAGE_ORDER_OPTIONS.map((option) => {
+                        const isSelected =
+                          watchedCoverageOrder === option.value;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() =>
+                              setValue("coverage_order", option.value)
+                            }
+                            className={[
+                              "min-h-9 rounded-lg border px-3 py-1.5 text-sm font-semibold transition",
+                              isSelected
+                                ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
+                                : "border-cf-border bg-cf-surface-soft text-cf-text-muted hover:border-cf-border-strong hover:bg-cf-surface hover:text-cf-text",
+                            ].join(" ")}
+                            aria-pressed={isSelected}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <Label compact>Status</Label>
+                    <input type="hidden" {...register("is_active")} />
+                    <div className="grid gap-2 grid-cols-2 sm:max-w-xs">
+                      {[
+                        { value: true, label: "Active" },
+                        { value: false, label: "Terminated" },
+                      ].map((option) => {
+                        const isSelected = watchedIsActive === option.value;
+
+                        return (
+                          <button
+                            key={option.label}
+                            type="button"
+                            onClick={() => setValue("is_active", option.value)}
+                            className={[
+                              "min-h-9 rounded-lg border px-3 py-1.5 text-sm font-semibold transition",
+                              isSelected
+                                ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
+                                : "border-cf-border bg-cf-surface-soft text-cf-text-muted hover:border-cf-border-strong hover:bg-cf-surface hover:text-cf-text",
+                            ].join(" ")}
+                            aria-pressed={isSelected}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </FieldSection>
+
+              <FieldSection icon={FileText} title="Notes">
+                <Input
+                  as="textarea"
+                  rows={2}
+                  className="min-h-20 resize-none"
+                  placeholder="Authorization requirements, verification notes, or billing instructions"
+                  {...register("notes")}
+                />
+              </FieldSection>
+            </div>
+
+            {/* Live Card Preview: Right Column */}
+            <div className="lg:col-span-5 order-1 lg:order-2 lg:sticky lg:top-4 space-y-4 h-fit">
+              <div className="text-xs font-semibold uppercase tracking-wider text-cf-text-subtle">
+                Live Card Preview
+              </div>
+
+              {/* The Live Card */}
+              <div
+                className={`relative overflow-hidden rounded-[1.25rem] border border-white/[0.08] shadow-lg flex flex-col justify-between aspect-[1.586/1] min-h-[220px] p-6 text-white bg-gradient-to-br ${branding.gradient} transition-all duration-300`}
+              >
+                {/* Subtle glass sheen overlay */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/[0.04] to-white/[0.08] pointer-events-none" />
+
+                {/* Background watermark monogram */}
+                <span
+                  className="absolute right-[-4%] bottom-[-8%] text-[8rem] font-black leading-none tracking-tighter pointer-events-none select-none"
+                  style={{ color: branding.accentHex, opacity: 0.06 }}
+                >
+                  {branding.monogram}
+                </span>
+
+                {/* Header: Carrier Info & Monogram Badge */}
+                <div className="flex items-start justify-between gap-4 z-10">
+                  <div className="min-w-0">
+                    <span className="block font-bold tracking-wider text-base md:text-lg uppercase truncate max-w-[190px] text-white">
+                      {selectedCarrier?.name || "Select Carrier"}
+                    </span>
+                    <span className="block text-xs text-white/70 font-medium truncate max-w-[190px]">
+                      {watchedPlanName || "Plan Name"}
+                    </span>
+                  </div>
+
+                  {/* Carrier Monogram */}
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold tracking-tight text-white shadow-sm border border-white/10"
+                    style={{ backgroundColor: branding.accentHex + "38" }}
                   >
-                    <option value="">Select carrier</option>
-                    {carriers.map((carrier) => (
-                      <option key={carrier.id} value={carrier.id}>
-                        {carrier.name}
-                      </option>
-                    ))}
-                  </Input>
-                  <FieldError error={errors.carrier} />
+                    {branding.monogram}
+                  </div>
                 </div>
 
-                <div>
-                  <Label compact>Plan Name</Label>
-                  <Input {...register("plan_name")} />
-                </div>
-
-                <div>
-                  <Label compact required>
+                {/* Middle: Member ID */}
+                <div className="my-2 z-10">
+                  <span className="block text-[9px] uppercase font-semibold text-white/50 tracking-widest">
                     Member ID
-                  </Label>
-                  <Input
-                    {...register("member_id", {
-                      required: "Member ID is required.",
-                    })}
-                  />
-                  <FieldError error={errors.member_id} />
+                  </span>
+                  <span className="block font-mono text-lg md:text-xl font-bold tracking-widest text-white drop-shadow-sm truncate">
+                    {formatMemberId(watchedMemberId || "")}
+                  </span>
                 </div>
 
-                <div>
-                  <Label compact>Group Number</Label>
-                  <Input {...register("group_number")} />
-                </div>
-              </div>
-            </FieldSection>
-
-            <FieldSection icon={UserRoundCheck} title="Subscriber">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                <div>
-                  <Label compact>Subscriber Name</Label>
-                  <Input {...register("subscriber_name")} />
-                </div>
-
-                <div>
-                  <Label compact>Relationship</Label>
-                  <Input
-                    as="select"
-                    {...register("relationship_to_subscriber")}
-                  >
-                    {RELATIONSHIP_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Input>
-                </div>
-              </div>
-            </FieldSection>
-
-            <FieldSection icon={CalendarDays} title="Dates and Status">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label compact>Effective Date</Label>
-                  <Input type="date" {...register("effective_date")} />
-                </div>
-
-                <div>
-                  <Label compact>Termination Date</Label>
-                  <Input type="date" {...register("termination_date")} />
-                </div>
-
-                <div className="md:col-span-2">
-                  <Label compact>Coverage Level</Label>
-                  <input type="hidden" {...register("coverage_order")} />
-                  <div className="grid gap-2 sm:grid-cols-4 xl:grid-cols-2">
-                    {COVERAGE_ORDER_OPTIONS.map((option) => {
-                      const isSelected = watchedCoverageOrder === option.value;
-
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() =>
-                            setValue("coverage_order", option.value)
-                          }
-                          className={[
-                            "min-h-9 rounded-lg border px-3 py-1.5 text-sm font-semibold transition",
-                            isSelected
-                              ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
-                              : "border-cf-border bg-cf-surface-soft text-cf-text-muted hover:border-cf-border-strong hover:bg-cf-surface hover:text-cf-text",
-                          ].join(" ")}
-                          aria-pressed={isSelected}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
+                {/* Bottom Row: Metadata & Badges */}
+                <div className="z-10 mt-auto">
+                  <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-3 text-left">
+                    <div className="min-w-0">
+                      <span className="block text-[8px] uppercase tracking-wider text-white/40">
+                        Group
+                      </span>
+                      <span className="block text-xs font-semibold truncate text-white/90">
+                        {watchedGroupNumber || "—"}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[8px] uppercase tracking-wider text-white/40">
+                        Subscriber
+                      </span>
+                      <span className="block text-xs font-semibold truncate text-white/90">
+                        {watchedSubscriberName || "—"}
+                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[8px] uppercase tracking-wider text-white/40">
+                        Relationship
+                      </span>
+                      <span className="block text-xs font-semibold truncate text-white/90 font-medium">
+                        {selectedRelationship}
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <Label compact>Status</Label>
-                  <input type="hidden" {...register("is_active")} />
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {[
-                      { value: true, label: "Active" },
-                      { value: false, label: "Terminated" },
-                    ].map((option) => {
-                      const isSelected = watchedIsActive === option.value;
+                  <div className="flex items-center justify-between mt-3.5 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                      {watchedIsActive ? (
+                        <div className="flex items-center gap-1.5 text-[10px] text-emerald-300 font-semibold uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                          Active
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-[10px] text-amber-300 font-semibold uppercase tracking-wider bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                          Terminated
+                        </div>
+                      )}
 
-                      return (
-                        <button
-                          key={option.label}
-                          type="button"
-                          onClick={() => setValue("is_active", option.value)}
-                          className={[
-                            "min-h-9 rounded-lg border px-3 py-1.5 text-sm font-semibold transition",
-                            isSelected
-                              ? "border-cf-accent bg-cf-accent text-cf-page-bg shadow-sm"
-                              : "border-cf-border bg-cf-surface-soft text-cf-text-muted hover:border-cf-border-strong hover:bg-cf-surface hover:text-cf-text",
-                          ].join(" ")}
-                          aria-pressed={isSelected}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
+                      <div className="text-[10px] text-white/60 font-medium">
+                        {watchedEffectiveDate
+                          ? formatPolicyDate(watchedEffectiveDate)
+                          : "—"}
+                        {watchedTerminationDate
+                          ? ` to ${formatPolicyDate(watchedTerminationDate)}`
+                          : ""}
+                      </div>
+                    </div>
+
+                    <div
+                      className={`text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${branding.badgeBg} ${branding.badgeText} ${branding.badgeBorder}`}
+                    >
+                      {selectedCoverageOrder}
+                    </div>
                   </div>
                 </div>
               </div>
-            </FieldSection>
 
-            <FieldSection icon={FileText} title="Notes">
-              <Input
-                as="textarea"
-                rows={2}
-                className="min-h-20 resize-none"
-                placeholder="Authorization requirements, verification notes, or billing instructions"
-                {...register("notes")}
-              />
-            </FieldSection>
+              {/* Help tip card */}
+              <div className="rounded-xl border border-cf-border bg-cf-surface-muted p-4 text-xs text-cf-text-muted space-y-2">
+                <div className="font-semibold text-cf-text flex items-center gap-1.5">
+                  <CreditCard className="h-3.5 w-3.5" />
+                  Payer Verification Tip
+                </div>
+                <p>
+                  Ensure the Member ID, Group, and Subscriber Name match the
+                  physical card exactly. Discrepancies may delay billing claims
+                  and authorization processing.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </form>

@@ -1,0 +1,421 @@
+import { useMemo, useState } from "react";
+import { Plus, RefreshCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+import useFacility from "../../../facilities/hooks/useFacility";
+import useAdminFacility from "../../hooks/shared/useAdminFacility";
+import useAdminFacilityConfig from "../../hooks/facility/useAdminFacilityConfig";
+import useAdminListControls, {
+  compareText,
+} from "../../hooks/shared/useAdminListControls";
+import useStaff from "../../hooks/facility/useStaff";
+import { fetchOrganizationFeeSchedules } from "../../api/organization/feeSchedule";
+import StaffModal from "./StaffModal";
+import { getResourceHoursLabel } from "./resourceScheduleUtils";
+import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
+import {
+  AdminInlineNotice,
+  AdminListToolbar,
+  AdminTableCard,
+  AdminTableFooter,
+  AdminTableLoadError,
+  getAdminRowActionProps,
+} from "../shared/AdminSurface";
+import { Badge, Button } from "../../../../shared/components/ui";
+
+import type {
+  AdminConfirmDialogState,
+  AdminSavePayload,
+  AdminSortOption,
+  AdminStaff,
+  AdminStaffRole,
+} from "../../types";
+import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
+import type { EntityId } from "../../../../shared/api/types";
+import type { UserProfile } from "../../../../shared/types/domain";
+
+function getRoleField(
+  role: AdminStaff["role"],
+  field: "code" | "name"
+): string {
+  return typeof role === "object" && role ? String(role[field] || "") : "";
+}
+
+function getTitleName(title: AdminStaff["title"]): string {
+  return typeof title === "object" && title ? String(title.name || "") : "";
+}
+
+function isProviderStaff(staffRecord: AdminStaff) {
+  const roleCode =
+    getRoleField(staffRecord.role, "code") || staffRecord.role_code || "";
+  const roleName =
+    getRoleField(staffRecord.role, "name") || staffRecord.role_name || "";
+  return (
+    roleCode.toLowerCase() === "physician" ||
+    roleName.toLowerCase() === "physician"
+  );
+}
+
+function getStaffDisplayName(record: AdminStaff) {
+  return record.user
+    ? `${record.user.first_name || ""} ${record.user.last_name || ""}`.trim() ||
+        record.user.username
+    : "";
+}
+
+const PROVIDER_FILTERS = [
+  { key: "all", label: "All", predicate: () => true },
+  {
+    key: "active",
+    label: "Active",
+    predicate: (record) => record.is_active !== false,
+  },
+] satisfies AdminListFilter<AdminStaff>[];
+
+const PROVIDER_SORT_OPTIONS = [
+  {
+    key: "name",
+    label: "Name",
+    compare: (a, b) =>
+      compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
+  },
+  {
+    key: "role",
+    label: "Role",
+    compare: (a, b) =>
+      compareText(
+        a.role_name || getRoleField(a.role, "name"),
+        b.role_name || getRoleField(b.role, "name")
+      ) || compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
+  },
+  {
+    key: "title",
+    label: "Title",
+    compare: (a, b) =>
+      compareText(getTitleName(a.title), getTitleName(b.title)) ||
+      compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
+  },
+  {
+    key: "specialty",
+    label: "Specialty",
+    compare: (a, b) =>
+      compareText(a.specialty, b.specialty) ||
+      compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
+  },
+] satisfies AdminSortOption<AdminStaff>[];
+
+export default function ProvidersPanel() {
+  const { memberships } = useFacility();
+  const { adminFacility } = useAdminFacility();
+  const { roles = [], titles = [] } = useAdminFacilityConfig(adminFacility?.id);
+  const schedulesQuery = useQuery({
+    queryKey: ["admin", "organization", "fee-schedule-sheets"],
+    queryFn: fetchOrganizationFeeSchedules,
+  });
+  const feeSchedules = Array.isArray(schedulesQuery.data)
+    ? schedulesQuery.data
+    : [];
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<AdminStaff | null>(
+    null
+  );
+  const [confirmDialogState, setConfirmDialogState] =
+    useState<AdminConfirmDialogState>({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
+
+  const canManageCurrentFacility = Boolean(adminFacility?.id);
+  const {
+    staff,
+    loading,
+    saving,
+    error,
+    loadError,
+    reload,
+    saveStaff,
+    removeStaff,
+  } = useStaff(canManageCurrentFacility ? adminFacility?.id : null);
+
+  const providers = useMemo(() => staff.filter(isProviderStaff), [staff]);
+  const {
+    activeFilter,
+    activeSort,
+    filterOptions,
+    visibleRecords: visibleProviders,
+    setActiveFilter,
+    setActiveSort,
+  } = useAdminListControls(providers, {
+    filters: PROVIDER_FILTERS,
+    sortOptions: PROVIDER_SORT_OPTIONS,
+    storageKey: "providers",
+  });
+  const providerRoles = useMemo(
+    () =>
+      (roles as AdminStaffRole[]).filter((r) => {
+        const c = r.code || "";
+        const n = r.name || "";
+        return (
+          c.toLowerCase() === "physician" || n.toLowerCase() === "physician"
+        );
+      }),
+    [roles]
+  );
+  const availableUsers = useMemo(() => {
+    const map = new Map<EntityId, UserProfile>();
+    (memberships || []).forEach((membership) => {
+      const user = (membership as { user?: UserProfile }).user;
+      if (user?.id && !map.has(user.id)) map.set(user.id, user);
+    });
+    return Array.from(map.values());
+  }, [memberships]);
+
+  const openConfirmDialog = (opts: Omit<AdminConfirmDialogState, "isOpen">) =>
+    setConfirmDialogState({ isOpen: true, ...opts });
+  const closeConfirmDialog = () =>
+    setConfirmDialogState({
+      isOpen: false,
+      title: "",
+      message: "",
+      confirmText: "Confirm",
+      cancelText: "Cancel",
+      variant: "default",
+      onConfirm: null,
+    });
+  const handleConfirmDialogConfirm = async () => {
+    if (!confirmDialogState.onConfirm) return;
+    await confirmDialogState.onConfirm();
+    closeConfirmDialog();
+  };
+
+  const handleOpenCreate = () => {
+    setEditingProvider(null);
+    setIsModalOpen(true);
+  };
+  const handleOpenEdit = (r: AdminStaff) => {
+    setEditingProvider(r);
+    setIsModalOpen(true);
+  };
+  const handleCloseModal = () => {
+    setEditingProvider(null);
+    setIsModalOpen(false);
+  };
+  const handleSave = async (values: AdminSavePayload["values"]) => {
+    await saveStaff({ id: editingProvider?.id || null, values });
+    handleCloseModal();
+  };
+  const handleDelete = () => {
+    if (!editingProvider?.id) return;
+    openConfirmDialog({
+      title: "Remove Provider",
+      message:
+        "Are you sure you want to remove this provider from the current facility?",
+      confirmText: "Remove",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        await removeStaff(editingProvider.id);
+        handleCloseModal();
+      },
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      {!canManageCurrentFacility && (
+        <AdminInlineNotice>
+          You do not have admin access to the currently selected facility.
+        </AdminInlineNotice>
+      )}
+      {error && !loadError && (
+        <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
+      )}
+
+      <AdminTableCard>
+        <AdminListToolbar
+          savingLabel={saving ? "Saving..." : ""}
+          filters={filterOptions}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          sortOptions={PROVIDER_SORT_OPTIONS}
+          activeSort={activeSort}
+          onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving || !canManageCurrentFacility}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                disabled={!canManageCurrentFacility}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
+        />
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
+              <tr>
+                {[
+                  "Provider",
+                  "Contact",
+                  "Role",
+                  "Title",
+                  "Hours",
+                  "Status",
+                ].map((heading, index) => (
+                  <th
+                    key={`${heading}-${index}`}
+                    className="px-5 py-3 text-left"
+                  >
+                    {heading}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cf-border text-cf-text">
+              {loading ? null : loadError ? (
+                <AdminTableLoadError
+                  colSpan={6}
+                  message="Couldn't load providers."
+                  onRetry={() => void reload()}
+                />
+              ) : providers.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                  >
+                    No providers found yet.
+                  </td>
+                </tr>
+              ) : visibleProviders.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                  >
+                    No providers match the selected filter.
+                  </td>
+                </tr>
+              ) : (
+                visibleProviders.map((r) => (
+                  <tr
+                    key={r.id}
+                    {...getAdminRowActionProps({
+                      disabled: !canManageCurrentFacility,
+                      label: `Edit provider ${
+                        r.user
+                          ? `${r.user.first_name || ""} ${r.user.last_name || ""}`.trim() ||
+                            r.user.username
+                          : r.id
+                      }`,
+                      onAction: () => handleOpenEdit(r),
+                    })}
+                  >
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
+                          {(r.user
+                            ? `${r.user.first_name || ""} ${r.user.last_name || ""}`.trim() ||
+                              r.user.username ||
+                              "MD"
+                            : "MD"
+                          )
+                            .split(/\s+/)
+                            .slice(0, 2)
+                            .map((part) => part.charAt(0))
+                            .join("")
+                            .toUpperCase()}
+                        </span>
+                        <div>
+                          <div className="font-semibold text-cf-text">
+                            {r.user
+                              ? `${r.user.first_name || ""} ${r.user.last_name || ""}`.trim() ||
+                                r.user.username
+                              : "—"}
+                          </div>
+                          <div className="text-[11px] text-cf-text-muted">
+                            {r.user?.username || "Provider assignment"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-cf-text-muted">
+                      <div>{r.user?.email || "—"}</div>
+                    </td>
+                    <td className="px-5 py-4 text-cf-text-muted">
+                      {r.role_name || getRoleField(r.role, "name") || "—"}
+                    </td>
+                    <td className="px-5 py-4 text-cf-text-muted">
+                      {r.title_name || getTitleName(r.title) || "—"}
+                    </td>
+                    <td className="px-5 py-4 text-cf-text-muted">
+                      {getResourceHoursLabel(
+                        {
+                          operating_start_time: r.resource_operating_start_time,
+                          operating_end_time: r.resource_operating_end_time,
+                        },
+                        adminFacility
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Badge variant={r.is_active ? "success" : "muted"}>
+                        {r.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <AdminTableFooter
+          shown={visibleProviders.length}
+          total={providers.length}
+          label="providers"
+        />
+      </AdminTableCard>
+
+      <StaffModal
+        isOpen={isModalOpen}
+        mode={editingProvider ? "edit" : "create"}
+        initialValues={editingProvider}
+        roles={providerRoles}
+        titles={titles as Parameters<typeof StaffModal>[0]["titles"]}
+        users={availableUsers}
+        feeSchedules={feeSchedules}
+        saving={saving}
+        onClose={handleCloseModal}
+        onSubmit={handleSave}
+        onDelete={editingProvider ? handleDelete : undefined}
+        recordLabel="Provider"
+      />
+      <ConfirmDialog
+        isOpen={confirmDialogState.isOpen}
+        title={confirmDialogState.title}
+        message={confirmDialogState.message}
+        confirmText={confirmDialogState.confirmText}
+        cancelText={confirmDialogState.cancelText}
+        variant={confirmDialogState.variant}
+        onConfirm={handleConfirmDialogConfirm}
+        onCancel={closeConfirmDialog}
+      />
+    </div>
+  );
+}

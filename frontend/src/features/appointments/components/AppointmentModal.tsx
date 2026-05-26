@@ -12,6 +12,11 @@ import { getPatientPhoneEntries } from "../../patients/utils/contactValidation";
 import { Button, Input, Notice } from "../../../shared/components/ui";
 import { MUI_DATE_FIELD_SX } from "../../../shared/components/ui/dateFieldStyles";
 import useDraggableModal from "../../../shared/hooks/useDraggableModal";
+import useModalFocusTrap from "../../../shared/hooks/useModalFocusTrap";
+import {
+  useLatestOpenValue,
+  useModalPresence,
+} from "../../../shared/hooks/useModalPresence";
 import {
   formatDateOnlyInTimeZone,
   formatTimeInTimeZone,
@@ -123,6 +128,26 @@ export default function AppointmentModal({
   timeZone,
   onEditSessionBlocked,
 }: AppointmentModalProps) {
+  const { isClosing, shouldRender } = useModalPresence(isOpen);
+  const displayedState = useLatestOpenValue(
+    {
+      appointmentId,
+      error,
+      facilityId,
+      formData,
+      mode,
+      selectedPatient,
+      timeZone,
+    },
+    isOpen
+  );
+  const displayedAppointmentId = displayedState.appointmentId;
+  const displayedError = displayedState.error;
+  const displayedFacilityId = displayedState.facilityId;
+  const displayedFormData = displayedState.formData;
+  const displayedMode = displayedState.mode;
+  const displayedSelectedPatient = displayedState.selectedPatient;
+  const displayedTimeZone = displayedState.timeZone;
   const {
     register,
     control,
@@ -145,6 +170,7 @@ export default function AppointmentModal({
       status: "",
       appointment_type: "",
       facility: "",
+      is_billable: true,
     },
   });
 
@@ -152,68 +178,79 @@ export default function AppointmentModal({
   const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
     isOpen,
   });
+  const { handlePanelKeyDown } = useModalFocusTrap(modalRef, isOpen, onClose);
   const editSession = useAppointmentEditSession({
-    appointmentId,
-    facilityId,
+    appointmentId: displayedAppointmentId,
+    facilityId: displayedFacilityId,
     isOpen,
-    mode,
+    mode: displayedMode,
   });
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const initialResourceId = toFormString(formData.resource);
+    const initialResourceId = toFormString(displayedFormData.resource);
     const initialResource =
       resources.find(
         (resource) => String(resource.id) === String(initialResourceId)
       ) || null;
-    const initialAppointmentTime = formData.appointment_time
-      ? parseFacilityLocalDateTime(formData.appointment_time, timeZone)
+    const initialAppointmentTime = displayedFormData.appointment_time
+      ? parseFacilityLocalDateTime(
+          displayedFormData.appointment_time,
+          displayedTimeZone
+        )
       : null;
     const initialAppointmentType =
       typeOptions.find(
-        (option) => String(option.id) === String(formData.appointment_type)
+        (option) =>
+          String(option.id) === String(displayedFormData.appointment_type)
       ) || null;
     const initialDuration =
-      Number(formData.duration_minutes) ||
+      Number(displayedFormData.duration_minutes) ||
       Number(initialAppointmentType?.duration_minutes) ||
       0;
-    const initialEndTime = formData.end_time
-      ? parseFacilityLocalDateTime(formData.end_time, timeZone)
+    const initialEndTime = displayedFormData.end_time
+      ? parseFacilityLocalDateTime(
+          displayedFormData.end_time,
+          displayedTimeZone
+        )
       : addMinutes(initialAppointmentTime, initialDuration);
 
     reset({
-      patient: toFormString(selectedPatient?.id || formData.patient),
+      patient: toFormString(
+        displayedSelectedPatient?.id || displayedFormData.patient
+      ),
       resource: initialResourceId,
-      rendering_provider: toFormString(formData.rendering_provider),
+      rendering_provider: toFormString(displayedFormData.rendering_provider),
       appointment_time: initialAppointmentTime,
       end_time: initialEndTime,
-      room: formData.room || initialResource?.default_room || "",
-      reason: formData.reason || "",
-      notes: formData.notes || "",
-      status: toFormString(formData.status),
-      appointment_type: toFormString(formData.appointment_type),
-      facility: toFormString(formData.facility || facilityId),
+      room: displayedFormData.room || initialResource?.default_room || "",
+      reason: displayedFormData.reason || "",
+      notes: displayedFormData.notes || "",
+      status: toFormString(displayedFormData.status),
+      appointment_type: toFormString(displayedFormData.appointment_type),
+      facility: toFormString(displayedFormData.facility || displayedFacilityId),
+      is_billable: displayedFormData.is_billable !== false,
     });
 
     setInternalError("");
   }, [
-    facilityId,
-    formData,
+    displayedFacilityId,
+    displayedFormData,
+    displayedSelectedPatient,
+    displayedTimeZone,
     isOpen,
     reset,
     resources,
-    selectedPatient,
-    timeZone,
     typeOptions,
   ]);
 
   useEffect(() => {
-    setValue("patient", toFormString(selectedPatient?.id));
-    if (selectedPatient?.id) {
+    setValue("patient", toFormString(displayedSelectedPatient?.id));
+    if (displayedSelectedPatient?.id) {
       clearErrors("patient");
     }
-  }, [selectedPatient, setValue, clearErrors]);
+  }, [displayedSelectedPatient, setValue, clearErrors]);
 
   useEffect(() => {
     if (!editSession.isBlockedByActiveEditor) return;
@@ -253,49 +290,57 @@ export default function AppointmentModal({
     if (!watchedAppointmentTime) return "—";
     return formatDateOnlyInTimeZone(
       watchedAppointmentTime,
-      timeZone,
+      displayedTimeZone,
       "MMM d, yyyy"
     );
-  }, [watchedAppointmentTime, timeZone]);
+  }, [watchedAppointmentTime, displayedTimeZone]);
 
   const appointmentHeaderTime = useMemo(() => {
     if (!watchedAppointmentTime) return "—";
-    return formatTimeInTimeZone(watchedAppointmentTime, timeZone, "h:mm a");
-  }, [watchedAppointmentTime, timeZone]);
+    return formatTimeInTimeZone(
+      watchedAppointmentTime,
+      displayedTimeZone,
+      "h:mm a"
+    );
+  }, [watchedAppointmentTime, displayedTimeZone]);
 
   const appointmentHeaderEndTime = useMemo(() => {
     if (!watchedEndTime) return "";
-    return formatTimeInTimeZone(watchedEndTime, timeZone, "h:mm a");
-  }, [watchedEndTime, timeZone]);
+    return formatTimeInTimeZone(watchedEndTime, displayedTimeZone, "h:mm a");
+  }, [watchedEndTime, displayedTimeZone]);
 
-  const selectedPatientId = selectedPatient?.id || formData.patient || "";
+  const selectedPatientId =
+    displayedSelectedPatient?.id || displayedFormData.patient || "";
   const patientDetailsQuery = useQuery<AppointmentPatient>({
     queryKey: [
       "appointmentPatientSnapshot",
-      facilityId || null,
+      displayedFacilityId || null,
       selectedPatientId || null,
     ],
     queryFn: async () =>
-      (await fetchPatientById(selectedPatientId as EntityId, facilityId)) || {},
-    enabled: isOpen && Boolean(facilityId && selectedPatientId),
+      (await fetchPatientById(
+        selectedPatientId as EntityId,
+        displayedFacilityId
+      )) || {},
+    enabled: isOpen && Boolean(displayedFacilityId && selectedPatientId),
     staleTime: 60_000,
   });
   const insurancePoliciesQuery = useQuery<PatientInsurancePolicy[]>({
     queryKey: [
       "appointmentPatientInsuranceSnapshot",
-      facilityId || null,
+      displayedFacilityId || null,
       selectedPatientId || null,
     ],
     queryFn: async () =>
       (await fetchPatientInsurancePolicies({
-        facilityId,
+        facilityId: displayedFacilityId,
         patientId: selectedPatientId,
       })) || [],
-    enabled: isOpen && Boolean(facilityId && selectedPatientId),
+    enabled: isOpen && Boolean(displayedFacilityId && selectedPatientId),
     staleTime: 60_000,
   });
   const patientSnapshot: AppointmentPatient =
-    patientDetailsQuery.data || selectedPatient || {};
+    patientDetailsQuery.data || displayedSelectedPatient || {};
   const primaryInsurancePolicy = getPrimaryInsurancePolicy(
     insurancePoliciesQuery.data
   );
@@ -319,7 +364,7 @@ export default function AppointmentModal({
   );
 
   useEffect(() => {
-    if (!isOpen || mode !== "create" || !watchedResource) return;
+    if (!isOpen || displayedMode !== "create" || !watchedResource) return;
 
     const linkedRenderingProvider = renderingProviderOptions.find(
       (staff) => String(staff.id) === String(selectedResource?.linked_staff)
@@ -332,18 +377,18 @@ export default function AppointmentModal({
     }
   }, [
     isOpen,
-    mode,
+    displayedMode,
     renderingProviderOptions,
     selectedResource,
     setValue,
     watchedResource,
   ]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const isEditSessionUnavailable = Boolean(
-    mode === "edit" &&
-    appointmentId &&
+    displayedMode === "edit" &&
+    displayedAppointmentId &&
     (editSession.isChecking ||
       editSession.isBlockedByActiveEditor ||
       editSession.status === "error")
@@ -364,8 +409,8 @@ export default function AppointmentModal({
     try {
       const payload: AppointmentSubmitPayload = {
         ...data,
-        patient: selectedPatient?.id || "",
-        facility: data.facility || toFormString(facilityId),
+        patient: displayedSelectedPatient?.id || "",
+        facility: data.facility || toFormString(displayedFacilityId),
         appointment_time: formatPickerValueForApi(data.appointment_time),
         end_time: formatPickerValueForApi(data.end_time),
       };
@@ -375,7 +420,7 @@ export default function AppointmentModal({
     }
   };
 
-  const displayError = error || internalError;
+  const displayError = displayedError || internalError;
   const editSessionError = editSession.error;
   const patientDisplayName = getPatientDisplayName(patientSnapshot);
   const patientPhones = getPatientPhoneEntries(patientSnapshot);
@@ -383,11 +428,14 @@ export default function AppointmentModal({
   const selectedStatusColor = selectedStatusOption?.color || null;
   const providerDisplayName = selectedRenderingProvider
     ? getPhysicianLabel(selectedRenderingProvider)
-    : formData.rendering_provider_name || "";
+    : displayedFormData.rendering_provider_name || "";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-4"
+      className={[
+        "cf-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-4",
+        isClosing ? "is-closing" : "is-opening",
+      ].join(" ")}
       onClick={(e) => {
         e.stopPropagation();
         onClose?.();
@@ -395,8 +443,18 @@ export default function AppointmentModal({
     >
       <div
         ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={
+          displayedMode === "create" ? "New Appointment" : "Edit Appointment"
+        }
+        tabIndex={-1}
+        onKeyDown={handlePanelKeyDown}
         style={modalStyle}
-        className="fixed flex h-[min(88vh,860px)] w-[min(1180px,96vw)] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]"
+        className={[
+          "cf-modal-panel fixed flex h-[min(88vh,860px)] w-[min(1180px,96vw)] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]",
+          isClosing ? "is-closing" : "is-opening",
+        ].join(" ")}
         onClick={(e) => e.stopPropagation()}
       >
         <form
@@ -406,9 +464,9 @@ export default function AppointmentModal({
           <AppointmentModalHeader
             dragHandleProps={dragHandleProps}
             patientDisplayName={patientDisplayName}
-            selectedPatient={selectedPatient}
-            mode={mode}
-            formData={formData}
+            selectedPatient={displayedSelectedPatient}
+            mode={displayedMode}
+            formData={displayedFormData}
             appointmentHeaderDate={appointmentHeaderDate}
             appointmentHeaderTime={appointmentHeaderTime}
             appointmentHeaderEndTime={appointmentHeaderEndTime}
@@ -439,12 +497,12 @@ export default function AppointmentModal({
 
             <div className="grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_320px]">
               <AppointmentPatientLens
-                selectedPatient={selectedPatient}
+                selectedPatient={displayedSelectedPatient}
                 onOpenPatientHub={onOpenPatientHub}
                 patientDisplayName={patientDisplayName}
                 patientSnapshot={patientSnapshot}
-                mode={mode}
-                facilityId={facilityId}
+                mode={displayedMode}
+                facilityId={displayedFacilityId}
                 onSelectPatient={onSelectPatient}
                 onOpenDetailedSearch={onOpenDetailedSearch}
                 onOpenCreatePatient={onOpenCreatePatient}
@@ -698,6 +756,22 @@ export default function AppointmentModal({
                       />
                     </div>
                   </div>
+
+                  <Controller
+                    name="is_billable"
+                    control={control}
+                    render={({ field }) => (
+                      <label className="mt-1 flex items-center gap-2 text-sm text-cf-text">
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="h-4 w-4 rounded border-cf-border accent-cf-primary"
+                        />
+                        Billable appointment
+                      </label>
+                    )}
+                  />
                 </FormSection>
 
                 <FormSection icon={ClipboardList} title="Visit Context">
@@ -729,7 +803,7 @@ export default function AppointmentModal({
 
           <div className="flex shrink-0 flex-col gap-3 border-t border-cf-border bg-cf-surface px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-2">
-              {mode === "edit" ? (
+              {displayedMode === "edit" ? (
                 <Button type="button" onClick={onDelete} variant="danger">
                   Delete
                 </Button>
@@ -745,7 +819,9 @@ export default function AppointmentModal({
                 variant="primary"
                 disabled={isEditSessionUnavailable}
               >
-                {mode === "edit" ? "Save Changes" : "Create Appointment"}
+                {displayedMode === "edit"
+                  ? "Save Changes"
+                  : "Create Appointment"}
               </Button>
             </div>
           </div>

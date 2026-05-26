@@ -3,77 +3,36 @@ import { RefreshCw } from "lucide-react";
 
 import { useBootReadiness } from "../../../../app/BootReadinessContext";
 import useOrganizationOverview from "../../hooks/organization/useOrganizationOverview";
+import useOrganizationFacilities from "../../hooks/organization/useOrganizationFacilities";
+import useOrganizationPayers from "../../hooks/organization/useOrganizationPayers";
+import { formatPhoneDisplay } from "../../../../shared/utils/phone";
 import { AdminInlineNotice, AdminTableCard } from "../shared/AdminSurface";
 import { Button } from "../../../../shared/components/ui";
 import {
-  hasText,
-  OrganizationAddressCard,
-  OrganizationContactCard,
-  OrganizationFootprintCard,
-  OrganizationIdentityCard,
-  OrganizationNotesCard,
   OrganizationOverviewHeader,
+  OrganizationReadOnlyOverview,
 } from "./OrganizationOverviewSections";
-import type { ChangeEvent, FormEvent } from "react";
+import OrganizationOverviewModal from "./OrganizationOverviewModal";
 import type {
-  AdminAddressForm,
   AdminOrganizationOverview,
-  AdminOrganizationOverviewForm,
   AdminOrganizationUser,
+  AdminSavePayload,
 } from "../../types";
-
-function emptyAddress(): AdminAddressForm {
-  return { line_1: "", line_2: "", city: "", state: "NY", zip_code: "" };
-}
 
 export default function OrganizationOverviewPanel() {
   const { organization, loading, saving, error, reload, updateOrganization } =
     useOrganizationOverview();
+  const { facilities, loading: loadingFacilities } =
+    useOrganizationFacilities();
+  const { payers, loading: loadingPayers } = useOrganizationPayers();
   const { setRouteReady } = useBootReadiness();
-  const [formData, setFormData] =
-    useState<AdminOrganizationOverviewForm | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     if (loading) return;
     setRouteReady(true);
   }, [loading, setRouteReady]);
-
-  useEffect(() => {
-    if (!organization) return;
-    const currentOrganization = organization as AdminOrganizationOverview;
-    setFormData({
-      name: currentOrganization.name || "",
-      slug: currentOrganization.slug || "",
-      legal_name: currentOrganization.legal_name || "",
-      phone_number: currentOrganization.phone_number || "",
-      email: currentOrganization.email || "",
-      website: currentOrganization.website || "",
-      tax_id: currentOrganization.tax_id || "",
-      notes: currentOrganization.notes || "",
-      address: {
-        line_1: currentOrganization.address?.line_1 || "",
-        line_2: currentOrganization.address?.line_2 || "",
-        city: currentOrganization.address?.city || "",
-        state: currentOrganization.address?.state || "NY",
-        zip_code: currentOrganization.address?.zip_code || "",
-      },
-    });
-  }, [organization]);
-
-  const configuredFieldCount = useMemo(() => {
-    if (!formData) return 0;
-    return [
-      formData.name,
-      formData.slug,
-      formData.legal_name,
-      formData.tax_id,
-      formData.phone_number,
-      formData.email,
-      formData.website,
-      formData.address?.line_1,
-    ].filter(hasText).length;
-  }, [formData]);
 
   const adminCount = useMemo(() => {
     const members = Array.isArray(organization?.members)
@@ -84,55 +43,34 @@ export default function OrganizationOverviewPanel() {
     ).length;
   }, [organization]);
 
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => (prev ? { ...prev, [name]: value } : prev));
-  };
+  const org = organization as AdminOrganizationOverview | null;
 
-  const handleAddressChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) =>
-      prev
-        ? {
-            ...prev,
-            address: { ...(prev.address || emptyAddress()), [name]: value },
-          }
-        : prev
-    );
-  };
+  const formSummary = org
+    ? {
+        name: org.name || "",
+        slug: org.slug || "",
+        legal_name: org.legal_name || "",
+        phone_number: formatPhoneDisplay(org.phone_number),
+        email: org.email || "",
+        website: org.website || "",
+        tax_id: org.tax_id || "",
+        notes: org.notes || "",
+        address: {
+          line_1: org.address?.line_1 || "",
+          line_2: org.address?.line_2 || "",
+          city: org.address?.city || "",
+          state: org.address?.state || "NY",
+          zip_code: org.address?.zip_code || "",
+        },
+      }
+    : null;
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!organization?.id || !formData) return;
+  const handleSave = async (values: AdminSavePayload["values"]) => {
+    if (!org?.id) return;
     setSaveError("");
     try {
-      await updateOrganization({
-        id: organization.id,
-        values: {
-          ...formData,
-          name: formData.name.trim(),
-          slug: formData.slug.trim(),
-          legal_name: formData.legal_name.trim(),
-          phone_number: formData.phone_number.trim(),
-          email: formData.email.trim(),
-          website: formData.website.trim(),
-          tax_id: formData.tax_id.trim(),
-          notes: formData.notes.trim(),
-          address: formData.address?.line_1
-            ? {
-                line_1: formData.address.line_1.trim(),
-                line_2: formData.address.line_2.trim(),
-                city: formData.address.city.trim(),
-                state: formData.address.state,
-                zip_code: formData.address.zip_code.trim(),
-              }
-            : null,
-        },
-      });
+      await updateOrganization({ id: org.id, values });
+      setIsModalOpen(false);
     } catch {
       setSaveError("Failed to save organization details.");
     }
@@ -155,69 +93,43 @@ export default function OrganizationOverviewPanel() {
               onClick={() => reload()}
               disabled={loading || saving}
             >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
+              <RefreshCw className="h-3.5 w-3.5" />
               Refresh
             </Button>
             <Button
-              type="submit"
-              form="organization-overview-form"
-              variant="primary"
+              variant="default"
               size="sm"
-              disabled={loading || saving || !formData}
+              onClick={() => setIsModalOpen(true)}
+              disabled={loading || saving || !org}
             >
-              {saving ? "Saving..." : "Save"}
+              Edit Details
             </Button>
           </>
         }
       >
-        {loading || !formData ? (
-          <div className="px-5 py-16 text-center text-sm text-cf-text-muted">
-            Loading organization details...
+        {loading || !formSummary ? null : (
+          <div className="px-6 py-6">
+            <OrganizationOverviewHeader formData={formSummary} />
+            <OrganizationReadOnlyOverview
+              formData={formSummary}
+              activePeopleCount={Number(org?.active_people_count) || 0}
+              adminCount={adminCount}
+              facilitiesCount={facilities.length}
+              payersCount={payers.length}
+              loadingFacilities={loadingFacilities}
+              loadingPayers={loadingPayers}
+            />
           </div>
-        ) : (
-          <form
-            id="organization-overview-form"
-            onSubmit={handleSubmit}
-            className="px-5 py-5"
-          >
-            <OrganizationOverviewHeader formData={formData} />
-
-            <div className="grid gap-4 lg:grid-cols-3">
-              <OrganizationIdentityCard
-                formData={formData}
-                onChange={handleChange}
-              />
-              <OrganizationFootprintCard
-                activePeopleCount={
-                  Number(
-                    (organization as AdminOrganizationOverview)
-                      .active_people_count
-                  ) || 0
-                }
-                adminCount={adminCount}
-                configuredFieldCount={configuredFieldCount}
-                hasAddress={hasText(formData.address?.line_1)}
-              />
-              <OrganizationContactCard
-                formData={formData}
-                onChange={handleChange}
-              />
-              <OrganizationNotesCard
-                formData={formData}
-                onChange={handleChange}
-              />
-              <OrganizationAddressCard
-                address={formData.address}
-                onChange={handleAddressChange}
-              />
-            </div>
-          </form>
         )}
       </AdminTableCard>
+
+      <OrganizationOverviewModal
+        isOpen={isModalOpen}
+        initialValues={org ?? null}
+        saving={saving}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSave}
+      />
     </div>
   );
 }

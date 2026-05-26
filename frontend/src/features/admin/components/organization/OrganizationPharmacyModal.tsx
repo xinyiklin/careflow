@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 
-import { AdminFormModal } from "../shared/AdminFormModal";
-import { CompactModalGrid } from "../shared/AdminCompactModal";
 import {
-  PharmacyDetailsLane,
-  PharmacyDirectoryLane,
+  formatPhoneInput,
+  getPhoneInputDigits,
+} from "../../../../shared/utils/phone";
+import { AdminFormModal } from "../shared/AdminFormModal";
+import {
+  PharmacyFormContent,
+  getServiceTypeLabel,
   type OrganizationPharmacyForm,
 } from "./OrganizationPharmacyModalSections";
 
@@ -55,29 +58,6 @@ function normalizeAddress(address: AdminAddress | null | undefined) {
   };
 }
 
-function getDirectoryMeta(
-  initialValues: AdminOrganizationPharmacyPreference | null
-) {
-  const pharmacy = initialValues?.pharmacy || null;
-  const sourceLabel =
-    {
-      custom: "Custom",
-      imported: "Imported",
-      directory: "Directory",
-    }[pharmacy?.source || "custom"] || "Custom";
-  const statusLabel =
-    {
-      active: "Active",
-      inactive: "Inactive",
-      unknown: "Not synced",
-    }[pharmacy?.directory_status || "unknown"] || "Not synced";
-
-  return {
-    sourceLabel,
-    statusLabel,
-  };
-}
-
 export default function OrganizationPharmacyModal({
   isOpen,
   mode = "create",
@@ -97,7 +77,6 @@ export default function OrganizationPharmacyModal({
 }) {
   const [formData, setFormData] =
     useState<OrganizationPharmacyForm>(DEFAULT_FORM);
-  const directoryMeta = getDirectoryMeta(initialValues);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -117,8 +96,8 @@ export default function OrganizationPharmacyModal({
       tax_id: pharmacy?.tax_id || "",
       store_number: pharmacy?.store_number || "",
       service_type: pharmacy?.service_type || "retail",
-      phone_number: pharmacy?.phone_number || "",
-      fax_number: pharmacy?.fax_number || "",
+      phone_number: formatPhoneInput(pharmacy?.phone_number || ""),
+      fax_number: formatPhoneInput(pharmacy?.fax_number || ""),
       accepts_erx: Boolean(pharmacy?.accepts_erx),
       is_24_hour: Boolean(pharmacy?.is_24_hour),
       notes: initialValues.notes || "",
@@ -178,8 +157,8 @@ export default function OrganizationPharmacyModal({
       tax_id: formData.tax_id.trim(),
       store_number: formData.store_number.trim(),
       service_type: formData.service_type,
-      phone_number: formData.phone_number.trim(),
-      fax_number: formData.fax_number.trim(),
+      phone_number: getPhoneInputDigits(formData.phone_number),
+      fax_number: getPhoneInputDigits(formData.fax_number),
       accepts_erx: formData.accepts_erx,
       is_24_hour: formData.is_24_hour,
       notes: "",
@@ -205,31 +184,81 @@ export default function OrganizationPharmacyModal({
     });
   };
 
+  const initials =
+    (formData.name || "RX")
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part.charAt(0))
+      .join("")
+      .toUpperCase() || "RX";
+
+  const isEditMode = mode === "edit";
+  const modalTitle = isEditMode ? (
+    <div className="flex flex-wrap items-center justify-between gap-4 mr-6">
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-xl bg-cf-accent/10 border border-cf-accent/30 text-cf-accent flex items-center justify-center text-xs font-bold shadow-sm">
+          {initials}
+        </div>
+        <div className="min-w-0">
+          <h4 className="truncate text-sm font-bold tracking-tight text-cf-text leading-snug">
+            {formData.name || "Unnamed Pharmacy"}
+          </h4>
+          <p className="truncate text-[11px] text-cf-text-muted mt-0.5 font-normal">
+            {getServiceTypeLabel(formData.service_type)} ·{" "}
+            {formData.phone_number || "No phone"}
+          </p>
+        </div>
+      </div>
+
+      <label className="flex shrink-0 items-center gap-1.5 rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted hover:bg-cf-surface-soft cursor-pointer transition select-none">
+        <input
+          type="checkbox"
+          name="is_active"
+          form="organization-pharmacy-form"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        Active
+      </label>
+    </div>
+  ) : (
+    <div className="flex items-center justify-between gap-4 mr-6">
+      <span className="text-sm font-semibold text-cf-text">Add Pharmacy</span>
+      <label className="flex shrink-0 items-center gap-1.5 rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted hover:bg-cf-surface-soft cursor-pointer transition select-none">
+        <input
+          type="checkbox"
+          name="is_active"
+          form="organization-pharmacy-form"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        Active
+      </label>
+    </div>
+  );
+
   return (
     <AdminFormModal
       isOpen={isOpen}
       onClose={onClose}
-      scope="Organization admin"
-      title={mode === "edit" ? "Edit Pharmacy" : "Add Pharmacy"}
+      scope="Organization Admin"
+      title={modalTitle}
       maxWidth="3xl"
       formId="organization-pharmacy-form"
       saving={saving}
       deleteLabel={onDeactivate ? "Deactivate" : ""}
       onDelete={onDeactivate}
+      bodyClassName="bg-cf-surface px-6 py-5 border-t border-b border-cf-border/60 overflow-y-auto max-h-[75vh] flex-1"
     >
       <form id="organization-pharmacy-form" onSubmit={handleSubmit}>
-        <CompactModalGrid>
-          <PharmacyDirectoryLane
-            formData={formData}
-            directoryMeta={directoryMeta}
-            onChange={handleChange}
-          />
-          <PharmacyDetailsLane
-            formData={formData}
-            onChange={handleChange}
-            onAddressChange={handleAddressChange}
-          />
-        </CompactModalGrid>
+        <PharmacyFormContent
+          formData={formData}
+          onChange={handleChange}
+          onAddressChange={handleAddressChange}
+          saving={saving}
+        />
       </form>
     </AdminFormModal>
   );

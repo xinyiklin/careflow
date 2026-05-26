@@ -14,9 +14,11 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import OrganizationPharmacyModal from "./OrganizationPharmacyModal";
+import { getServiceTypeLabel } from "./OrganizationPharmacyModalSections";
 
 import type {
   AdminAddress,
@@ -89,8 +91,15 @@ const PHARMACY_FILTERS = [
 const PHARMACY_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Pharmacy",
+    label: "Name",
     compare: (a, b) => compareText(a.pharmacy?.name, b.pharmacy?.name),
+  },
+  {
+    key: "order",
+    label: "Custom order",
+    compare: (a, b) =>
+      compareNumber(a.sort_order, b.sort_order) ||
+      compareText(a.pharmacy?.name, b.pharmacy?.name),
   },
   {
     key: "preferred",
@@ -100,17 +109,10 @@ const PHARMACY_SORT_OPTIONS = [
       compareText(a.pharmacy?.name, b.pharmacy?.name),
   },
   {
-    key: "active",
-    label: "Active first",
+    key: "city",
+    label: "City",
     compare: (a, b) =>
-      compareBoolean(a.is_active, b.is_active) ||
-      compareText(a.pharmacy?.name, b.pharmacy?.name),
-  },
-  {
-    key: "order",
-    label: "Custom order",
-    compare: (a, b) =>
-      compareNumber(a.sort_order, b.sort_order) ||
+      compareText(a.pharmacy?.city, b.pharmacy?.city) ||
       compareText(a.pharmacy?.name, b.pharmacy?.name),
   },
 ] satisfies AdminSortOption<AdminOrganizationPharmacyPreference>[];
@@ -121,6 +123,7 @@ export default function OrganizationPharmaciesPanel() {
     loading,
     saving,
     error,
+    loadError,
     reload,
     savePharmacyPreference,
   } = useOrganizationPharmacies();
@@ -150,6 +153,7 @@ export default function OrganizationPharmaciesPanel() {
       filters: PHARMACY_FILTERS,
       sortOptions: PHARMACY_SORT_OPTIONS,
       defaultSort: "order",
+      storageKey: "pharmacies",
     }
   );
 
@@ -207,43 +211,11 @@ export default function OrganizationPharmaciesPanel() {
 
   return (
     <div className="space-y-4">
-      {error ? (
+      {error && !loadError ? (
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       ) : null}
 
-      <AdminTableCard
-        description="Manage organization-enabled pharmacies. Custom records remain local now and can be reconciled with an external pharmacy directory later."
-        savingLabel={saving ? "Saving..." : ""}
-        actions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => reload()}
-              disabled={loading || saving}
-            >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                setEditingPreference(null);
-                setIsModalOpen(true);
-              }}
-              disabled={saving}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add Pharmacy
-            </Button>
-          </>
-        }
-      >
+      <AdminTableCard>
         <AdminListToolbar
           savingLabel={saving ? "Saving..." : ""}
           filters={filterOptions}
@@ -252,6 +224,30 @@ export default function OrganizationPharmaciesPanel() {
           sortOptions={PHARMACY_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => {
+                  setEditingPreference(null);
+                  setIsModalOpen(true);
+                }}
+                disabled={saving}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
         />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -274,15 +270,12 @@ export default function OrganizationPharmaciesPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    Loading pharmacies...
-                  </td>
-                </tr>
+              {loading ? null : loadError ? (
+                <AdminTableLoadError
+                  colSpan={5}
+                  message="Couldn't load pharmacies."
+                  onRetry={() => void reload()}
+                />
               ) : preferences.length === 0 ? (
                 <tr>
                   <td
@@ -334,7 +327,9 @@ export default function OrganizationPharmaciesPanel() {
                             </div>
                             <div className="text-[11px] text-cf-text-muted">
                               {formatDirectorySource(pharmacy)} ·{" "}
-                              {pharmacy?.service_type || "retail"}
+                              {getServiceTypeLabel(
+                                pharmacy?.service_type || "retail"
+                              )}
                             </div>
                           </div>
                         </div>

@@ -56,6 +56,7 @@ export default function formatAppointments(
       appointment_type_code: appointment.appointment_type_code,
       appointment_type_color: appointment.appointment_type_color,
       facility: appointment.facility,
+      is_billable: appointment.is_billable,
       created_by_name: appointment.created_by_name,
       appointment_time: appointment.appointment_time,
       duration_minutes: appointment.duration_minutes || 0,

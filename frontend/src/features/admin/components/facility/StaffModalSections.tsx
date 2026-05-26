@@ -10,8 +10,13 @@ import type { ReactNode } from "react";
 export const HIGH_IMPACT_PERMISSION_KEYS = new Set([
   "schedule.delete",
   "patients.delete",
+  "medications.manage",
+  "allergies.manage",
+  "billing.manage",
+  "billing.fee_schedules.manage",
   "documents.categories.manage",
-  "pharmacies.manage",
+  "pharmacies.organization.manage",
+  "pharmacies.facility.manage",
   "admin.facility.manage",
 ]);
 
@@ -156,20 +161,22 @@ export function SecurityOverrideBoard({
   onChange: (permissionKey: SecurityPermissionKey, value: OverrideMode) => void;
 }) {
   return (
-    <section className="rounded-2xl border border-cf-border bg-cf-surface-soft/45 p-3 shadow-[var(--shadow-panel)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <section className="rounded-2xl border border-cf-border/40 bg-cf-surface-soft/40 p-4 shadow-[var(--shadow-panel)]">
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+          <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
             Override console
           </div>
-          <div className="text-base font-semibold text-cf-text">Security</div>
+          <div className="text-base font-extrabold tracking-tight text-cf-text">
+            Security
+          </div>
         </div>
         <Badge variant="muted">
           {Object.keys(securityOverrides || {}).length} custom
         </Badge>
       </div>
 
-      <div className="grid max-h-[52vh] gap-2 overflow-y-auto pr-1">
+      <div className="grid max-h-[52vh] gap-3 overflow-y-auto pr-1">
         {SECURITY_PERMISSION_GROUPS.map((group) => {
           const groupAllowed = group.permissions.filter(
             (permission) => effectivePermissions[permission.key]
@@ -178,18 +185,18 @@ export function SecurityOverrideBoard({
           return (
             <div
               key={group.key}
-              className="rounded-2xl border border-cf-border bg-cf-surface p-2.5"
+              className="rounded-xl border border-cf-border/40 bg-cf-surface/60 p-3"
             >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div className="text-xs font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
+              <div className="mb-2.5 flex items-center justify-between gap-2">
+                <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-cf-text-subtle">
                   {group.label}
                 </div>
-                <span className="rounded-full border border-cf-border bg-cf-surface-soft/70 px-2 py-0.5 text-[10px] font-semibold text-cf-text-muted">
+                <span className="rounded-full border border-cf-border bg-cf-surface-soft/75 px-2 py-0.5 text-[9px] font-bold text-cf-text-muted">
                   {groupAllowed}/{group.permissions.length}
                 </span>
               </div>
 
-              <div className="grid gap-1.5">
+              <div className="grid gap-2">
                 {group.permissions.map((permission) => {
                   const overrideValue = securityOverrides?.[permission.key];
                   const selectValue =
@@ -208,31 +215,31 @@ export function SecurityOverrideBoard({
                     <div
                       key={permission.key}
                       className={[
-                        "grid gap-2 rounded-xl border px-2.5 py-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center",
+                        "grid gap-2 rounded-lg p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center",
                         selectValue === "inherit"
-                          ? "border-cf-border bg-cf-surface-soft/35"
-                          : "border-cf-border-strong bg-cf-page-bg",
+                          ? "bg-cf-surface-soft/20 text-cf-text-muted"
+                          : "bg-cf-surface-soft/60 border border-cf-border/40",
                       ].join(" ")}
                     >
                       <div className="min-w-0">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="truncate text-sm font-semibold text-cf-text">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate text-xs font-semibold text-cf-text">
                             {permission.label}
                           </span>
                           {isHighImpact ? (
-                            <span className="h-2 w-2 shrink-0 rounded-full bg-cf-warning-text" />
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cf-warning-text" />
                           ) : null}
                         </div>
-                        <div className="mt-1 flex flex-wrap gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]">
-                          <span className="rounded-full bg-cf-surface px-2 py-0.5 text-cf-text-subtle ring-1 ring-cf-border">
+                        <div className="mt-1 flex flex-wrap gap-1 text-[9px] font-bold uppercase tracking-[0.1em]">
+                          <span className="rounded-full bg-cf-surface/40 px-1.5 py-0.5 text-cf-text-subtle ring-1 ring-cf-border/30">
                             Role {inheritedAllowed ? "allow" : "block"}
                           </span>
                           <span
                             className={[
-                              "rounded-full px-2 py-0.5 ring-1",
+                              "rounded-full px-1.5 py-0.5 ring-1",
                               effectiveAllowed
-                                ? "bg-cf-success-bg text-cf-success-text ring-cf-success-text/20"
-                                : "bg-cf-surface text-cf-text-muted ring-cf-border",
+                                ? "bg-cf-success-bg text-cf-success-text ring-cf-success-text/10"
+                                : "bg-cf-surface/40 text-cf-text-muted ring-cf-border/30",
                             ].join(" ")}
                           >
                             Now {effectiveAllowed ? "allow" : "block"}

@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 
 import useAdminPermissions from "../features/admin/hooks/shared/useAdminPermissions";
 import { getAdminLandingPath } from "../features/admin/utils/adminRoutes";
-import { useUserPreferences } from "../shared/context/UserPreferencesProvider";
+import { useUserPreferences } from "./context/UserPreferencesProvider";
 
 import type { AdminPermissions } from "../features/admin/hooks/shared/useAdminPermissions";
 import type { UserPreferences } from "../shared/types/domain";

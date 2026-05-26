@@ -17,7 +17,7 @@ def get_csv_setting(name, default):
 
 # --- ENV FLAGS ---
 DEMO_MODE = os.environ.get("DEMO_MODE", "False").lower() == "true"
-DEMO_USERNAME = os.environ.get("DEMO_USERNAME", "demo_admin")
+DEMO_USERNAME = os.environ.get("DEMO_USERNAME", "demo")
 ALLOW_PUBLIC_REGISTRATION = (
     os.environ.get("ALLOW_PUBLIC_REGISTRATION", "False").lower() == "true"
 )
@@ -33,6 +33,14 @@ if not SECRET_KEY:
     if not DEBUG:
         raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG is false.")
     SECRET_KEY = "careflow-dev-secret-key-change-me-before-production-2026"
+
+FIELD_ENCRYPTION_KEY = os.environ.get("FIELD_ENCRYPTION_KEY")
+if not FIELD_ENCRYPTION_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured(
+            "FIELD_ENCRYPTION_KEY must be set when DEBUG is false."
+        )
+    FIELD_ENCRYPTION_KEY = "fhzlERUrPwNfBd1v_pBp1wVt7ISIyP1g0nVQgyUG4Kc="
 
 # --- HOSTS ---
 ALLOWED_HOSTS = [
@@ -56,8 +64,13 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "colorfield",
+    "drf_spectacular",
     "shared",
     "appointments",
+    "clinical",
+    "allergies",
+    "medications",
+    "billing",
     "users",
     "organizations",
     "facilities",
@@ -233,4 +246,11 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "CareFlow API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }

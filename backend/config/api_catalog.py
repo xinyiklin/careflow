@@ -102,13 +102,13 @@ API_ENDPOINT_SECTIONS = [
             {
                 "method": "GET",
                 "class": "get",
-                "path": "/v1/facilities/manage/",
+                "path": "/v1/facilities/",
                 "description": "List facilities for the current organization.",
             },
             {
                 "method": "PATCH",
                 "class": "patch",
-                "path": "/v1/facilities/manage/<id>/",
+                "path": "/v1/facilities/<id>/",
                 "description": "Update facility profile and operational details.",
             },
             {
@@ -175,7 +175,7 @@ API_ENDPOINT_SECTIONS = [
                 "method": "GET",
                 "class": "get",
                 "path": "/v1/patients/pharmacies/?facility_id=<id>",
-                "description": "List organization-enabled pharmacies for the selected facility.",
+                "description": "List facility-effective pharmacies from organization pharmacy settings and facility overrides.",
             },
             {
                 "method": "GET",
@@ -192,8 +192,8 @@ API_ENDPOINT_SECTIONS = [
             {
                 "method": "GET",
                 "class": "get",
-                "path": "/v1/insurance/carriers/",
-                "description": "List active insurance carriers.",
+                "path": "/v1/insurance/carriers/?facility_id=<id>",
+                "description": "List facility-effective insurance carriers from organization payer settings and facility overrides.",
             },
             {
                 "method": "GET",
@@ -236,6 +236,156 @@ API_ENDPOINT_SECTIONS = [
                 "class": "patch",
                 "path": "/v1/appointments/<id>/?facility_id=<id>",
                 "description": "Update appointment schedule, status, and operational notes.",
+            },
+        ],
+    },
+    {
+        "title": "Clinical",
+        "summary": "Facility-scoped encounters and progress note charting.",
+        "endpoints": [
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/clinical/encounters/?facility_id=<id>&patient_id=<id>",
+                "description": "List patient encounters and nested progress notes.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/clinical/encounters/?facility_id=<id>",
+                "description": "Start a clinical encounter with an optional draft progress note.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/clinical/progress-notes/<id>/?facility_id=<id>",
+                "description": "Update a draft progress note.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/clinical/progress-notes/<id>/sign/?facility_id=<id>",
+                "description": "Sign a progress note and lock it from further edits.",
+            },
+        ],
+    },
+    {
+        "title": "Medications",
+        "summary": "Facility-scoped patient medication records.",
+        "endpoints": [
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/medications/?facility_id=<id>&patient_id=<id>",
+                "description": "List medication records for a patient.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/medications/?facility_id=<id>",
+                "description": "Create a patient medication record.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/medications/<id>/?facility_id=<id>",
+                "description": "Update medication details, status, dates, and notes.",
+            },
+            {
+                "method": "DELETE",
+                "class": "delete",
+                "path": "/v1/medications/<id>/?facility_id=<id>",
+                "description": "Mark a medication as discontinued.",
+            },
+        ],
+    },
+    {
+        "title": "Allergies",
+        "summary": "Facility-scoped patient allergy and adverse reaction records.",
+        "endpoints": [
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/allergies/patient-allergies/?facility_id=<id>&patient_id=<id>",
+                "description": "List allergy and adverse reaction records for a patient.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/allergies/patient-allergies/?facility_id=<id>",
+                "description": "Create a patient allergy or adverse reaction record.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/allergies/patient-allergies/<id>/?facility_id=<id>",
+                "description": "Update allergy reaction, severity, status, onset, and notes.",
+            },
+            {
+                "method": "DELETE",
+                "class": "delete",
+                "path": "/v1/allergies/patient-allergies/<id>/?facility_id=<id>",
+                "description": "Mark an allergy record as entered in error.",
+            },
+        ],
+    },
+    {
+        "title": "Billing",
+        "summary": "Encounter-linked superbills and charge capture.",
+        "endpoints": [
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/billing/encounter-billing-records/?facility_id=<id>&patient_id=<id>",
+                "description": "List patient superbills and charge-capture records.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/billing/encounter-billing-records/?facility_id=<id>",
+                "description": "Create a billing record for a signed encounter.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/billing/encounter-billing-records/<id>/?facility_id=<id>",
+                "description": "Update diagnosis codes, charge lines, and billing status.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/billing/fee-schedule-items/?facility_id=<id>",
+                "description": "List facility-effective fee schedule items merged from organization defaults and facility overrides.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/billing/cpt-catalog/",
+                "description": "List predefined CPT codes with descriptions and suggested fees.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/billing/organization-fee-schedules/<id>/populate/",
+                "description": "Populate a fee schedule sheet with all predefined CPT codes that are not already present.",
+            },
+        ],
+    },
+    {
+        "title": "Audit",
+        "summary": "Read-only audit trail for organization admins and facility-scoped facility admins.",
+        "endpoints": [
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/audit/events/",
+                "description": "List audit events. Organization admins can use scope=organization for org-only activity; facility admins must filter to a facility they manage. Filterable by action, app_label, facility, patient, and scope.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/audit/events/<id>/",
+                "description": "Retrieve a single audit event.",
             },
         ],
     },

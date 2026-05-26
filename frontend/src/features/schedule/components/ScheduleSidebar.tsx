@@ -2,9 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { formatDateOnlyInTimeZone } from "../../../shared/utils/dateTime";
+import { useUserPreferences } from "../../../app/context/UserPreferencesProvider";
 import useScheduleHeatmap from "../hooks/useScheduleHeatmap";
 import { MAX_SCHEDULE_COLUMNS } from "../utils/scheduleConstants";
+import ScheduleHeader from "./ScheduleHeader";
 
+import type { ScheduleHeatmapMode } from "../../../shared/types/domain";
 import type { ScheduleSidebarProps } from "../types";
 
 type CalendarDayCell = {
@@ -87,17 +90,22 @@ function shiftYear(dateString: string, offset: number) {
   return `${year + offset}-${monthText}-01`;
 }
 
-function getHeatmapClass(count: number, maxCount: number) {
-  if (!count) return "text-cf-text-muted hover:bg-cf-surface-soft";
+function getHeatmapLevel(
+  count: number,
+  maxCount: number,
+  mode: ScheduleHeatmapMode,
+  dailyTarget: number
+) {
+  if (!count) return 0;
 
-  const intensity = count / Math.max(maxCount, 1);
-  if (intensity >= 0.75)
-    return "bg-sky-300/85 text-slate-950 ring-1 ring-sky-300/80 dark:bg-sky-300/30 dark:text-sky-50 dark:ring-sky-200/35";
-  if (intensity >= 0.5)
-    return "bg-sky-200 text-sky-950 ring-1 ring-sky-300 dark:bg-sky-300/22 dark:text-sky-50 dark:ring-sky-200/25";
-  if (intensity >= 0.25)
-    return "bg-sky-100 text-sky-950 ring-1 ring-sky-200 dark:bg-sky-300/15 dark:text-sky-100 dark:ring-sky-200/20";
-  return "bg-sky-50 text-sky-950 ring-1 ring-sky-100 dark:bg-sky-300/10 dark:text-sky-100 dark:ring-sky-200/15";
+  const denominator =
+    mode === "target" && dailyTarget > 0 ? dailyTarget : Math.max(maxCount, 1);
+  const intensity = count / denominator;
+
+  if (intensity >= 0.75) return 4;
+  if (intensity >= 0.5) return 3;
+  if (intensity >= 0.25) return 2;
+  return 1;
 }
 
 export default function ScheduleSidebar({
@@ -105,12 +113,20 @@ export default function ScheduleSidebar({
   facility,
   selectedDate,
   scheduleMode,
+  activeScheduleInterval,
   resourceLoadSummaries,
   selectedResourceKeySet,
   onJumpToToday,
   onSelectDate,
+  onScheduleModeChange,
+  onScheduleIntervalChange,
   onToggleResource,
 }: ScheduleSidebarProps) {
+  const { preferences } = useUserPreferences();
+  const showHeatmap = preferences.showScheduleHeatmap;
+  const heatmapMode = preferences.scheduleHeatmapMode;
+  const heatmapDailyTarget = preferences.scheduleHeatmapDailyTarget;
+
   const [displayMonth, setDisplayMonth] = useState(() =>
     getMonthStartDate(selectedDate)
   );
@@ -135,7 +151,7 @@ export default function ScheduleSidebar({
     reload: reloadHeatmap,
   } = useScheduleHeatmap({
     facilityId,
-    month: heatmapMonth,
+    month: showHeatmap ? heatmapMonth : "",
   });
   const heatmapMaxCount = useMemo(
     () => Math.max(0, ...Object.values(heatmapCounts)),
@@ -149,8 +165,16 @@ export default function ScheduleSidebar({
   const displayMonthIndex = Number((displayMonth || "").split("-")[1]) - 1;
 
   return (
-    <aside className="hidden min-h-0 overflow-y-auto border-r border-cf-border bg-cf-surface-muted/65 px-4 py-4 lg:block">
-      <div className="rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
+    <aside className="hidden min-h-0 overflow-y-auto bg-cf-surface-muted/70 px-4 py-4 lg:block">
+      <ScheduleHeader
+        facility={facility}
+        scheduleMode={scheduleMode}
+        activeScheduleInterval={activeScheduleInterval}
+        onScheduleModeChange={onScheduleModeChange}
+        onScheduleIntervalChange={onScheduleIntervalChange}
+      />
+
+      <div className="rounded-xl border border-cf-border/60 bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
         <div className="flex items-start justify-between gap-2">
           <div className="relative min-w-0">
             <button
@@ -163,14 +187,14 @@ export default function ScheduleSidebar({
               <span className="truncate">{calendarMonthLabel}</span>
               <ChevronDown
                 className={[
-                  "h-3.5 w-3.5 shrink-0 text-cf-text-subtle transition",
+                  "h-3.5 w-3.5 text-cf-text-subtle transition-transform",
                   isMonthPickerOpen ? "rotate-180" : "",
                 ].join(" ")}
               />
             </button>
 
             {isMonthPickerOpen ? (
-              <div className="absolute left-0 top-8 z-20 w-56 rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-elevated)]">
+              <div className="absolute left-0 top-8 z-20 w-56 rounded-xl border border-cf-border/60 bg-cf-surface p-3 shadow-[var(--shadow-elevated)]">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <button
                     type="button"
@@ -286,56 +310,75 @@ export default function ScheduleSidebar({
 
             const isSelected = selectedDate === cell.date;
             const appointmentCount = heatmapCounts[cell.date] || 0;
-            const loadClass = getHeatmapClass(
-              appointmentCount,
-              heatmapMaxCount
-            );
+            const heatmapLevel = showHeatmap
+              ? getHeatmapLevel(
+                  appointmentCount,
+                  heatmapMaxCount,
+                  heatmapMode,
+                  heatmapDailyTarget
+                )
+              : 0;
 
             return (
               <button
                 key={cell.date}
                 type="button"
                 onClick={() => onSelectDate(cell.date)}
+                data-heatmap-level={isSelected ? undefined : heatmapLevel}
                 className={[
-                  "grid aspect-square place-items-center rounded-md font-medium transition",
-                  isSelected
-                    ? "bg-cf-accent text-cf-page-bg shadow-[var(--shadow-panel)] ring-2 ring-cf-border-strong ring-offset-1 ring-offset-cf-surface"
-                    : loadClass,
+                  "cf-schedule-heatmap-day grid aspect-square place-items-center rounded-md font-medium transition",
+                  isSelected ? "bg-cf-accent text-cf-page-bg" : "",
                 ].join(" ")}
                 aria-pressed={isSelected}
                 aria-label={`${cell.date}: ${appointmentCount} ${
                   appointmentCount === 1 ? "appointment" : "appointments"
-                }`}
+                }${showHeatmap && heatmapMode === "target" ? ` of ${heatmapDailyTarget} target` : ""}`}
                 title={`${cell.date}: ${appointmentCount} ${
                   appointmentCount === 1 ? "appointment" : "appointments"
-                }`}
+                }${showHeatmap && heatmapMode === "target" ? ` (${Math.round((appointmentCount / heatmapDailyTarget) * 100)}% of ${heatmapDailyTarget} target)` : ""}`}
               >
                 {cell.day}
               </button>
             );
           })}
         </div>
-        <div className="mt-3 flex items-center justify-between text-[10px] text-cf-text-subtle">
-          <span>Less</span>
-          <div className="flex items-center gap-1">
-            <span className="h-2 w-3 rounded-sm bg-sky-50 ring-1 ring-sky-100 dark:bg-sky-300/10 dark:ring-sky-200/15" />
-            <span className="h-2 w-3 rounded-sm bg-sky-100 ring-1 ring-sky-200 dark:bg-sky-300/15 dark:ring-sky-200/20" />
-            <span className="h-2 w-3 rounded-sm bg-blue-200 ring-1 ring-blue-300 dark:bg-sky-300/22 dark:ring-sky-200/25" />
-            <span className="h-2 w-3 rounded-sm bg-sky-300/85 ring-1 ring-sky-300/80 dark:bg-sky-300/30 dark:ring-sky-200/35" />
-          </div>
-          <span>Busy</span>
-        </div>
-        {heatmapError ? (
-          <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-cf-surface-soft px-2.5 py-2 text-[11px] text-cf-text-subtle">
-            <span>Heat map unavailable</span>
-            <button
-              type="button"
-              onClick={() => void reloadHeatmap()}
-              className="rounded-md px-2 py-1 font-semibold text-cf-text transition hover:bg-cf-surface hover:text-cf-accent"
-            >
-              Retry
-            </button>
-          </div>
+        {showHeatmap ? (
+          <>
+            <div className="mt-3 flex items-center justify-between text-[10px] text-cf-text-subtle">
+              <span>Less</span>
+              <div className="flex items-center gap-1">
+                <span
+                  className="cf-schedule-heatmap-swatch h-2 w-3 rounded-sm"
+                  data-heatmap-level="1"
+                />
+                <span
+                  className="cf-schedule-heatmap-swatch h-2 w-3 rounded-sm"
+                  data-heatmap-level="2"
+                />
+                <span
+                  className="cf-schedule-heatmap-swatch h-2 w-3 rounded-sm"
+                  data-heatmap-level="3"
+                />
+                <span
+                  className="cf-schedule-heatmap-swatch h-2 w-3 rounded-sm"
+                  data-heatmap-level="4"
+                />
+              </div>
+              <span>Busy</span>
+            </div>
+            {heatmapError ? (
+              <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-cf-surface-soft px-2.5 py-2 text-[11px] text-cf-text-subtle">
+                <span>Heat map unavailable</span>
+                <button
+                  type="button"
+                  onClick={() => void reloadHeatmap()}
+                  className="rounded-md px-2 py-1 font-semibold text-cf-text transition hover:bg-cf-surface hover:text-cf-accent"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : null}
+          </>
         ) : null}
       </div>
 

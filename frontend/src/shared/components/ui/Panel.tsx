@@ -5,7 +5,7 @@ type PanelProps = {
   icon?: LucideIcon | null;
   title?: ReactNode;
   description?: ReactNode;
-  tone?: "default" | "subtle";
+  tone?: "default" | "subtle" | "flat";
   className?: string;
   bodyClassName?: string;
   children?: ReactNode;
@@ -22,8 +22,12 @@ export default function Panel({
 }: PanelProps) {
   return (
     <section
-      data-tone={tone === "subtle" ? "subtle" : "default"}
-      className={["cf-ui-panel p-5", className].join(" ")}
+      data-tone={tone}
+      className={
+        tone === "flat"
+          ? ["w-full", className].join(" ")
+          : ["cf-ui-panel p-5", className].join(" ")
+      }
     >
       {(Icon || title || description) && (
         <div className="flex items-start gap-3">

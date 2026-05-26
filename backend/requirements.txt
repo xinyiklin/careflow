@@ -1,6 +1,8 @@
 Django==4.2.29
 boto3==1.42.96
+cryptography==48.0.0
 djangorestframework==3.16.1
+drf-spectacular==0.29.0
 djangorestframework_simplejwt==5.5.1
 django-cors-headers==4.9.0
 django-colorfield==0.14.0

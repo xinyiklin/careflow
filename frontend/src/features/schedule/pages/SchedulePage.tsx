@@ -8,7 +8,7 @@ import formatAppointments from "../../appointments/utils/formatAppointments";
 
 import useAppointments from "../../appointments/hooks/useAppointments";
 import useAppointmentMutations from "../../appointments/hooks/useAppointmentMutations";
-import useAppointmentFlow from "../../appointments/hooks/useAppointmentFlow";
+import { useAppointmentFlowContext } from "../../appointments/AppointmentFlowProvider";
 import {
   beginAppointmentEditSession,
   releaseAppointmentEditSession,
@@ -17,10 +17,10 @@ import useSchedulePageColumns from "../hooks/useSchedulePageColumns";
 import useFacility from "../../facilities/hooks/useFacility";
 import useFacilityConfig from "../../facilities/hooks/useFacilityConfig";
 import { usePatientFlowContext } from "../../patients/PatientFlowProvider";
-import { Notice } from "../../../shared/components/ui";
-import WorkspaceShell from "../../../shared/components/WorkspaceShell";
+import { Button, Notice } from "../../../shared/components/ui";
+import WorkspaceShell from "../../../app/components/WorkspaceShell";
 import { useBootReadiness } from "../../../app/BootReadinessContext";
-import { useUserPreferences } from "../../../shared/context/UserPreferencesProvider";
+import { useUserPreferences } from "../../../app/context/UserPreferencesProvider";
 import {
   SCHEDULE_QUICK_ACTION_EVENT,
   SCHEDULE_QUICK_ACTION_STORAGE_KEY,
@@ -45,8 +45,6 @@ import type {
   ScheduleHistoryModalState,
 } from "../types";
 
-type AppointmentFlowOptions = Parameters<typeof useAppointmentFlow>[0];
-
 export default function SchedulePage() {
   const { facility, selectedFacilityId } = useFacility();
   const { physicians, staffs, resources, statusOptions, typeOptions } =
@@ -56,26 +54,13 @@ export default function SchedulePage() {
   const { setRouteReady } = useBootReadiness();
   const { preferences, updatePreferences } = useUserPreferences();
   const scheduleResources = resources as ScheduleFacilityOption[];
-  const appointmentPhysicians = physicians as unknown as AppointmentStaff[];
-  const appointmentStaffs = staffs as unknown as AppointmentStaff[];
-  const appointmentResources = resources as unknown as AppointmentResource[];
-  const appointmentStatusOptions =
-    statusOptions as unknown as AppointmentStatusOption[];
-  const appointmentTypeOptions =
-    typeOptions as unknown as AppointmentTypeOption[];
+  const appointmentPhysicians: AppointmentStaff[] = physicians;
+  const appointmentStaffs: AppointmentStaff[] = staffs;
+  const appointmentResources: AppointmentResource[] = resources;
+  const appointmentStatusOptions: AppointmentStatusOption[] = statusOptions;
+  const appointmentTypeOptions: AppointmentTypeOption[] = typeOptions;
   const appointmentRecentPatients =
     recentPatients as unknown as AppointmentPatient[];
-  const appointmentFlowPhysicians =
-    physicians as unknown as AppointmentFlowOptions["physicians"];
-  const appointmentFlowStaffs = staffs as unknown as NonNullable<
-    AppointmentFlowOptions["staffs"]
-  >;
-  const appointmentFlowResources =
-    resources as unknown as AppointmentFlowOptions["resources"];
-  const appointmentFlowStatusOptions =
-    statusOptions as unknown as AppointmentFlowOptions["statusOptions"];
-  const appointmentFlowTypeOptions =
-    typeOptions as unknown as AppointmentFlowOptions["typeOptions"];
 
   const [appError, setAppError] = useState("");
   const viewMode = preferences.scheduleViewMode;
@@ -143,6 +128,7 @@ export default function SchedulePage() {
     appointments,
     loading: appointmentsLoading,
     error: appointmentsError,
+    reload: reloadAppointments,
   } = useAppointments({
     facilityId: selectedFacilityId,
     date: queryDate,
@@ -160,15 +146,7 @@ export default function SchedulePage() {
     selectedFacilityId,
     setRouteReady,
   ]);
-  const appointmentFlow = useAppointmentFlow({
-    facility,
-    physicians: appointmentFlowPhysicians,
-    staffs: appointmentFlowStaffs,
-    resources: appointmentFlowResources,
-    statusOptions: appointmentFlowStatusOptions,
-    typeOptions: appointmentFlowTypeOptions,
-    selectedDate,
-  });
+  const appointmentFlow = useAppointmentFlowContext();
   const { open: openAppointmentModal } = appointmentFlow.modal;
 
   const handleScheduleQuickAction = useCallback(
@@ -594,10 +572,22 @@ export default function SchedulePage() {
           {appointmentsError ? (
             <Notice
               tone="danger"
-              title="Appointments could not be loaded"
+              title="Couldn't load appointments"
               className="mb-4 shrink-0"
             >
-              Failed to load appointments. {appointmentsError}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>
+                  The schedule may be out of date. Check your connection and try
+                  again.
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void reloadAppointments()}
+                >
+                  Retry
+                </Button>
+              </div>
             </Notice>
           ) : null}
         </>

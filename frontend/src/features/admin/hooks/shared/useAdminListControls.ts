@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 export type AdminListFilter<TRecord> = {
   key: string;
@@ -16,7 +16,40 @@ type AdminListControlsOptions<TRecord> = {
   sortOptions?: AdminListSortOption<TRecord>[];
   defaultFilter?: string;
   defaultSort?: string;
+  storageKey?: string;
 };
+
+function getStoredControl(
+  storageKey: string | undefined,
+  kind: string,
+  fallback: string
+) {
+  if (!storageKey || typeof window === "undefined") return fallback;
+  try {
+    return (
+      window.localStorage.getItem(`careflow.adminList.${storageKey}.${kind}`) ||
+      fallback
+    );
+  } catch {
+    return fallback;
+  }
+}
+
+function persistControl(
+  storageKey: string | undefined,
+  kind: string,
+  value: string
+) {
+  if (!storageKey || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      `careflow.adminList.${storageKey}.${kind}`,
+      value
+    );
+  } catch {
+    // Storage may be unavailable (private mode, quota); fall back to in-memory.
+  }
+}
 
 export function compareBoolean(first: unknown, second: unknown) {
   return Number(Boolean(second)) - Number(Boolean(first));
@@ -40,10 +73,31 @@ export default function useAdminListControls<TRecord>(
     sortOptions = [],
     defaultFilter = "all",
     defaultSort = "name",
+    storageKey,
   }: AdminListControlsOptions<TRecord>
 ) {
-  const [activeFilter, setActiveFilter] = useState(defaultFilter);
-  const [activeSort, setActiveSort] = useState(defaultSort);
+  const [activeFilter, setActiveFilterState] = useState(() =>
+    getStoredControl(storageKey, "filter", defaultFilter)
+  );
+  const [activeSort, setActiveSortState] = useState(() =>
+    getStoredControl(storageKey, "sort", defaultSort)
+  );
+
+  const setActiveFilter = useCallback(
+    (key: string) => {
+      setActiveFilterState(key);
+      persistControl(storageKey, "filter", key);
+    },
+    [storageKey]
+  );
+
+  const setActiveSort = useCallback(
+    (key: string) => {
+      setActiveSortState(key);
+      persistControl(storageKey, "sort", key);
+    },
+    [storageKey]
+  );
 
   const filterOptions = useMemo(
     () =>

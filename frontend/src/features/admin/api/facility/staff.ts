@@ -70,3 +70,26 @@ export function deactivateStaff(
     params: facilityParams(facilityId),
   });
 }
+
+export function createStaffRole(
+  facilityId: EntityId | null | undefined,
+  data: ApiPayload
+) {
+  return apiRequest<AdminStaffRole>("/facilities/staff-roles/", {
+    method: "POST",
+    includeFacilityId: !facilityId,
+    params: facilityParams(facilityId),
+    body: JSON.stringify(data),
+  });
+}
+
+export function deleteStaffRole(
+  facilityId: EntityId | null | undefined,
+  id: EntityId
+) {
+  return apiRequest<ApiRecord>(`/facilities/staff-roles/${id}/`, {
+    method: "DELETE",
+    includeFacilityId: !facilityId,
+    params: facilityParams(facilityId),
+  });
+}

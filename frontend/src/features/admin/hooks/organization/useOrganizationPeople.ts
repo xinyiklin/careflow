@@ -43,6 +43,7 @@ export default function useOrganizationPeople() {
     people: Array.isArray(peopleQuery.data) ? peopleQuery.data : [],
     loading: peopleQuery.isLoading,
     error: peopleQuery.error?.message || "",
+    loadError: peopleQuery.error?.message || "",
     reload: peopleQuery.refetch,
     saving: saveMutation.isPending,
     savePerson: ({ id, values }: SavePersonPayload) =>

@@ -98,7 +98,7 @@ export default function AppointmentPatientLens({
             {patientDisplayName || "No patient selected"}
           </div>
           <div className="mt-1 text-xs font-medium text-cf-text-muted">
-            {isPatientLoading ? "Loading patient..." : patientMeta}
+            {isPatientLoading ? "" : patientMeta}
           </div>
 
           <div className="mt-3">
@@ -116,7 +116,7 @@ export default function AppointmentPatientLens({
             {selectedPatient || isPatientLoading ? (
               <div className="mt-3">
                 {isPatientLoading ? (
-                  <PatientMetaItem label="Phone" value="Loading..." />
+                  <PatientMetaItem label="Phone" value="—" />
                 ) : patientPhones.length ? (
                   patientPhones.map((phone) => (
                     <PatientMetaItem
@@ -131,7 +131,7 @@ export default function AppointmentPatientLens({
                 <PatientMetaItem
                   label="Address"
                   multiline
-                  value={isPatientLoading ? "Loading..." : patientAddress}
+                  value={isPatientLoading ? "—" : patientAddress}
                 />
               </div>
             ) : null}
@@ -158,7 +158,7 @@ export default function AppointmentPatientLens({
               label="Carrier"
               value={
                 insurancePoliciesQuery.isLoading
-                  ? "Loading..."
+                  ? "—"
                   : primaryInsurancePolicy?.carrier_name
               }
             />
@@ -185,16 +185,14 @@ export default function AppointmentPatientLens({
             <SummaryItem
               label="PCP"
               value={
-                patientDetailsQuery.isLoading
-                  ? "Loading..."
-                  : patientSnapshot.pcp_name
+                patientDetailsQuery.isLoading ? "—" : patientSnapshot.pcp_name
               }
             />
             <SummaryItem
               label="Referring"
               value={
                 patientDetailsQuery.isLoading
-                  ? "Loading..."
+                  ? "—"
                   : patientSnapshot.referring_provider_name
               }
             />

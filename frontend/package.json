@@ -14,7 +14,10 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "precommit:prettier": "prettier --write",
-    "precommit:eslint": "eslint --fix"
+    "precommit:eslint": "eslint --fix",
+    "generate:schema": "cd ../backend && ./venv/bin/python manage.py spectacular --file ../frontend/src/shared/api/schema.yaml",
+    "generate:types": "npx openapi-typescript src/shared/api/schema.yaml -o src/shared/api/generated.ts",
+    "generate": "npm run generate:schema && npm run generate:types"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

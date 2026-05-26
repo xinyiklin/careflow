@@ -3,10 +3,7 @@ import {
   AppointmentLayer,
   PreviewLayer,
 } from "./ScheduleGridAppointmentLayers";
-import {
-  ClosedScheduleMessage,
-  ResourceColumnHeader,
-} from "./ScheduleGridPieces";
+import { ResourceColumnHeader } from "./ScheduleGridPieces";
 
 import type { ScheduleGridCommonProps, ScheduleTimeSlot } from "../types";
 
@@ -59,94 +56,98 @@ export default function SharedTimeRailGrid({
         }}
         className="min-h-0 overflow-y-auto"
       >
-        {sharedTimeSlots.length ? (
-          sharedTimeSlots.map((slot, slotIndex) => (
-            <div
-              key={`shared:${slot.value}`}
-              className={[
-                "grid",
-                showSlotDividers
-                  ? "border-b border-cf-border last:border-b-0"
-                  : "",
-              ].join(" ")}
-              style={{
-                gridTemplateColumns: sharedTimeRailGridTemplate,
-                height: sharedSlotRowHeight,
-              }}
-            >
+        {sharedTimeSlots.length
+          ? sharedTimeSlots.map((slot, slotIndex) => (
               <div
+                key={`shared:${slot.value}`}
                 className={[
-                  "select-none bg-cf-surface-muted/80 px-1.5 py-2 text-right font-mono text-[11px] font-semibold tabular-nums text-cf-text-subtle",
-                  showSlotDividers ? "border-r border-cf-border" : "",
+                  "grid",
+                  showSlotDividers
+                    ? "border-b border-cf-border last:border-b-0"
+                    : "",
                 ].join(" ")}
+                style={{
+                  gridTemplateColumns: sharedTimeRailGridTemplate,
+                  height: sharedSlotRowHeight,
+                }}
               >
-                {formatScheduleSlotLabel(slot.time24)}
-              </div>
+                <div
+                  className={[
+                    "select-none bg-cf-surface-muted/80 px-1.5 py-2 text-right font-mono text-[11px] font-semibold tabular-nums text-cf-text-subtle",
+                    showSlotDividers ? "border-r border-cf-border" : "",
+                  ].join(" ")}
+                >
+                  {formatScheduleSlotLabel(slot.time24)}
+                </div>
 
-              {visibleDayEntries.map((entry) => {
-                const slotAppointments = (
-                  appointmentsByColumn.get(entry.key) || []
-                ).filter((appointment) => appointment.startSlot === slotIndex);
-                const dayPreviewBlock =
-                  previewBlock &&
-                  previewBlock.hoverDayKey === entry.key &&
-                  previewBlock.hoverDate === entry.date &&
-                  previewBlock.hoverTime24 === slot.time24
-                    ? previewBlock
-                    : null;
+                {visibleDayEntries.map((entry) => {
+                  const slotAppointments = (
+                    appointmentsByColumn.get(entry.key) || []
+                  ).filter(
+                    (appointment) => appointment.startSlot === slotIndex
+                  );
+                  const dayPreviewBlock =
+                    previewBlock &&
+                    previewBlock.hoverDayKey === entry.key &&
+                    previewBlock.hoverDate === entry.date &&
+                    previewBlock.hoverTime24 === slot.time24
+                      ? previewBlock
+                      : null;
+                  const cellIsBlocked =
+                    !entry.isOperatingDay || slot.isOutsideHours;
 
-                return (
-                  <div
-                    key={`${entry.key}:${slot.value}`}
-                    className={[
-                      "relative min-w-0 bg-cf-surface/45 px-2 py-1",
-                      showSlotDividers
-                        ? "border-r border-cf-border last:border-r-0"
-                        : "",
-                    ].join(" ")}
-                    data-drop-slot="true"
-                    data-drop-day-key={entry.key}
-                    data-drop-date={entry.date}
-                    data-drop-resource-key={entry.resourceKey}
-                    data-drop-slot-time={slot.time24}
-                    onDoubleClick={() =>
-                      onSlotDoubleClick?.(
-                        entry.date,
-                        slot.time24,
-                        resourceOptionsByKey.get(entry.resourceKey)
-                          ?.resourceId || ""
-                      )
-                    }
-                  >
-                    {slotAppointments.map((appointment) => (
-                      <AppointmentLayer
-                        key={appointment.id}
-                        appointment={appointment}
+                  return (
+                    <div
+                      key={`${entry.key}:${slot.value}`}
+                      className={[
+                        "relative min-w-0 bg-cf-surface/45 px-2 py-1",
+                        cellIsBlocked ? "cf-blocked-slot" : "",
+                        showSlotDividers
+                          ? "border-r border-cf-border last:border-r-0"
+                          : "",
+                      ].join(" ")}
+                      data-drop-slot="true"
+                      data-drop-day-key={entry.key}
+                      data-drop-date={entry.date}
+                      data-drop-resource-key={entry.resourceKey}
+                      data-drop-slot-time={slot.time24}
+                      onDoubleClick={() =>
+                        onSlotDoubleClick?.(
+                          entry.date,
+                          slot.time24,
+                          resourceOptionsByKey.get(entry.resourceKey)
+                            ?.resourceId || ""
+                        )
+                      }
+                    >
+                      {slotAppointments.map((appointment) => (
+                        <AppointmentLayer
+                          key={appointment.id}
+                          appointment={appointment}
+                          appointmentBlockDisplay={appointmentBlockDisplay}
+                          dragState={dragState}
+                          entry={entry}
+                          onAppointmentContextMenu={onAppointmentContextMenu}
+                          onPointerDragStart={onPointerDragStart}
+                          slotRowHeight={sharedSlotRowHeight}
+                          visibleDayCount={visibleDayCount}
+                          isBlocked={cellIsBlocked}
+                        />
+                      ))}
+
+                      <PreviewLayer
                         appointmentBlockDisplay={appointmentBlockDisplay}
-                        dragState={dragState}
-                        entry={entry}
-                        onAppointmentContextMenu={onAppointmentContextMenu}
-                        onPointerDragStart={onPointerDragStart}
+                        previewBlock={dayPreviewBlock}
+                        slotAppointments={slotAppointments}
                         slotRowHeight={sharedSlotRowHeight}
                         visibleDayCount={visibleDayCount}
                       />
-                    ))}
-
-                    <PreviewLayer
-                      appointmentBlockDisplay={appointmentBlockDisplay}
-                      previewBlock={dayPreviewBlock}
-                      slotAppointments={slotAppointments}
-                      slotRowHeight={sharedSlotRowHeight}
-                      visibleDayCount={visibleDayCount}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ))
-        ) : (
-          <ClosedScheduleMessage />
-        )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))
+          : null}
       </div>
     </div>
   );

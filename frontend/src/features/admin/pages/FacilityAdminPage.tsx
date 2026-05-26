@@ -7,21 +7,29 @@ import AppointmentTypesPanel from "../components/facility/AppointmentTypesPanel"
 import AppointmentStatusesPanel from "../components/facility/AppointmentStatusesPanel";
 import ResourcesPanel from "../components/facility/ResourcesPanel";
 import StaffPanel from "../components/facility/StaffPanel";
-import PhysiciansPanel from "../components/facility/PhysiciansPanel";
-import PermissionsRolesPanel from "../components/facility/PermissionsRolesPanel";
+import ProvidersPanel from "../components/facility/ProvidersPanel";
+import FacilityActivityLogPanel from "../components/facility/FacilityActivityLogPanel";
 import FacilityOverviewPanel from "../components/facility/FacilityOverviewPanel";
+import FacilityFeeSchedulePanel from "../components/facility/FacilityFeeSchedulePanel";
+import FacilityPayersPanel from "../components/facility/FacilityPayersPanel";
+import FacilityPharmaciesPanel from "../components/facility/FacilityPharmaciesPanel";
+import SecurityPanel from "../components/facility/SecurityPanel";
 import AdminFacilitySwitcher from "../components/facility/AdminFacilitySwitcher";
 import { AdminWorkspaceShell } from "../components/shared/AdminSurface";
 import useAdminPermissions from "../hooks/shared/useAdminPermissions";
 
 const FACILITY_SECTIONS = [
-  { key: "overview", label: "Overview" },
-  { key: "physicians", label: "Physicians" },
-  { key: "staff", label: "Staff" },
-  { key: "permissions", label: "Permissions & Roles" },
-  { key: "resources", label: "Resources" },
-  { key: "statuses", label: "Statuses" },
-  { key: "types", label: "Types" },
+  { key: "overview", label: "Overview", group: "General" },
+  { key: "pharmacies", label: "Pharmacies", group: "General" },
+  { key: "security", label: "Security", group: "General" },
+  { key: "activity-log", label: "Activity Log", group: "General" },
+  { key: "providers", label: "Providers", group: "People" },
+  { key: "staff", label: "Staff", group: "People" },
+  { key: "resources", label: "Resources", group: "Scheduling" },
+  { key: "statuses", label: "Statuses", group: "Scheduling" },
+  { key: "types", label: "Types", group: "Scheduling" },
+  { key: "payers", label: "Payers", group: "Billing" },
+  { key: "fee-schedule", label: "Fee Schedule", group: "Billing" },
 ];
 
 export default function FacilityAdminPage() {
@@ -35,14 +43,22 @@ export default function FacilityAdminPage() {
 
   const activeSectionContent = useMemo(() => {
     switch (activeSection) {
-      case "physicians":
-        return <PhysiciansPanel />;
+      case "providers":
+        return <ProvidersPanel />;
       case "staff":
         return <StaffPanel />;
-      case "permissions":
-        return <PermissionsRolesPanel />;
+      case "activity-log":
+        return <FacilityActivityLogPanel />;
       case "resources":
         return <ResourcesPanel />;
+      case "payers":
+        return <FacilityPayersPanel />;
+      case "pharmacies":
+        return <FacilityPharmaciesPanel />;
+      case "fee-schedule":
+        return <FacilityFeeSchedulePanel />;
+      case "security":
+        return <SecurityPanel />;
       case "statuses":
         return <AppointmentStatusesPanel />;
       case "types":

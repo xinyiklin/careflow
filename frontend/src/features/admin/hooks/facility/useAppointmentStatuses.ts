@@ -85,6 +85,7 @@ export default function useAppointmentStatuses(
       removeMutation.error?.message ||
       statusesQuery.error?.message ||
       "",
+    loadError: statusesQuery.error?.message || "",
     reload: statusesQuery.refetch,
     saveStatus,
     removeStatus,

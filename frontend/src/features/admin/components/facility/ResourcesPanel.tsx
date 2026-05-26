@@ -18,6 +18,7 @@ import {
   AdminListToolbar,
   AdminTableCard,
   AdminTableFooter,
+  AdminTableLoadError,
   getAdminRowActionProps,
 } from "../shared/AdminSurface";
 import { Badge, Button } from "../../../../shared/components/ui";
@@ -52,22 +53,22 @@ const RESOURCE_FILTERS = [
 const RESOURCE_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Resource",
+    label: "Name",
     compare: (a, b) => compareText(a.name, b.name),
-  },
-  {
-    key: "active",
-    label: "Active first",
-    compare: (a, b) =>
-      compareBoolean(a.is_active !== false, b.is_active !== false) ||
-      compareText(a.name, b.name),
   },
   {
     key: "linked",
     label: "Linked staff",
     compare: (a, b) =>
-      compareBoolean(a.linked_staff, b.linked_staff) ||
+      compareBoolean(Boolean(a.linked_staff), Boolean(b.linked_staff)) ||
       compareText(a.linked_staff_name, b.linked_staff_name) ||
+      compareText(a.name, b.name),
+  },
+  {
+    key: "room",
+    label: "Room",
+    compare: (a, b) =>
+      compareText(a.default_room, b.default_room) ||
       compareText(a.name, b.name),
   },
 ] satisfies AdminSortOption<AdminResource>[];
@@ -95,6 +96,7 @@ export default function ResourcesPanel() {
     loading,
     saving,
     error,
+    loadError,
     reload,
     saveResource,
     removeResource,
@@ -109,6 +111,7 @@ export default function ResourcesPanel() {
   } = useAdminListControls(resources, {
     filters: RESOURCE_FILTERS,
     sortOptions: RESOURCE_SORT_OPTIONS,
+    storageKey: "resources",
   });
   const duplicateResourceNames = useMemo(() => {
     const counts = resources.reduce((nextCounts, resource) => {
@@ -179,44 +182,11 @@ export default function ResourcesPanel() {
           You do not have admin access to the currently selected facility.
         </AdminInlineNotice>
       ) : null}
-      {error ? (
+      {error && !loadError ? (
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       ) : null}
 
-      <AdminTableCard
-        description={
-          adminFacility?.name
-            ? `Manage schedulable resources for ${adminFacility.name}.`
-            : "Select a facility to manage resources."
-        }
-        savingLabel={saving ? "Saving..." : ""}
-        actions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => reload()}
-              disabled={loading || saving || !canManageCurrentFacility}
-            >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              disabled={!canManageCurrentFacility}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New Resource
-            </Button>
-          </>
-        }
-      >
+      <AdminTableCard>
         <AdminListToolbar
           savingLabel={saving ? "Saving..." : ""}
           filters={filterOptions}
@@ -225,6 +195,27 @@ export default function ResourcesPanel() {
           sortOptions={RESOURCE_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving || !canManageCurrentFacility}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                disabled={!canManageCurrentFacility}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
         />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -240,15 +231,12 @@ export default function ResourcesPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    Loading resources...
-                  </td>
-                </tr>
+              {loading ? null : loadError ? (
+                <AdminTableLoadError
+                  colSpan={5}
+                  message="Couldn't load resources."
+                  onRetry={() => void reload()}
+                />
               ) : resources.length === 0 ? (
                 <tr>
                   <td

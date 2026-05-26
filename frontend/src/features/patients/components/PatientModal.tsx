@@ -7,6 +7,11 @@ import {
 } from "../api/patients";
 import { Button, Notice } from "../../../shared/components/ui";
 import useDraggableModal from "../../../shared/hooks/useDraggableModal";
+import useModalFocusTrap from "../../../shared/hooks/useModalFocusTrap";
+import {
+  useLatestOpenValue,
+  useModalPresence,
+} from "../../../shared/hooks/useModalPresence";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
   EMPTY_PATIENT_FORM_VALUES,
@@ -29,9 +34,9 @@ import {
 } from "./PatientClinicalPanels";
 import {
   RegistrationLens,
-  RegistrationProgressRibbon,
   RegistrationRail,
   buildRegistrationSteps,
+  getStepErrors,
 } from "./PatientRegistrationProgress";
 import {
   formatPhoneInput,
@@ -56,6 +61,29 @@ import type {
   RegisterFormattedField,
 } from "../types";
 
+const STEP_ORDER = ["identity", "contact", "address", "clinical", "contacts"];
+
+function getCurrentStepNumber(stepKey: string): number {
+  return STEP_ORDER.indexOf(stepKey) + 1;
+}
+
+function getCurrentStepTitle(stepKey: string): string {
+  switch (stepKey) {
+    case "identity":
+      return "Identity & Demographics";
+    case "contact":
+      return "Contact Information";
+    case "address":
+      return "Patient Address";
+    case "clinical":
+      return "Clinical Profile & Routing";
+    case "contacts":
+      return "Emergency Contacts";
+    default:
+      return "";
+  }
+}
+
 type PatientModalProps = {
   isOpen: boolean;
   mode: "create" | "edit";
@@ -77,6 +105,14 @@ export default function PatientModal({
   onClose,
   onSaved,
 }: PatientModalProps) {
+  const { isClosing, shouldRender } = useModalPresence(isOpen);
+  const displayedState = useLatestOpenValue(
+    { facilityId, mode, patient },
+    isOpen
+  );
+  const displayedFacilityId = displayedState.facilityId;
+  const displayedMode = displayedState.mode;
+  const displayedPatient = displayedState.patient;
   const {
     register,
     control,
@@ -97,6 +133,7 @@ export default function PatientModal({
     name: "emergency_contacts",
   });
   const [submitError, setSubmitError] = useState("");
+  const [activeStep, setActiveStep] = useState<string>("identity");
   const [primaryEmergencyContactIndex, setPrimaryEmergencyContactIndex] =
     useState(0);
   const [editingEmergencyContactIndex, setEditingEmergencyContactIndex] =
@@ -111,8 +148,8 @@ export default function PatientModal({
   const ethnicityDeclined = watch("ethnicity_declined");
   const preferredLanguageDeclined = watch("preferred_language_declined");
   const ssnDisplayValue = watchedSsn || revealedSsn;
-  const hasStoredSsn = Boolean(patient?.ssn_last4 || ssnDisplayValue);
-  const maskedSsn = getMaskedSsn(ssnDisplayValue, patient?.ssn_last4);
+  const hasStoredSsn = Boolean(displayedPatient?.ssn_last4 || ssnDisplayValue);
+  const maskedSsn = getMaskedSsn(ssnDisplayValue, displayedPatient?.ssn_last4);
   const shouldEditSsn = showFullSsn || !hasStoredSsn;
   const registrationSteps = buildRegistrationSteps(watchedValues);
   const completionPercent = Math.round(
@@ -120,16 +157,31 @@ export default function PatientModal({
       registrationSteps.length) *
       100
   );
-  const patientName = getPatientName(watchedValues, patient);
-  const patientInitials = getPatientInitials(watchedValues, patient);
+  const patientName = getPatientName(watchedValues, displayedPatient);
+  const patientInitials = getPatientInitials(watchedValues, displayedPatient);
   const primaryEmergencyContact =
     watchedEmergencyContacts[primaryEmergencyContactIndex] ||
     watchedEmergencyContacts[0] ||
     null;
 
+  const activeIndex = STEP_ORDER.indexOf(activeStep);
+
+  const handleBack = () => {
+    if (activeIndex > 0) {
+      setActiveStep(STEP_ORDER[activeIndex - 1]);
+    }
+  };
+
+  const handleNext = () => {
+    if (activeIndex < STEP_ORDER.length - 1) {
+      setActiveStep(STEP_ORDER[activeIndex + 1]);
+    }
+  };
+
   const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
     isOpen,
   });
+  const { handlePanelKeyDown } = useModalFocusTrap(modalRef, isOpen, onClose);
 
   const registerFormattedField = <TName extends FieldPath<PatientFormValues>>(
     name: TName,
@@ -169,57 +221,65 @@ export default function PatientModal({
   useEffect(() => {
     if (!isOpen) return;
 
-    const emergencyContacts = getEmergencyContacts(patient).map((contact) => ({
-      ...contact,
-      phone_number: formatPhoneInput(contact.phone_number),
-    }));
+    const emergencyContacts = getEmergencyContacts(displayedPatient).map(
+      (contact) => ({
+        ...contact,
+        phone_number: formatPhoneInput(contact.phone_number),
+      })
+    );
     const primaryIndex = Math.max(
       0,
       emergencyContacts.findIndex((contact) => contact.is_primary)
     );
 
     reset({
-      first_name: patient?.first_name || "",
-      middle_name: patient?.middle_name || "",
-      last_name: patient?.last_name || "",
-      preferred_name: patient?.preferred_name || "",
-      date_of_birth: patient?.date_of_birth || "",
-      gender: patient?.gender ? String(patient.gender) : "",
-      sex_at_birth: patient?.sex_at_birth || "",
-      race: patient?.race || "",
-      race_declined: patient?.race_declined || false,
-      ethnicity: patient?.ethnicity || "",
-      ethnicity_declined: patient?.ethnicity_declined || false,
-      preferred_language: patient?.preferred_language || "",
+      first_name: displayedPatient?.first_name || "",
+      middle_name: displayedPatient?.middle_name || "",
+      last_name: displayedPatient?.last_name || "",
+      preferred_name: displayedPatient?.preferred_name || "",
+      date_of_birth: displayedPatient?.date_of_birth || "",
+      gender: displayedPatient?.gender ? String(displayedPatient.gender) : "",
+      sex_at_birth: displayedPatient?.sex_at_birth || "",
+      race: displayedPatient?.race || "",
+      race_declined: displayedPatient?.race_declined || false,
+      ethnicity: displayedPatient?.ethnicity || "",
+      ethnicity_declined: displayedPatient?.ethnicity_declined || false,
+      preferred_language: displayedPatient?.preferred_language || "",
       preferred_language_declined:
-        patient?.preferred_language_declined || false,
-      pronouns: patient?.pronouns || "",
-      email: patient?.email || "",
-      address_line_1: patient?.address?.line_1 || "",
-      address_line_2: patient?.address?.line_2 || "",
-      address_city: patient?.address?.city || "",
-      address_state: patient?.address?.state || "NY",
-      address_zip_code: patient?.address?.zip_code || "",
-      phone_cell: formatPhoneInput(getPhoneNumberByLabel(patient, "cell")),
-      phone_home: formatPhoneInput(getPhoneNumberByLabel(patient, "home")),
-      phone_work: formatPhoneInput(getPhoneNumberByLabel(patient, "work")),
-      emergency_contact_name: patient?.emergency_contact_name || "",
+        displayedPatient?.preferred_language_declined || false,
+      pronouns: displayedPatient?.pronouns || "",
+      email: displayedPatient?.email || "",
+      address_line_1: displayedPatient?.address?.line_1 || "",
+      address_line_2: displayedPatient?.address?.line_2 || "",
+      address_city: displayedPatient?.address?.city || "",
+      address_state: displayedPatient?.address?.state || "NY",
+      address_zip_code: displayedPatient?.address?.zip_code || "",
+      phone_cell: formatPhoneInput(
+        getPhoneNumberByLabel(displayedPatient, "cell")
+      ),
+      phone_home: formatPhoneInput(
+        getPhoneNumberByLabel(displayedPatient, "home")
+      ),
+      phone_work: formatPhoneInput(
+        getPhoneNumberByLabel(displayedPatient, "work")
+      ),
+      emergency_contact_name: displayedPatient?.emergency_contact_name || "",
       emergency_contact_relationship:
-        patient?.emergency_contact_relationship || "",
+        displayedPatient?.emergency_contact_relationship || "",
       emergency_contact_phone: formatPhoneInput(
-        patient?.emergency_contact_phone
+        displayedPatient?.emergency_contact_phone
       ),
       emergency_contacts: emergencyContacts,
       ssn: "",
-      ssn_last4: patient?.ssn_last4 || "",
-      pcp: patient?.pcp ? String(patient.pcp) : "",
-      referring_provider: patient?.referring_provider
-        ? String(patient.referring_provider)
+      ssn_last4: displayedPatient?.ssn_last4 || "",
+      pcp: displayedPatient?.pcp ? String(displayedPatient.pcp) : "",
+      referring_provider: displayedPatient?.referring_provider
+        ? String(displayedPatient.referring_provider)
         : "",
-      preferred_pharmacy: patient?.preferred_pharmacy
-        ? String(patient.preferred_pharmacy)
+      preferred_pharmacy: displayedPatient?.preferred_pharmacy
+        ? String(displayedPatient.preferred_pharmacy)
         : "",
-      is_active: patient?.is_active ?? true,
+      is_active: displayedPatient?.is_active ?? true,
     });
     setPrimaryEmergencyContactIndex(primaryIndex === -1 ? 0 : primaryIndex);
     setEditingEmergencyContactIndex(null);
@@ -227,9 +287,10 @@ export default function PatientModal({
     setSsnHint("");
     setRevealedSsn("");
     setSubmitError("");
-  }, [isOpen, patient, reset]);
+    setActiveStep("identity");
+  }, [displayedPatient, isOpen, reset]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   const onSubmit: SubmitHandler<PatientFormValues> = async (data) => {
     const phones = [
@@ -314,7 +375,7 @@ export default function PatientModal({
       is_active: data.is_active,
     };
 
-    if (normalizedSsn || mode !== "edit") {
+    if (normalizedSsn || displayedMode !== "edit") {
       payload.ssn = normalizedSsn;
       payload.ssn_last4 = normalizedSsn
         ? normalizedSsn.slice(-4)
@@ -324,9 +385,13 @@ export default function PatientModal({
     try {
       setSubmitError("");
       const savedPatient =
-        mode === "edit" && patient?.id
-          ? await updatePatient(patient.id, payload, facilityId)
-          : await createPatient(payload, facilityId);
+        displayedMode === "edit" && displayedPatient?.id
+          ? await updatePatient(
+              displayedPatient.id,
+              payload,
+              displayedFacilityId
+            )
+          : await createPatient(payload, displayedFacilityId);
 
       onSaved?.(savedPatient as PatientRecord);
     } catch (error) {
@@ -341,10 +406,13 @@ export default function PatientModal({
       return;
     }
 
-    if (patient?.id && patient?.ssn_last4 && !watchedSsn) {
+    if (displayedPatient?.id && displayedPatient?.ssn_last4 && !watchedSsn) {
       try {
         setSubmitError("");
-        const response = await revealPatientSsn(patient.id, facilityId);
+        const response = await revealPatientSsn(
+          displayedPatient.id,
+          displayedFacilityId
+        );
         const nextSsn = getSsnInputDigits(response?.ssn || "");
         if (nextSsn.length !== 9) {
           setValue("ssn", "", { shouldDirty: false });
@@ -367,7 +435,9 @@ export default function PatientModal({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4"
+      className={`cf-modal-backdrop fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4 ${
+        isClosing ? "is-closing" : "is-opening"
+      }`}
       onClick={(e) => {
         e.stopPropagation();
         onClose?.();
@@ -375,8 +445,15 @@ export default function PatientModal({
     >
       <div
         ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={displayedMode === "create" ? "New Patient" : "Edit Patient"}
+        tabIndex={-1}
+        onKeyDown={handlePanelKeyDown}
         style={modalStyle}
-        className="fixed flex max-h-[min(94dvh,1040px)] w-[min(1400px,96vw)] flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]"
+        className={`cf-modal-panel fixed flex max-h-[min(94dvh,1040px)] w-[min(1400px,96vw)] flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ${
+          isClosing ? "is-closing" : "is-opening"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <form
@@ -385,112 +462,222 @@ export default function PatientModal({
         >
           <PatientModalHeader
             dragHandleProps={dragHandleProps}
-            mode={mode}
+            mode={displayedMode}
             onClose={onClose}
             patientInitials={patientInitials}
           />
 
-          <div className="flex-1 overflow-y-auto bg-cf-page-bg px-4 py-5 sm:px-6">
-            <div className="mx-auto grid max-w-[1360px] gap-5 xl:grid-cols-[220px_minmax(0,1fr)_300px]">
-              <RegistrationRail steps={registrationSteps} />
+          <div className="flex flex-1 min-h-0 bg-cf-surface">
+            {/* Left Rail (Step Selection) */}
+            <RegistrationRail
+              steps={registrationSteps}
+              activeStep={activeStep}
+              onStepClick={setActiveStep}
+              errors={errors}
+            />
 
-              <div className="min-w-0 space-y-5">
-                {submitError ? (
-                  <Notice tone="danger" title="Patient was not saved">
-                    {submitError}
-                  </Notice>
-                ) : null}
+            {/* Middle Content (Form fields for current step) */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 lg:px-8 bg-cf-surface">
+              {submitError ? (
+                <Notice
+                  tone="danger"
+                  title="Patient was not saved"
+                  className="mb-5"
+                >
+                  {submitError}
+                </Notice>
+              ) : null}
 
-                <RegistrationProgressRibbon
-                  steps={registrationSteps}
-                  completionPercent={completionPercent}
-                />
+              {/* Mobile steps horizontal mini-tabs */}
+              <div className="flex md:hidden items-center justify-between border-b border-cf-border bg-cf-surface-muted/40 px-4 py-3 mb-5 -mx-6 lg:-mx-8">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-cf-text">
+                    Step {getCurrentStepNumber(activeStep)} of 5:
+                  </span>
+                  <span className="text-xs text-cf-text-muted font-medium">
+                    {getCurrentStepTitle(activeStep)}
+                  </span>
+                </div>
+                <div className="flex gap-1.5">
+                  {registrationSteps.map((step) => {
+                    const isActive = step.key === activeStep;
+                    const hasError = getStepErrors(step.key, errors);
+                    return (
+                      <button
+                        type="button"
+                        key={step.key}
+                        onClick={() => setActiveStep(step.key)}
+                        className={[
+                          "h-2 rounded-full cursor-pointer transition-all",
+                          isActive
+                            ? "bg-cf-accent w-4"
+                            : hasError
+                              ? "bg-cf-danger-text w-2"
+                              : step.complete
+                                ? "bg-cf-success-text/75 w-2"
+                                : "bg-cf-border w-2",
+                        ].join(" ")}
+                        aria-label={`Go to ${step.label}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
 
-                <div className="grid gap-5 xl:grid-cols-[1.15fr_0.95fr]">
+              {/* Step Header (Desktop) */}
+              <div className="hidden md:block mb-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+                      Step {getCurrentStepNumber(activeStep)} of 5
+                    </span>
+                    <h3 className="mt-0.5 text-lg font-semibold text-cf-text">
+                      {getCurrentStepTitle(activeStep)}
+                    </h3>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-cf-text">
+                      {completionPercent}%
+                    </span>
+                    <span className="ml-1.5 text-xs text-cf-text-muted">
+                      intake complete
+                    </span>
+                  </div>
+                </div>
+                {/* Clean progress bar */}
+                <div className="mt-2.5 h-1 w-full rounded-full bg-cf-surface-soft overflow-hidden">
+                  <div
+                    className="h-full bg-cf-accent rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${completionPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Render Active Step Form */}
+              <div className="space-y-6">
+                {activeStep === "identity" && (
                   <PatientIdentityPanel
                     errors={errors}
                     handleToggleSsn={handleToggleSsn}
                     maskedSsn={maskedSsn}
-                    patient={patient}
+                    patient={displayedPatient}
                     register={register}
                     registerSsnField={registerSsnField}
                     shouldEditSsn={shouldEditSsn}
                     ssnHint={ssnHint}
                     showFullSsn={showFullSsn}
+                    tone="flat"
                   />
+                )}
 
+                {activeStep === "contact" && (
                   <PatientContactPanel
                     errors={errors}
-                    mode={mode}
+                    mode={displayedMode}
                     register={register}
                     registerPhoneField={registerPhoneField}
+                    tone="flat"
                   />
-                </div>
+                )}
 
-                <PatientAddressPanel register={register} />
+                {activeStep === "address" && (
+                  <PatientAddressPanel register={register} tone="flat" />
+                )}
 
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <PatientClinicalProfilePanel
+                {activeStep === "clinical" && (
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <PatientClinicalProfilePanel
+                      errors={errors}
+                      ethnicityDeclined={ethnicityDeclined}
+                      genderOptions={genderOptions}
+                      preferredLanguageDeclined={preferredLanguageDeclined}
+                      raceDeclined={raceDeclined}
+                      register={register}
+                      tone="flat"
+                    />
+
+                    <PatientCareTeamPanel
+                      careProviders={careProviders}
+                      register={register}
+                      tone="flat"
+                    />
+                  </div>
+                )}
+
+                {activeStep === "contacts" && (
+                  <PatientEmergencyContactsSection
+                    appendEmergencyContact={appendEmergencyContact}
+                    editingEmergencyContactIndex={editingEmergencyContactIndex}
+                    emergencyContactFields={emergencyContactFields}
                     errors={errors}
-                    ethnicityDeclined={ethnicityDeclined}
-                    genderOptions={genderOptions}
-                    preferredLanguageDeclined={preferredLanguageDeclined}
-                    raceDeclined={raceDeclined}
+                    primaryEmergencyContactIndex={primaryEmergencyContactIndex}
                     register={register}
+                    registerPhoneField={registerPhoneField}
+                    removeEmergencyContact={removeEmergencyContact}
+                    setEditingEmergencyContactIndex={
+                      setEditingEmergencyContactIndex
+                    }
+                    setPrimaryEmergencyContactIndex={
+                      setPrimaryEmergencyContactIndex
+                    }
+                    watchedEmergencyContacts={watchedEmergencyContacts}
+                    tone="flat"
                   />
-
-                  <PatientCareTeamPanel
-                    careProviders={careProviders}
-                    register={register}
-                  />
-                </div>
-
-                <PatientEmergencyContactsSection
-                  appendEmergencyContact={appendEmergencyContact}
-                  editingEmergencyContactIndex={editingEmergencyContactIndex}
-                  emergencyContactFields={emergencyContactFields}
-                  errors={errors}
-                  primaryEmergencyContactIndex={primaryEmergencyContactIndex}
-                  register={register}
-                  registerPhoneField={registerPhoneField}
-                  removeEmergencyContact={removeEmergencyContact}
-                  setEditingEmergencyContactIndex={
-                    setEditingEmergencyContactIndex
-                  }
-                  setPrimaryEmergencyContactIndex={
-                    setPrimaryEmergencyContactIndex
-                  }
-                  watchedEmergencyContacts={watchedEmergencyContacts}
-                />
+                )}
               </div>
-
-              <RegistrationLens
-                patientName={patientName}
-                patientInitials={patientInitials}
-                patient={patient}
-                values={watchedValues}
-                maskedSsn={maskedSsn}
-                careProviders={careProviders}
-                primaryEmergencyContact={primaryEmergencyContact}
-              />
             </div>
+
+            {/* Right Summary Lens */}
+            <RegistrationLens
+              patientName={patientName}
+              patientInitials={patientInitials}
+              patient={displayedPatient}
+              values={watchedValues}
+              maskedSsn={maskedSsn}
+              careProviders={careProviders}
+              primaryEmergencyContact={primaryEmergencyContact}
+            />
           </div>
 
-          <div className="flex items-center justify-end gap-3 border-t border-cf-border px-6 py-4">
-            <Button type="button" onClick={onClose} variant="default">
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !facilityId}
-              variant="primary"
-            >
-              {isSubmitting
-                ? "Saving…"
-                : mode === "edit"
-                  ? "Save Changes"
-                  : "Create Patient"}
-            </Button>
+          <div className="flex items-center justify-between border-t border-cf-border px-6 py-4 bg-cf-surface">
+            <div>
+              <Button type="button" onClick={onClose} variant="default">
+                Cancel
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={handleBack}
+                disabled={activeIndex === 0}
+                variant="default"
+              >
+                Back
+              </Button>
+              <Button
+                type="button"
+                onClick={handleNext}
+                disabled={activeIndex === STEP_ORDER.length - 1}
+                variant="default"
+              >
+                Next
+              </Button>
+            </div>
+
+            <div>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !displayedFacilityId}
+                variant="primary"
+              >
+                {isSubmitting
+                  ? "Saving…"
+                  : displayedMode === "edit"
+                    ? "Save Changes"
+                    : "Create Patient"}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

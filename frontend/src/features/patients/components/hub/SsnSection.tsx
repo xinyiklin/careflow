@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Loader2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 import { revealPatientSsn } from "../../api/patients";
 import { Input } from "../../../../shared/components/ui";
@@ -172,11 +172,7 @@ export default function SsnSection({
             className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-muted shadow-sm transition hover:bg-cf-surface-soft hover:text-cf-text"
             aria-label="Save SSN"
           >
-            {status === "saving" ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Check className="h-4 w-4" />
-            )}
+            <Check className="h-4 w-4" />
           </button>
           <button
             type="button"
@@ -196,14 +192,7 @@ export default function SsnSection({
           disabled={status === "loading"}
           className="group mt-0.5 -mx-2 flex h-9 w-[calc(100%+1rem)] items-center rounded-lg px-2 text-left font-mono text-sm tracking-[0.18em] text-cf-text transition hover:bg-cf-surface-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cf-accent/25 disabled:cursor-wait disabled:opacity-70"
         >
-          {status === "loading" ? (
-            <span className="inline-flex items-center gap-2 font-sans text-xs tracking-normal text-cf-text-muted">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Loading
-            </span>
-          ) : (
-            maskedDisplay
-          )}
+          {status === "loading" ? null : maskedDisplay}
         </button>
       )}
 

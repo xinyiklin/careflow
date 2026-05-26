@@ -1,19 +1,46 @@
 import { useEffect, useRef, useState } from "react";
 
-const DEFAULT_MINIMUM_LOADING_MS = 650;
+const DEFAULT_MINIMUM_LOADING_MS = 300;
+const DEFAULT_DELAY_MS = 150;
 
 export default function useMinimumLoading(
   isLoading: boolean,
-  minimumMs = DEFAULT_MINIMUM_LOADING_MS
+  minimumMs = DEFAULT_MINIMUM_LOADING_MS,
+  delayMs = DEFAULT_DELAY_MS
 ): boolean {
-  const [shouldShowLoading, setShouldShowLoading] = useState(isLoading);
-  const startedAtRef = useRef(isLoading ? performance.now() : 0);
+  const [shouldShowLoading, setShouldShowLoading] = useState(false);
+  const startedAtRef = useRef(0);
+  const delayTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (isLoading) {
-      startedAtRef.current = performance.now();
-      setShouldShowLoading(true);
-      return undefined;
+      if (shouldShowLoading) {
+        return undefined;
+      }
+
+      if (delayMs > 0) {
+        if (!delayTimeoutRef.current) {
+          delayTimeoutRef.current = window.setTimeout(() => {
+            startedAtRef.current = performance.now();
+            setShouldShowLoading(true);
+            delayTimeoutRef.current = null;
+          }, delayMs);
+        }
+      } else {
+        startedAtRef.current = performance.now();
+        setShouldShowLoading(true);
+      }
+      return () => {
+        if (delayTimeoutRef.current) {
+          window.clearTimeout(delayTimeoutRef.current);
+          delayTimeoutRef.current = null;
+        }
+      };
+    }
+
+    if (delayTimeoutRef.current) {
+      window.clearTimeout(delayTimeoutRef.current);
+      delayTimeoutRef.current = null;
     }
 
     if (!shouldShowLoading) {
@@ -35,7 +62,15 @@ export default function useMinimumLoading(
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [isLoading, minimumMs, shouldShowLoading]);
+  }, [isLoading, minimumMs, delayMs, shouldShowLoading]);
+
+  useEffect(() => {
+    return () => {
+      if (delayTimeoutRef.current) {
+        window.clearTimeout(delayTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return shouldShowLoading;
 }

@@ -1,9 +1,14 @@
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import {
   Check,
+  CheckSquare,
+  Circle,
   ClipboardList,
+  Clock,
+  List,
   ListChecks,
   MessageSquareText,
+  Minus,
   Trash2,
   UserRoundCheck,
 } from "lucide-react";
@@ -13,12 +18,6 @@ import { Button, Input, ModalShell } from "./ui";
 import type { LucideIcon } from "lucide-react";
 import type { ChangeEvent } from "react";
 
-type TemplateButtonProps = {
-  icon: LucideIcon;
-  label: string;
-  onClick: () => void;
-};
-
 type PersonalNotesModalProps = {
   isOpen: boolean;
   note: string;
@@ -27,12 +26,8 @@ type PersonalNotesModalProps = {
   onClose: () => void;
 };
 
-const NOTE_TEMPLATES = [
-  {
-    label: "Today",
-    icon: ListChecks,
-    body: "Today\n- ",
-  },
+const NOTE_TEMPLATES: { label: string; icon: LucideIcon; body: string }[] = [
+  { label: "Today", icon: ListChecks, body: "Today\n- " },
   {
     label: "Follow-up",
     icon: UserRoundCheck,
@@ -50,18 +45,26 @@ const NOTE_TEMPLATES = [
   },
 ];
 
-function TemplateButton({ icon: Icon, label, onClick }: TemplateButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-10 w-full items-center gap-2 rounded-lg border border-cf-border bg-cf-surface px-3 text-left text-sm font-semibold text-cf-text-muted transition hover:border-cf-border-strong hover:text-cf-text"
-    >
-      <Icon className="h-4 w-4 shrink-0 text-cf-text-subtle" />
-      <span>{label}</span>
-    </button>
-  );
-}
+const INSERT_HELPERS: {
+  label: string;
+  icon: LucideIcon;
+  getBody: () => string;
+}[] = [
+  {
+    label: "Time",
+    icon: Clock,
+    getBody: () =>
+      new Date().toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }),
+  },
+  { label: "Check", icon: CheckSquare, getBody: () => "☐ " },
+  { label: "Bullet", icon: List, getBody: () => "• " },
+  { label: "Divider", icon: Minus, getBody: () => "————————" },
+];
 
 export default function PersonalNotesModal({
   isOpen,
@@ -74,33 +77,69 @@ export default function PersonalNotesModal({
   const trimmedNote = note.trim();
   const wordCount = trimmedNote ? trimmedNote.split(/\s+/).length : 0;
   const characterCount = note.length;
-  const lineCount = note ? note.split(/\r\n|\r|\n/).length : 0;
 
-  const handleInsertTemplate = (templateBody: string) => {
-    const separator = note && !note.endsWith("\n") ? "\n\n" : "";
-    onChangeNote(`${note}${separator}${templateBody}`);
-    requestAnimationFrame(() => editorRef.current?.focus());
-  };
+  const insertAtCursor = useCallback(
+    (text: string) => {
+      const textarea = editorRef.current;
+
+      if (!textarea) {
+        const sep = note && !note.endsWith("\n") ? "\n" : "";
+        onChangeNote(`${note}${sep}${text}`);
+        return;
+      }
+
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const updated = note.slice(0, start) + text + note.slice(end);
+      onChangeNote(updated);
+
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const pos = start + text.length;
+        textarea.setSelectionRange(pos, pos);
+      });
+    },
+    [note, onChangeNote]
+  );
+
+  const handleInsertTemplate = useCallback(
+    (body: string) => {
+      const separator = note && !note.endsWith("\n") ? "\n\n" : "";
+      onChangeNote(`${note}${separator}${body}`);
+      requestAnimationFrame(() => editorRef.current?.focus());
+    },
+    [note, onChangeNote]
+  );
 
   return (
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
+      eyebrow="Scratchpad"
       title="Personal Notes"
       maxWidth="4xl"
       bodyClassName="px-0 py-0"
       footerClassName="justify-between bg-cf-surface"
       footer={
         <>
-          <Button
-            type="button"
-            variant="default"
-            onClick={onClearNote}
-            disabled={!trimmedNote}
-          >
-            <Trash2 className="h-4 w-4" />
-            Clear
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              onClick={onClearNote}
+              disabled={!trimmedNote}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Clear
+            </Button>
+            {trimmedNote && (
+              <span className="text-xs tabular-nums text-cf-text-subtle">
+                {wordCount} {wordCount === 1 ? "word" : "words"} ·{" "}
+                {characterCount.toLocaleString()} chars
+              </span>
+            )}
+          </div>
           <Button type="button" onClick={onClose}>
             <Check className="h-4 w-4" />
             Done
@@ -108,74 +147,58 @@ export default function PersonalNotesModal({
         </>
       }
     >
-      <div className="grid min-h-[34rem] bg-cf-surface lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <aside className="border-b border-cf-border bg-cf-surface-muted/45 px-5 py-4 lg:border-b-0 lg:border-r">
-          <div className="flex flex-wrap items-start justify-between gap-3 lg:block">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-                Scratchpad
-              </div>
-              <div className="mt-1 text-sm font-semibold text-cf-text">
-                Autosaves
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-cf-text-muted lg:mt-4 lg:grid-cols-1">
-              <div className="rounded-lg border border-cf-border bg-cf-surface px-2.5 py-2">
-                <div className="text-cf-text">{wordCount.toLocaleString()}</div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-cf-text-subtle">
-                  Words
-                </div>
-              </div>
-              <div className="rounded-lg border border-cf-border bg-cf-surface px-2.5 py-2">
-                <div className="text-cf-text">
-                  {characterCount.toLocaleString()}
-                </div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-cf-text-subtle">
-                  Chars
-                </div>
-              </div>
-              <div className="rounded-lg border border-cf-border bg-cf-surface px-2.5 py-2">
-                <div className="text-cf-text">{lineCount.toLocaleString()}</div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-cf-text-subtle">
-                  Lines
-                </div>
-              </div>
-            </div>
+      <div className="grid min-h-[34rem] bg-cf-surface lg:grid-cols-[13.5rem_minmax(0,1fr)]">
+        {/* ── Left rail ── */}
+        <aside className="border-b border-cf-border bg-cf-surface-muted/45 px-4 py-4 lg:border-b-0 lg:border-r">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+            Templates
+          </div>
+          <div className="mt-2 grid gap-0.5">
+            {NOTE_TEMPLATES.map((t) => (
+              <button
+                key={t.label}
+                type="button"
+                onClick={() => handleInsertTemplate(t.body)}
+                className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition hover:bg-cf-surface"
+              >
+                <t.icon className="h-4 w-4 shrink-0 text-cf-text-subtle transition group-hover:text-cf-text" />
+                <span className="font-medium text-cf-text-muted transition group-hover:text-cf-text">
+                  {t.label}
+                </span>
+              </button>
+            ))}
           </div>
 
           <div className="mt-4 border-t border-cf-border pt-4">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-              Quick Starts
+              Insert
             </div>
-            <div className="mt-2 grid gap-2">
-              {NOTE_TEMPLATES.map((template) => (
-                <TemplateButton
-                  key={template.label}
-                  icon={template.icon}
-                  label={template.label}
-                  onClick={() => handleInsertTemplate(template.body)}
-                />
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {INSERT_HELPERS.map((h) => (
+                <button
+                  key={h.label}
+                  type="button"
+                  onClick={() => insertAtCursor(h.getBody())}
+                  title={`Insert ${h.label.toLowerCase()}`}
+                  className="flex items-center gap-1.5 rounded-lg border border-cf-border bg-cf-surface px-2 py-1.5 text-[11px] font-medium text-cf-text-muted transition hover:border-cf-border-strong hover:text-cf-text"
+                >
+                  <h.icon className="h-3 w-3" />
+                  {h.label}
+                </button>
               ))}
             </div>
           </div>
+
+          <div className="mt-4 hidden items-center gap-1.5 border-t border-cf-border pt-4 lg:flex">
+            <Circle className="h-1.5 w-1.5 fill-cf-success-text text-cf-success-text" />
+            <span className="text-[11px] font-medium text-cf-text-subtle">
+              Autosaved to profile
+            </span>
+          </div>
         </aside>
 
-        <section className="flex min-h-0 flex-col px-5 py-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-cf-border pb-3">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-                Active Note
-              </div>
-              <div className="mt-1 text-sm font-semibold text-cf-text">
-                Saved to profile preferences
-              </div>
-            </div>
-            <div className="rounded-full border border-cf-border bg-cf-surface-muted px-3 py-1 text-xs font-semibold text-cf-text-muted">
-              Single workspace note
-            </div>
-          </div>
-
+        {/* ── Main editor ── */}
+        <section className="flex min-h-0 flex-col p-5">
           <Input
             ref={editorRef}
             as="textarea"
@@ -183,8 +206,8 @@ export default function PersonalNotesModal({
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
               onChangeNote(event.target.value)
             }
-            placeholder="Type anything you want to remember..."
-            className="min-h-[27rem] flex-1 resize-none rounded-xl border-cf-border bg-cf-surface-muted px-4 py-4 text-[15px] leading-7 shadow-none focus:bg-cf-surface"
+            placeholder="Type anything you want to remember…"
+            className="min-h-[30rem] flex-1 resize-none rounded-xl border-cf-border bg-cf-surface-muted px-4 py-4 text-[15px] leading-7 shadow-none focus:bg-cf-surface"
             autoFocus
           />
         </section>

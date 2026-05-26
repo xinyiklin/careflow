@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Loader2, Pencil, X } from "lucide-react";
+import { Check, ChevronDown, Pencil, X } from "lucide-react";
 
 import { Input } from "../../../../shared/components/ui";
 
@@ -397,11 +397,7 @@ export default function InlineEditField({
           ].join(" ")}
           aria-label="Save"
         >
-          {submitState.status === "saving" ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Check className="h-4 w-4" />
-          )}
+          <Check className="h-4 w-4" />
         </button>
         <button
           type="button"

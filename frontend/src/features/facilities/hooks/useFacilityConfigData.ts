@@ -16,21 +16,27 @@ import {
 
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { EntityId } from "../../../shared/api/types";
-import type { ApiRecord } from "../../../shared/types/domain";
+import type {
+  AppointmentStatusOption,
+  AppointmentTypeOption,
+  CareProviderRecord,
+  PatientGenderOption,
+  PharmacyRecord,
+  ResourceRecord,
+  StaffRecord,
+  StaffRoleRecord,
+  StaffTitleRecord,
+} from "../../../shared/types/domain";
 
-type FacilityConfigRecord = ApiRecord & {
-  is_active?: boolean | null;
-};
-
-type FacilityConfigFetcher = (
+type FacilityConfigFetcher<TRecord> = (
   facilityId: EntityId | null | undefined
-) => Promise<FacilityConfigRecord[] | null>;
+) => Promise<TRecord[] | null>;
 
-type FacilityConfigQueryOptions = {
+type FacilityConfigQueryOptions<TRecord> = {
   key: string;
   facilityId: EntityId | null | undefined;
   enabled: boolean;
-  fetcher: FacilityConfigFetcher;
+  fetcher: FacilityConfigFetcher<TRecord>;
 };
 
 type FacilityConfigDataOptions = {
@@ -38,13 +44,13 @@ type FacilityConfigDataOptions = {
   enabled?: boolean;
 };
 
-function useFacilityConfigQuery({
+function useFacilityConfigQuery<TRecord>({
   key,
   facilityId,
   enabled,
   fetcher,
-}: FacilityConfigQueryOptions): UseQueryResult<
-  FacilityConfigRecord[] | null,
+}: FacilityConfigQueryOptions<TRecord>): UseQueryResult<
+  TRecord[] | null,
   Error
 > {
   return useQuery({
@@ -54,14 +60,14 @@ function useFacilityConfigQuery({
   });
 }
 
-const EMPTY_ARRAY: FacilityConfigRecord[] = [];
-
-function getArray(data: FacilityConfigRecord[] | null | undefined) {
-  return Array.isArray(data) ? data : EMPTY_ARRAY;
+function getArray<TRecord>(data: TRecord[] | null | undefined): TRecord[] {
+  return Array.isArray(data) ? data : [];
 }
 
-function getActiveRecords(data: FacilityConfigRecord[] | null | undefined) {
-  if (!Array.isArray(data)) return EMPTY_ARRAY;
+function getActiveRecords<TRecord extends { is_active?: boolean | null }>(
+  data: TRecord[] | null | undefined
+): TRecord[] {
+  if (!Array.isArray(data)) return [];
   return data.filter((record) => record?.is_active !== false);
 }
 
@@ -71,70 +77,70 @@ export default function useFacilityConfigData({
 }: FacilityConfigDataOptions) {
   const isEnabled = enabled && !!facilityId;
 
-  const physicianListQuery = useFacilityConfigQuery({
+  const physicianListQuery = useFacilityConfigQuery<StaffRecord>({
     key: "physicians",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchPhysicianList,
   });
 
-  const staffListQuery = useFacilityConfigQuery({
+  const staffListQuery = useFacilityConfigQuery<StaffRecord>({
     key: "staff",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchStaffList,
   });
 
-  const statusOptionsQuery = useFacilityConfigQuery({
+  const statusOptionsQuery = useFacilityConfigQuery<AppointmentStatusOption>({
     key: "appointmentStatuses",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchAppointmentStatuses,
   });
 
-  const typeOptionsQuery = useFacilityConfigQuery({
+  const typeOptionsQuery = useFacilityConfigQuery<AppointmentTypeOption>({
     key: "appointmentTypes",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchAppointmentTypes,
   });
 
-  const resourcesQuery = useFacilityConfigQuery({
+  const resourcesQuery = useFacilityConfigQuery<ResourceRecord>({
     key: "resources",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchFacilityResources,
   });
 
-  const genderOptionsQuery = useFacilityConfigQuery({
+  const genderOptionsQuery = useFacilityConfigQuery<PatientGenderOption>({
     key: "patientGenders",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchPatientGenders,
   });
 
-  const rolesQuery = useFacilityConfigQuery({
+  const rolesQuery = useFacilityConfigQuery<StaffRoleRecord>({
     key: "staffRoles",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchStaffRoles,
   });
 
-  const titlesQuery = useFacilityConfigQuery({
+  const titlesQuery = useFacilityConfigQuery<StaffTitleRecord>({
     key: "staffTitles",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchStaffTitles,
   });
 
-  const careProvidersQuery = useFacilityConfigQuery({
+  const careProvidersQuery = useFacilityConfigQuery<CareProviderRecord>({
     key: "careProviders",
     facilityId,
     enabled: isEnabled,
     fetcher: fetchCareProviders,
   });
 
-  const pharmaciesQuery = useFacilityConfigQuery({
+  const pharmaciesQuery = useFacilityConfigQuery<PharmacyRecord>({
     key: "pharmacies",
     facilityId,
     enabled: isEnabled,

@@ -2,8 +2,13 @@ DEFAULT_APPOINTMENT_STATUSES = [
     {"code": "pending", "name": "Pending", "color": "#fbbf24"},
     {"code": "check_in", "name": "Check In", "color": "#60a5fa"},
     {"code": "check_out", "name": "Check Out", "color": "#34d399"},
-    {"code": "cancelled", "name": "Cancelled", "color": "#fb7185"},
-    {"code": "no_show", "name": "No Show", "color": "#94a3b8"},
+    {
+        "code": "cancelled",
+        "name": "Cancelled",
+        "color": "#fb7185",
+        "is_billable": False,
+    },
+    {"code": "no_show", "name": "No Show", "color": "#94a3b8", "is_billable": False},
 ]
 
 DEFAULT_APPOINTMENT_TYPES = [

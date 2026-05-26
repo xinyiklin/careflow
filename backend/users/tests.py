@@ -3,6 +3,7 @@ from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from facilities.models import Facility, Staff, StaffRole
+from facilities.security import SECURITY_PERMISSIONS
 from organizations.models import Organization, OrganizationMembership
 
 User = get_user_model()
@@ -12,14 +13,14 @@ class DemoLoginViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-    @override_settings(DEMO_MODE=True, DEMO_USERNAME="demo_admin")
+    @override_settings(DEMO_MODE=True, DEMO_USERNAME="demo")
     def test_demo_login_returns_tokens_and_serialized_user(self):
         user = User.objects.create_user(
-            username="demo_admin",
+            username="demo",
             password="testpass123",
             email="demo@example.com",
             first_name="Demo",
-            last_name="Admin",
+            last_name="User",
         )
 
         response = self.client.post("/v1/users/demo-login/")
@@ -33,10 +34,77 @@ class DemoLoginViewTests(TestCase):
         self.assertEqual(response.data["user"]["id"], user.id)
         self.assertEqual(response.data["user"]["username"], user.username)
 
-    @override_settings(DEMO_MODE=True, DEMO_USERNAME="demo_admin")
+    @override_settings(DEMO_MODE=True, DEMO_USERNAME="demo")
+    def test_demo_login_grants_demo_user_full_access(self):
+        user = User.objects.create_user(
+            username="demo",
+            password="testpass123",
+            email="demo@example.com",
+        )
+        organization = Organization.objects.create(
+            name="CareFlow Demo",
+            slug="careflow-demo",
+        )
+        membership = OrganizationMembership.objects.create(
+            user=user,
+            organization=organization,
+            role=OrganizationMembership.ROLE_MEMBER,
+            is_active=True,
+        )
+        clinic_a = Facility.objects.create(
+            organization=organization,
+            name="Clinic A",
+            timezone="America/New_York",
+        )
+        clinic_b = Facility.objects.create(
+            organization=organization,
+            name="Clinic B",
+            timezone="America/New_York",
+        )
+        Staff.objects.create(
+            user=user,
+            facility=clinic_a,
+            role=StaffRole.objects.get(facility=clinic_a, code="staff"),
+            is_active=False,
+            security_overrides={"billing.manage": False},
+        )
+
+        response = self.client.post("/v1/users/demo-login/")
+
+        self.assertEqual(response.status_code, 200)
+        membership.refresh_from_db()
+        self.assertEqual(membership.role, OrganizationMembership.ROLE_OWNER)
+        self.assertTrue(membership.is_active)
+
+        profiles = Staff.objects.filter(user=user).select_related("role", "facility")
+        self.assertEqual(profiles.count(), 2)
+        for profile in profiles:
+            self.assertTrue(profile.is_active)
+            self.assertEqual(profile.role.code, "admin")
+            self.assertTrue(
+                all(
+                    profile.security_overrides.get(permission) is True
+                    for permission in SECURITY_PERMISSIONS
+                )
+            )
+
+        self.assertTrue(response.data["user"]["is_org_admin"])
+        self.assertCountEqual(
+            response.data["user"]["admin_facility_ids"],
+            [clinic_a.id, clinic_b.id],
+        )
+        for membership_data in response.data["user"]["memberships"]:
+            self.assertTrue(
+                all(
+                    membership_data["effective_security_permissions"][permission]
+                    for permission in SECURITY_PERMISSIONS
+                )
+            )
+
+    @override_settings(DEMO_MODE=True, DEMO_USERNAME="demo")
     def test_refresh_token_can_use_http_only_cookie(self):
         User.objects.create_user(
-            username="demo_admin",
+            username="demo",
             password="testpass123",
             email="demo@example.com",
         )
@@ -51,7 +119,7 @@ class DemoLoginViewTests(TestCase):
         self.assertIn("access", response.data)
         self.assertNotIn("refresh", response.data)
 
-    @override_settings(DEMO_MODE=False, DEMO_USERNAME="demo_admin")
+    @override_settings(DEMO_MODE=False, DEMO_USERNAME="demo")
     def test_demo_login_is_blocked_when_demo_mode_is_disabled(self):
         response = self.client.post("/v1/users/demo-login/")
 

@@ -48,8 +48,34 @@ export function parseTimeToMinutes(
 }
 
 export function getFacilityOperatingWindow(
-  facility?: FacilityLike | null
+  facility?: FacilityLike | null,
+  dayOfWeek?: number | null
 ): ScheduleWindow {
+  if (
+    facility?.custom_operating_hours &&
+    Array.isArray(facility.custom_operating_hours) &&
+    dayOfWeek != null
+  ) {
+    const matchingBlock = facility.custom_operating_hours.find(
+      (block) =>
+        Array.isArray(block?.days) &&
+        block.days.map(Number).includes(Number(dayOfWeek))
+    );
+    if (matchingBlock) {
+      const startMinute = parseTimeToMinutes(
+        matchingBlock.start_time,
+        SCHEDULE_START_MINUTE
+      );
+      const endMinute = parseTimeToMinutes(
+        matchingBlock.end_time,
+        SCHEDULE_END_MINUTE
+      );
+      if (startMinute < endMinute) {
+        return { startMinute, endMinute };
+      }
+    }
+  }
+
   const startMinute = parseTimeToMinutes(
     facility?.operating_start_time,
     SCHEDULE_START_MINUTE

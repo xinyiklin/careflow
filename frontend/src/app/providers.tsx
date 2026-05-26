@@ -5,7 +5,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { AuthProvider } from "../features/auth/AuthProvider";
 import { FacilityProvider } from "../features/facilities/FacilityProvider";
 import { ThemeProvider } from "../shared/context/ThemeProvider";
-import { UserPreferencesProvider } from "../shared/context/UserPreferencesProvider";
+import { UserPreferencesProvider } from "./context/UserPreferencesProvider";
 
 import type { ReactNode } from "react";
 

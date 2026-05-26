@@ -1,6 +1,11 @@
 import { useContext, useId } from "react";
 import { createPortal } from "react-dom";
-import { Badge } from "../../../../shared/components/ui";
+import { ChevronDown } from "lucide-react";
+import {
+  Badge,
+  Button,
+  SegmentedControl,
+} from "../../../../shared/components/ui";
 import AdminToolbarSlotContext from "./AdminToolbarSlotContext";
 
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
@@ -71,7 +76,7 @@ export function AdminTableCard({
     ) : null;
 
   return (
-    <section className="cf-admin-table-card overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ring-1 ring-black/[0.015]">
+    <section className="cf-admin-table-card">
       {useSharedToolbar && toolbarContent && toolbarSlot
         ? createPortal(toolbarContent, toolbarSlot)
         : null}
@@ -107,6 +112,7 @@ export function AdminListToolbar({
   onSortChange,
   sortLabel = "Name",
   savingLabel = "",
+  actions = null,
   children = null,
 }: {
   filters?: AdminListFilterOption[];
@@ -117,63 +123,64 @@ export function AdminListToolbar({
   onSortChange?: (key: string) => void;
   sortLabel?: string;
   savingLabel?: string;
+  actions?: ReactNode;
   children?: ReactNode;
 }) {
+  const toolbarSlot = useContext(AdminToolbarSlotContext);
   const sortSelectId = useId();
-  const hasInteractiveFilters = Boolean(onFilterChange);
   const hasInteractiveSort = Boolean(onSortChange && sortOptions.length);
 
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-5 py-3">
+  const filterOptions = filters.map(({ key, label }) => ({
+    value: key || label,
+    label,
+  }));
+
+  const content = (
+    <>
       <div className="flex flex-wrap items-center gap-1.5">
-        {filters.map(({ key, label, count, active = false }) => {
-          const filterKey = key || label;
-          const isActive = active || activeFilter === filterKey;
-          const className = [
-            "rounded-full px-3 py-1 text-xs font-semibold",
-            hasInteractiveFilters ? "transition" : "",
-            isActive
-              ? "bg-cf-accent text-cf-page-bg shadow-[var(--shadow-panel)]"
-              : [
-                  "border border-cf-border bg-cf-surface-soft/70 text-cf-text-muted",
-                  hasInteractiveFilters ? "hover:bg-cf-surface" : "",
-                ].join(" "),
-          ].join(" ");
-
-          const content = (
-            <>
-              {label}{" "}
-              {count !== undefined ? (
-                <span
-                  className={
-                    isActive ? "text-cf-page-bg/70" : "text-cf-text-subtle"
-                  }
+        {filterOptions.length ? (
+          <SegmentedControl
+            options={filterOptions}
+            value={activeFilter}
+            onChange={(value) => onFilterChange?.(value)}
+            size="xs"
+            variant="pill"
+          />
+        ) : null}
+        {hasInteractiveSort ? (
+          <>
+            {filterOptions.length ? (
+              <span className="mx-1 h-4 w-px bg-cf-border" />
+            ) : null}
+            <div className="flex items-center gap-2 text-xs">
+              <label htmlFor={sortSelectId} className="text-cf-text-subtle">
+                Sort:
+              </label>
+              <div className="relative flex items-center">
+                <select
+                  id={sortSelectId}
+                  value={activeSort}
+                  onChange={(event) => onSortChange?.(event.target.value)}
+                  className="h-7 appearance-none rounded-lg border border-cf-border bg-cf-surface pr-7 pl-2.5 text-xs font-semibold text-cf-text-muted outline-none transition hover:bg-cf-surface-soft focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/10 cursor-pointer"
                 >
-                  {count}
-                </span>
-              ) : null}
-            </>
-          );
-
-          return hasInteractiveFilters ? (
-            <button
-              key={filterKey}
-              type="button"
-              onClick={() => onFilterChange?.(filterKey)}
-              className={className}
-              aria-pressed={isActive}
-            >
-              {content}
-            </button>
-          ) : (
-            <span key={filterKey} className={className}>
-              {content}
-            </span>
-          );
-        })}
+                  {sortOptions.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-cf-text-subtle/80" />
+              </div>
+            </div>
+          </>
+        ) : sortLabel ? (
+          <span className="rounded-lg border border-cf-border bg-cf-surface px-2 py-1 text-xs font-semibold text-cf-text-muted">
+            Sort: {sortLabel}
+          </span>
+        ) : null}
         {children ? (
           <>
-            {filters.length ? (
+            {filterOptions.length || hasInteractiveSort ? (
               <span className="mx-1 h-4 w-px bg-cf-border" />
             ) : null}
             {children}
@@ -181,36 +188,18 @@ export function AdminListToolbar({
         ) : null}
       </div>
 
-      <div className="flex items-center gap-2 text-xs">
-        {savingLabel ? (
-          <span className="rounded-full bg-cf-warning-bg px-2 py-1 font-semibold text-cf-warning-text ring-1 ring-cf-warning-text/20">
-            {savingLabel}
-          </span>
-        ) : null}
-        {hasInteractiveSort ? (
-          <>
-            <label htmlFor={sortSelectId} className="text-cf-text-subtle">
-              Sort by:
-            </label>
-            <select
-              id={sortSelectId}
-              value={activeSort}
-              onChange={(event) => onSortChange?.(event.target.value)}
-              className="rounded-lg border border-cf-border bg-cf-surface px-2 py-1 font-semibold text-cf-text-muted outline-none transition hover:bg-cf-surface-soft focus:border-cf-border-strong"
-            >
-              {sortOptions.map((option) => (
-                <option key={option.key} value={option.key}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </>
-        ) : sortLabel ? (
-          <span className="rounded-lg border border-cf-border bg-cf-surface px-2 py-1 font-semibold text-cf-text-muted">
-            Sort: {sortLabel}
-          </span>
-        ) : null}
-      </div>
+      {savingLabel ? <Badge variant="muted">{savingLabel}</Badge> : null}
+      {actions}
+    </>
+  );
+
+  if (toolbarSlot) {
+    return createPortal(content, toolbarSlot);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 bg-cf-surface px-5 py-3">
+      {content}
     </div>
   );
 }
@@ -231,6 +220,28 @@ export function AdminTableFooter({
   );
 }
 
+/* Table-body row shown when a list fails to load */
+export function AdminTableLoadError({
+  colSpan,
+  message,
+  onRetry,
+}: {
+  colSpan: number;
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="px-5 py-12 text-center">
+        <p className="text-sm text-cf-text-muted">{message}</p>
+        <Button type="button" size="sm" className="mt-3" onClick={onRetry}>
+          Retry
+        </Button>
+      </td>
+    </tr>
+  );
+}
+
 /* Inline notice banner */
 export function AdminInlineNotice({
   tone = "warning",
@@ -247,7 +258,7 @@ export function AdminInlineNotice({
   return (
     <div
       className={[
-        "rounded-2xl border px-4 py-3 text-sm",
+        "rounded-2xl border px-4 py-3 text-sm mx-5 mt-4",
         toneClasses[tone] ?? toneClasses.warning,
       ].join(" ")}
     >

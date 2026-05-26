@@ -1,5 +1,10 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
+
+import {
+  useLatestOpenValue,
+  useModalPresence,
+} from "../../hooks/useModalPresence";
 
 import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 
@@ -53,30 +58,25 @@ export default function ModalShell({
   bodyClassName = "",
   footerClassName = "",
 }: ModalShellProps) {
-  const [shouldRender, setShouldRender] = useState(isOpen);
-  const [isClosing, setIsClosing] = useState(false);
+  const { isClosing, shouldRender } = useModalPresence(isOpen);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const previousFocusRef = useRef<Element | null>(null);
   const titleId = useId();
   const descriptionId = useId();
-
-  useEffect(() => {
-    if (isOpen) {
-      setShouldRender(true);
-      setIsClosing(false);
-      return undefined;
-    }
-
-    if (!shouldRender) return undefined;
-
-    setIsClosing(true);
-    const timeoutId = window.setTimeout(() => {
-      setShouldRender(false);
-      setIsClosing(false);
-    }, 180);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [isOpen, shouldRender]);
+  const displayedContent = useLatestOpenValue(
+    {
+      bodyClassName,
+      children,
+      description,
+      eyebrow,
+      footer,
+      footerClassName,
+      maxWidth,
+      panelClassName,
+      title,
+    },
+    isOpen
+  );
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -159,13 +159,15 @@ export default function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        aria-describedby={description ? descriptionId : undefined}
+        aria-describedby={
+          displayedContent.description ? descriptionId : undefined
+        }
         tabIndex={-1}
         className={[
           "cf-modal-panel flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]",
           isClosing ? "is-closing" : "is-opening",
-          maxWidthClasses[maxWidth] ?? maxWidthClasses.xl,
-          panelClassName,
+          maxWidthClasses[displayedContent.maxWidth] ?? maxWidthClasses.xl,
+          displayedContent.panelClassName,
         ].join(" ")}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={handlePanelKeyDown}
@@ -173,20 +175,20 @@ export default function ModalShell({
         <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/55 px-6 py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              {eyebrow ? (
+              {displayedContent.eyebrow ? (
                 <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-                  {eyebrow}
+                  {displayedContent.eyebrow}
                 </div>
               ) : null}
               <h2 id={titleId} className="text-lg font-semibold text-cf-text">
-                {title}
+                {displayedContent.title}
               </h2>
-              {description ? (
+              {displayedContent.description ? (
                 <p
                   id={descriptionId}
                   className="mt-1 max-w-xl text-sm leading-5 text-cf-text-muted"
                 >
-                  {description}
+                  {displayedContent.description}
                 </p>
               ) : null}
             </div>
@@ -202,21 +204,22 @@ export default function ModalShell({
         </div>
 
         <div
-          className={["min-h-0 overflow-y-auto px-6 py-5", bodyClassName].join(
-            " "
-          )}
+          className={[
+            "min-h-0 overflow-y-auto px-6 py-5",
+            displayedContent.bodyClassName,
+          ].join(" ")}
         >
-          {children}
+          {displayedContent.children}
         </div>
 
-        {footer && (
+        {displayedContent.footer && (
           <div
             className={[
               "flex shrink-0 items-center gap-3 border-t border-cf-border px-6 py-4",
-              footerClassName,
+              displayedContent.footerClassName,
             ].join(" ")}
           >
-            {footer}
+            {displayedContent.footer}
           </div>
         )}
       </div>

@@ -5,7 +5,7 @@ import {
   AppointmentLayer,
   PreviewLayer,
 } from "./ScheduleGridAppointmentLayers";
-import { ClosedScheduleMessage, DayCardHeader } from "./ScheduleGridPieces";
+import { DayCardHeader } from "./ScheduleGridPieces";
 
 import type {
   ScheduleGridCommonProps,
@@ -133,85 +133,89 @@ export function ScheduleDayColumns({
                   : undefined
               }
             >
-              {timeSlots.length ? (
-                timeSlots.map((slot, slotIndex) => {
-                  const slotAppointments = (
-                    appointmentsByColumn.get(entry.key) || []
-                  ).filter(
-                    (appointment) => appointment.startSlot === slotIndex
-                  );
-                  const slotRowHeight =
-                    slotRowHeightByColumn.get(entry.key) || 42;
-                  const slotPreviewBlock =
-                    dayPreviewBlock &&
-                    dayPreviewBlock.hoverTime24 === slot.time24
-                      ? dayPreviewBlock
-                      : null;
+              {timeSlots.length
+                ? timeSlots.map((slot, slotIndex) => {
+                    const slotAppointments = (
+                      appointmentsByColumn.get(entry.key) || []
+                    ).filter(
+                      (appointment) => appointment.startSlot === slotIndex
+                    );
+                    const slotRowHeight =
+                      slotRowHeightByColumn.get(entry.key) || 42;
+                    const slotPreviewBlock =
+                      dayPreviewBlock &&
+                      dayPreviewBlock.hoverTime24 === slot.time24
+                        ? dayPreviewBlock
+                        : null;
 
-                  return (
-                    <div
-                      key={`${entry.key}:${slot.value}`}
-                      className={[
-                        "flex",
-                        showSlotDividers
-                          ? "border-b border-cf-border last:border-b-0"
-                          : "",
-                      ].join(" ")}
-                      style={{ height: slotRowHeight }}
-                    >
+                    return (
                       <div
+                        key={`${entry.key}:${slot.value}`}
                         className={[
-                          "w-[56px] shrink-0 select-none bg-cf-surface-muted px-1.5 py-2 text-right font-mono text-[11px] font-semibold tabular-nums text-cf-text-subtle",
-                          showSlotDividers ? "border-r border-cf-border" : "",
+                          "flex",
+                          showSlotDividers
+                            ? "border-b border-cf-border last:border-b-0"
+                            : "",
                         ].join(" ")}
+                        style={{ height: slotRowHeight }}
                       >
-                        {formatScheduleSlotLabel(slot.time24)}
-                      </div>
+                        <div
+                          className={[
+                            "w-[56px] shrink-0 select-none bg-cf-surface-muted px-1.5 py-2 text-right font-mono text-[11px] font-semibold tabular-nums text-cf-text-subtle",
+                            showSlotDividers ? "border-r border-cf-border" : "",
+                          ].join(" ")}
+                        >
+                          {formatScheduleSlotLabel(slot.time24)}
+                        </div>
 
-                      <div
-                        className="relative flex flex-1 gap-1.5 px-2 py-1"
-                        data-drop-slot="true"
-                        data-drop-day-key={entry.key}
-                        data-drop-date={entry.date}
-                        data-drop-resource-key={entry.resourceKey}
-                        data-drop-slot-time={slot.time24}
-                        onDoubleClick={() =>
-                          onSlotDoubleClick?.(
-                            entry.date,
-                            slot.time24,
-                            resourceOptionsByKey.get(entry.resourceKey)
-                              ?.resourceId || ""
-                          )
-                        }
-                      >
-                        {slotAppointments.map((appointment) => (
-                          <AppointmentLayer
-                            key={appointment.id}
-                            appointment={appointment}
+                        <div
+                          className={[
+                            "relative flex flex-1 gap-1.5 px-2 py-1",
+                            slot.isBlocked ? "cf-blocked-slot" : "",
+                          ].join(" ")}
+                          data-drop-slot="true"
+                          data-drop-day-key={entry.key}
+                          data-drop-date={entry.date}
+                          data-drop-resource-key={entry.resourceKey}
+                          data-drop-slot-time={slot.time24}
+                          onDoubleClick={() =>
+                            onSlotDoubleClick?.(
+                              entry.date,
+                              slot.time24,
+                              resourceOptionsByKey.get(entry.resourceKey)
+                                ?.resourceId || ""
+                            )
+                          }
+                        >
+                          {slotAppointments.map((appointment) => (
+                            <AppointmentLayer
+                              key={appointment.id}
+                              appointment={appointment}
+                              appointmentBlockDisplay={appointmentBlockDisplay}
+                              dragState={dragState}
+                              entry={entry}
+                              onAppointmentContextMenu={
+                                onAppointmentContextMenu
+                              }
+                              onPointerDragStart={onPointerDragStart}
+                              slotRowHeight={slotRowHeight}
+                              visibleDayCount={visibleDayCount}
+                              isBlocked={slot.isBlocked}
+                            />
+                          ))}
+
+                          <PreviewLayer
                             appointmentBlockDisplay={appointmentBlockDisplay}
-                            dragState={dragState}
-                            entry={entry}
-                            onAppointmentContextMenu={onAppointmentContextMenu}
-                            onPointerDragStart={onPointerDragStart}
+                            previewBlock={slotPreviewBlock}
+                            slotAppointments={slotAppointments}
                             slotRowHeight={slotRowHeight}
                             visibleDayCount={visibleDayCount}
                           />
-                        ))}
-
-                        <PreviewLayer
-                          appointmentBlockDisplay={appointmentBlockDisplay}
-                          previewBlock={slotPreviewBlock}
-                          slotAppointments={slotAppointments}
-                          slotRowHeight={slotRowHeight}
-                          visibleDayCount={visibleDayCount}
-                        />
+                        </div>
                       </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <ClosedScheduleMessage />
-              )}
+                    );
+                  })
+                : null}
             </div>
           </div>
         );

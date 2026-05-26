@@ -1,12 +1,24 @@
 import random
 from datetime import datetime, time, timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
+from allergies.models import PatientAllergy
 from appointments.models import Appointment
+from billing.cpt_catalog import get_catalog_entries
+from billing.models import (
+    EncounterBillingRecord,
+    EncounterChargeLine,
+    EncounterDiagnosis,
+    FacilityFeeScheduleOverride,
+    OrganizationFeeSchedule,
+    OrganizationFeeScheduleItem,
+)
+from clinical.models import Encounter, ProgressNote
 from facilities.models import (
     AppointmentStatus,
     AppointmentType,
@@ -17,7 +29,13 @@ from facilities.models import (
     StaffRole,
     StaffTitle,
 )
-from insurance.models import InsuranceCarrier, PatientInsurancePolicy
+from insurance.models import (
+    FacilityInsuranceCarrierOverride,
+    InsuranceCarrier,
+    OrganizationInsuranceCarrierPreference,
+    PatientInsurancePolicy,
+)
+from medications.models import Medication
 from organizations.models import (
     Organization,
     OrganizationMembership,
@@ -35,6 +53,7 @@ from patients.models import (
 )
 from patients.sample_documents import SAMPLE_DOCUMENTS, save_sample_pdf
 from shared.models import Address
+from users.demo_access import ensure_demo_user_full_access
 
 User = get_user_model()
 
@@ -55,7 +74,7 @@ class Command(BaseCommand):
                 "name": "CareFlow Demo Organization",
                 "legal_name": "CareFlow Demo Medical Group, PLLC",
                 "phone_number": "(212) 555-0100",
-                "email": "ops@careflow-demo.com",
+                "email": "ops@careflow.xinyiklin.com",
                 "website": "https://careflow-demo.local",
                 "tax_id": "12-3456789",
                 "notes": "Demo organization used for local development and QA workflows.",
@@ -64,7 +83,7 @@ class Command(BaseCommand):
         org.name = "CareFlow Demo Organization"
         org.legal_name = "CareFlow Demo Medical Group, PLLC"
         org.phone_number = "(212) 555-0100"
-        org.email = "ops@careflow-demo.com"
+        org.email = "ops@careflow.xinyiklin.com"
         org.website = "https://careflow-demo.local"
         org.tax_id = "12-3456789"
         org.notes = "Demo organization used for local development and QA workflows."
@@ -81,7 +100,7 @@ class Command(BaseCommand):
         # Users
         # -----------------------------
         def create_user(username, email, first_name, last_name, password="Admin123!"):
-            is_demo_admin = username == getattr(settings, "DEMO_USERNAME", "admin")
+            is_demo_admin = username == getattr(settings, "DEMO_USERNAME", "demo")
 
             user, created = User.objects.get_or_create(
                 username=username,
@@ -112,21 +131,29 @@ class Command(BaseCommand):
             return user
 
         admin_user = create_user(
-            getattr(settings, "DEMO_USERNAME", "admin"),
-            "admin@demo.com",
-            "Maya",
-            "Bennett",
+            getattr(settings, "DEMO_USERNAME", "demo"),
+            "demo@careflow.xinyiklin.com",
+            "Demo",
+            "User",
         )
-        doctor_user = create_user("demo_doctor", "doctor@demo.com", "Elliot", "Reed")
+        doctor_user = create_user(
+            "demo_doctor", "doctor@careflow.xinyiklin.com", "Elliot", "Reed"
+        )
         doctor2_user = create_user(
-            "demo_doctor2", "doctor2@demo.com", "Nadia", "Solano"
+            "demo_doctor2", "doctor2@careflow.xinyiklin.com", "Nadia", "Solano"
         )
-        nurse_user = create_user("demo_nurse", "nurse@demo.com", "Theo", "Park")
-        staff_user = create_user("demo_staff", "staff@demo.com", "Iris", "Cole")
-        staff2_user = create_user("demo_staff2", "staff2@demo.com", "Jonah", "Vale")
+        nurse_user = create_user(
+            "demo_nurse", "nurse@careflow.xinyiklin.com", "Theo", "Park"
+        )
+        staff_user = create_user(
+            "demo_staff", "staff@careflow.xinyiklin.com", "Iris", "Cole"
+        )
+        staff2_user = create_user(
+            "demo_staff2", "staff2@careflow.xinyiklin.com", "Jonah", "Vale"
+        )
         facility_admin_user = create_user(
             "demo_facility_admin",
-            "facilityadmin@demo.com",
+            "facilityadmin@careflow.xinyiklin.com",
             "Amara",
             "Stone",
         )
@@ -169,7 +196,7 @@ class Command(BaseCommand):
                 "facility_code": "A",
                 "phone_number": "(212) 555-1001",
                 "fax_number": "(212) 555-1002",
-                "email": "clinic-a@careflow-demo.com",
+                "email": "clinic-a@careflow.xinyiklin.com",
                 "operating_start_time": time(8, 0),
                 "operating_end_time": time(17, 0),
                 "operating_days": [1, 2, 3, 4, 5],
@@ -187,7 +214,7 @@ class Command(BaseCommand):
                 "facility_code": "B",
                 "phone_number": "(718) 555-2001",
                 "fax_number": "(718) 555-2002",
-                "email": "clinic-b@careflow-demo.com",
+                "email": "clinic-b@careflow.xinyiklin.com",
                 "operating_start_time": time(9, 0),
                 "operating_end_time": time(18, 0),
                 "operating_days": [1, 2, 3, 4, 5],
@@ -205,7 +232,7 @@ class Command(BaseCommand):
                 "facility_code": "C",
                 "phone_number": "(646) 555-3001",
                 "fax_number": "(646) 555-3002",
-                "email": "clinic-c@careflow-demo.com",
+                "email": "clinic-c@careflow.xinyiklin.com",
                 "operating_start_time": time(8, 30),
                 "operating_end_time": time(16, 30),
                 "operating_days": [1, 2, 3, 4],
@@ -336,6 +363,8 @@ class Command(BaseCommand):
         ensure_staff(
             facility_admin_user, clinic_a, clinic_a_admin_role, clinic_a_mgr_title
         )
+
+        ensure_demo_user_full_access(admin_user)
 
         # Providers and staff spread across facilities
         ensure_staff(
@@ -561,18 +590,33 @@ class Command(BaseCommand):
                 "payer_id": "MTP001",
                 "phone_number": "(800) 555-4100",
                 "website": "https://metroplus-demo.local",
+                "address_line_1": "160 Water St",
+                "address_line_2": "Floor 3",
+                "city": "New York",
+                "state": "NY",
+                "zip_code": "10038",
             },
             {
                 "name": "Empire Health",
                 "payer_id": "EMP002",
                 "phone_number": "(800) 555-4200",
                 "website": "https://empire-demo.local",
+                "address_line_1": "11 W 42nd St",
+                "address_line_2": "",
+                "city": "New York",
+                "state": "NY",
+                "zip_code": "10036",
             },
             {
                 "name": "United Community Plan",
                 "payer_id": "UCP003",
                 "phone_number": "(800) 555-4300",
                 "website": "https://community-demo.local",
+                "address_line_1": "2950 Expressway Dr S",
+                "address_line_2": "Suite 100",
+                "city": "Islandia",
+                "state": "NY",
+                "zip_code": "11749",
             },
         ]
 
@@ -585,9 +629,382 @@ class Command(BaseCommand):
             carrier.payer_id = carrier_spec["payer_id"]
             carrier.phone_number = carrier_spec["phone_number"]
             carrier.website = carrier_spec["website"]
+            carrier.address_line_1 = carrier_spec.get("address_line_1", "")
+            carrier.address_line_2 = carrier_spec.get("address_line_2", "")
+            carrier.city = carrier_spec.get("city", "")
+            carrier.state = carrier_spec.get("state", "")
+            carrier.zip_code = carrier_spec.get("zip_code", "")
             carrier.is_active = True
             carrier.save()
             carriers.append(carrier)
+
+        for index, carrier in enumerate(carriers, start=1):
+            OrganizationInsuranceCarrierPreference.objects.update_or_create(
+                organization=org,
+                carrier=carrier,
+                defaults={
+                    "is_preferred": True,
+                    "is_hidden": False,
+                    "is_active": True,
+                    "sort_order": index * 10,
+                },
+            )
+
+        standard_fee_schedule, _ = OrganizationFeeSchedule.objects.update_or_create(
+            organization=org,
+            code="standard",
+            defaults={
+                "name": "Standard Fee Schedule",
+                "is_default": True,
+                "is_active": True,
+                "updated_by": admin_user,
+            },
+        )
+        if not standard_fee_schedule.created_by_id:
+            standard_fee_schedule.created_by = admin_user
+            standard_fee_schedule.save(update_fields=["created_by"])
+
+        fee_schedule_items = {}
+        for sort_index, entry in enumerate(get_catalog_entries(), start=1):
+            item, _ = OrganizationFeeScheduleItem.objects.update_or_create(
+                organization=org,
+                schedule=standard_fee_schedule,
+                service_code=entry["service_code"],
+                defaults={
+                    "description": entry["description"],
+                    "default_units": Decimal("1.00"),
+                    "charge_amount": entry["charge_amount"],
+                    "place_of_service": "11",
+                    "is_active": True,
+                    "sort_order": sort_index * 10,
+                    "updated_by": admin_user,
+                },
+            )
+            if not item.created_by_id:
+                item.created_by = admin_user
+                item.save(update_fields=["created_by"])
+            fee_schedule_items[entry["service_code"]] = item
+
+        medication_templates = [
+            {
+                "medication_name": "Lisinopril",
+                "dose": "10 mg",
+                "route": "Oral",
+                "frequency": "Once daily",
+                "notes": "Blood pressure management.",
+            },
+            {
+                "medication_name": "Metformin ER",
+                "dose": "500 mg",
+                "route": "Oral",
+                "frequency": "Twice daily with meals",
+                "notes": "Review A1c at next chronic care visit.",
+            },
+            {
+                "medication_name": "Atorvastatin",
+                "dose": "20 mg",
+                "route": "Oral",
+                "frequency": "Nightly",
+                "notes": "Lipid management.",
+            },
+            {
+                "medication_name": "Albuterol HFA",
+                "dose": "90 mcg",
+                "route": "Inhaled",
+                "frequency": "Two puffs every 4-6 hours as needed",
+                "notes": "Rescue inhaler for intermittent wheezing.",
+            },
+        ]
+
+        allergy_templates = [
+            {
+                "allergen": "Penicillin",
+                "category": PatientAllergy.CATEGORY_MEDICATION,
+                "reaction": "Hives and facial swelling",
+                "severity": PatientAllergy.SEVERITY_SEVERE,
+                "notes": "Avoid beta-lactam antibiotics unless reviewed.",
+            },
+            {
+                "allergen": "Shellfish",
+                "category": PatientAllergy.CATEGORY_FOOD,
+                "reaction": "Diffuse rash and nausea",
+                "severity": PatientAllergy.SEVERITY_MODERATE,
+                "notes": "Patient carries OTC antihistamine.",
+            },
+            {
+                "allergen": "Latex",
+                "category": PatientAllergy.CATEGORY_LATEX,
+                "reaction": "Contact dermatitis",
+                "severity": PatientAllergy.SEVERITY_MILD,
+                "notes": "Use non-latex supplies.",
+            },
+            {
+                "allergen": "Iodinated contrast",
+                "category": PatientAllergy.CATEGORY_CONTRAST,
+                "reaction": "Shortness of breath",
+                "severity": PatientAllergy.SEVERITY_SEVERE,
+                "notes": "Requires clinician review before imaging with contrast.",
+            },
+        ]
+
+        clinical_note_templates = [
+            {
+                "reason": "Hypertension follow-up",
+                "subjective": "Patient reports taking medications consistently and denies chest pain or shortness of breath.",
+                "objective": "Blood pressure improved compared with prior visit. No acute distress.",
+                "assessment": "Essential hypertension, improving with current regimen.",
+                "plan": "Continue current medication, reinforce low-sodium diet, and recheck blood pressure in 4 weeks.",
+                "diagnosis": ("I10", "Essential hypertension"),
+                "service": (
+                    "99214",
+                    "Established patient office visit, moderate complexity",
+                    "165.00",
+                ),
+            },
+            {
+                "reason": "Diabetes management",
+                "subjective": "Patient brought home glucose log and reports no hypoglycemic episodes.",
+                "objective": "Foot exam normal. Labs reviewed with patient.",
+                "assessment": "Type 2 diabetes mellitus without complication.",
+                "plan": "Continue metformin, order A1c, and schedule nutrition follow-up.",
+                "diagnosis": (
+                    "E11.9",
+                    "Type 2 diabetes mellitus without complications",
+                ),
+                "service": (
+                    "99214",
+                    "Established patient office visit, moderate complexity",
+                    "165.00",
+                ),
+            },
+            {
+                "reason": "Upper respiratory symptoms",
+                "subjective": "Patient reports cough and congestion for four days without fever.",
+                "objective": "Lungs clear to auscultation. Oxygen saturation stable.",
+                "assessment": "Acute upper respiratory infection, likely viral.",
+                "plan": "Supportive care, hydration, and return precautions reviewed.",
+                "diagnosis": (
+                    "J06.9",
+                    "Acute upper respiratory infection, unspecified",
+                ),
+                "service": (
+                    "99213",
+                    "Established patient office visit, low complexity",
+                    "110.00",
+                ),
+            },
+            {
+                "reason": "Preventive exam",
+                "subjective": "Patient presents for annual preventive visit with no acute concerns.",
+                "objective": "Preventive screening and immunization history reviewed.",
+                "assessment": "Routine adult health maintenance.",
+                "plan": "Update preventive labs, review age-appropriate screening, and follow up annually.",
+                "diagnosis": (
+                    "Z00.00",
+                    "Encounter for general adult medical examination",
+                ),
+                "service": (
+                    "99395",
+                    "Preventive medicine established patient visit",
+                    "185.00",
+                ),
+            },
+        ]
+
+        def get_primary_payer_name(patient):
+            policy = (
+                PatientInsurancePolicy.objects.filter(
+                    patient=patient,
+                    is_active=True,
+                )
+                .select_related("carrier")
+                .order_by("-is_primary", "coverage_order", "id")
+                .first()
+            )
+            if not policy:
+                return ""
+            return policy.carrier.name or policy.plan_name or ""
+
+        def seed_medications_for_patient(patient, patient_index, provider_name):
+            if patient_index % 6 == 0:
+                return
+
+            active_template = medication_templates[
+                patient_index % len(medication_templates)
+            ]
+            Medication.objects.create(
+                patient=patient,
+                facility=patient.facility,
+                status=Medication.STATUS_ACTIVE,
+                start_date=today - timedelta(days=90 + patient_index),
+                prescriber_name=provider_name,
+                created_by=admin_user,
+                updated_by=admin_user,
+                **active_template,
+            )
+
+            if patient_index % 4 == 0:
+                historical_template = medication_templates[
+                    (patient_index + 1) % len(medication_templates)
+                ]
+                Medication.objects.create(
+                    patient=patient,
+                    facility=patient.facility,
+                    status=Medication.STATUS_DISCONTINUED,
+                    start_date=today - timedelta(days=220 + patient_index),
+                    end_date=today - timedelta(days=30 + patient_index),
+                    prescriber_name=provider_name,
+                    notes="Previously discontinued after medication reconciliation.",
+                    created_by=admin_user,
+                    updated_by=admin_user,
+                    **{
+                        key: value
+                        for key, value in historical_template.items()
+                        if key != "notes"
+                    },
+                )
+
+        def seed_allergies_for_patient(patient, patient_index):
+            if patient_index % 4 == 0:
+                return
+
+            allergy_template = allergy_templates[patient_index % len(allergy_templates)]
+            PatientAllergy.objects.create(
+                patient=patient,
+                facility=patient.facility,
+                onset_date=today - timedelta(days=365 + patient_index),
+                status=PatientAllergy.STATUS_ACTIVE,
+                created_by=admin_user,
+                updated_by=admin_user,
+                **allergy_template,
+            )
+
+            if patient_index % 9 == 0:
+                PatientAllergy.objects.create(
+                    patient=patient,
+                    facility=patient.facility,
+                    allergen="Seasonal pollen",
+                    category=PatientAllergy.CATEGORY_ENVIRONMENTAL,
+                    reaction="Rhinitis",
+                    severity=PatientAllergy.SEVERITY_MILD,
+                    onset_date=today - timedelta(days=800 + patient_index),
+                    status=PatientAllergy.STATUS_RESOLVED,
+                    notes="Historic seasonal symptoms, currently resolved.",
+                    created_by=admin_user,
+                    updated_by=admin_user,
+                )
+
+        def create_billing_record(encounter, template, sequence):
+            status_cycle = [
+                EncounterBillingRecord.STATUS_CODING_NEEDED,
+                EncounterBillingRecord.STATUS_CODING_NEEDED,
+                EncounterBillingRecord.STATUS_READY_TO_SUBMIT,
+                EncounterBillingRecord.STATUS_CLAIM_CREATED,
+            ]
+            status = status_cycle[sequence % len(status_cycle)]
+            payer_name = get_primary_payer_name(encounter.patient)
+            place_of_service = "11"
+            notes = "Seeded from signed progress note for billing workflow QA."
+
+            if status == EncounterBillingRecord.STATUS_CODING_NEEDED:
+                if sequence % 2 == 0:
+                    payer_name = ""
+                    notes = "Missing payer for attention-filter QA."
+                elif sequence % 3 == 0:
+                    place_of_service = ""
+                    notes = "Missing place of service for billing QA."
+
+            billing_record = EncounterBillingRecord.objects.create(
+                encounter=encounter,
+                status=status,
+                payer_name=payer_name,
+                place_of_service=place_of_service,
+                notes=notes,
+                created_by=admin_user,
+                updated_by=admin_user,
+            )
+
+            if status != EncounterBillingRecord.STATUS_CODING_NEEDED or sequence % 2:
+                diagnosis_code, diagnosis_description = template["diagnosis"]
+                EncounterDiagnosis.objects.create(
+                    billing_record=billing_record,
+                    code=diagnosis_code,
+                    description=diagnosis_description,
+                    sequence=1,
+                )
+
+            if status != EncounterBillingRecord.STATUS_CODING_NEEDED:
+                service_code, service_description, charge_amount = template["service"]
+                EncounterChargeLine.objects.create(
+                    billing_record=billing_record,
+                    service_code=service_code,
+                    description=service_description,
+                    units=Decimal("1.00"),
+                    charge_amount=Decimal(charge_amount),
+                    diagnosis_pointers=[1],
+                    sequence=1,
+                )
+
+            if sequence % 5 == 0:
+                stale_at = timezone.now() - timedelta(days=8 + sequence)
+                EncounterBillingRecord.objects.filter(pk=billing_record.pk).update(
+                    updated_at=stale_at,
+                )
+
+            return billing_record
+
+        def seed_clinical_flow_for_facility(facility, appointments):
+            past_appointments = sorted(
+                [
+                    appointment
+                    for appointment in appointments
+                    if timezone.localtime(appointment.appointment_time).date() <= today
+                ],
+                key=lambda appointment: appointment.appointment_time,
+                reverse=True,
+            )
+
+            for index, appointment in enumerate(past_appointments[:24], start=1):
+                template = clinical_note_templates[
+                    (index - 1) % len(clinical_note_templates)
+                ]
+                encounter = Encounter.objects.create(
+                    patient=appointment.patient,
+                    facility=facility,
+                    appointment=appointment,
+                    rendering_provider=appointment.rendering_provider,
+                    reason=template["reason"],
+                    started_at=appointment.appointment_time,
+                    created_by=admin_user,
+                )
+                note = ProgressNote.objects.create(
+                    encounter=encounter,
+                    subjective=template["subjective"],
+                    objective=template["objective"],
+                    assessment=template["assessment"],
+                    plan=template["plan"],
+                    created_by=admin_user,
+                )
+
+                if index % 4 == 0:
+                    continue
+
+                signed_at = appointment.end_time or (
+                    appointment.appointment_time + timedelta(minutes=30)
+                )
+                if signed_at <= appointment.appointment_time:
+                    signed_at = appointment.appointment_time + timedelta(minutes=30)
+                encounter.ended_at = signed_at
+                encounter.save(update_fields=["ended_at", "updated_at"])
+                note.sign(admin_user)
+                ProgressNote.objects.filter(pk=note.pk).update(signed_at=signed_at)
+                Encounter.objects.filter(pk=encounter.pk).update(
+                    ended_at=signed_at,
+                    started_at=appointment.appointment_time,
+                )
+
+                if index % 3 != 0:
+                    create_billing_record(encounter, template, index)
 
         for facility in facilities:
             statuses = list(
@@ -694,6 +1111,49 @@ class Command(BaseCommand):
                     "is_active": True,
                 },
             )
+
+            if facility == clinic_b:
+                FacilityFeeScheduleOverride.objects.update_or_create(
+                    facility=facility,
+                    organization_item=fee_schedule_items["99214"],
+                    defaults={
+                        "charge_amount": Decimal("175.00"),
+                        "is_active": True,
+                        "sort_order": 20,
+                        "updated_by": admin_user,
+                    },
+                )
+            if facility == clinic_c:
+                empire_preference = (
+                    OrganizationInsuranceCarrierPreference.objects.filter(
+                        organization=org,
+                        carrier__name="Empire Health",
+                    ).first()
+                )
+                if empire_preference:
+                    FacilityInsuranceCarrierOverride.objects.update_or_create(
+                        facility=facility,
+                        organization_preference=empire_preference,
+                        defaults={
+                            "is_preferred": False,
+                            "is_hidden": True,
+                            "is_active": False,
+                            "notes": "Hidden in this demo facility to exercise catalog overrides.",
+                        },
+                    )
+                FacilityFeeScheduleOverride.objects.update_or_create(
+                    facility=facility,
+                    service_code="99490",
+                    defaults={
+                        "description": "Chronic care management, first 20 minutes",
+                        "default_units": Decimal("1.00"),
+                        "charge_amount": Decimal("95.00"),
+                        "place_of_service": "11",
+                        "is_active": True,
+                        "sort_order": 50,
+                        "updated_by": admin_user,
+                    },
+                )
 
             patients = []
             used_patient_keys = set()
@@ -857,6 +1317,30 @@ class Command(BaseCommand):
                         ssn_last4=seeded_patient.ssn_last4,
                     )
 
+            demo_patient_qs = Patient.objects.filter(
+                facility=facility,
+                email__endswith="@demo-patient.local",
+            )
+            Encounter.objects.filter(
+                facility=facility, patient__in=demo_patient_qs
+            ).delete()
+            Medication.objects.filter(
+                facility=facility, patient__in=demo_patient_qs
+            ).delete()
+            PatientAllergy.objects.filter(
+                facility=facility,
+                patient__in=demo_patient_qs,
+            ).delete()
+
+            provider_name = (
+                provider_staff[0].user.get_full_name()
+                if provider_staff and provider_staff[0].user.get_full_name()
+                else "CareFlow Demo Provider"
+            )
+            for patient_index, patient in enumerate(patients, start=1):
+                seed_medications_for_patient(patient, patient_index, provider_name)
+                seed_allergies_for_patient(patient, patient_index)
+
             document_storage = get_patient_document_storage()
             for patient in patients[: min(6, len(patients))]:
                 for document in SAMPLE_DOCUMENTS:
@@ -896,12 +1380,18 @@ class Command(BaseCommand):
                         patient_document.save()
 
             tz = timezone.get_current_timezone()
-            daily_count = appointments_per_day[facility.id]
+            base_daily_count = appointments_per_day[facility.id]
+            created_appointments = []
 
-            for day_offset in range(-3, 7):
+            for day_offset in range(-21, 7):
                 visit_date = today + timedelta(days=day_offset)
                 if visit_date.isoweekday() not in (facility.operating_days or []):
                     continue
+
+                variation = random.choice(
+                    [0.3, 0.45, 0.55, 0.65, 0.75, 0.85, 1.0, 1.0, 1.0]
+                )
+                daily_count = max(1, int(base_daily_count * variation))
 
                 start_minute = (
                     facility.operating_start_time.hour * 60
@@ -938,7 +1428,7 @@ class Command(BaseCommand):
                     )
                     aware_dt = timezone.make_aware(naive_dt, tz)
 
-                    Appointment.objects.create(
+                    appointment = Appointment.objects.create(
                         facility=facility,
                         patient=patient,
                         resource=resource,
@@ -959,12 +1449,15 @@ class Command(BaseCommand):
                         appointment_type=appt_type,
                         created_by=admin_user,
                     )
+                    created_appointments.append(appointment)
+
+            seed_clinical_flow_for_facility(facility, created_appointments)
 
             self.stdout.write(
-                f"  - Seeded {facility.name}: {len(patients)} patients and appointments across 10 days"
+                f"  - Seeded {facility.name}: {len(patients)} patients, appointments, clinical records, meds, allergies, and billing workflow data"
             )
 
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully!"))
-        self.stdout.write("Demo admin login:")
-        self.stdout.write(f"  username: {getattr(settings, 'DEMO_USERNAME', 'admin')}")
+        self.stdout.write("Demo user login:")
+        self.stdout.write(f"  username: {getattr(settings, 'DEMO_USERNAME', 'demo')}")
         self.stdout.write("  password: Admin123!")

@@ -22,7 +22,10 @@ import type {
   ScheduleViewMode,
 } from "../../shared/types/domain";
 
-export type ScheduleTimeSlot = TimeSlot;
+export type ScheduleTimeSlot = TimeSlot & {
+  isOutsideHours?: boolean;
+  isBlocked?: boolean;
+};
 
 export type ScheduleMode = "resources" | "days";
 
@@ -291,10 +294,13 @@ export type ScheduleSidebarProps = {
   facility?: FacilityLike | null;
   selectedDate: string;
   scheduleMode: ScheduleMode;
+  activeScheduleInterval: number;
   resourceLoadSummaries: ResourceLoadSummary[];
   selectedResourceKeySet: Set<string>;
   onJumpToToday: () => void;
   onSelectDate: (date: string) => void;
+  onScheduleModeChange: (mode: ScheduleMode) => void;
+  onScheduleIntervalChange: (interval: number) => void;
   onToggleResource: (resourceKey: string) => void;
 };
 

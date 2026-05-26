@@ -18,6 +18,7 @@ import type {
 
 type PatientAddressPanelProps = {
   register: UseFormRegister<PatientFormValues>;
+  tone?: "default" | "subtle" | "flat";
 };
 
 type PatientClinicalProfilePanelProps = {
@@ -27,16 +28,21 @@ type PatientClinicalProfilePanelProps = {
   preferredLanguageDeclined: boolean;
   raceDeclined: boolean;
   register: UseFormRegister<PatientFormValues>;
+  tone?: "default" | "subtle" | "flat";
 };
 
 type PatientCareTeamPanelProps = {
   careProviders: PatientCareProvider[];
   register: UseFormRegister<PatientFormValues>;
+  tone?: "default" | "subtle" | "flat";
 };
 
-export function PatientAddressPanel({ register }: PatientAddressPanelProps) {
+export function PatientAddressPanel({
+  register,
+  tone = "default",
+}: PatientAddressPanelProps) {
   return (
-    <Panel icon={MapPin} title="Patient Address">
+    <Panel icon={MapPin} title="Patient Address" tone={tone}>
       <div className="grid gap-4">
         <div>
           <Label>Street Address</Label>
@@ -85,9 +91,10 @@ export function PatientClinicalProfilePanel({
   preferredLanguageDeclined,
   raceDeclined,
   register,
+  tone = "default",
 }: PatientClinicalProfilePanelProps) {
   return (
-    <Panel icon={HeartPulse} title="Clinical Profile">
+    <Panel icon={HeartPulse} title="Clinical Profile" tone={tone}>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div>
           <Label>Gender</Label>
@@ -189,9 +196,10 @@ export function PatientClinicalProfilePanel({
 export function PatientCareTeamPanel({
   careProviders,
   register,
+  tone = "subtle",
 }: PatientCareTeamPanelProps) {
   return (
-    <Panel icon={Stethoscope} title="Care Team" tone="subtle">
+    <Panel icon={Stethoscope} title="Care Team" tone={tone}>
       <div className="grid gap-4">
         <input type="hidden" {...register("preferred_pharmacy")} />
         <div>
