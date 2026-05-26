@@ -2,7 +2,6 @@ import { useMemo } from "react";
 
 import MultiDayScheduleView from "./MultiDayScheduleView";
 import ResourceScheduleView from "./ResourceScheduleView";
-import ScheduleHeader from "./ScheduleHeader";
 import ScheduleSidebar from "./ScheduleSidebar";
 
 import type {
@@ -85,85 +84,82 @@ export default function ScheduleWorkspaceLayout({
   );
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-0 pt-0 pb-4">
-      <section className="cf-preview-surface flex min-h-0 flex-1 flex-col overflow-hidden">
-        <ScheduleHeader
-          facility={facility}
-          scheduleMode={scheduleMode}
-          activeScheduleInterval={activeScheduleInterval}
-          onScheduleModeChange={onScheduleModeChange}
-          onScheduleIntervalChange={onScheduleIntervalChange}
-        />
-
-        <div className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-cf-surface">
+        <div className="grid min-h-0 flex-1 overflow-hidden bg-cf-surface lg:grid-cols-[260px_minmax(0,1fr)]">
           <ScheduleSidebar
             facilityId={facilityId}
             facility={facility}
             selectedDate={selectedDate}
             scheduleMode={scheduleMode}
+            activeScheduleInterval={activeScheduleInterval}
             resourceLoadSummaries={resourceLoadSummaries}
             selectedResourceKeySet={selectedResourceKeySet}
             onJumpToToday={onJumpToToday}
             onSelectDate={onSelectDate}
+            onScheduleModeChange={onScheduleModeChange}
+            onScheduleIntervalChange={onScheduleIntervalChange}
             onToggleResource={onToggleResource}
           />
 
-          <div className="min-h-0 overflow-hidden bg-cf-surface/70">
-            {scheduleMode === "days" ? (
-              <MultiDayScheduleView
-                viewMode={viewMode}
-                showSlotDividers={showSlotDividers}
-                appointmentBlockDisplay={appointmentBlockDisplay}
-                appointments={formattedAppointments}
-                selectedDate={selectedDate}
-                timeZone={facility?.timezone}
-                facility={facility}
-                onDateChange={onSelectDate}
-                visibleDates={effectiveVisibleDates}
-                columnResourceKeys={activeColumnResourceKeys}
-                resourceOptions={resourceDefinitions}
-                onVisibleDatesChange={onVisibleDatesChange}
-                onColumnResourceKeysChange={onColumnResourceKeysChange}
-                onVisibleDayCountChange={onVisibleDayCountChange}
-                onSlotDoubleClick={onSlotDoubleClick}
-                onAppointmentDrop={onAppointmentDrop}
-                onAppointmentContextMenu={onAppointmentContextMenu}
-                columnIntervals={visibleColumnIntervals}
-                onColumnIntervalsChange={onColumnIntervalsChange}
-                intervalMinutes={activeScheduleInterval}
-                visibleDayCount={visibleDayCount}
-                linkScroll={false}
-                showToolbar={false}
-                embedded
-              />
-            ) : (
-              <ResourceScheduleView
-                viewMode={viewMode}
-                showSlotDividers={showSlotDividers}
-                appointmentBlockDisplay={appointmentBlockDisplay}
-                appointments={formattedAppointments}
-                selectedDate={selectedDate}
-                timeZone={facility?.timezone}
-                facility={facility}
-                onDateChange={onSelectDate}
-                visibleDates={effectiveVisibleDates}
-                onVisibleDatesChange={onVisibleDatesChange}
-                columnResourceKeys={activeColumnResourceKeys}
-                onColumnResourceKeysChange={onColumnResourceKeysChange}
-                resourceOptions={resourceDefinitions}
-                onSlotDoubleClick={onSlotDoubleClick}
-                onAppointmentDrop={onAppointmentDrop}
-                onAppointmentContextMenu={onAppointmentContextMenu}
-                columnIntervals={visibleColumnIntervals}
-                onColumnIntervalsChange={onColumnIntervalsChange}
-                intervalMinutes={activeScheduleInterval}
-                visibleDayCount={visibleDayCount}
-                onVisibleDayCountChange={onVisibleDayCountChange}
-                linkScroll={false}
-                showToolbar={false}
-                embedded
-              />
-            )}
+          <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-cf-surface">
+            <div className="min-h-0 flex-1 overflow-hidden bg-cf-surface-muted/30">
+              {scheduleMode === "days" ? (
+                <MultiDayScheduleView
+                  viewMode={viewMode}
+                  showSlotDividers={showSlotDividers}
+                  appointmentBlockDisplay={appointmentBlockDisplay}
+                  appointments={formattedAppointments}
+                  selectedDate={selectedDate}
+                  timeZone={facility?.timezone}
+                  facility={facility}
+                  onDateChange={onSelectDate}
+                  visibleDates={effectiveVisibleDates}
+                  columnResourceKeys={activeColumnResourceKeys}
+                  resourceOptions={resourceDefinitions}
+                  onVisibleDatesChange={onVisibleDatesChange}
+                  onColumnResourceKeysChange={onColumnResourceKeysChange}
+                  onVisibleDayCountChange={onVisibleDayCountChange}
+                  onSlotDoubleClick={onSlotDoubleClick}
+                  onAppointmentDrop={onAppointmentDrop}
+                  onAppointmentContextMenu={onAppointmentContextMenu}
+                  columnIntervals={visibleColumnIntervals}
+                  onColumnIntervalsChange={onColumnIntervalsChange}
+                  intervalMinutes={activeScheduleInterval}
+                  visibleDayCount={visibleDayCount}
+                  linkScroll={false}
+                  showToolbar={false}
+                  embedded
+                />
+              ) : (
+                <ResourceScheduleView
+                  viewMode={viewMode}
+                  showSlotDividers={showSlotDividers}
+                  appointmentBlockDisplay={appointmentBlockDisplay}
+                  appointments={formattedAppointments}
+                  selectedDate={selectedDate}
+                  timeZone={facility?.timezone}
+                  facility={facility}
+                  onDateChange={onSelectDate}
+                  visibleDates={effectiveVisibleDates}
+                  onVisibleDatesChange={onVisibleDatesChange}
+                  columnResourceKeys={activeColumnResourceKeys}
+                  onColumnResourceKeysChange={onColumnResourceKeysChange}
+                  resourceOptions={resourceDefinitions}
+                  onSlotDoubleClick={onSlotDoubleClick}
+                  onAppointmentDrop={onAppointmentDrop}
+                  onAppointmentContextMenu={onAppointmentContextMenu}
+                  columnIntervals={visibleColumnIntervals}
+                  onColumnIntervalsChange={onColumnIntervalsChange}
+                  intervalMinutes={activeScheduleInterval}
+                  visibleDayCount={visibleDayCount}
+                  onVisibleDayCountChange={onVisibleDayCountChange}
+                  linkScroll={false}
+                  showToolbar={false}
+                  embedded
+                />
+              )}
+            </div>
           </div>
         </div>
       </section>

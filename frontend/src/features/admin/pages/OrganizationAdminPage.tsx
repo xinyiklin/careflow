@@ -4,16 +4,24 @@ import { Navigate } from "react-router-dom";
 import { useBootReadiness } from "../../../app/BootReadinessContext";
 import OrganizationOverviewPanel from "../components/organization/OrganizationOverviewPanel";
 import FacilitiesPanel from "../components/organization/FacilitiesPanel";
+import OrganizationFeeSchedulePanel from "../components/organization/OrganizationFeeSchedulePanel";
 import OrganizationPharmaciesPanel from "../components/organization/OrganizationPharmaciesPanel";
+import OrganizationPayersPanel from "../components/organization/OrganizationPayersPanel";
 import UsersPanel from "../components/organization/UsersPanel";
+import OrganizationActivityLogPanel from "../components/organization/OrganizationActivityLogPanel";
+import OrganizationSecurityPanel from "../components/organization/OrganizationSecurityPanel";
 import { AdminWorkspaceShell } from "../components/shared/AdminSurface";
 import useAdminPermissions from "../hooks/shared/useAdminPermissions";
 
 const ORGANIZATION_SECTIONS = [
-  { key: "overview", label: "Overview" },
-  { key: "facilities", label: "Facilities" },
-  { key: "users", label: "Users" },
-  { key: "pharmacies", label: "Pharmacies" },
+  { key: "overview", label: "Overview", group: "General" },
+  { key: "facilities", label: "Facilities", group: "General" },
+  { key: "users", label: "Users", group: "General" },
+  { key: "pharmacies", label: "Pharmacies", group: "General" },
+  { key: "security", label: "Security", group: "General" },
+  { key: "payers", label: "Payers", group: "Billing" },
+  { key: "fee-schedule", label: "Fee Schedule", group: "Billing" },
+  { key: "activity-log", label: "Activity Log", group: "Monitoring" },
 ];
 
 export default function OrganizationAdminPage() {
@@ -58,8 +66,22 @@ export default function OrganizationAdminPage() {
         return <FacilitiesPanel />;
       case "users":
         return <UsersPanel />;
+      case "security":
+        return <OrganizationSecurityPanel />;
+      case "payers":
+        return <OrganizationPayersPanel />;
       case "pharmacies":
         return <OrganizationPharmaciesPanel />;
+      case "fee-schedule":
+        return <OrganizationFeeSchedulePanel />;
+      case "activity-log":
+        return (
+          <OrganizationActivityLogPanel
+            scope="organization"
+            scopeLabel="organization"
+            showFacilityFilter={false}
+          />
+        );
       case "overview":
       default:
         return <OrganizationOverviewPanel />;

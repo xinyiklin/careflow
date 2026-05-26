@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import useFacility from "../../../facilities/hooks/useFacility";
 import useAdminFacility from "../../hooks/shared/useAdminFacility";
 import useAdminFacilityConfig from "../../hooks/facility/useAdminFacilityConfig";
 import useAdminListControls, {
-  compareBoolean,
   compareText,
 } from "../../hooks/shared/useAdminListControls";
 import useStaff from "../../hooks/facility/useStaff";
+import { fetchOrganizationFeeSchedules } from "../../api/organization/feeSchedule";
 import StaffModal from "./StaffModal";
 import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
 import {
@@ -68,21 +69,12 @@ const STAFF_FILTERS = [
     label: "Active",
     predicate: (record) => record.is_active !== false,
   },
-  {
-    key: "titled",
-    label: "With title",
-    predicate: (record) =>
-      Boolean(
-        record.title_name ||
-        (typeof record.title === "object" && record.title?.name)
-      ),
-  },
 ] satisfies AdminListFilter<AdminStaff>[];
 
 const STAFF_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Staff",
+    label: "Name",
     compare: (a, b) =>
       compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
   },
@@ -96,10 +88,10 @@ const STAFF_SORT_OPTIONS = [
       ) || compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
   },
   {
-    key: "active",
-    label: "Active first",
+    key: "title",
+    label: "Title",
     compare: (a, b) =>
-      compareBoolean(a.is_active !== false, b.is_active !== false) ||
+      compareText(getTitleName(a.title), getTitleName(b.title)) ||
       compareText(getStaffDisplayName(a), getStaffDisplayName(b)),
   },
 ] satisfies AdminSortOption<AdminStaff>[];
@@ -108,6 +100,13 @@ export default function StaffPanel() {
   const { memberships } = useFacility();
   const { adminFacility } = useAdminFacility();
   const { roles = [], titles = [] } = useAdminFacilityConfig(adminFacility?.id);
+  const schedulesQuery = useQuery({
+    queryKey: ["admin", "organization", "fee-schedule-sheets"],
+    queryFn: fetchOrganizationFeeSchedules,
+  });
+  const feeSchedules = Array.isArray(schedulesQuery.data)
+    ? schedulesQuery.data
+    : [];
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<AdminStaff | null>(null);
   const [confirmDialogState, setConfirmDialogState] =
@@ -230,34 +229,7 @@ export default function StaffPanel() {
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       )}
 
-      <AdminTableCard
-        savingLabel={saving ? "Saving..." : ""}
-        actions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => reload()}
-              disabled={loading || saving || !canManageCurrentFacility}
-            >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              disabled={!canManageCurrentFacility}
-            >
-              <Plus className="h-3.5 w-3.5" /> New Staff
-            </Button>
-          </>
-        }
-      >
+      <AdminTableCard>
         <AdminListToolbar
           savingLabel={saving ? "Saving..." : ""}
           filters={filterOptions}
@@ -266,6 +238,27 @@ export default function StaffPanel() {
           sortOptions={STAFF_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving || !canManageCurrentFacility}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                disabled={!canManageCurrentFacility}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
         />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -284,16 +277,7 @@ export default function StaffPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    Loading staff...
-                  </td>
-                </tr>
-              ) : loadError ? (
+              {loading ? null : loadError ? (
                 <AdminTableLoadError
                   colSpan={5}
                   message="Couldn't load staff."
@@ -394,6 +378,7 @@ export default function StaffPanel() {
         roles={nonPhysicianRoles}
         titles={titles as Parameters<typeof StaffModal>[0]["titles"]}
         users={availableUsers}
+        feeSchedules={feeSchedules}
         saving={saving}
         onClose={handleCloseModal}
         onSubmit={handleSave}

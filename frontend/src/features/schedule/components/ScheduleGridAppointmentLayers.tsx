@@ -44,6 +44,7 @@ export function AppointmentLayer({
   onPointerDragStart,
   slotRowHeight,
   visibleDayCount,
+  isBlocked = false,
 }: {
   appointment: ScheduleAppointment;
   appointmentBlockDisplay: AppointmentBlockDisplay;
@@ -53,6 +54,7 @@ export function AppointmentLayer({
   onPointerDragStart: SchedulePointerDragStartHandler;
   slotRowHeight: number;
   visibleDayCount: number;
+  isBlocked?: boolean;
 }) {
   return (
     <AppointmentBlock
@@ -73,7 +75,10 @@ export function AppointmentLayer({
       }
       fullWidth={appointment.laneCount <= 1}
       equalWidth={appointment.laneCount > 1}
-      className="absolute inset-y-[6px] min-w-0"
+      className={[
+        "absolute inset-y-[6px] min-w-0",
+        isBlocked ? "cf-appointment-override" : "",
+      ].join(" ")}
       style={getBlockLayoutStyle(
         appointment,
         slotRowHeight,

@@ -50,21 +50,20 @@ const TYPE_FILTERS = [
 const TYPE_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Type",
+    label: "Name",
     compare: (a, b) => compareText(a.name, b.name),
+  },
+  {
+    key: "code",
+    label: "Code",
+    compare: (a, b) =>
+      compareText(a.code, b.code) || compareText(a.name, b.name),
   },
   {
     key: "duration",
     label: "Duration",
     compare: (a, b) =>
       compareNumber(a.duration_minutes, b.duration_minutes) ||
-      compareText(a.name, b.name),
-  },
-  {
-    key: "active",
-    label: "Active first",
-    compare: (a, b) =>
-      compareBoolean(a.is_active !== false, b.is_active !== false) ||
       compareText(a.name, b.name),
   },
   {
@@ -202,39 +201,7 @@ export default function AppointmentTypesPanel() {
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       )}
 
-      <AdminTableCard
-        description={
-          adminFacility?.name
-            ? `Control duration defaults and scheduling labels for ${adminFacility.name}.`
-            : "Select a facility to manage appointment types."
-        }
-        savingLabel={saving ? "Saving..." : ""}
-        actions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => reload()}
-              disabled={loading || saving || !canManageCurrentFacility}
-            >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              disabled={!canManageCurrentFacility}
-            >
-              <Plus className="h-3.5 w-3.5" /> New Type
-            </Button>
-          </>
-        }
-      >
+      <AdminTableCard>
         <AdminListToolbar
           savingLabel={saving ? "Saving..." : ""}
           filters={filterOptions}
@@ -243,6 +210,27 @@ export default function AppointmentTypesPanel() {
           sortOptions={TYPE_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving || !canManageCurrentFacility}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                disabled={!canManageCurrentFacility}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
         />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -261,16 +249,7 @@ export default function AppointmentTypesPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    Loading appointment types...
-                  </td>
-                </tr>
-              ) : loadError ? (
+              {loading ? null : loadError ? (
                 <AdminTableLoadError
                   colSpan={5}
                   message="Couldn't load appointment types."
@@ -345,9 +324,14 @@ export default function AppointmentTypesPanel() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <Badge variant={type.is_active ? "success" : "muted"}>
-                        {type.is_active ? "Active" : "Inactive"}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant={type.is_active ? "success" : "muted"}>
+                          {type.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                        {type.is_billable === false && (
+                          <Badge variant="muted">Non-billable</Badge>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

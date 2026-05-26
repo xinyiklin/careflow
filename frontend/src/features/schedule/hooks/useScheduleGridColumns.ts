@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo } from "react";
 
 import { generateTimeSlots } from "../../../shared/utils/timeSlots";
-import { formatDateOnlyInTimeZone } from "../../../shared/utils/dateTime";
+import {
+  formatDateOnlyInTimeZone,
+  parseDateOnlyInTimeZone,
+} from "../../../shared/utils/dateTime";
 import { MAX_SCHEDULE_COLUMNS } from "../utils/scheduleConstants";
 import {
   addDaysToDateString,
@@ -21,7 +24,7 @@ import {
   mergeScheduleWindows,
 } from "../utils/scheduleWindowUtils";
 
-import type { TimeSlot } from "../../../shared/utils/timeSlots";
+import type { ScheduleTimeSlot } from "../types";
 import type {
   AppointmentLike,
   FacilityLike,
@@ -138,26 +141,32 @@ export default function useScheduleGridColumns({
 
   const scheduleWindowByColumn = useMemo(() => {
     const map = new Map<string, ScheduleWindow | null | undefined>();
-    const operatingWindow = getFacilityOperatingWindow(facility);
     let sharedWindow: ScheduleWindow | null | undefined = null;
 
     if (sharedTimeRail) {
       visibleDayEntries.forEach((entry) => {
+        const dateObj = parseDateOnlyInTimeZone(entry.date, timeZone);
+        const isoDay = dateObj
+          ? Number(formatDateOnlyInTimeZone(dateObj, timeZone, "i"))
+          : null;
+        const operatingWindow = getFacilityOperatingWindow(facility, isoDay);
         const appointmentWindow = getAppointmentsScheduleWindow(
           rawAppointmentsByColumn.get(entry.key) || [],
           entry.intervalMinutes
         );
         sharedWindow = mergeScheduleWindows(
           sharedWindow,
-          mergeScheduleWindows(
-            entry.isOperatingDay ? operatingWindow : null,
-            appointmentWindow
-          )
+          mergeScheduleWindows(operatingWindow, appointmentWindow)
         );
       });
     }
 
     visibleDayEntries.forEach((entry) => {
+      const dateObj = parseDateOnlyInTimeZone(entry.date, timeZone);
+      const isoDay = dateObj
+        ? Number(formatDateOnlyInTimeZone(dateObj, timeZone, "i"))
+        : null;
+      const operatingWindow = getFacilityOperatingWindow(facility, isoDay);
       const appointmentWindow = getAppointmentsScheduleWindow(
         rawAppointmentsByColumn.get(entry.key) || [],
         entry.intervalMinutes
@@ -166,33 +175,51 @@ export default function useScheduleGridColumns({
         entry.key,
         sharedTimeRail
           ? sharedWindow
-          : mergeScheduleWindows(
-              entry.isOperatingDay ? operatingWindow : null,
-              appointmentWindow
-            )
+          : mergeScheduleWindows(operatingWindow, appointmentWindow)
       );
     });
 
     return map;
-  }, [facility, rawAppointmentsByColumn, sharedTimeRail, visibleDayEntries]);
+  }, [
+    facility,
+    rawAppointmentsByColumn,
+    sharedTimeRail,
+    visibleDayEntries,
+    timeZone,
+  ]);
 
   const timeSlotsByColumn = useMemo(() => {
-    const map = new Map<string, TimeSlot[]>();
+    const map = new Map<string, ScheduleTimeSlot[]>();
     visibleDayEntries.forEach((entry) => {
+      const dateObj = parseDateOnlyInTimeZone(entry.date, timeZone);
+      const isoDay = dateObj
+        ? Number(formatDateOnlyInTimeZone(dateObj, timeZone, "i"))
+        : null;
+      const operatingWindow = getFacilityOperatingWindow(facility, isoDay);
       const scheduleWindow = scheduleWindowByColumn.get(entry.key);
-      map.set(
-        entry.key,
-        scheduleWindow
-          ? generateTimeSlots(
-              entry.intervalMinutes,
-              scheduleWindow.startMinute,
-              scheduleWindow.endMinute
-            )
-          : []
-      );
+      const slots = scheduleWindow
+        ? generateTimeSlots(
+            entry.intervalMinutes,
+            scheduleWindow.startMinute,
+            scheduleWindow.endMinute
+          )
+        : [];
+
+      const mappedSlots = slots.map((slot) => {
+        const isOutsideHours =
+          slot.value < operatingWindow.startMinute ||
+          slot.value >= operatingWindow.endMinute;
+        return {
+          ...slot,
+          isOutsideHours,
+          isBlocked: !entry.isOperatingDay || isOutsideHours,
+        };
+      });
+
+      map.set(entry.key, mappedSlots);
     });
     return map;
-  }, [scheduleWindowByColumn, visibleDayEntries]);
+  }, [facility, scheduleWindowByColumn, visibleDayEntries, timeZone]);
 
   const slotRowHeightByColumn = useMemo(() => {
     const map = new Map<string, number>();

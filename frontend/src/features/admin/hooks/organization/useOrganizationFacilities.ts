@@ -19,12 +19,20 @@ const ORGANIZATION_FACILITIES_QUERY_KEY = [
   "facilities",
 ];
 
-export default function useOrganizationFacilities() {
+type UseOrganizationFacilitiesOptions = {
+  enabled?: boolean;
+};
+
+export default function useOrganizationFacilities(
+  options: UseOrganizationFacilitiesOptions = {}
+) {
   const queryClient = useQueryClient();
+  const enabled = options.enabled ?? true;
 
   const facilitiesQuery = useQuery({
     queryKey: ORGANIZATION_FACILITIES_QUERY_KEY,
     queryFn: fetchOrganizationFacilities,
+    enabled,
   });
 
   const saveMutation = useMutation({

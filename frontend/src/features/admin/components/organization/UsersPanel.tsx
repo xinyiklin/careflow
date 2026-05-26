@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import useAdminListControls, {
-  compareBoolean,
   compareText,
 } from "../../hooks/shared/useAdminListControls";
 import useOrganizationPeople from "../../hooks/organization/useOrganizationPeople";
@@ -52,13 +51,20 @@ const USER_FILTERS = [
 const USER_SORT_OPTIONS = [
   {
     key: "name",
-    label: "User",
+    label: "Name",
     compare: (a, b) => compareText(getPersonName(a), getPersonName(b)),
   },
   {
     key: "username",
     label: "Username",
     compare: (a, b) => compareText(a.username, b.username),
+  },
+  {
+    key: "email",
+    label: "Email",
+    compare: (a, b) =>
+      compareText(a.email, b.email) ||
+      compareText(getPersonName(a), getPersonName(b)),
   },
   {
     key: "role",
@@ -68,10 +74,10 @@ const USER_SORT_OPTIONS = [
       compareText(getPersonName(a), getPersonName(b)),
   },
   {
-    key: "active",
-    label: "Active first",
+    key: "recent",
+    label: "Recently added",
     compare: (a, b) =>
-      compareBoolean(a.is_active !== false, b.is_active !== false) ||
+      compareText(b.created_at as string, a.created_at as string) ||
       compareText(getPersonName(a), getPersonName(b)),
   },
 ] satisfies AdminSortOption<AdminOrganizationUser>[];
@@ -123,36 +129,7 @@ export default function UsersPanel() {
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       )}
 
-      <AdminTableCard
-        description="Manage organization users and their access roles."
-        savingLabel={saving ? "Saving..." : ""}
-        actions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => reload()}
-              disabled={loading || saving}
-            >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              disabled={saving}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New User
-            </Button>
-          </>
-        }
-      >
+      <AdminTableCard>
         <AdminListToolbar
           savingLabel={saving ? "Saving..." : ""}
           filters={filterOptions}
@@ -161,6 +138,27 @@ export default function UsersPanel() {
           sortOptions={USER_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                disabled={saving}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
         />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -179,16 +177,7 @@ export default function UsersPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    Loading users...
-                  </td>
-                </tr>
-              ) : loadError ? (
+              {loading ? null : loadError ? (
                 <AdminTableLoadError
                   colSpan={5}
                   message="Couldn't load users."

@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 
-import { Badge, Input } from "../../../../shared/components/ui";
+import { Input, SegmentedControl } from "../../../../shared/components/ui";
 import { normalizeSecurityPermissions } from "../../constants/securityPermissions";
 import { AdminFormModal } from "../shared/AdminFormModal";
 import {
-  AccessMetric,
-  CompactField,
   SecurityOverrideBoard,
   getInitialsFromName,
-  getOverrideStats,
-  getPermissionSummary,
 } from "./StaffModalSections";
 
 import type { ChangeEvent, FormEvent } from "react";
-import type { AdminSavePayload, AdminStaff, AdminStaffRole } from "../../types";
+import type {
+  AdminOrganizationFeeSchedule,
+  AdminSavePayload,
+  AdminStaff,
+  AdminStaffRole,
+} from "../../types";
 import type { UserProfile } from "../../../../shared/types/domain";
 import type { SecurityPermissionKey } from "../../constants/securityPermissions";
 
@@ -27,7 +28,16 @@ const DEFAULT_FORM = {
   user_id: "",
   role_id: "",
   title_id: "",
+  fee_schedule_id: "",
   is_active: true,
+  npi: "",
+  dea_number: "",
+  state_license_number: "",
+  state_license_state: "",
+  state_license_expiration: "",
+  dea_expiration: "",
+  specialty: "",
+  taxonomy_code: "",
   security_overrides: {} as Partial<Record<SecurityPermissionKey, boolean>>,
 };
 
@@ -55,6 +65,7 @@ export default function StaffModal({
   roles = [],
   titles = [],
   users = [],
+  feeSchedules = [],
   saving = false,
   onClose,
   onSubmit,
@@ -67,6 +78,7 @@ export default function StaffModal({
   roles?: AdminStaffRole[];
   titles?: AdminSelectOption[];
   users?: UserProfile[];
+  feeSchedules?: AdminOrganizationFeeSchedule[];
   saving?: boolean;
   onClose: () => void;
   onSubmit: (values: AdminSavePayload["values"]) => Promise<void> | void;
@@ -74,18 +86,29 @@ export default function StaffModal({
   recordLabel?: string;
 }) {
   const [formData, setFormData] = useState(DEFAULT_FORM);
+  const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
 
   useEffect(() => {
     if (!isOpen) return;
+    setActiveTab("profile"); // reset to first tab when opening
     if (initialValues) {
       setFormData({
         user_id: initialValues.user?.id ? String(initialValues.user.id) : "",
         role_id: String(getStaffRoleId(initialValues.role) || ""),
         title_id: String(getStaffTitleId(initialValues.title) || ""),
+        fee_schedule_id: String(initialValues.fee_schedule || ""),
         is_active:
           typeof initialValues.is_active === "boolean"
             ? initialValues.is_active
             : true,
+        npi: initialValues.npi || "",
+        dea_number: initialValues.dea_number || "",
+        state_license_number: initialValues.state_license_number || "",
+        state_license_state: initialValues.state_license_state || "",
+        state_license_expiration: initialValues.state_license_expiration || "",
+        dea_expiration: initialValues.dea_expiration || "",
+        specialty: initialValues.specialty || "",
+        taxonomy_code: initialValues.taxonomy_code || "",
         security_overrides: initialValues.security_overrides || {},
       });
     } else {
@@ -128,7 +151,18 @@ export default function StaffModal({
       user: formData.user_id ? Number(formData.user_id) : "",
       role: formData.role_id ? Number(formData.role_id) : "",
       title: formData.title_id ? Number(formData.title_id) : null,
+      fee_schedule: formData.fee_schedule_id
+        ? Number(formData.fee_schedule_id)
+        : null,
       is_active: formData.is_active,
+      npi: formData.npi || "",
+      dea_number: formData.dea_number || "",
+      state_license_number: formData.state_license_number || "",
+      state_license_state: formData.state_license_state || "",
+      state_license_expiration: formData.state_license_expiration || null,
+      dea_expiration: formData.dea_expiration || null,
+      specialty: formData.specialty || "",
+      taxonomy_code: formData.taxonomy_code || "",
       security_overrides: formData.security_overrides,
     });
   };
@@ -144,7 +178,6 @@ export default function StaffModal({
     ...inheritedPermissions,
     ...(formData.security_overrides || {}),
   };
-  const permissionSummary = getPermissionSummary(effectivePermissions);
   const selectedUser =
     users.find((user) => String(user.id) === String(formData.user_id)) ||
     initialValues?.user;
@@ -154,187 +187,313 @@ export default function StaffModal({
   const title = titles.find(
     (candidate) => String(candidate.id) === String(formData.title_id)
   );
-  const overrideStats = getOverrideStats(formData.security_overrides);
+  const isPhysicianRole =
+    (role?.code || "").toLowerCase() === "physician" ||
+    (role?.name || "").toLowerCase() === "physician";
+
+  const modalTitle = isEditMode ? (
+    <div className="flex flex-wrap items-center justify-between gap-4 mr-6">
+      <div className="flex items-center gap-3">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-cf-border bg-cf-surface-soft text-xs font-bold text-cf-text shadow-sm">
+          {getInitialsFromName(
+            getUserDisplayName(selectedUser),
+            recordLabel.slice(0, 2)
+          )}
+        </span>
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-cf-text truncate leading-snug">
+            {getUserDisplayName(selectedUser)}
+          </div>
+          <div className="mt-0.5 text-xs text-cf-text-muted truncate font-normal">
+            {role?.name || "No role"} {title?.name ? `· ${title.name}` : ""}
+          </div>
+        </div>
+      </div>
+
+      <label className="flex shrink-0 items-center gap-1.5 rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted hover:bg-cf-surface-soft cursor-pointer transition select-none">
+        <input
+          type="checkbox"
+          name="is_active"
+          form="staff-form"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        Active
+      </label>
+    </div>
+  ) : (
+    <div className="flex items-center justify-between gap-4 mr-6">
+      <span className="text-sm font-semibold text-cf-text">
+        New {recordLabel}
+      </span>
+      <label className="flex shrink-0 items-center gap-1.5 rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted hover:bg-cf-surface-soft cursor-pointer transition select-none">
+        <input
+          type="checkbox"
+          name="is_active"
+          form="staff-form"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        Active
+      </label>
+    </div>
+  );
 
   return (
     <AdminFormModal
       isOpen={isOpen}
       onClose={onClose}
-      scope="Facility admin"
-      title={isEditMode ? `Edit ${recordLabel}` : `New ${recordLabel}`}
-      maxWidth="4xl"
+      scope="Facility Admin"
+      title={modalTitle}
+      maxWidth={isEditMode ? "2xl" : "xl"}
       formId="staff-form"
       saving={saving}
       deleteLabel={isEditMode && onDelete ? `Remove ${recordLabel}` : ""}
       onDelete={isEditMode ? onDelete : undefined}
     >
-      <form
-        id="staff-form"
-        onSubmit={handleSubmit}
-        className="grid gap-3 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]"
-      >
-        <section className="space-y-3">
-          <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-cf-border bg-cf-surface-soft text-sm font-bold text-cf-text">
-                {getInitialsFromName(
-                  getUserDisplayName(selectedUser),
-                  recordLabel.slice(0, 2)
-                )}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-base font-semibold text-cf-text">
-                  {getUserDisplayName(selectedUser)}
+      <form id="staff-form" onSubmit={handleSubmit}>
+        <div className="space-y-6">
+          {/* Tabs Selector for Edit Mode */}
+          {isEditMode && (
+            <SegmentedControl
+              options={[
+                { value: "profile", label: "Profile & Credentials" },
+                { value: "security", label: "Security Overrides" },
+              ]}
+              value={activeTab}
+              onChange={(val) => setActiveTab(val as "profile" | "security")}
+              size="xs"
+              className="w-full"
+            />
+          )}
+
+          {/* Profile & Credentials Content */}
+          {(!isEditMode || activeTab === "profile") && (
+            <div className="space-y-6">
+              {/* Membership details */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+                  Membership Details
+                </h3>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                      User Account
+                    </span>
+                    <Input
+                      as="select"
+                      name="user_id"
+                      value={formData.user_id}
+                      onChange={handleChange}
+                      required
+                      disabled={isEditMode}
+                    >
+                      <option value="">Select user</option>
+                      {selectedUser && !hasSelectedUserOption ? (
+                        <option value={selectedUser.id}>
+                          {getUserDisplayName(selectedUser)}
+                        </option>
+                      ) : null}
+                      {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.first_name || user.last_name
+                            ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
+                            : user.username}
+                        </option>
+                      ))}
+                    </Input>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                      Role
+                    </span>
+                    <Input
+                      as="select"
+                      name="role_id"
+                      value={formData.role_id}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select role</option>
+                      {roles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </Input>
+                  </div>
                 </div>
-                <div className="mt-0.5 truncate text-sm text-cf-text-muted">
-                  {role?.name || "No role"} · {title?.name || recordLabel}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                      Title
+                    </span>
+                    <Input
+                      as="select"
+                      name="title_id"
+                      value={formData.title_id}
+                      onChange={handleChange}
+                    >
+                      <option value="">No title</option>
+                      {titles.map((title) => (
+                        <option key={title.id} value={title.id}>
+                          {title.name}
+                        </option>
+                      ))}
+                    </Input>
+                  </div>
+
+                  {feeSchedules.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        Fee Schedule
+                      </span>
+                      <Input
+                        as="select"
+                        name="fee_schedule_id"
+                        value={formData.fee_schedule_id}
+                        onChange={handleChange}
+                      >
+                        <option value="">Facility default</option>
+                        {feeSchedules.map((schedule) => (
+                          <option key={schedule.id} value={schedule.id}>
+                            {schedule.name}
+                          </option>
+                        ))}
+                      </Input>
+                    </div>
+                  )}
                 </div>
               </div>
-              <label className="flex shrink-0 items-center gap-2 rounded-full border border-cf-border bg-cf-page-bg px-2.5 py-1 text-xs font-semibold text-cf-text-muted">
-                <input
-                  type="checkbox"
-                  name="is_active"
-                  checked={formData.is_active}
-                  onChange={handleChange}
-                  className="h-3.5 w-3.5 accent-[var(--color-cf-accent)]"
-                />
-                Active
-              </label>
-            </div>
-          </div>
 
-          <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
-            <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-              Membership
-            </div>
-            <div className="grid gap-3">
-              <CompactField label="User">
-                <Input
-                  as="select"
-                  name="user_id"
-                  value={formData.user_id}
-                  onChange={handleChange}
-                  required
-                  disabled={isEditMode}
-                >
-                  <option value="">Select user</option>
-                  {selectedUser && !hasSelectedUserOption ? (
-                    <option value={selectedUser.id}>
-                      {getUserDisplayName(selectedUser)}
-                    </option>
-                  ) : null}
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.first_name || user.last_name
-                        ? `${user.first_name || ""} ${user.last_name || ""}`.trim()
-                        : user.username}
-                    </option>
-                  ))}
-                </Input>
-              </CompactField>
+              {/* Provider Credentials (Gated by Physician role) */}
+              {isPhysicianRole && (
+                <div className="space-y-4 pt-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+                    Provider Credentials
+                  </h3>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <CompactField label="Role">
-                  <Input
-                    as="select"
-                    name="role_id"
-                    value={formData.role_id}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select role</option>
-                    {roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </Input>
-                </CompactField>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        NPI
+                      </span>
+                      <Input
+                        name="npi"
+                        value={formData.npi}
+                        onChange={handleChange}
+                        maxLength={10}
+                        placeholder="10-digit NPI"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        Specialty
+                      </span>
+                      <Input
+                        name="specialty"
+                        value={formData.specialty}
+                        onChange={handleChange}
+                        placeholder="e.g. Internal Medicine"
+                      />
+                    </div>
+                  </div>
 
-                <CompactField label="Title">
-                  <Input
-                    as="select"
-                    name="title_id"
-                    value={formData.title_id}
-                    onChange={handleChange}
-                  >
-                    <option value="">No title</option>
-                    {titles.map((title) => (
-                      <option key={title.id} value={title.id}>
-                        {title.name}
-                      </option>
-                    ))}
-                  </Input>
-                </CompactField>
-              </div>
-            </div>
-          </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        DEA Number
+                      </span>
+                      <Input
+                        name="dea_number"
+                        value={formData.dea_number}
+                        onChange={handleChange}
+                        placeholder="DEA registration"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        DEA Expiration
+                      </span>
+                      <Input
+                        type="date"
+                        name="dea_expiration"
+                        value={formData.dea_expiration}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
 
-          <div className="rounded-2xl border border-cf-border bg-cf-surface p-3 shadow-[var(--shadow-panel)]">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-                  Access snapshot
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        License Number
+                      </span>
+                      <Input
+                        name="state_license_number"
+                        value={formData.state_license_number}
+                        onChange={handleChange}
+                        placeholder="State license #"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        State
+                      </span>
+                      <Input
+                        name="state_license_state"
+                        value={formData.state_license_state}
+                        onChange={handleChange}
+                        maxLength={2}
+                        placeholder="e.g. NY"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                        Expiration
+                      </span>
+                      <Input
+                        type="date"
+                        name="state_license_expiration"
+                        value={formData.state_license_expiration}
+                        onChange={handleChange}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                      Taxonomy Code
+                    </span>
+                    <Input
+                      name="taxonomy_code"
+                      value={formData.taxonomy_code}
+                      onChange={handleChange}
+                      placeholder="e.g. 207Q00000X"
+                    />
+                  </div>
                 </div>
-                <div className="text-base font-semibold text-cf-text">
-                  {role?.name || "Role required"}
-                </div>
-              </div>
-              <Badge
-                variant={
-                  permissionSummary.highImpact.length ? "warning" : "muted"
-                }
-              >
-                {permissionSummary.highImpact.length} high-impact
-              </Badge>
+              )}
             </div>
+          )}
 
-            <div className="grid grid-cols-3 gap-2">
-              <AccessMetric
-                label="Allowed"
-                value={`${permissionSummary.allowed.length}/${permissionSummary.total}`}
+          {/* Security Overrides Content */}
+          {isEditMode && activeTab === "security" && (
+            <div className="min-h-0">
+              <SecurityOverrideBoard
+                inheritedPermissions={inheritedPermissions}
+                effectivePermissions={effectivePermissions}
+                securityOverrides={formData.security_overrides}
+                onChange={handleSecurityOverrideChange}
               />
-              <AccessMetric label="Custom" value={overrideStats.total} />
-              <AccessMetric label="Blocked" value={overrideStats.blocked} />
             </div>
-
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-cf-border">
-              <div
-                className="h-full rounded-full bg-cf-accent"
-                style={{
-                  width: `${Math.round(
-                    (permissionSummary.allowed.length /
-                      Math.max(permissionSummary.total, 1)) *
-                      100
-                  )}%`,
-                }}
-              />
-            </div>
-
-            {permissionSummary.highImpact.length ? (
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {permissionSummary.highImpact.map((permission) => (
-                  <Badge key={permission.key} variant="outline">
-                    {permission.label}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </section>
-
-        {isEditMode ? (
-          <SecurityOverrideBoard
-            inheritedPermissions={inheritedPermissions}
-            effectivePermissions={effectivePermissions}
-            securityOverrides={formData.security_overrides}
-            onChange={handleSecurityOverrideChange}
-          />
-        ) : (
-          <section className="rounded-2xl border border-dashed border-cf-border bg-cf-surface-soft/45 p-5 text-sm font-medium text-cf-text-muted">
-            Overrides unlock after the member is saved.
-          </section>
-        )}
+          )}
+        </div>
       </form>
     </AdminFormModal>
   );

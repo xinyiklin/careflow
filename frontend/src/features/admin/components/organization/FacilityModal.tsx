@@ -4,15 +4,22 @@ import { AdminFormModal } from "../shared/AdminFormModal";
 import { CompactModalGrid } from "../shared/AdminCompactModal";
 import {
   DEFAULT_OPERATING_DAYS,
-  FacilityDetailsLane,
-  FacilityIdentityLane,
+  FacilityFormPanel,
+  FacilityPreviewPanel,
   OPERATING_DAY_OPTIONS,
 } from "./FacilityModalSections";
 import type { ChangeEvent, FormEvent } from "react";
+import { Input } from "../../../../shared/components/ui";
+import {
+  formatPhoneInput,
+  getPhoneInputDigits,
+} from "../../../../shared/utils/phone";
 import type {
   AdminAddress,
+  AdminCustomOperatingHours,
   AdminFacility,
   AdminFacilityForm,
+  AdminOrganizationFeeSchedule,
   AdminSavePayload,
 } from "../../types";
 
@@ -23,6 +30,7 @@ const DEFAULT_FORM: AdminFacilityForm = {
   operating_start_time: "08:00",
   operating_end_time: "17:00",
   operating_days: DEFAULT_OPERATING_DAYS,
+  custom_operating_hours: null,
   phone_number: "",
   fax_number: "",
   email: "",
@@ -35,6 +43,7 @@ type FacilityModalProps = {
   isOpen: boolean;
   mode?: "create" | "edit";
   initialValues?: AdminFacility | null;
+  feeSchedules?: AdminOrganizationFeeSchedule[];
   saving?: boolean;
   onClose: () => void;
   onSubmit?: (values: AdminSavePayload["values"]) => void | Promise<void>;
@@ -95,11 +104,13 @@ export default function FacilityModal({
   isOpen,
   mode = "create",
   initialValues = null,
+  feeSchedules = [],
   saving = false,
   onClose,
   onSubmit,
 }: FacilityModalProps) {
   const [formData, setFormData] = useState<AdminFacilityForm>(DEFAULT_FORM);
+  const [feeScheduleId, setFeeScheduleId] = useState("");
 
   useEffect(() => {
     if (!isOpen) return;
@@ -117,8 +128,9 @@ export default function FacilityModal({
           "17:00"
         ),
         operating_days: normalizeOperatingDays(initialValues.operating_days),
-        phone_number: initialValues.phone_number || "",
-        fax_number: initialValues.fax_number || "",
+        custom_operating_hours: initialValues.custom_operating_hours || null,
+        phone_number: formatPhoneInput(initialValues.phone_number || ""),
+        fax_number: formatPhoneInput(initialValues.fax_number || ""),
         email: initialValues.email || "",
         notes: initialValues.notes || "",
         is_active:
@@ -127,8 +139,10 @@ export default function FacilityModal({
             : true,
         address: normalizeAddress(initialValues.address),
       });
+      setFeeScheduleId(String(initialValues.fee_schedule || ""));
     } else {
       setFormData({ ...DEFAULT_FORM, address: { ...DEFAULT_FORM.address } });
+      setFeeScheduleId("");
     }
   }, [initialValues, isOpen]);
 
@@ -167,6 +181,15 @@ export default function FacilityModal({
     });
   };
 
+  const handleCustomHoursChange = (
+    customHours: AdminCustomOperatingHours[] | null
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      custom_operating_hours: customHours,
+    }));
+  };
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSubmit?.({
@@ -176,10 +199,12 @@ export default function FacilityModal({
       operating_start_time: formData.operating_start_time,
       operating_end_time: formData.operating_end_time,
       operating_days: normalizeOperatingDays(formData.operating_days),
-      phone_number: formData.phone_number.trim(),
-      fax_number: formData.fax_number.trim(),
+      custom_operating_hours: formData.custom_operating_hours,
+      phone_number: getPhoneInputDigits(formData.phone_number.trim()),
+      fax_number: getPhoneInputDigits(formData.fax_number.trim()),
       email: formData.email.trim(),
       notes: formData.notes.trim(),
+      fee_schedule: feeScheduleId ? Number(feeScheduleId) : null,
       address: formData.address.line_1.trim()
         ? {
             line_1: formData.address.line_1.trim(),
@@ -196,27 +221,58 @@ export default function FacilityModal({
     <AdminFormModal
       isOpen={isOpen}
       onClose={onClose}
-      scope="Organization admin"
-      title={mode === "edit" ? "Edit Facility" : "New Facility"}
+      scope="Organization Admin"
+      title={mode === "edit" ? "Edit Facility Profile" : "Create New Facility"}
       maxWidth="4xl"
       formId="facility-form"
       saving={saving}
+      bodyClassName="bg-cf-surface px-6 py-5 border-t border-b border-cf-border/60 !overflow-hidden flex flex-col md:max-h-[70vh] min-h-0 flex-1"
     >
-      <form id="facility-form" onSubmit={handleSubmit}>
-        <CompactModalGrid>
-          <FacilityIdentityLane
+      <form
+        id="facility-form"
+        onSubmit={handleSubmit}
+        className="py-2 flex-1 flex flex-col min-h-0"
+      >
+        <CompactModalGrid className="flex-1 min-h-0">
+          <FacilityPreviewPanel
             formData={formData}
             initials={getFacilityInitials(formData.name)}
             daysLabel={formatOperatingDays(formData.operating_days)}
-            onChange={handleChange}
-            onDayToggle={handleOperatingDayToggle}
           />
-          <FacilityDetailsLane
-            formData={formData}
-            daysLabel={formatOperatingDays(formData.operating_days)}
-            onChange={handleChange}
-            onAddressChange={handleAddressChange}
-          />
+          <div className="overflow-y-auto pr-2 min-h-0">
+            <FacilityFormPanel
+              formData={formData}
+              onChange={handleChange}
+              onAddressChange={handleAddressChange}
+              onDayToggle={handleOperatingDayToggle}
+              onCustomHoursChange={handleCustomHoursChange}
+              saving={saving}
+            />
+            {feeSchedules.length > 0 ? (
+              <div className="border-t border-cf-border/50 pt-5 mt-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+                    Fee schedule
+                  </div>
+                </div>
+                <Input
+                  as="select"
+                  value={feeScheduleId}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                    setFeeScheduleId(e.target.value)
+                  }
+                  disabled={saving}
+                >
+                  <option value="">Organization default</option>
+                  {feeSchedules.map((schedule) => (
+                    <option key={schedule.id} value={schedule.id}>
+                      {schedule.name}
+                    </option>
+                  ))}
+                </Input>
+              </div>
+            ) : null}
+          </div>
         </CompactModalGrid>
       </form>
     </AdminFormModal>

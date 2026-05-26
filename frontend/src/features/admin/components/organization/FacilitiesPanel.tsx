@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import useAdminListControls, {
   compareBoolean,
   compareText,
 } from "../../hooks/shared/useAdminListControls";
 import useOrganizationFacilities from "../../hooks/organization/useOrganizationFacilities";
+import { fetchOrganizationFeeSchedules } from "../../api/organization/feeSchedule";
 import FacilityModal from "./FacilityModal";
 import {
   AdminInlineNotice,
@@ -44,7 +46,7 @@ const FACILITY_FILTERS = [
 const FACILITY_SORT_OPTIONS = [
   {
     key: "name",
-    label: "Facility",
+    label: "Name",
     compare: (a, b) => compareText(a.name, b.name),
   },
   {
@@ -55,10 +57,11 @@ const FACILITY_SORT_OPTIONS = [
       compareText(a.name, b.name),
   },
   {
-    key: "active",
-    label: "Active first",
+    key: "phone",
+    label: "Phone",
     compare: (a, b) =>
-      compareBoolean(a.is_active !== false, b.is_active !== false) ||
+      compareBoolean(Boolean(a.phone_number), Boolean(b.phone_number)) ||
+      compareText(a.phone_number, b.phone_number) ||
       compareText(a.name, b.name),
   },
 ] satisfies AdminSortOption<AdminFacility>[];
@@ -73,6 +76,13 @@ export default function FacilitiesPanel() {
     reload,
     saveFacility,
   } = useOrganizationFacilities();
+  const schedulesQuery = useQuery({
+    queryKey: ["admin", "organization", "fee-schedule-sheets"],
+    queryFn: fetchOrganizationFeeSchedules,
+  });
+  const feeSchedules = Array.isArray(schedulesQuery.data)
+    ? schedulesQuery.data
+    : [];
   const adminFacilities = facilities as AdminFacility[];
   const {
     activeFilter,
@@ -118,36 +128,7 @@ export default function FacilitiesPanel() {
         <AdminInlineNotice tone="danger">{error}</AdminInlineNotice>
       )}
 
-      <AdminTableCard
-        description="Manage facilities within the organization."
-        savingLabel={saving ? "Saving..." : ""}
-        actions={
-          <>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => reload()}
-              disabled={loading || saving}
-            >
-              <RefreshCw
-                className={["h-3.5 w-3.5", loading ? "animate-spin" : ""].join(
-                  " "
-                )}
-              />
-              Refresh
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleOpenCreate}
-              disabled={saving}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              New Facility
-            </Button>
-          </>
-        }
-      >
+      <AdminTableCard>
         <AdminListToolbar
           savingLabel={saving ? "Saving..." : ""}
           filters={filterOptions}
@@ -156,6 +137,27 @@ export default function FacilitiesPanel() {
           sortOptions={FACILITY_SORT_OPTIONS}
           activeSort={activeSort}
           onSortChange={setActiveSort}
+          actions={
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => reload()}
+                disabled={loading || saving}
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleOpenCreate}
+                disabled={saving}
+              >
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </>
+          }
         />
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -174,16 +176,7 @@ export default function FacilitiesPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    Loading facilities...
-                  </td>
-                </tr>
-              ) : loadError ? (
+              {loading ? null : loadError ? (
                 <AdminTableLoadError
                   colSpan={4}
                   message="Couldn't load facilities."
@@ -279,6 +272,7 @@ export default function FacilitiesPanel() {
         isOpen={isModalOpen}
         mode={editingFacility ? "edit" : "create"}
         initialValues={editingFacility}
+        feeSchedules={feeSchedules}
         saving={saving}
         onClose={handleCloseModal}
         onSubmit={handleSave}

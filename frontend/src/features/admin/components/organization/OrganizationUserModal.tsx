@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
+import { User, Shield, Building2 } from "lucide-react";
 
 import { Input } from "../../../../shared/components/ui";
 import { AdminFormModal } from "../shared/AdminFormModal";
-import {
-  CompactCard,
-  CompactField,
-  CompactMetric,
-  CompactModalGrid,
-  CompactModalLane,
-  CompactPill,
-  CompactRecordHeader,
-  CompactToggle,
-} from "../shared/AdminCompactModal";
+import { CompactModalGrid } from "../shared/AdminCompactModal";
+import useOrganizationFacilities from "../../hooks/organization/useOrganizationFacilities";
+import { UserPreviewPanel } from "./OrganizationUserModalSections";
+
 import type { ChangeEvent, FormEvent } from "react";
 import type {
   AdminOrganizationUser,
@@ -26,12 +21,8 @@ const DEFAULT_FORM: AdminOrganizationUserForm = {
   last_name: "",
   role: "member",
   is_active: true,
-};
-
-const ROLE_LABELS: Record<AdminOrganizationUserForm["role"], string> = {
-  owner: "Owner",
-  admin: "Admin",
-  member: "Member",
+  facility_ids: [],
+  admin_facility_ids: [],
 };
 
 type OrganizationUserModalProps = {
@@ -56,7 +47,7 @@ function getDisplayName(formData: AdminOrganizationUserForm) {
     .filter(Boolean)
     .join(" ")
     .trim();
-  return fullName || formData.username || "New user";
+  return fullName || formData.username || "New User";
 }
 
 export default function OrganizationUserModal({
@@ -69,6 +60,9 @@ export default function OrganizationUserModal({
 }: OrganizationUserModalProps) {
   const [formData, setFormData] =
     useState<AdminOrganizationUserForm>(DEFAULT_FORM);
+
+  const { facilities = [], loading: loadingFacilities } =
+    useOrganizationFacilities({ enabled: isOpen });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -83,6 +77,8 @@ export default function OrganizationUserModal({
           typeof initialValues.is_active === "boolean"
             ? initialValues.is_active
             : true,
+        facility_ids: initialValues.facility_ids || [],
+        admin_facility_ids: initialValues.admin_facility_ids || [],
       });
     } else {
       setFormData(DEFAULT_FORM);
@@ -100,6 +96,48 @@ export default function OrganizationUserModal({
     }));
   };
 
+  const handleFacilityAccessChange = (facilityId: number, checked: boolean) => {
+    setFormData((prev) => {
+      const nextIds = checked
+        ? [...(prev.facility_ids || []), facilityId].filter(
+            (value, index, self) => self.indexOf(value) === index
+          )
+        : (prev.facility_ids || []).filter((id) => id !== facilityId);
+
+      const nextAdminIds = checked
+        ? prev.admin_facility_ids || []
+        : (prev.admin_facility_ids || []).filter((id) => id !== facilityId);
+
+      return {
+        ...prev,
+        facility_ids: nextIds,
+        admin_facility_ids: nextAdminIds,
+      };
+    });
+  };
+
+  const handleFacilityAdminChange = (facilityId: number, checked: boolean) => {
+    setFormData((prev) => {
+      const nextAdminIds = checked
+        ? [...(prev.admin_facility_ids || []), facilityId].filter(
+            (value, index, self) => self.indexOf(value) === index
+          )
+        : (prev.admin_facility_ids || []).filter((id) => id !== facilityId);
+
+      const nextIds = checked
+        ? [...(prev.facility_ids || []), facilityId].filter(
+            (value, index, self) => self.indexOf(value) === index
+          )
+        : prev.facility_ids || [];
+
+      return {
+        ...prev,
+        facility_ids: nextIds,
+        admin_facility_ids: nextAdminIds,
+      };
+    });
+  };
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const values =
@@ -110,105 +148,231 @@ export default function OrganizationUserModal({
             last_name: formData.last_name,
             role: formData.role,
             is_active: formData.is_active,
+            facility_ids: formData.facility_ids,
+            admin_facility_ids: formData.admin_facility_ids,
           }
         : formData;
     onSubmit?.(values);
   };
 
+  const initials =
+    getDisplayName(formData)
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((name) => name.charAt(0))
+      .join("")
+      .toUpperCase() || "U";
+
+  const modalTitle = (
+    <div className="flex items-center justify-between gap-4 mr-6">
+      <span className="text-sm font-semibold text-cf-text">
+        {mode === "edit" ? "Edit User Profile" : "Create New User"}
+      </span>
+      <label className="flex shrink-0 items-center gap-1.5 rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted hover:bg-cf-surface-soft cursor-pointer transition select-none">
+        <input
+          type="checkbox"
+          name="is_active"
+          form="person-form"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        Active
+      </label>
+    </div>
+  );
+
   return (
     <AdminFormModal
       isOpen={isOpen}
       onClose={onClose}
-      scope="Organization admin"
-      title={mode === "edit" ? "Edit User" : "New User"}
-      maxWidth="2xl"
+      scope="Organization Admin"
+      title={modalTitle}
+      maxWidth="4xl"
       formId="person-form"
       saving={saving}
+      bodyClassName="bg-cf-surface px-6 py-5 border-t border-b border-cf-border/60 !overflow-hidden flex flex-col md:max-h-[70vh] min-h-0 flex-1"
     >
-      <form id="person-form" onSubmit={handleSubmit}>
-        <CompactModalGrid>
-          <CompactModalLane>
-            <CompactCard>
-              <CompactRecordHeader
-                initials={getDisplayName(formData).slice(0, 2).toUpperCase()}
-                title={getDisplayName(formData)}
-                meta={`${ROLE_LABELS[formData.role]} · ${formData.email || "No email"}`}
-                action={
-                  <CompactToggle
-                    label="Active"
-                    name="is_active"
-                    checked={formData.is_active}
-                    onChange={handleChange}
-                  />
-                }
-              />
-            </CompactCard>
+      <form
+        id="person-form"
+        onSubmit={handleSubmit}
+        className="py-2 flex-1 flex flex-col min-h-0"
+      >
+        <CompactModalGrid className="flex-1 min-h-0">
+          <UserPreviewPanel
+            formData={formData}
+            initials={initials}
+            facilities={facilities}
+            loadingFacilities={loadingFacilities}
+          />
+          <div className="overflow-y-auto pr-2 min-h-0 space-y-6">
+            {/* Identity Details Group */}
+            <div className="space-y-4">
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+                <User className="h-4 w-4 text-cf-accent" />
+                Identity Details
+              </h3>
 
-            <CompactCard eyebrow="Identity">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <CompactField label="Username">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                    Username
+                  </span>
                   <Input
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
                     required
                     disabled={mode === "edit" || saving}
+                    placeholder="e.g. jsmith"
                   />
-                </CompactField>
-                <CompactField label="Email">
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                    Email Address
+                  </span>
                   <Input
                     name="email"
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
                     required
+                    placeholder="e.g. john@example.com"
                   />
-                </CompactField>
-                <CompactField label="First name">
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                    First Name
+                  </span>
                   <Input
                     name="first_name"
                     value={formData.first_name}
                     onChange={handleChange}
+                    placeholder="John"
                   />
-                </CompactField>
-                <CompactField label="Last name">
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                    Last Name
+                  </span>
                   <Input
                     name="last_name"
                     value={formData.last_name}
                     onChange={handleChange}
+                    placeholder="Smith"
                   />
-                </CompactField>
+                </label>
               </div>
-            </CompactCard>
-          </CompactModalLane>
+            </div>
 
-          <CompactCard eyebrow="Access" title={ROLE_LABELS[formData.role]}>
-            <CompactField label="Role">
-              <Input
-                as="select"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-              >
-                <option value="owner">Owner</option>
-                <option value="admin">Admin</option>
-                <option value="member">Member</option>
-              </Input>
-            </CompactField>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <CompactMetric
-                label="Account"
-                value={formData.is_active ? "On" : "Off"}
-              />
-              <CompactMetric label="Scope" value="Org" />
+            {/* Access Permissions Group */}
+            <div className="border-t border-cf-border/60 pt-5 space-y-4">
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+                <Shield className="h-4 w-4 text-cf-accent" />
+                Access & Permissions
+              </h3>
+
+              <div className="grid gap-4">
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                    Organization Role
+                  </span>
+                  <Input
+                    as="select"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                  >
+                    <option value="owner">Owner</option>
+                    <option value="admin">Admin</option>
+                    <option value="member">Member</option>
+                  </Input>
+                </label>
+              </div>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <CompactPill tone={formData.is_active ? "success" : "muted"}>
-                {formData.is_active ? "Active" : "Inactive"}
-              </CompactPill>
-              <CompactPill>{ROLE_LABELS[formData.role]}</CompactPill>
+
+            {/* Facility Access and Admin Mapping */}
+            <div className="border-t border-cf-border/60 pt-5 space-y-4">
+              <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+                <Building2 className="h-4 w-4 text-cf-accent" />
+                Facility Access & Administration
+              </h3>
+
+              {loadingFacilities ? (
+                <div className="h-20" />
+              ) : facilities.length === 0 ? (
+                <p className="text-xs text-cf-text-muted">
+                  No facilities configured in this organization.
+                </p>
+              ) : (
+                <div className="rounded-xl border border-cf-border bg-cf-surface overflow-hidden shadow-sm">
+                  <table className="min-w-full text-xs divide-y divide-cf-border">
+                    <thead className="bg-cf-surface-soft/60 font-semibold text-cf-text-subtle uppercase tracking-wider">
+                      <tr>
+                        <th className="px-4 py-2.5 text-left">Facility Name</th>
+                        <th className="px-4 py-2.5 text-center w-24">Access</th>
+                        <th className="px-4 py-2.5 text-center w-24">
+                          Facility Admin
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-cf-border text-cf-text bg-cf-surface">
+                      {facilities.map((facility) => {
+                        const hasAccess = Boolean(
+                          formData.facility_ids?.includes(Number(facility.id))
+                        );
+                        const isAdmin = Boolean(
+                          formData.admin_facility_ids?.includes(
+                            Number(facility.id)
+                          )
+                        );
+
+                        return (
+                          <tr
+                            key={facility.id}
+                            className="hover:bg-cf-surface-soft/30"
+                          >
+                            <td className="px-4 py-3 font-medium text-cf-text">
+                              {facility.name}
+                            </td>
+                            <td className="px-4 py-3 text-center align-middle">
+                              <input
+                                type="checkbox"
+                                checked={hasAccess}
+                                onChange={(e) =>
+                                  handleFacilityAccessChange(
+                                    Number(facility.id),
+                                    e.target.checked
+                                  )
+                                }
+                                className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+                              />
+                            </td>
+                            <td className="px-4 py-3 text-center align-middle">
+                              <input
+                                type="checkbox"
+                                checked={isAdmin}
+                                onChange={(e) =>
+                                  handleFacilityAdminChange(
+                                    Number(facility.id),
+                                    e.target.checked
+                                  )
+                                }
+                                className="h-3.5 w-3.5 accent-[var(--color-cf-accent)] cursor-pointer"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          </CompactCard>
+          </div>
         </CompactModalGrid>
       </form>
     </AdminFormModal>
