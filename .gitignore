@@ -49,6 +49,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Generated API types (regenerate with `npm run generate`)
+frontend/src/shared/api/schema.yaml
+frontend/src/shared/api/generated.ts
+
 # Test / coverage reports
 coverage/
 frontend/coverage/
@@ -66,3 +70,4 @@ Thumbs.db
 # Postman local workspace/export files
 .postman/
 postman/
+.claude/

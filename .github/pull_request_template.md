@@ -1,16 +1,9 @@
 <!--
-Solo project template: keep this concise, but include enough context for
-future self-review and portfolio/code-history clarity.
+Solo project template: keep this concise, but include enough context for future
+self-review and portfolio/code-history clarity.
 
-Title format:
-- Uppercase first letter
-- Verb first
-- No punctuation
-
-Examples:
-- Harden auth and document workflows
-- Split patient modal registration sections
-- Fix schedule column scroll behavior
+Before drafting PR copy or choosing a PR title, check
+docs/engineering/git-workflow.md.
 -->
 
 ## Summary

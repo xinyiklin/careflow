@@ -8,17 +8,26 @@ checks, safe patient-data handling, and versioned `/v1/` API behavior.
 
 Use the current backend layout:
 
+- `allergies/`: patient allergy and adverse reaction records.
 - `appointments/`: scheduling, appointment behavior, edit sessions, activity.
+- `audit/`: audit-style event records.
+- `billing/`: encounter-linked superbills, fee schedules, and CPT catalog.
+- `clinical/`: encounters and progress note charting.
 - `facilities/`: facilities, staff, resources, roles, permissions, operating
   hours, and appointment configuration.
+- `insurance/`: insurance carriers and patient policies.
+- `medications/`: patient medication records.
 - `organizations/`: organization profile, memberships, facilities, and
   organization-level preferences.
 - `patients/`: demographics, search, Patient Hub data, phones, emergency
   contacts, care team, pharmacies, and documents.
-- `insurance/`: insurance carriers and patient policies.
-- `users/`: auth, memberships, current-user behavior, and preferences.
-- `audit/`: audit-style event records.
 - `shared/`: cross-domain models, serializers, and management utilities.
+- `users/`: auth, memberships, current-user behavior, and preferences.
+
+Patient-scoped apps (`allergies`, `clinical`, `insurance`, `medications`) each
+own their own models, serializers, and views for clean domain isolation. On the
+frontend these features live under `features/patients/` because their UI is
+accessed within the Patient Hub context.
 
 When a workflow grows, split it into serializers, viewsets, services, storage
 helpers, or utilities instead of packing business logic into one large view.
