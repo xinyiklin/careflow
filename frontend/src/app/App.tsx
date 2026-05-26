@@ -14,17 +14,12 @@ function App() {
   const location = useLocation();
   const [isRoutePreloading, setIsRoutePreloading] = useState(true);
   const [isShellReady, setIsShellReady] = useState(false);
-  const [isRouteReady, setIsRouteReady] = useState(false);
+  const [, setIsRouteReady] = useState(false);
   const hasCompletedInitialPreloadRef = useRef(false);
   const hasCompletedInitialBootRef = useRef(false);
   const canRenderWorkspace = !!user && !!facility && !!selectedFacilityId;
-  const shouldWaitForRouteReady =
-    canRenderWorkspace && !hasCompletedInitialBootRef.current;
   const bootLoading =
-    authLoading ||
-    isRoutePreloading ||
-    (canRenderWorkspace && !isShellReady) ||
-    (shouldWaitForRouteReady && !isRouteReady);
+    authLoading || isRoutePreloading || (canRenderWorkspace && !isShellReady);
   const showBootLoading = useMinimumLoading(bootLoading);
 
   useEffect(() => {
@@ -59,22 +54,24 @@ function App() {
     hasCompletedInitialBootRef.current = true;
   }, [canRenderWorkspace, showBootLoading]);
 
-  if (!user && !authLoading && !showBootLoading) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!bootLoading) {
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    }
 
-  if (!canRenderWorkspace && !showBootLoading) {
-    return (
-      <div className="flex h-[100dvh] items-center justify-center bg-cf-page-bg px-4">
-        <div className="w-full max-w-lg rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-          No facility is selected or available for this account.
+    if (!canRenderWorkspace) {
+      return (
+        <div className="flex h-[100dvh] items-center justify-center bg-cf-page-bg px-4">
+          <div className="w-full max-w-lg rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
+            No facility is selected or available for this account.
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (
-    <div className="relative h-[100dvh] w-[100vw] overflow-hidden">
+    <div className="relative h-[100dvh] w-[100vw] overflow-hidden bg-cf-page-bg">
       {showBootLoading ? (
         <div className="fixed inset-0 z-[100]">
           <LoadingScreen
@@ -85,12 +82,18 @@ function App() {
       ) : null}
 
       {canRenderWorkspace ? (
-        <BootReadinessProvider
-          setShellReady={setIsShellReady}
-          setRouteReady={setIsRouteReady}
+        <div
+          className={
+            bootLoading || showBootLoading ? "hidden" : "h-full w-full"
+          }
         >
-          <Outlet />
-        </BootReadinessProvider>
+          <BootReadinessProvider
+            setShellReady={setIsShellReady}
+            setRouteReady={setIsRouteReady}
+          >
+            <Outlet />
+          </BootReadinessProvider>
+        </div>
       ) : null}
     </div>
   );

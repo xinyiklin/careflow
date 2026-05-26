@@ -1,23 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 
-import AppNavbar from "../shared/components/AppNavbar";
-import AppSidebar from "../shared/components/AppSidebar";
+import AppNavbar from "./components/AppNavbar";
+import AppSidebar from "./components/AppSidebar";
 import QuickActionsPalette from "../shared/components/QuickActionsPalette";
 import PersonalNotesModal from "../shared/components/PersonalNotesModal";
 import UserPreferencesModal from "../shared/components/UserPreferencesModal";
 import useFacilityConfig from "../features/facilities/hooks/useFacilityConfig";
 import useFacility from "../features/facilities/hooks/useFacility";
 import useAdminPermissions from "../features/admin/hooks/shared/useAdminPermissions";
+import { AppointmentFlowProvider } from "../features/appointments/AppointmentFlowProvider";
 import {
   PatientFlowProvider,
   usePatientFlowContext,
 } from "../features/patients/PatientFlowProvider";
 import { useAuth } from "../features/auth/AuthProvider";
 
-import { DEMO_MODE } from "../shared/config/appConfig";
-import { useUserPreferences } from "../shared/context/UserPreferencesProvider";
+import { useUserPreferences } from "./context/UserPreferencesProvider";
 import { useTheme } from "../shared/context/ThemeProvider";
 import { updateUserPreferences } from "../features/auth/api/users";
 import {
@@ -85,7 +84,6 @@ function AppShellLayout({
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
-  const [isDemoBadgeDocked, setIsDemoBadgeDocked] = useState(false);
   const { recentPatients, openPatientSearch, openRecentPatient, patientFlow } =
     usePatientFlowContext();
   const {
@@ -116,12 +114,6 @@ function AppShellLayout({
     setIsSidebarCollapsed((currentValue: boolean) => !currentValue);
   }, [setIsSidebarCollapsed]);
 
-  const handleToggleDemoBadge = useCallback(() => {
-    updatePreferences((current) => ({
-      showDemoBadge: !current.showDemoBadge,
-    }));
-  }, [updatePreferences]);
-
   const handleToggleTheme = useCallback(() => {
     const nextTheme = theme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
@@ -143,17 +135,14 @@ function AppShellLayout({
         onSetScheduleView: (view) =>
           dispatchScheduleQuickAction(`view:${view}`),
         onShowScheduleToday: () => dispatchScheduleQuickAction("today"),
-        onToggleDemoBadge: handleToggleDemoBadge,
         onToggleSidebar: handleToggleSidebar,
         onToggleTheme: handleToggleTheme,
         preferences,
-        showDemoActions: DEMO_MODE,
       }),
     [
       canAccessFacilityAdmin,
       canAccessOrganizationAdmin,
       dispatchScheduleQuickAction,
-      handleToggleDemoBadge,
       handleToggleSidebar,
       handleToggleTheme,
       navigate,
@@ -253,59 +242,6 @@ function AppShellLayout({
 
   return (
     <div className="cf-app-shell relative flex h-full w-full overflow-hidden bg-cf-page-bg">
-      {DEMO_MODE && preferences.showDemoBadge && (
-        <div className="fixed bottom-5 right-0 z-40 sm:bottom-6">
-          <button
-            type="button"
-            onClick={() => setIsDemoBadgeDocked((prev) => !prev)}
-            aria-label={
-              isDemoBadgeDocked
-                ? "Show demo mode badge"
-                : "Hide demo mode badge"
-            }
-            title={
-              isDemoBadgeDocked
-                ? "Show demo mode badge"
-                : "Hide demo mode badge"
-            }
-            className={[
-              "group flex items-center gap-3 rounded-l-2xl border border-r-0 border-cf-border bg-cf-surface/92 px-3 py-3 text-cf-text shadow-[var(--shadow-panel-lg)] backdrop-blur-md transition-transform duration-200 hover:bg-cf-surface",
-              isDemoBadgeDocked
-                ? "translate-x-[calc(100%-3.5rem)]"
-                : "translate-x-0",
-            ].join(" ")}
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface-muted text-cf-text-subtle">
-              <Sparkles className="h-4.5 w-4.5" />
-            </div>
-
-            <div
-              className={[
-                "min-w-0 text-left transition-opacity duration-150",
-                isDemoBadgeDocked
-                  ? "pointer-events-none opacity-0"
-                  : "opacity-100",
-              ].join(" ")}
-            >
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-                Environment
-              </div>
-              <div className="text-sm font-semibold tracking-tight text-cf-text">
-                Demo Mode
-              </div>
-            </div>
-
-            <div className="flex h-10 w-7 shrink-0 items-center justify-center text-cf-text-subtle transition group-hover:text-cf-text">
-              {isDemoBadgeDocked ? (
-                <ChevronLeft className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </div>
-          </button>
-        </div>
-      )}
-
       <AppSidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={handleToggleSidebar}
@@ -321,8 +257,8 @@ function AppShellLayout({
           onOpenRecentPatient={openRecentPatient}
         />
 
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 overflow-hidden">
+        <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-0 pb-4 sm:px-5 sm:pb-5 lg:px-6 lg:pb-6 xl:px-7 xl:pb-7">
+          <div className="cf-route-frame min-h-0 flex-1 overflow-hidden">
             <Outlet key={location.pathname} />
           </div>
         </main>
@@ -344,10 +280,8 @@ function AppShellLayout({
           dispatchScheduleQuickAction(`view:${view}`)
         }
         onShowScheduleToday={() => dispatchScheduleQuickAction("today")}
-        onToggleDemoBadge={handleToggleDemoBadge}
         onToggleSidebar={handleToggleSidebar}
         onToggleTheme={handleToggleTheme}
-        showDemoActions={DEMO_MODE}
       />
 
       <PersonalNotesModal
@@ -404,10 +338,12 @@ export default function AppShell() {
         pharmacies={pharmacies}
         onSelectPatient={null}
       >
-        <AppShellLayout
-          isSidebarCollapsed={isSidebarCollapsed}
-          setIsSidebarCollapsed={setIsSidebarCollapsed}
-        />
+        <AppointmentFlowProvider>
+          <AppShellLayout
+            isSidebarCollapsed={isSidebarCollapsed}
+            setIsSidebarCollapsed={setIsSidebarCollapsed}
+          />
+        </AppointmentFlowProvider>
       </PatientFlowProvider>
     </div>
   );

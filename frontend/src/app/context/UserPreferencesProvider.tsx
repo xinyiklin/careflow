@@ -14,14 +14,14 @@ import {
   buildQuickActionAssignmentsFromLegacy,
   DEFAULT_QUICK_ACTION_ASSIGNMENTS,
   sanitizeQuickActionAssignments,
-} from "../constants/quickActions";
+} from "../../shared/constants/quickActions";
 import {
   DEFAULT_APPOINTMENT_BLOCK_DISPLAY,
   sanitizeAppointmentBlockDisplay,
-} from "../constants/appointmentBlockDisplay";
+} from "../../shared/constants/appointmentBlockDisplay";
 
 import type { ReactNode } from "react";
-import type { UserPreferences, UserProfile } from "../types/domain";
+import type { UserPreferences, UserProfile } from "../../shared/types/domain";
 
 type UserPreferencesContextValue = {
   preferences: UserPreferences;
@@ -58,6 +58,9 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   personalNotes: "",
   showDemoBadge: true,
   quickActionAssignments: DEFAULT_QUICK_ACTION_ASSIGNMENTS,
+  showScheduleHeatmap: true,
+  scheduleHeatmapMode: "auto",
+  scheduleHeatmapDailyTarget: 20,
 };
 
 function isRawPreferences(value: unknown): value is RawPreferences {
@@ -181,6 +184,19 @@ function sanitizePreferences(value: unknown): UserPreferences {
     quickActionAssignments: nextQuickActionAssignments.length
       ? nextQuickActionAssignments
       : DEFAULT_USER_PREFERENCES.quickActionAssignments,
+    showScheduleHeatmap:
+      typeof nextPreferences.showScheduleHeatmap === "boolean"
+        ? nextPreferences.showScheduleHeatmap
+        : DEFAULT_USER_PREFERENCES.showScheduleHeatmap,
+    scheduleHeatmapMode:
+      nextPreferences.scheduleHeatmapMode === "target"
+        ? "target"
+        : DEFAULT_USER_PREFERENCES.scheduleHeatmapMode,
+    scheduleHeatmapDailyTarget:
+      typeof nextPreferences.scheduleHeatmapDailyTarget === "number" &&
+      nextPreferences.scheduleHeatmapDailyTarget > 0
+        ? Math.round(nextPreferences.scheduleHeatmapDailyTarget)
+        : DEFAULT_USER_PREFERENCES.scheduleHeatmapDailyTarget,
   };
 }
 
@@ -207,10 +223,31 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const { user, setUser } = useAuth();
   const userId = user?.id;
   const userPreferences = user?.preferences;
-  const [preferences, setPreferences] = useState(DEFAULT_USER_PREFERENCES);
-  const [isHydrated, setIsHydrated] = useState(false);
-  const hasHydratedRef = useRef(false);
-  const lastSavedPreferencesRef = useRef("");
+  const [preferences, setPreferences] = useState(() => {
+    if (!user) {
+      return DEFAULT_USER_PREFERENCES;
+    }
+    const serverPreferences = sanitizePreferences(userPreferences);
+    const hasServerPreferences =
+      userPreferences &&
+      typeof userPreferences === "object" &&
+      !Array.isArray(userPreferences) &&
+      Object.keys(userPreferences).length > 0;
+    const legacyPreferences = hasServerPreferences
+      ? null
+      : loadLegacyPreferences(user);
+    return normalizeLastFacilityForUser(
+      legacyPreferences || serverPreferences,
+      user
+    );
+  });
+  const [isHydrated, setIsHydrated] = useState(() => !!userId);
+  const hasHydratedRef = useRef(!!userId);
+  const lastSavedPreferencesRef = useRef(
+    userPreferences && typeof userPreferences === "object"
+      ? JSON.stringify(sanitizePreferences(userPreferences))
+      : ""
+  );
   const saveRequestIdRef = useRef(0);
 
   useEffect(() => {

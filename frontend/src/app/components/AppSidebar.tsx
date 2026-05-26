@@ -1,14 +1,15 @@
 import { useLocation, useNavigate } from "react-router-dom";
 
 import useAdminPermissions from "../../features/admin/hooks/shared/useAdminPermissions";
-import { APP_NAME } from "../constants/app";
+import useFacility from "../../features/facilities/hooks/useFacility";
+import { APP_NAME } from "../../shared/constants/app";
 import {
   SIDEBAR_COLLAPSED_WIDTH,
   SIDEBAR_EXPANDED_WIDTH,
-} from "../constants/layout";
-import { getSidebarNavItems } from "../constants/navItems";
-import { CareFlowIcon } from "./icons";
-import SidebarItem from "./SidebarItem";
+} from "../../shared/constants/layout";
+import { getSidebarNavItems } from "../../shared/constants/navItems";
+import { CareFlowIcon } from "../../shared/components/icons";
+import SidebarItem from "../../shared/components/SidebarItem";
 
 type AppSidebarProps = {
   isCollapsed: boolean;
@@ -26,6 +27,10 @@ export default function AppSidebar({
     canAccessOrganizationAdmin,
     hasAnyAdminAccess,
   } = useAdminPermissions();
+  const { selectedMembership } = useFacility();
+  const canViewBilling = Boolean(
+    selectedMembership?.effective_security_permissions?.["billing.view"]
+  );
 
   const navItems = getSidebarNavItems({
     location,
@@ -33,6 +38,7 @@ export default function AppSidebar({
     canAccessFacilityAdmin,
     canAccessOrganizationAdmin,
     hasAnyAdminAccess,
+    canViewBilling,
   });
 
   return (

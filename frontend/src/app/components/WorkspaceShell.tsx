@@ -18,7 +18,7 @@ export default function WorkspaceShell({
   return (
     <div
       className={[
-        "cf-workspace-shell flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden px-4 pb-4 sm:px-5 lg:px-6 xl:px-7",
+        "cf-workspace-shell flex h-full min-h-0 w-full max-w-none flex-col overflow-hidden",
         panelClassName,
         className,
       ].join(" ")}

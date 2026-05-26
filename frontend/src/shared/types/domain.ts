@@ -12,9 +12,17 @@ export type ScheduleViewMode = "slot" | "agenda";
 
 export type DefaultLandingPage = "schedule" | "admin";
 
+export type ScheduleHeatmapMode = "auto" | "target";
+
 export type QuickActionAssignment = {
   code: string;
   actionKey: string;
+};
+
+export type CustomOperatingHoursBlock = {
+  days: number[];
+  start_time: string;
+  end_time: string;
 };
 
 export type FacilityLike = {
@@ -24,6 +32,7 @@ export type FacilityLike = {
   operating_start_time?: string | null;
   operating_end_time?: string | null;
   operating_days?: Array<string | number> | null;
+  custom_operating_hours?: CustomOperatingHoursBlock[] | null;
 };
 
 export type OrganizationLike = ApiRecord & {
@@ -91,6 +100,9 @@ export type UserPreferences = {
   personalNotes: string;
   showDemoBadge: boolean;
   quickActionAssignments: QuickActionAssignment[];
+  showScheduleHeatmap: boolean;
+  scheduleHeatmapMode: ScheduleHeatmapMode;
+  scheduleHeatmapDailyTarget: number;
 };
 
 export type UserProfile = ApiRecord & {
@@ -186,6 +198,7 @@ export type AppointmentLike = PatientLike & {
   appointment_type_name?: string | null;
   appointment_type_code?: string | null;
   appointment_type_color?: string | null;
+  is_billable?: boolean | null;
   facility?: EntityId | null;
   created_by_name?: string | null;
   appointment_time?: string | null;
@@ -201,3 +214,52 @@ export type ScheduleWindow = {
   startMinute: number;
   endMinute: number;
 };
+
+export type StaffRecord = StaffLike & {
+  id: EntityId;
+};
+
+export type CareProviderRecord = StaffRecord;
+
+export type ResourceRecord = ApiRecord &
+  ResourceLike & {
+    id: EntityId;
+    name?: string | null;
+    is_active?: boolean | null;
+  };
+
+export type AppointmentStatusOption = ApiRecord & {
+  id: EntityId;
+  name?: string | null;
+  code?: string | null;
+  color?: string | null;
+  is_active?: boolean | null;
+};
+
+export type AppointmentTypeOption = AppointmentStatusOption & {
+  duration_minutes?: string | number | null;
+};
+
+export type PatientGenderOption = ApiRecord & {
+  id: EntityId;
+  name: string;
+  is_active?: boolean | null;
+};
+
+export type PharmacyRecord = ApiRecord & {
+  id: EntityId;
+  name?: string | null;
+  phone_number?: string | null;
+  address?: PatientAddress | null;
+  accepts_erx?: boolean | null;
+  is_active?: boolean | null;
+};
+
+export type StaffRoleRecord = ApiRecord & {
+  id: EntityId;
+  name?: string | null;
+  code?: string | null;
+  is_active?: boolean | null;
+};
+
+export type StaffTitleRecord = StaffRoleRecord;
