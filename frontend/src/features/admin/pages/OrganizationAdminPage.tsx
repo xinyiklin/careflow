@@ -16,12 +16,12 @@ import useAdminPermissions from "../hooks/shared/useAdminPermissions";
 const ORGANIZATION_SECTIONS = [
   { key: "overview", label: "Overview", group: "General" },
   { key: "facilities", label: "Facilities", group: "General" },
-  { key: "users", label: "Users", group: "General" },
-  { key: "pharmacies", label: "Pharmacies", group: "General" },
-  { key: "security", label: "Security", group: "General" },
+  { key: "users", label: "Users", group: "People" },
+  { key: "pharmacies", label: "Pharmacies", group: "Network" },
   { key: "payers", label: "Payers", group: "Billing" },
   { key: "fee-schedule", label: "Fee Schedule", group: "Billing" },
-  { key: "activity-log", label: "Activity Log", group: "Monitoring" },
+  { key: "security", label: "Security", group: "Security & Audit" },
+  { key: "activity-log", label: "Activity Log", group: "Security & Audit" },
 ];
 
 export default function OrganizationAdminPage() {
