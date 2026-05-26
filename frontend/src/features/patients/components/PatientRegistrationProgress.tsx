@@ -388,19 +388,23 @@ export function RegistrationLens({
               Care routing
             </div>
             <div className="grid gap-2">
-              <div className="rounded-xl border border-cf-border bg-cf-surface px-3 py-2 flex items-center justify-between">
-                <span className="text-xs text-cf-text-subtle">PCP</span>
+              <div className="rounded-xl border border-cf-border bg-cf-surface px-3 py-2 flex items-center justify-between gap-2">
+                <span className="shrink-0 text-xs text-cf-text-subtle">
+                  PCP
+                </span>
                 <span
-                  className="text-xs font-semibold text-cf-text truncate max-w-[150px]"
+                  className="min-w-0 text-xs font-semibold text-cf-text truncate text-right"
                   title={pcpName || "None"}
                 >
                   {pcpName || "None"}
                 </span>
               </div>
-              <div className="rounded-xl border border-cf-border bg-cf-surface px-3 py-2 flex items-center justify-between">
-                <span className="text-xs text-cf-text-subtle">Referring</span>
+              <div className="rounded-xl border border-cf-border bg-cf-surface px-3 py-2 flex items-center justify-between gap-2">
+                <span className="shrink-0 text-xs text-cf-text-subtle">
+                  Referring
+                </span>
                 <span
-                  className="text-xs font-semibold text-cf-text truncate max-w-[150px]"
+                  className="min-w-0 text-xs font-semibold text-cf-text truncate text-right"
                   title={referringName || "None"}
                 >
                   {referringName || "None"}
