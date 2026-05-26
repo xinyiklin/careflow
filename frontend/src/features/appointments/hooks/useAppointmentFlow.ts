@@ -7,9 +7,12 @@ import {
 import type { Dispatch, SetStateAction } from "react";
 import type { EntityId } from "../../../shared/api/types";
 import type {
-  ApiRecord,
   AppointmentLike,
+  AppointmentStatusOption,
+  AppointmentTypeOption,
   FacilityLike,
+  ResourceRecord,
+  StaffRecord,
 } from "../../../shared/types/domain";
 
 type AppointmentFormData = {
@@ -24,29 +27,14 @@ type AppointmentFormData = {
   status: EntityId | "";
   appointment_type: EntityId | "";
   facility: EntityId | "";
+  is_billable?: boolean;
 };
 
-type StaffOption = ApiRecord & {
-  id?: EntityId;
-  is_active?: boolean;
-  can_render_claims?: boolean;
-  role_code?: string | null;
-  role_name?: string | null;
-  title_code?: string | null;
-  title_name?: string | null;
-};
+type StaffOption = StaffRecord;
 
-type ResourceOption = ApiRecord & {
-  id?: EntityId;
-  linked_staff?: EntityId | null;
-  default_room?: string | null;
-};
+type ResourceOption = ResourceRecord;
 
-type AppointmentOption = ApiRecord & {
-  id?: EntityId;
-  code?: string | null;
-  name?: string | null;
-};
+type AppointmentOption = AppointmentStatusOption | AppointmentTypeOption;
 
 type OpenAppointmentModalOptions = {
   mode: "create" | "edit" | "duplicate";
@@ -60,8 +48,8 @@ type UseAppointmentFlowOptions = {
   physicians: StaffOption[];
   staffs?: StaffOption[];
   resources: ResourceOption[];
-  statusOptions: AppointmentOption[];
-  typeOptions: AppointmentOption[];
+  statusOptions: AppointmentStatusOption[];
+  typeOptions: AppointmentTypeOption[];
   selectedDate?: string;
 };
 
@@ -77,6 +65,7 @@ const emptyForm = {
   status: "",
   appointment_type: "",
   facility: "",
+  is_billable: true,
 } satisfies AppointmentFormData;
 
 function isRenderingProviderStaff(staff: StaffOption) {
@@ -211,6 +200,7 @@ export default function useAppointmentFlow({
           status: appointment.status || "",
           appointment_type: appointment.appointment_type || "",
           facility: appointment.facility || "",
+          is_billable: appointment.is_billable ?? true,
         });
       } else {
         const defaultResource = getDefaultResource(resources, resourceId);

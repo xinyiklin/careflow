@@ -1,4 +1,11 @@
+import { useRef } from "react";
+
 import { PatientHubContent } from "../PatientHubContent";
+import {
+  useLatestOpenValue,
+  useModalPresence,
+} from "../../../shared/hooks/useModalPresence";
+import useModalFocusTrap from "../../../shared/hooks/useModalFocusTrap";
 import type { MouseEvent } from "react";
 import type { EntityId } from "../../../shared/api/types";
 import type { PatientHubTabKey } from "../types";
@@ -14,21 +21,44 @@ export default function PatientHubModal({
   initialTab?: PatientHubTabKey;
   onClose: () => void;
 }) {
-  if (!isOpen || !patientId) return null;
+  const panelRef = useRef<HTMLDivElement>(null);
+  const { isClosing, shouldRender } = useModalPresence(isOpen);
+  const { handlePanelKeyDown } = useModalFocusTrap(panelRef, isOpen, onClose);
+  const displayedState = useLatestOpenValue(
+    {
+      initialTab,
+      patientId,
+    },
+    isOpen && Boolean(patientId)
+  );
+
+  if (!shouldRender || !displayedState.patientId) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[65] flex items-center justify-center bg-black/45 px-4 py-4"
+      className={[
+        "cf-modal-backdrop fixed inset-0 z-[65] flex items-center justify-center bg-black/45 px-4 py-4",
+        isClosing ? "is-closing" : "is-opening",
+      ].join(" ")}
       onClick={onClose}
     >
       <div
-        className="relative flex h-[95dvh] w-full max-w-[min(1720px,96vw)] flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-page-bg shadow-[var(--shadow-panel-lg)]"
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Patient Hub"
+        tabIndex={-1}
+        onKeyDown={handlePanelKeyDown}
+        className={[
+          "cf-modal-panel relative flex h-[95dvh] w-full max-w-[min(1720px,96vw)] flex-col overflow-hidden rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-page-bg shadow-[var(--shadow-panel-lg)]",
+          isClosing ? "is-closing" : "is-opening",
+        ].join(" ")}
         onClick={(event: MouseEvent<HTMLDivElement>) => event.stopPropagation()}
       >
         <div className="min-h-0 flex-1">
           <PatientHubContent
-            patientId={patientId}
-            initialTab={initialTab}
+            patientId={displayedState.patientId}
+            initialTab={displayedState.initialTab}
             onClose={onClose}
           />
         </div>

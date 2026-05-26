@@ -9,11 +9,13 @@ import type { LucideIcon } from "lucide-react";
 import type { ApiPayload, EntityId } from "../../shared/api/types";
 import type {
   AppointmentLike,
+  CareProviderRecord,
   PatientAddress,
+  PatientGenderOption as SharedPatientGenderOption,
   PatientInsurancePolicy,
   PatientLike,
   PatientPhoneEntryLike,
-  StaffLike,
+  PharmacyRecord as SharedPharmacyRecord,
 } from "../../shared/types/domain";
 
 export type PatientSelectOption = {
@@ -21,9 +23,7 @@ export type PatientSelectOption = {
   name: string;
 };
 
-export type PatientCareProvider = StaffLike & {
-  id: EntityId;
-};
+export type PatientCareProvider = CareProviderRecord;
 
 export type EmergencyContactFormValues = {
   name: string;
@@ -110,6 +110,7 @@ export type PatientHubTabKey =
   | "allergies"
   | "documents"
   | "notes"
+  | "billing"
   | "appointments";
 
 export type PatientHubTab = {
@@ -160,6 +161,15 @@ export type InsurancePolicyFormValues = {
 export type InsuranceCarrier = {
   id: EntityId;
   name?: string | null;
+  payer_id?: string | null;
+  phone_number?: string | null;
+  website?: string | null;
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip_code?: string | null;
+  is_active?: boolean | null;
 };
 
 export type InsurancePolicyPayload = ApiPayload & {
@@ -188,18 +198,9 @@ export type PatientEmergencyContact = EmergencyContactFormValues & {
 
 export type PatientPatchPayload = ApiPayload;
 
-export type PatientGenderOption = {
-  id: EntityId;
-  name: string;
-};
+export type PatientGenderOption = SharedPatientGenderOption;
 
-export type PharmacyRecord = {
-  id: EntityId;
-  name?: string | null;
-  phone_number?: string | null;
-  address?: PatientAddress | null;
-  accepts_erx?: boolean | null;
-};
+export type PharmacyRecord = SharedPharmacyRecord;
 
 export type PatientHubEmptyTab = {
   title: string;
@@ -240,70 +241,4 @@ export type PatientPharmacyPreference = {
     fax_number?: string | null;
     address?: PatientAddress | null;
   } | null;
-};
-
-export type ClinicalEncounterStatus = "in_progress" | "signed" | "cancelled";
-
-export type ProgressNoteStatus = "draft" | "signed";
-
-export type ProgressNote = {
-  id?: EntityId;
-  encounter?: EntityId;
-  status?: ProgressNoteStatus | null;
-  subjective?: string | null;
-  objective?: string | null;
-  assessment?: string | null;
-  plan?: string | null;
-  created_by?: EntityId | null;
-  signed_by?: EntityId | null;
-  signed_by_name?: string | null;
-  signed_at?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-};
-
-export type ClinicalEncounter = {
-  id?: EntityId;
-  patient?: EntityId;
-  patient_name?: string | null;
-  patient_chart_number?: string | number | null;
-  facility?: EntityId | null;
-  appointment?: EntityId | null;
-  appointment_time?: string | null;
-  appointment_type_name?: string | null;
-  rendering_provider?: EntityId | null;
-  rendering_provider_name?: string | null;
-  status?: ClinicalEncounterStatus | null;
-  reason?: string | null;
-  started_at?: string | null;
-  ended_at?: string | null;
-  created_by?: EntityId | null;
-  created_by_name?: string | null;
-  created_at?: string | null;
-  updated_at?: string | null;
-  progress_note?: ProgressNote | null;
-};
-
-export type ProgressNoteFormValues = {
-  reason: string;
-  rendering_provider: EntityId | "";
-  subjective: string;
-  objective: string;
-  assessment: string;
-  plan: string;
-};
-
-export type ProgressNotePayload = ApiPayload & {
-  subjective: string;
-  objective: string;
-  assessment: string;
-  plan: string;
-};
-
-export type ClinicalEncounterPayload = ApiPayload & {
-  patient: number;
-  appointment: number | null;
-  rendering_provider: number | null;
-  reason: string;
-  progress_note: ProgressNotePayload;
 };

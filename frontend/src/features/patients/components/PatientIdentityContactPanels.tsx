@@ -25,6 +25,7 @@ type PatientIdentityPanelProps = {
   shouldEditSsn: boolean;
   ssnHint: string;
   showFullSsn: boolean;
+  tone?: "default" | "subtle" | "flat";
 };
 
 type PatientContactPanelProps = {
@@ -32,6 +33,7 @@ type PatientContactPanelProps = {
   mode: "create" | "edit";
   register: UseFormRegister<PatientFormValues>;
   registerPhoneField: RegisterFormattedField;
+  tone?: "default" | "subtle" | "flat";
 };
 
 export function PatientIdentityPanel({
@@ -44,9 +46,10 @@ export function PatientIdentityPanel({
   shouldEditSsn,
   ssnHint,
   showFullSsn,
+  tone = "default",
 }: PatientIdentityPanelProps) {
   return (
-    <Panel icon={IdCard} title="Identity" tone="subtle">
+    <Panel icon={IdCard} title="Identity" tone={tone}>
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <Label>First Name</Label>
@@ -154,9 +157,10 @@ export function PatientContactPanel({
   mode,
   register,
   registerPhoneField,
+  tone = "default",
 }: PatientContactPanelProps) {
   return (
-    <Panel icon={Mail} title="Contact">
+    <Panel icon={Mail} title="Contact" tone={tone}>
       <div className="grid gap-4">
         <div>
           <Label>Email</Label>

@@ -20,7 +20,12 @@ import {
   UserRoundCheck,
 } from "lucide-react";
 
-import { Badge, Button, Panel } from "../../../shared/components/ui";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Panel,
+} from "../../../shared/components/ui";
 import { formatDOB } from "../../../shared/utils/dateTime";
 import type { UseQueryResult } from "@tanstack/react-query";
 import {
@@ -32,7 +37,6 @@ import { getPatientFullName } from "../utils/patientDisplay";
 import {
   AppointmentCard,
   DetailRow,
-  EmptyState,
   ETHNICITY_LABELS,
   formatAddress,
   formatDateTime,
@@ -191,11 +195,8 @@ export function PatientInsurancePanel({
           </Button>
         </div>
 
-        {insurancePoliciesQuery.isLoading ? (
-          <div className="text-sm text-cf-text-muted">
-            Loading insurance policies...
-          </div>
-        ) : insurancePolicies.length === 0 ? (
+        {insurancePoliciesQuery.isLoading ? null : insurancePolicies.length ===
+          0 ? (
           <EmptyState
             title="No insurance policies"
             body="Add the patient’s primary coverage to complete the chart."
@@ -277,7 +278,7 @@ export function PatientAppointmentsPanel({
 
         <Panel
           icon={CalendarClock}
-          title="Past Encounters"
+          title="Past Appointments"
           tone="subtle"
           className="flex h-full min-h-0 flex-col"
           bodyClassName="min-h-0 flex-1 overflow-auto"

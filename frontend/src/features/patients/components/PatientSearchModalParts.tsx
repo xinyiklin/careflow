@@ -46,18 +46,7 @@ type SelectedPatientPanelProps = {
 };
 
 export function PatientResultSkeleton() {
-  return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-cf-border px-4 py-3 last:border-b-0">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="cf-loading-skeleton h-10 w-10 rounded-xl bg-cf-surface-soft" />
-        <div className="min-w-0 flex-1">
-          <div className="cf-loading-skeleton h-3.5 w-40 rounded-full bg-cf-surface-soft" />
-          <div className="cf-loading-skeleton mt-2 h-3 w-72 max-w-full rounded-full bg-cf-surface-soft" />
-        </div>
-      </div>
-      <div className="cf-loading-skeleton h-9 w-16 rounded-xl bg-cf-surface-soft" />
-    </div>
-  );
+  return null;
 }
 
 function patientDetailLine(patient: PatientRecord): string {

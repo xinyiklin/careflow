@@ -1,5 +1,6 @@
 import { Suspense, createContext, lazy, useContext, useRef } from "react";
 
+import { useModalPresence } from "../../shared/hooks/useModalPresence";
 import usePatientFlow from "./hooks/usePatientFlow";
 
 import type { ComponentType, LazyExoticComponent, ReactNode } from "react";
@@ -100,6 +101,10 @@ export function PatientFlowProvider({
 }: PatientFlowProviderProps) {
   const patientFlow = usePatientFlow(facilityId);
   const searchSelectHandlerRef = useRef<SelectPatientHandler | null>(null);
+  const searchPresence = useModalPresence(patientFlow.search.isOpen);
+  const patientModalPresence = useModalPresence(patientFlow.modal.isOpen);
+  const hubPresence = useModalPresence(patientFlow.hub.isOpen);
+  const quickStartPresence = useModalPresence(patientFlow.quickStart.isOpen);
 
   const closePatientSearch = () => {
     searchSelectHandlerRef.current = null;
@@ -139,7 +144,7 @@ export function PatientFlowProvider({
     <PatientFlowContext.Provider value={value}>
       {children}
 
-      {patientFlow.search.isOpen ? (
+      {searchPresence.shouldRender ? (
         <Suspense fallback={null}>
           <PatientSearchModal
             isOpen={patientFlow.search.isOpen}
@@ -169,7 +174,7 @@ export function PatientFlowProvider({
         </Suspense>
       ) : null}
 
-      {patientFlow.modal.isOpen ? (
+      {patientModalPresence.shouldRender ? (
         <Suspense fallback={null}>
           <PatientModal
             isOpen={patientFlow.modal.isOpen}
@@ -197,7 +202,7 @@ export function PatientFlowProvider({
         </Suspense>
       ) : null}
 
-      {patientFlow.hub.isOpen ? (
+      {hubPresence.shouldRender ? (
         <Suspense fallback={null}>
           <PatientHubModal
             isOpen={patientFlow.hub.isOpen}
@@ -208,7 +213,7 @@ export function PatientFlowProvider({
         </Suspense>
       ) : null}
 
-      {patientFlow.quickStart.isOpen ? (
+      {quickStartPresence.shouldRender ? (
         <Suspense fallback={null}>
           <PatientQuickStartModal
             isOpen={patientFlow.quickStart.isOpen}

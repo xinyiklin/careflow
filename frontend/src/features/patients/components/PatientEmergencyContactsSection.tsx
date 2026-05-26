@@ -57,6 +57,7 @@ type PatientEmergencyContactsSectionProps = {
   setEditingEmergencyContactIndex: Dispatch<SetStateAction<number | null>>;
   setPrimaryEmergencyContactIndex: Dispatch<SetStateAction<number>>;
   watchedEmergencyContacts: EmergencyContactFormValues[];
+  tone?: "default" | "subtle" | "flat";
 };
 
 function EmergencyContactEditor({
@@ -214,6 +215,7 @@ export default function PatientEmergencyContactsSection({
   setEditingEmergencyContactIndex,
   setPrimaryEmergencyContactIndex,
   watchedEmergencyContacts,
+  tone = "default",
 }: PatientEmergencyContactsSectionProps) {
   const closeEditor = () => setEditingEmergencyContactIndex(null);
   const editedField =
@@ -227,7 +229,12 @@ export default function PatientEmergencyContactsSection({
 
   return (
     <>
-      <Panel icon={Siren} title="Emergency Contacts" bodyClassName="mt-5">
+      <Panel
+        icon={Siren}
+        title="Emergency Contacts"
+        bodyClassName="mt-5"
+        tone={tone}
+      >
         <div className="space-y-4">
           <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
             {emergencyContactFields.map((field, index) => {

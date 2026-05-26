@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { useUserPreferences } from "../../../shared/context/UserPreferencesProvider";
+import { useUserPreferences } from "../../../app/context/UserPreferencesProvider";
 
 import type { EntityId } from "../../../shared/api/types";
 import type { PatientLike } from "../../../shared/types/domain";

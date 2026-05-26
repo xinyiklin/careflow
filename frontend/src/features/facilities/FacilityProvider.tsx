@@ -1,6 +1,6 @@
 import { createContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../auth/AuthProvider";
-import { useUserPreferences } from "../../shared/context/UserPreferencesProvider";
+import { useUserPreferences } from "../../app/context/UserPreferencesProvider";
 
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import type { EntityId } from "../../shared/api/types";
@@ -31,7 +31,20 @@ export function FacilityProvider({ children }: { children: ReactNode }) {
   const initialFacilityId = preferredFacilityId || fallbackFacilityId;
 
   const [selectedFacilityId, setSelectedFacilityId] = useState<EntityId | null>(
-    null
+    () => {
+      if (!user || !user.memberships?.length) return null;
+      const preferredId =
+        preferences.lastFacilityId || preferences.defaultFacilityId || null;
+      const fallbackId = user.current_membership?.facility?.id || null;
+      const initId = preferredId || fallbackId;
+      const validIds = user.memberships.map((membership) =>
+        String(membership.facility.id)
+      );
+      if (initId && validIds.includes(String(initId))) {
+        return initId;
+      }
+      return user.memberships[0]?.facility?.id || null;
+    }
   );
   const lastInitialFacilityIdRef = useRef<string | null>(null);
 

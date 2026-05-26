@@ -32,11 +32,12 @@ import type {
 export const HUB_TABS: PatientHubTab[] = [
   { key: "registration", label: "Registration", icon: IdCard },
   { key: "insurance", label: "Insurance", icon: ShieldCheck },
+  { key: "documents", label: "Documents", icon: FileText },
   { key: "medications", label: "Medications", icon: Pill },
   { key: "allergies", label: "Allergies", icon: AlertTriangle },
-  { key: "documents", label: "Documents", icon: FileText },
-  { key: "notes", label: "Progress Notes", icon: ClipboardList },
-  { key: "appointments", label: "Encounters", icon: CalendarClock },
+  { key: "appointments", label: "Appointments", icon: CalendarClock },
+  { key: "notes", label: "Clinical", icon: ClipboardList },
+  { key: "billing", label: "Billing", icon: CreditCard },
 ];
 
 export const RACE_LABELS: Record<string, string> = {
@@ -290,34 +291,6 @@ export function SummaryTile({
   );
 }
 
-export function TabButton({
-  tab,
-  isActive,
-  onClick,
-}: {
-  tab: PatientHubTab;
-  isActive: boolean;
-  onClick: (key: PatientHubTabKey) => void;
-}) {
-  const Icon = tab.icon;
-
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(tab.key)}
-      className={[
-        "-mb-px inline-flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-3 text-sm font-medium transition",
-        isActive
-          ? "border-cf-accent text-cf-text"
-          : "border-transparent text-cf-text-muted hover:text-cf-text",
-      ].join(" ")}
-    >
-      <Icon className="h-4 w-4" />
-      {tab.label}
-    </button>
-  );
-}
-
 export function AppointmentCard({
   appointment,
 }: {
@@ -471,13 +444,29 @@ export function PharmacyPreferenceCard({
   );
 }
 
-export function EmptyState({ title, body }: { title: string; body: string }) {
+export function TabButton({
+  tab,
+  isActive,
+  onClick,
+}: {
+  tab: PatientHubTab;
+  isActive: boolean;
+  onClick: (key: PatientHubTabKey) => void;
+}) {
   return (
-    <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-cf-border bg-cf-surface-muted px-6 py-6 text-center">
-      <div>
-        <div className="text-sm font-medium text-cf-text">{title}</div>
-        <div className="mt-1 text-sm text-cf-text-muted">{body}</div>
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={() => onClick(tab.key)}
+      className={[
+        "-mb-px border-b-2 px-3 py-3 text-xs font-medium whitespace-nowrap transition",
+        isActive
+          ? "border-cf-accent text-cf-text"
+          : "border-transparent text-cf-text-muted hover:text-cf-text",
+      ].join(" ")}
+    >
+      {tab.label}
+    </button>
   );
 }
+
+export { EmptyState } from "../../../shared/components/ui";

@@ -15,6 +15,8 @@ import {
   SelectedPatientPanel,
 } from "./PatientSearchModalParts";
 import useDraggableModal from "../../../shared/hooks/useDraggableModal";
+import useModalFocusTrap from "../../../shared/hooks/useModalFocusTrap";
+import { useModalPresence } from "../../../shared/hooks/useModalPresence";
 import { getErrorMessage } from "../../../shared/utils/errors";
 
 import type { EntityId } from "../../../shared/api/types";
@@ -46,6 +48,7 @@ export default function PatientSearchModal({
   injectedPatient,
   injectedPatientMode,
 }: PatientSearchModalProps) {
+  const { isClosing, shouldRender } = useModalPresence(isOpen);
   const [smartQuery, setSmartQuery] = useState("");
   const [results, setResults] = useState<PatientRecord[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<EntityId | null>(
@@ -80,6 +83,7 @@ export default function PatientSearchModal({
   const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
     isOpen,
   });
+  const { handlePanelKeyDown } = useModalFocusTrap(modalRef, isOpen, onClose);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -185,11 +189,13 @@ export default function PatientSearchModal({
     onClose?.();
   };
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4"
+      className={`cf-modal-backdrop fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-3 py-3 sm:px-4 sm:py-4 ${
+        isClosing ? "is-closing" : "is-opening"
+      }`}
       onClick={(e) => {
         e.stopPropagation();
         onClose?.();
@@ -197,8 +203,15 @@ export default function PatientSearchModal({
     >
       <div
         ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Patient Search"
+        tabIndex={-1}
+        onKeyDown={handlePanelKeyDown}
         style={modalStyle}
-        className="fixed flex max-h-[min(94dvh,840px)] w-full max-w-[76rem] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]"
+        className={`cf-modal-panel fixed flex max-h-[min(94dvh,840px)] w-full max-w-[76rem] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ${
+          isClosing ? "is-closing" : "is-opening"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <PatientSearchHeader
