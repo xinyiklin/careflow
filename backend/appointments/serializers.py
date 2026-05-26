@@ -11,6 +11,15 @@ FACILITY_DATETIME_INPUT_FORMATS = (
     "%Y-%m-%dT%H:%M:%S",
 )
 
+CLINICAL_LOCKED_APPOINTMENT_FIELDS = {
+    "patient": "Patient",
+    "facility": "Facility",
+    "appointment_time": "Appointment time",
+    "end_time": "Appointment end time",
+    "appointment_type": "Visit type",
+    "rendering_provider": "Rendering provider",
+}
+
 
 class AppointmentSerializer(serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
@@ -111,6 +120,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_by",
             "created_by_name",
             "created_at",
+            "is_billable",
             "allow_same_day_double_book",
         ]
         read_only_fields = (
@@ -228,6 +238,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
                     "end_time",
                 )
 
+        self._validate_clinical_record_lock(attrs)
+
         appointment_time = attrs.get(
             "appointment_time",
             getattr(self.instance, "appointment_time", None),
@@ -314,6 +326,40 @@ class AppointmentSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+
+    def _validate_clinical_record_lock(self, attrs):
+        if not self.instance:
+            return
+
+        encounter = getattr(self.instance, "clinical_encounter", None)
+        if not encounter or getattr(encounter, "status", "") != "signed":
+            return
+
+        changed_locked_fields = []
+        for field_name, label in CLINICAL_LOCKED_APPOINTMENT_FIELDS.items():
+            if field_name not in attrs:
+                continue
+
+            current_value = getattr(self.instance, field_name)
+            next_value = attrs[field_name]
+            if hasattr(current_value, "pk"):
+                current_value = current_value.pk
+            if hasattr(next_value, "pk"):
+                next_value = next_value.pk
+
+            if current_value != next_value:
+                changed_locked_fields.append(label)
+
+        if changed_locked_fields:
+            raise serializers.ValidationError(
+                {
+                    "clinical_encounter": (
+                        "Signed clinical encounters lock these appointment fields: "
+                        + ", ".join(changed_locked_fields)
+                        + "."
+                    )
+                }
+            )
 
     def get_duration_minutes(self, obj):
         return obj.duration_minutes

@@ -1,0 +1,1182 @@
+"""
+Predefined CPT/HCPCS code catalog for fee schedule population.
+
+Each entry is (service_code, description, default_charge, category).
+Organizations use this catalog to pre-populate fee schedule sheets with
+standard codes, then customize the charge amounts per code.
+"""
+
+from decimal import Decimal
+
+CATEGORY_EM_NEW = "E&M New Patient"
+CATEGORY_EM_ESTABLISHED = "E&M Established Patient"
+CATEGORY_EM_OBSERVATION = "E&M Observation/Inpatient"
+CATEGORY_EM_EMERGENCY = "E&M Emergency Department"
+CATEGORY_EM_CRITICAL = "E&M Critical Care"
+CATEGORY_PREVENTIVE_NEW = "Preventive New Patient"
+CATEGORY_PREVENTIVE_ESTABLISHED = "Preventive Established Patient"
+CATEGORY_TELEHEALTH = "Telehealth & Telephone"
+CATEGORY_CARE_MANAGEMENT = "Care Management"
+CATEGORY_BEHAVIORAL = "Behavioral Health"
+CATEGORY_PROCEDURES_SKIN = "Procedures - Integumentary"
+CATEGORY_PROCEDURES_MSK = "Procedures - Musculoskeletal"
+CATEGORY_PROCEDURES_ENTAUDIO = "Procedures - ENT & Audiology"
+CATEGORY_PROCEDURES_GI = "Procedures - Gastrointestinal"
+CATEGORY_INJECTIONS = "Injections & Immunizations"
+CATEGORY_PHYSICAL_MEDICINE = "Physical Medicine & Rehab"
+CATEGORY_CARDIAC_DX = "Diagnostics - Cardiovascular"
+CATEGORY_PULMONARY_DX = "Diagnostics - Pulmonary"
+CATEGORY_NEURO_DX = "Diagnostics - Neurology"
+CATEGORY_VISION_DX = "Diagnostics - Vision"
+CATEGORY_LAB_COLLECTION = "Lab Collection"
+CATEGORY_LAB_PANELS = "Lab Panels"
+CATEGORY_LAB_CHEMISTRY = "Lab Chemistry"
+CATEGORY_LAB_HEMATOLOGY = "Lab Hematology"
+CATEGORY_LAB_MICRO = "Lab Microbiology"
+CATEGORY_LAB_URINALYSIS = "Lab Urinalysis"
+CATEGORY_LAB_PATHOLOGY = "Lab Pathology"
+CATEGORY_RADIOLOGY = "Radiology"
+CATEGORY_HCPCS_DRUGS = "HCPCS Drug Codes"
+CATEGORY_SUPPLY_MISC = "Supplies & Miscellaneous"
+
+CPT_CATALOG = [
+    # ── E&M New Patient ──────────────────────────────────────────────
+    (
+        "99202",
+        "Office/outpatient visit, new, straightforward",
+        "115.00",
+        CATEGORY_EM_NEW,
+    ),
+    (
+        "99203",
+        "Office/outpatient visit, new, low complexity",
+        "165.00",
+        CATEGORY_EM_NEW,
+    ),
+    (
+        "99204",
+        "Office/outpatient visit, new, moderate complexity",
+        "250.00",
+        CATEGORY_EM_NEW,
+    ),
+    (
+        "99205",
+        "Office/outpatient visit, new, high complexity",
+        "325.00",
+        CATEGORY_EM_NEW,
+    ),
+    # ── E&M Established Patient ──────────────────────────────────────
+    (
+        "99211",
+        "Office/outpatient visit, established, minimal",
+        "45.00",
+        CATEGORY_EM_ESTABLISHED,
+    ),
+    (
+        "99212",
+        "Office/outpatient visit, established, straightforward",
+        "80.00",
+        CATEGORY_EM_ESTABLISHED,
+    ),
+    (
+        "99213",
+        "Office/outpatient visit, established, low complexity",
+        "125.00",
+        CATEGORY_EM_ESTABLISHED,
+    ),
+    (
+        "99214",
+        "Office/outpatient visit, established, moderate complexity",
+        "165.00",
+        CATEGORY_EM_ESTABLISHED,
+    ),
+    (
+        "99215",
+        "Office/outpatient visit, established, high complexity",
+        "230.00",
+        CATEGORY_EM_ESTABLISHED,
+    ),
+    # ── E&M Observation / Inpatient ──────────────────────────────────
+    (
+        "99221",
+        "Initial hospital inpatient, straightforward/low",
+        "195.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99222",
+        "Initial hospital inpatient, moderate complexity",
+        "270.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99223",
+        "Initial hospital inpatient, high complexity",
+        "370.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99231",
+        "Subsequent hospital care, straightforward/low",
+        "85.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99232",
+        "Subsequent hospital care, moderate complexity",
+        "130.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99233",
+        "Subsequent hospital care, high complexity",
+        "185.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99234",
+        "Observation/inpatient same-day admit and discharge, low",
+        "270.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99235",
+        "Observation/inpatient same-day admit and discharge, moderate",
+        "340.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99236",
+        "Observation/inpatient same-day admit and discharge, high",
+        "420.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99238",
+        "Hospital discharge day, 30 min or less",
+        "120.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    (
+        "99239",
+        "Hospital discharge day, more than 30 min",
+        "175.00",
+        CATEGORY_EM_OBSERVATION,
+    ),
+    # ── E&M Emergency Department ─────────────────────────────────────
+    ("99281", "ED visit, self-limited/minor", "60.00", CATEGORY_EM_EMERGENCY),
+    ("99282", "ED visit, low to moderate severity", "95.00", CATEGORY_EM_EMERGENCY),
+    ("99283", "ED visit, moderate severity", "155.00", CATEGORY_EM_EMERGENCY),
+    ("99284", "ED visit, high severity", "290.00", CATEGORY_EM_EMERGENCY),
+    (
+        "99285",
+        "ED visit, immediate significant threat",
+        "430.00",
+        CATEGORY_EM_EMERGENCY,
+    ),
+    # ── E&M Critical Care ────────────────────────────────────────────
+    ("99291", "Critical care, first 30-74 minutes", "350.00", CATEGORY_EM_CRITICAL),
+    (
+        "99292",
+        "Critical care, each additional 30 minutes",
+        "175.00",
+        CATEGORY_EM_CRITICAL,
+    ),
+    # ── Preventive Medicine - New Patient ────────────────────────────
+    ("99381", "Preventive visit, new, infant (<1y)", "185.00", CATEGORY_PREVENTIVE_NEW),
+    (
+        "99382",
+        "Preventive visit, new, early childhood (1-4y)",
+        "195.00",
+        CATEGORY_PREVENTIVE_NEW,
+    ),
+    (
+        "99383",
+        "Preventive visit, new, late childhood (5-11y)",
+        "195.00",
+        CATEGORY_PREVENTIVE_NEW,
+    ),
+    (
+        "99384",
+        "Preventive visit, new, adolescent (12-17y)",
+        "210.00",
+        CATEGORY_PREVENTIVE_NEW,
+    ),
+    ("99385", "Preventive visit, new, 18-39y", "210.00", CATEGORY_PREVENTIVE_NEW),
+    ("99386", "Preventive visit, new, 40-64y", "235.00", CATEGORY_PREVENTIVE_NEW),
+    ("99387", "Preventive visit, new, 65+y", "255.00", CATEGORY_PREVENTIVE_NEW),
+    # ── Preventive Medicine - Established Patient ────────────────────
+    (
+        "99391",
+        "Preventive visit, established, infant (<1y)",
+        "155.00",
+        CATEGORY_PREVENTIVE_ESTABLISHED,
+    ),
+    (
+        "99392",
+        "Preventive visit, established, early childhood (1-4y)",
+        "165.00",
+        CATEGORY_PREVENTIVE_ESTABLISHED,
+    ),
+    (
+        "99393",
+        "Preventive visit, established, late childhood (5-11y)",
+        "165.00",
+        CATEGORY_PREVENTIVE_ESTABLISHED,
+    ),
+    (
+        "99394",
+        "Preventive visit, established, adolescent (12-17y)",
+        "180.00",
+        CATEGORY_PREVENTIVE_ESTABLISHED,
+    ),
+    (
+        "99395",
+        "Preventive visit, established, 18-39y",
+        "180.00",
+        CATEGORY_PREVENTIVE_ESTABLISHED,
+    ),
+    (
+        "99396",
+        "Preventive visit, established, 40-64y",
+        "210.00",
+        CATEGORY_PREVENTIVE_ESTABLISHED,
+    ),
+    (
+        "99397",
+        "Preventive visit, established, 65+y",
+        "230.00",
+        CATEGORY_PREVENTIVE_ESTABLISHED,
+    ),
+    # ── Telehealth & Telephone ───────────────────────────────────────
+    ("99441", "Telephone E&M, 5-10 minutes", "45.00", CATEGORY_TELEHEALTH),
+    ("99442", "Telephone E&M, 11-20 minutes", "80.00", CATEGORY_TELEHEALTH),
+    ("99443", "Telephone E&M, 21-30 minutes", "115.00", CATEGORY_TELEHEALTH),
+    ("99421", "Online digital E&M, 5-10 minutes", "35.00", CATEGORY_TELEHEALTH),
+    ("99422", "Online digital E&M, 11-20 minutes", "70.00", CATEGORY_TELEHEALTH),
+    ("99423", "Online digital E&M, 21+ minutes", "105.00", CATEGORY_TELEHEALTH),
+    (
+        "99457",
+        "Remote physiologic monitoring, first 20 min",
+        "55.00",
+        CATEGORY_TELEHEALTH,
+    ),
+    (
+        "99458",
+        "Remote physiologic monitoring, each additional 20 min",
+        "45.00",
+        CATEGORY_TELEHEALTH,
+    ),
+    # ── Care Management ──────────────────────────────────────────────
+    (
+        "99490",
+        "Chronic care management, first 20 min/month",
+        "65.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99491",
+        "Chronic care management, first 30 min/month (physician)",
+        "85.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99487",
+        "Complex chronic care management, first 60 min/month",
+        "130.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99489",
+        "Complex chronic care management, each additional 30 min",
+        "70.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99483",
+        "Assessment of cognitive impairment, care planning",
+        "285.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99484",
+        "General behavioral health integration, first 20 min/month",
+        "50.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99424",
+        "Principal care management, first 30 min/month",
+        "75.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99425",
+        "Principal care management, each additional 30 min",
+        "55.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99426",
+        "Principal care management, clinical staff 30 min/month",
+        "60.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    (
+        "99427",
+        "Principal care management, clinical staff each add 30 min",
+        "45.00",
+        CATEGORY_CARE_MANAGEMENT,
+    ),
+    # ── Behavioral Health ────────────────────────────────────────────
+    ("90791", "Psychiatric diagnostic evaluation", "250.00", CATEGORY_BEHAVIORAL),
+    (
+        "90792",
+        "Psychiatric diagnostic evaluation with medical services",
+        "285.00",
+        CATEGORY_BEHAVIORAL,
+    ),
+    ("90832", "Psychotherapy, 30 minutes", "85.00", CATEGORY_BEHAVIORAL),
+    ("90834", "Psychotherapy, 45 minutes", "120.00", CATEGORY_BEHAVIORAL),
+    ("90837", "Psychotherapy, 60 minutes", "165.00", CATEGORY_BEHAVIORAL),
+    (
+        "90839",
+        "Psychotherapy for crisis, first 60 minutes",
+        "195.00",
+        CATEGORY_BEHAVIORAL,
+    ),
+    (
+        "90840",
+        "Psychotherapy for crisis, each additional 30 minutes",
+        "95.00",
+        CATEGORY_BEHAVIORAL,
+    ),
+    (
+        "90847",
+        "Family psychotherapy with patient, 50 min",
+        "145.00",
+        CATEGORY_BEHAVIORAL,
+    ),
+    ("90853", "Group psychotherapy", "55.00", CATEGORY_BEHAVIORAL),
+    ("96127", "Brief emotional/behavioral assessment", "12.00", CATEGORY_BEHAVIORAL),
+    ("96156", "Health behavior assessment, first 30 min", "75.00", CATEGORY_BEHAVIORAL),
+    (
+        "96158",
+        "Health behavior intervention, first 30 min",
+        "70.00",
+        CATEGORY_BEHAVIORAL,
+    ),
+    # ── Procedures - Integumentary ───────────────────────────────────
+    (
+        "10060",
+        "Incision and drainage of abscess, simple",
+        "175.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "10061",
+        "Incision and drainage of abscess, complicated",
+        "325.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "10120",
+        "Removal of foreign body, subcutaneous, simple",
+        "180.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "10160",
+        "Puncture aspiration of abscess/cyst",
+        "155.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "11102",
+        "Tangential biopsy of skin, first lesion",
+        "150.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "11103",
+        "Tangential biopsy of skin, each additional lesion",
+        "80.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    ("11104", "Punch biopsy of skin, first lesion", "165.00", CATEGORY_PROCEDURES_SKIN),
+    (
+        "11105",
+        "Punch biopsy of skin, each additional lesion",
+        "90.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    ("11200", "Removal of skin tags, up to 15", "125.00", CATEGORY_PROCEDURES_SKIN),
+    (
+        "11300",
+        "Shaving of lesion, trunk/extremity, <=0.5 cm",
+        "95.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "11305",
+        "Shaving of lesion, scalp/neck/hands, <=0.5 cm",
+        "105.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "11400",
+        "Excision of lesion, trunk/extremity, <=0.5 cm",
+        "165.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    ("12001", "Simple repair of wound, <=2.5 cm", "155.00", CATEGORY_PROCEDURES_SKIN),
+    ("12002", "Simple repair of wound, 2.6-7.5 cm", "185.00", CATEGORY_PROCEDURES_SKIN),
+    (
+        "12011",
+        "Simple repair, face/ears/eyelids/nose/lips, <=2.5 cm",
+        "175.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "17000",
+        "Destruction of premalignant lesion, first",
+        "120.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "17003",
+        "Destruction of premalignant lesion, 2-14, each additional",
+        "35.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "17110",
+        "Destruction of warts, up to 14 lesions",
+        "130.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "17111",
+        "Destruction of warts, 15 or more lesions",
+        "180.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "16000",
+        "Initial treatment of first-degree burn",
+        "140.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    (
+        "16020",
+        "Dressing/debridement of partial-thickness burn, small",
+        "175.00",
+        CATEGORY_PROCEDURES_SKIN,
+    ),
+    # ── Procedures - Musculoskeletal ─────────────────────────────────
+    ("20550", "Injection of tendon sheath/ligament", "115.00", CATEGORY_PROCEDURES_MSK),
+    (
+        "20551",
+        "Injection of tendon origin/insertion",
+        "120.00",
+        CATEGORY_PROCEDURES_MSK,
+    ),
+    (
+        "20600",
+        "Aspiration/injection of small joint or bursa",
+        "105.00",
+        CATEGORY_PROCEDURES_MSK,
+    ),
+    (
+        "20605",
+        "Aspiration/injection of intermediate joint or bursa",
+        "115.00",
+        CATEGORY_PROCEDURES_MSK,
+    ),
+    (
+        "20610",
+        "Aspiration/injection of major joint or bursa",
+        "135.00",
+        CATEGORY_PROCEDURES_MSK,
+    ),
+    (
+        "20612",
+        "Aspiration/injection of ganglion cyst",
+        "125.00",
+        CATEGORY_PROCEDURES_MSK,
+    ),
+    ("29105", "Application of long arm splint", "115.00", CATEGORY_PROCEDURES_MSK),
+    (
+        "29125",
+        "Application of short arm splint, forearm",
+        "85.00",
+        CATEGORY_PROCEDURES_MSK,
+    ),
+    ("29130", "Application of finger splint", "55.00", CATEGORY_PROCEDURES_MSK),
+    ("29505", "Application of long leg splint", "115.00", CATEGORY_PROCEDURES_MSK),
+    ("29515", "Application of short leg splint", "85.00", CATEGORY_PROCEDURES_MSK),
+    ("29540", "Strapping of ankle/foot", "60.00", CATEGORY_PROCEDURES_MSK),
+    ("29580", "Strapping of knee", "55.00", CATEGORY_PROCEDURES_MSK),
+    # ── Procedures - ENT & Audiology ─────────────────────────────────
+    (
+        "69200",
+        "Removal of foreign body from ear canal",
+        "110.00",
+        CATEGORY_PROCEDURES_ENTAUDIO,
+    ),
+    (
+        "69210",
+        "Removal of impacted cerumen (ear wax), unilateral",
+        "95.00",
+        CATEGORY_PROCEDURES_ENTAUDIO,
+    ),
+    (
+        "30300",
+        "Removal of foreign body, intranasal, office",
+        "130.00",
+        CATEGORY_PROCEDURES_ENTAUDIO,
+    ),
+    (
+        "30901",
+        "Control of nasal hemorrhage, anterior, simple",
+        "120.00",
+        CATEGORY_PROCEDURES_ENTAUDIO,
+    ),
+    (
+        "30903",
+        "Control of nasal hemorrhage, anterior, complex",
+        "195.00",
+        CATEGORY_PROCEDURES_ENTAUDIO,
+    ),
+    (
+        "92551",
+        "Screening audiometry, pure tone, air only",
+        "35.00",
+        CATEGORY_PROCEDURES_ENTAUDIO,
+    ),
+    ("92552", "Pure tone audiometry, air only", "50.00", CATEGORY_PROCEDURES_ENTAUDIO),
+    ("92567", "Tympanometry", "40.00", CATEGORY_PROCEDURES_ENTAUDIO),
+    # ── Procedures - Gastrointestinal ────────────────────────────────
+    ("43191", "Esophagoscopy, rigid, diagnostic", "350.00", CATEGORY_PROCEDURES_GI),
+    ("46600", "Diagnostic anoscopy", "115.00", CATEGORY_PROCEDURES_GI),
+    (
+        "46083",
+        "Incision of thrombosed hemorrhoid, external",
+        "225.00",
+        CATEGORY_PROCEDURES_GI,
+    ),
+    ("91034", "Esophagus, gastric reflux test", "155.00", CATEGORY_PROCEDURES_GI),
+    # ── Injections & Immunizations ───────────────────────────────────
+    (
+        "90460",
+        "Immunization admin through 18 years, first component",
+        "35.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "90461",
+        "Immunization admin through 18 years, each additional",
+        "15.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "90471",
+        "Immunization administration, first vaccine",
+        "30.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "90472",
+        "Immunization administration, each additional vaccine",
+        "20.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "90473",
+        "Immunization admin, intranasal/oral, first",
+        "30.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "90474",
+        "Immunization admin, intranasal/oral, each additional",
+        "20.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96372",
+        "Therapeutic/prophylactic injection, SC or IM",
+        "35.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96373",
+        "Therapeutic/prophylactic injection, intra-arterial",
+        "55.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96374",
+        "Therapeutic/prophylactic injection, IV push, single",
+        "75.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96375",
+        "Therapeutic/prophylactic injection, IV push, each additional",
+        "45.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96376",
+        "Therapeutic/prophylactic injection, IV push, each additional substance",
+        "35.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96360",
+        "IV infusion, hydration, initial 31 min to 1 hr",
+        "90.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96361",
+        "IV infusion, hydration, each additional hour",
+        "40.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96365",
+        "IV infusion, therapeutic, initial up to 1 hr",
+        "120.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96366",
+        "IV infusion, therapeutic, each additional hour",
+        "50.00",
+        CATEGORY_INJECTIONS,
+    ),
+    (
+        "96367",
+        "IV infusion, therapeutic, additional sequential",
+        "65.00",
+        CATEGORY_INJECTIONS,
+    ),
+    # ── Physical Medicine & Rehab ────────────────────────────────────
+    ("97010", "Application of hot/cold packs", "15.00", CATEGORY_PHYSICAL_MEDICINE),
+    ("97012", "Mechanical traction", "30.00", CATEGORY_PHYSICAL_MEDICINE),
+    (
+        "97014",
+        "Electrical stimulation (unattended)",
+        "25.00",
+        CATEGORY_PHYSICAL_MEDICINE,
+    ),
+    (
+        "97032",
+        "Electrical stimulation (manual), each 15 min",
+        "35.00",
+        CATEGORY_PHYSICAL_MEDICINE,
+    ),
+    ("97035", "Ultrasound, each 15 min", "30.00", CATEGORY_PHYSICAL_MEDICINE),
+    (
+        "97110",
+        "Therapeutic exercises, each 15 min",
+        "45.00",
+        CATEGORY_PHYSICAL_MEDICINE,
+    ),
+    (
+        "97112",
+        "Neuromuscular re-education, each 15 min",
+        "50.00",
+        CATEGORY_PHYSICAL_MEDICINE,
+    ),
+    ("97116", "Gait training, each 15 min", "45.00", CATEGORY_PHYSICAL_MEDICINE),
+    ("97140", "Manual therapy, each 15 min", "50.00", CATEGORY_PHYSICAL_MEDICINE),
+    ("97161", "PT evaluation, low complexity", "95.00", CATEGORY_PHYSICAL_MEDICINE),
+    (
+        "97162",
+        "PT evaluation, moderate complexity",
+        "120.00",
+        CATEGORY_PHYSICAL_MEDICINE,
+    ),
+    ("97163", "PT evaluation, high complexity", "145.00", CATEGORY_PHYSICAL_MEDICINE),
+    (
+        "97530",
+        "Therapeutic activities, each 15 min",
+        "50.00",
+        CATEGORY_PHYSICAL_MEDICINE,
+    ),
+    (
+        "97542",
+        "Wheelchair management training, each 15 min",
+        "45.00",
+        CATEGORY_PHYSICAL_MEDICINE,
+    ),
+    # ── Diagnostics - Cardiovascular ─────────────────────────────────
+    (
+        "93000",
+        "Electrocardiogram (ECG/EKG), 12-lead, complete",
+        "55.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93005",
+        "Electrocardiogram (ECG/EKG), tracing only",
+        "25.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93010",
+        "Electrocardiogram (ECG/EKG), interpretation only",
+        "30.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    ("93015", "Cardiovascular stress test, complete", "195.00", CATEGORY_CARDIAC_DX),
+    (
+        "93016",
+        "Cardiovascular stress test, supervision only",
+        "75.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93040",
+        "Rhythm ECG, 1-3 leads with interpretation",
+        "25.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93224",
+        "ECG monitoring, up to 48 hours, complete",
+        "195.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93268",
+        "Event monitor recording up to 30 days, complete",
+        "275.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93303",
+        "Transthoracic echocardiography, complete",
+        "350.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93306",
+        "Transthoracic echocardiography with Doppler, complete",
+        "425.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    ("93320", "Doppler echocardiography, complete", "150.00", CATEGORY_CARDIAC_DX),
+    (
+        "93922",
+        "Non-invasive vascular study, upper/lower extremity",
+        "195.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93970",
+        "Duplex scan of extremity veins, complete",
+        "285.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    (
+        "93971",
+        "Duplex scan of extremity veins, unilateral",
+        "195.00",
+        CATEGORY_CARDIAC_DX,
+    ),
+    # ── Diagnostics - Pulmonary ──────────────────────────────────────
+    ("94010", "Spirometry with graphic record", "50.00", CATEGORY_PULMONARY_DX),
+    (
+        "94060",
+        "Bronchodilation responsiveness (pre & post spirometry)",
+        "95.00",
+        CATEGORY_PULMONARY_DX,
+    ),
+    ("94375", "Respiratory flow volume loop", "55.00", CATEGORY_PULMONARY_DX),
+    (
+        "94640",
+        "Pressurized inhalation (nebulizer) treatment",
+        "45.00",
+        CATEGORY_PULMONARY_DX,
+    ),
+    (
+        "94664",
+        "Aerosol/vapor inhalation, initial demonstration",
+        "40.00",
+        CATEGORY_PULMONARY_DX,
+    ),
+    ("94726", "Plethysmography for lung volumes", "85.00", CATEGORY_PULMONARY_DX),
+    ("94729", "Diffusing capacity (DLCO)", "75.00", CATEGORY_PULMONARY_DX),
+    (
+        "94760",
+        "Noninvasive pulse oximetry, single measurement",
+        "15.00",
+        CATEGORY_PULMONARY_DX,
+    ),
+    (
+        "94761",
+        "Noninvasive pulse oximetry, multiple measurements",
+        "25.00",
+        CATEGORY_PULMONARY_DX,
+    ),
+    ("94250", "Expired gas collection, quantitative", "45.00", CATEGORY_PULMONARY_DX),
+    # ── Diagnostics - Neurology ──────────────────────────────────────
+    ("95004", "Percutaneous allergy skin tests", "12.00", CATEGORY_NEURO_DX),
+    (
+        "95024",
+        "Intracutaneous allergy test, delayed reaction",
+        "18.00",
+        CATEGORY_NEURO_DX,
+    ),
+    ("95819", "EEG, awake and asleep", "350.00", CATEGORY_NEURO_DX),
+    ("95907", "Nerve conduction study, 1-2 studies", "195.00", CATEGORY_NEURO_DX),
+    ("95910", "Nerve conduction study, 7-8 studies", "395.00", CATEGORY_NEURO_DX),
+    # ── Diagnostics - Vision ─────────────────────────────────────────
+    ("92002", "Ophthalmologic exam, new, intermediate", "85.00", CATEGORY_VISION_DX),
+    ("92004", "Ophthalmologic exam, new, comprehensive", "145.00", CATEGORY_VISION_DX),
+    (
+        "92012",
+        "Ophthalmologic exam, established, intermediate",
+        "65.00",
+        CATEGORY_VISION_DX,
+    ),
+    (
+        "92014",
+        "Ophthalmologic exam, established, comprehensive",
+        "110.00",
+        CATEGORY_VISION_DX,
+    ),
+    ("92081", "Visual field examination, limited", "55.00", CATEGORY_VISION_DX),
+    ("92083", "Visual field examination, extended", "95.00", CATEGORY_VISION_DX),
+    ("92250", "Fundus photography", "60.00", CATEGORY_VISION_DX),
+    ("99173", "Visual acuity screening", "15.00", CATEGORY_VISION_DX),
+    # ── Lab Collection ───────────────────────────────────────────────
+    (
+        "36415",
+        "Routine venipuncture for collection of specimen",
+        "20.00",
+        CATEGORY_LAB_COLLECTION,
+    ),
+    (
+        "36416",
+        "Collection of capillary blood specimen",
+        "15.00",
+        CATEGORY_LAB_COLLECTION,
+    ),
+    ("36600", "Arterial puncture for blood draw", "35.00", CATEGORY_LAB_COLLECTION),
+    # ── Lab Panels ───────────────────────────────────────────────────
+    ("80048", "Basic metabolic panel (BMP)", "25.00", CATEGORY_LAB_PANELS),
+    ("80050", "General health panel", "50.00", CATEGORY_LAB_PANELS),
+    ("80053", "Comprehensive metabolic panel (CMP)", "35.00", CATEGORY_LAB_PANELS),
+    ("80061", "Lipid panel", "30.00", CATEGORY_LAB_PANELS),
+    ("80069", "Renal function panel", "28.00", CATEGORY_LAB_PANELS),
+    ("80074", "Acute hepatitis panel", "65.00", CATEGORY_LAB_PANELS),
+    ("80076", "Hepatic function panel", "28.00", CATEGORY_LAB_PANELS),
+    ("80055", "Obstetric panel", "95.00", CATEGORY_LAB_PANELS),
+    # ── Lab Chemistry ────────────────────────────────────────────────
+    ("82247", "Bilirubin, total", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("82248", "Bilirubin, direct", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("82310", "Calcium, total", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("82374", "Carbon dioxide (bicarbonate)", "10.00", CATEGORY_LAB_CHEMISTRY),
+    ("82435", "Chloride, blood", "10.00", CATEGORY_LAB_CHEMISTRY),
+    ("82465", "Cholesterol, serum, total", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("82550", "Creatine kinase (CK/CPK), total", "14.00", CATEGORY_LAB_CHEMISTRY),
+    ("82565", "Creatinine, blood", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("82670", "Estradiol", "45.00", CATEGORY_LAB_CHEMISTRY),
+    ("82728", "Ferritin", "25.00", CATEGORY_LAB_CHEMISTRY),
+    ("82746", "Folic acid (folate), serum", "25.00", CATEGORY_LAB_CHEMISTRY),
+    ("82947", "Glucose, quantitative, blood", "10.00", CATEGORY_LAB_CHEMISTRY),
+    ("82950", "Glucose, post-dose (GTT)", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("82962", "Glucose, blood by glucometer", "8.00", CATEGORY_LAB_CHEMISTRY),
+    ("83036", "Hemoglobin A1c (HbA1c)", "25.00", CATEGORY_LAB_CHEMISTRY),
+    ("83540", "Iron, serum", "15.00", CATEGORY_LAB_CHEMISTRY),
+    ("83550", "Iron binding capacity (TIBC)", "18.00", CATEGORY_LAB_CHEMISTRY),
+    ("83615", "Lactate dehydrogenase (LDH)", "14.00", CATEGORY_LAB_CHEMISTRY),
+    ("83735", "Magnesium", "14.00", CATEGORY_LAB_CHEMISTRY),
+    ("83880", "Natriuretic peptide (BNP)", "45.00", CATEGORY_LAB_CHEMISTRY),
+    ("84075", "Alkaline phosphatase", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("84100", "Phosphorus, inorganic", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("84132", "Potassium, serum", "10.00", CATEGORY_LAB_CHEMISTRY),
+    ("84153", "PSA, total", "35.00", CATEGORY_LAB_CHEMISTRY),
+    ("84295", "Sodium, serum", "10.00", CATEGORY_LAB_CHEMISTRY),
+    ("84436", "Thyroxine, total (T4)", "18.00", CATEGORY_LAB_CHEMISTRY),
+    ("84439", "Thyroxine, free (free T4)", "20.00", CATEGORY_LAB_CHEMISTRY),
+    ("84443", "Thyroid stimulating hormone (TSH)", "30.00", CATEGORY_LAB_CHEMISTRY),
+    ("84450", "AST (SGOT)", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("84460", "ALT (SGPT)", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("84478", "Triglycerides", "15.00", CATEGORY_LAB_CHEMISTRY),
+    ("84480", "Triiodothyronine, total (T3)", "22.00", CATEGORY_LAB_CHEMISTRY),
+    ("84484", "Troponin, quantitative", "25.00", CATEGORY_LAB_CHEMISTRY),
+    ("84520", "Urea nitrogen (BUN)", "10.00", CATEGORY_LAB_CHEMISTRY),
+    ("84550", "Uric acid, blood", "12.00", CATEGORY_LAB_CHEMISTRY),
+    ("84702", "HCG (pregnancy test), quantitative", "30.00", CATEGORY_LAB_CHEMISTRY),
+    ("82306", "Vitamin D, 25-hydroxy", "55.00", CATEGORY_LAB_CHEMISTRY),
+    ("82607", "Vitamin B12 (cyanocobalamin)", "30.00", CATEGORY_LAB_CHEMISTRY),
+    # ── Lab Hematology ───────────────────────────────────────────────
+    ("85004", "Automated differential WBC count", "10.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85007", "Manual differential WBC count", "15.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85014", "Hematocrit", "8.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85018", "Hemoglobin", "8.00", CATEGORY_LAB_HEMATOLOGY),
+    (
+        "85025",
+        "Complete blood count (CBC) with differential",
+        "15.00",
+        CATEGORY_LAB_HEMATOLOGY,
+    ),
+    (
+        "85027",
+        "Complete blood count (CBC) without differential",
+        "12.00",
+        CATEGORY_LAB_HEMATOLOGY,
+    ),
+    ("85041", "Red blood cell count", "8.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85048", "White blood cell count", "8.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85378", "D-dimer, quantitative", "28.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85379", "D-dimer, semi-quantitative", "20.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85610", "Prothrombin time (PT)", "12.00", CATEGORY_LAB_HEMATOLOGY),
+    ("85730", "Partial thromboplastin time (PTT)", "14.00", CATEGORY_LAB_HEMATOLOGY),
+    (
+        "85651",
+        "Sedimentation rate (ESR), non-automated",
+        "12.00",
+        CATEGORY_LAB_HEMATOLOGY,
+    ),
+    ("85652", "Sedimentation rate (ESR), automated", "10.00", CATEGORY_LAB_HEMATOLOGY),
+    # ── Lab Microbiology ─────────────────────────────────────────────
+    ("87040", "Culture, bacterial, blood", "25.00", CATEGORY_LAB_MICRO),
+    ("87070", "Culture, bacterial, any source", "22.00", CATEGORY_LAB_MICRO),
+    ("87077", "Culture, aerobic identification", "18.00", CATEGORY_LAB_MICRO),
+    ("87081", "Culture, bacterial, screening only", "15.00", CATEGORY_LAB_MICRO),
+    ("87086", "Culture, urine, quantitative colony count", "18.00", CATEGORY_LAB_MICRO),
+    ("87088", "Culture, urine, identification", "15.00", CATEGORY_LAB_MICRO),
+    ("87101", "Culture, fungal (skin/hair/nail)", "22.00", CATEGORY_LAB_MICRO),
+    ("87205", "Smear, primary source, Gram stain", "12.00", CATEGORY_LAB_MICRO),
+    ("87210", "Smear, primary source, wet mount", "12.00", CATEGORY_LAB_MICRO),
+    ("87220", "Tissue exam for fungi (KOH)", "12.00", CATEGORY_LAB_MICRO),
+    ("87340", "Hepatitis B surface antigen (HBsAg)", "20.00", CATEGORY_LAB_MICRO),
+    (
+        "87389",
+        "HIV-1 antigen with HIV-1 and HIV-2 antibodies",
+        "35.00",
+        CATEGORY_LAB_MICRO,
+    ),
+    ("87491", "Chlamydia, amplified probe", "45.00", CATEGORY_LAB_MICRO),
+    ("87591", "Neisseria gonorrhoeae, amplified probe", "45.00", CATEGORY_LAB_MICRO),
+    (
+        "87804",
+        "Infectious agent detection, rapid strep test",
+        "20.00",
+        CATEGORY_LAB_MICRO,
+    ),
+    (
+        "87880",
+        "Infectious agent detection, rapid influenza test",
+        "25.00",
+        CATEGORY_LAB_MICRO,
+    ),
+    ("87635", "SARS-CoV-2 (COVID-19), amplified probe", "55.00", CATEGORY_LAB_MICRO),
+    ("87426", "SARS-CoV-2 (COVID-19), antigen rapid test", "35.00", CATEGORY_LAB_MICRO),
+    # ── Lab Urinalysis ───────────────────────────────────────────────
+    (
+        "81000",
+        "Urinalysis, non-automated, with microscopy",
+        "12.00",
+        CATEGORY_LAB_URINALYSIS,
+    ),
+    (
+        "81001",
+        "Urinalysis, automated, with microscopy",
+        "15.00",
+        CATEGORY_LAB_URINALYSIS,
+    ),
+    (
+        "81002",
+        "Urinalysis, non-automated, without microscopy",
+        "10.00",
+        CATEGORY_LAB_URINALYSIS,
+    ),
+    (
+        "81003",
+        "Urinalysis, automated, without microscopy",
+        "10.00",
+        CATEGORY_LAB_URINALYSIS,
+    ),
+    ("81025", "Urine pregnancy test", "15.00", CATEGORY_LAB_URINALYSIS),
+    (
+        "81050",
+        "Volume measurement for timed collection",
+        "8.00",
+        CATEGORY_LAB_URINALYSIS,
+    ),
+    # ── Lab Pathology ────────────────────────────────────────────────
+    ("88104", "Cytopathology, fluids, smears", "85.00", CATEGORY_LAB_PATHOLOGY),
+    (
+        "88112",
+        "Cytopathology, selective cellular enhancement",
+        "110.00",
+        CATEGORY_LAB_PATHOLOGY,
+    ),
+    ("88142", "Cytopathology, thin-layer (Pap smear)", "35.00", CATEGORY_LAB_PATHOLOGY),
+    (
+        "88175",
+        "Cytopathology, cervical/vaginal, automated, thin layer",
+        "45.00",
+        CATEGORY_LAB_PATHOLOGY,
+    ),
+    (
+        "88305",
+        "Surgical pathology, gross and microscopic, level IV",
+        "120.00",
+        CATEGORY_LAB_PATHOLOGY,
+    ),
+    ("88312", "Special stain, Group I", "95.00", CATEGORY_LAB_PATHOLOGY),
+    # ── Radiology ────────────────────────────────────────────────────
+    ("70100", "X-ray, mandible, partial", "55.00", CATEGORY_RADIOLOGY),
+    ("70110", "X-ray, mandible, complete", "75.00", CATEGORY_RADIOLOGY),
+    ("70210", "X-ray, sinuses, less than 3 views", "45.00", CATEGORY_RADIOLOGY),
+    (
+        "70260",
+        "X-ray, skull, complete, minimum of 4 views",
+        "85.00",
+        CATEGORY_RADIOLOGY,
+    ),
+    ("71046", "X-ray, chest, 2 views", "55.00", CATEGORY_RADIOLOGY),
+    ("71047", "X-ray, chest, 3 views", "65.00", CATEGORY_RADIOLOGY),
+    ("72070", "X-ray, thoracic spine, 2 views", "55.00", CATEGORY_RADIOLOGY),
+    ("72100", "X-ray, lumbosacral spine, 2-3 views", "65.00", CATEGORY_RADIOLOGY),
+    (
+        "72110",
+        "X-ray, lumbosacral spine, complete, 4+ views",
+        "85.00",
+        CATEGORY_RADIOLOGY,
+    ),
+    (
+        "73030",
+        "X-ray, shoulder, complete, minimum of 2 views",
+        "50.00",
+        CATEGORY_RADIOLOGY,
+    ),
+    ("73060", "X-ray, humerus, minimum of 2 views", "45.00", CATEGORY_RADIOLOGY),
+    ("73070", "X-ray, elbow, 2 views", "40.00", CATEGORY_RADIOLOGY),
+    (
+        "73110",
+        "X-ray, wrist, complete, minimum of 3 views",
+        "50.00",
+        CATEGORY_RADIOLOGY,
+    ),
+    ("73130", "X-ray, hand, minimum of 3 views", "45.00", CATEGORY_RADIOLOGY),
+    ("73140", "X-ray, finger(s), minimum of 2 views", "35.00", CATEGORY_RADIOLOGY),
+    ("73502", "X-ray, hip, 2-3 views", "55.00", CATEGORY_RADIOLOGY),
+    ("73560", "X-ray, knee, 1-2 views", "40.00", CATEGORY_RADIOLOGY),
+    ("73562", "X-ray, knee, 3 views", "50.00", CATEGORY_RADIOLOGY),
+    ("73590", "X-ray, tibia/fibula, 2 views", "45.00", CATEGORY_RADIOLOGY),
+    ("73600", "X-ray, ankle, 2 views", "40.00", CATEGORY_RADIOLOGY),
+    ("73610", "X-ray, ankle, 3+ views", "50.00", CATEGORY_RADIOLOGY),
+    ("73620", "X-ray, foot, 2 views", "40.00", CATEGORY_RADIOLOGY),
+    ("73630", "X-ray, foot, 3+ views", "50.00", CATEGORY_RADIOLOGY),
+    ("73660", "X-ray, toes, minimum of 2 views", "35.00", CATEGORY_RADIOLOGY),
+    ("74018", "X-ray, abdomen, 1 view", "45.00", CATEGORY_RADIOLOGY),
+    ("74019", "X-ray, abdomen, 2 views", "55.00", CATEGORY_RADIOLOGY),
+    ("76830", "Ultrasound, transvaginal", "195.00", CATEGORY_RADIOLOGY),
+    ("76856", "Ultrasound, pelvic, complete", "195.00", CATEGORY_RADIOLOGY),
+    ("76700", "Ultrasound, abdominal, complete", "195.00", CATEGORY_RADIOLOGY),
+    ("76770", "Ultrasound, retroperitoneal, complete", "195.00", CATEGORY_RADIOLOGY),
+    # ── HCPCS Drug Codes ─────────────────────────────────────────────
+    (
+        "J0696",
+        "Ceftriaxone sodium injection, per 250 mg",
+        "18.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    (
+        "J1030",
+        "Methylprednisolone injection, up to 40 mg",
+        "12.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    (
+        "J1040",
+        "Methylprednisolone injection, up to 80 mg",
+        "18.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    ("J1071", "Testosterone cypionate, 1 mg", "10.00", CATEGORY_HCPCS_DRUGS),
+    ("J1100", "Dexamethasone sodium phosphate, 1 mg", "8.00", CATEGORY_HCPCS_DRUGS),
+    (
+        "J1200",
+        "Diphenhydramine HCl injection, up to 50 mg",
+        "10.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    ("J1580", "Garamycin, gentamicin, up to 80 mg", "12.00", CATEGORY_HCPCS_DRUGS),
+    (
+        "J1885",
+        "Ketorolac tromethamine injection, per 15 mg",
+        "10.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    ("J2001", "Lidocaine injection, 10 mg", "5.00", CATEGORY_HCPCS_DRUGS),
+    ("J2250", "Midazolam injection, per 1 mg", "8.00", CATEGORY_HCPCS_DRUGS),
+    ("J2270", "Morphine sulfate injection, up to 10 mg", "10.00", CATEGORY_HCPCS_DRUGS),
+    ("J2550", "Promethazine HCl injection, up to 50 mg", "10.00", CATEGORY_HCPCS_DRUGS),
+    (
+        "J2765",
+        "Metoclopramide HCl injection, up to 10 mg",
+        "8.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    (
+        "J2930",
+        "Methylprednisolone injection, up to 125 mg",
+        "22.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    (
+        "J3301",
+        "Triamcinolone acetonide injection, per 10 mg",
+        "10.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    (
+        "J3420",
+        "Vitamin B12 (cyanocobalamin) injection, up to 1000 mcg",
+        "12.00",
+        CATEGORY_HCPCS_DRUGS,
+    ),
+    # ── Supplies & Miscellaneous ─────────────────────────────────────
+    (
+        "99000",
+        "Handling/conveyance of specimen for transfer",
+        "10.00",
+        CATEGORY_SUPPLY_MISC,
+    ),
+    ("99070", "Supplies and materials provided", "25.00", CATEGORY_SUPPLY_MISC),
+    ("99080", "Special reports such as insurance forms", "35.00", CATEGORY_SUPPLY_MISC),
+    (
+        "99199",
+        "Unlisted special service, procedure, or report",
+        "0.00",
+        CATEGORY_SUPPLY_MISC,
+    ),
+]
+
+
+CPT_CATALOG_BY_CODE = {entry[0]: entry for entry in CPT_CATALOG}
+
+CPT_CATEGORIES = sorted({entry[3] for entry in CPT_CATALOG})
+
+
+def get_catalog_entries():
+    return [
+        {
+            "service_code": code,
+            "description": desc,
+            "charge_amount": Decimal(charge),
+            "category": cat,
+        }
+        for code, desc, charge, cat in CPT_CATALOG
+    ]

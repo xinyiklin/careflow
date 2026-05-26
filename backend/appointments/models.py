@@ -77,6 +77,15 @@ class Appointment(models.Model):
 
     created_by_name = models.CharField(max_length=150, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_billable = models.BooleanField(default=True)
+
+    @property
+    def is_effectively_billable(self):
+        return (
+            self.is_billable
+            and getattr(self.status, "is_billable", True)
+            and getattr(self.appointment_type, "is_billable", True)
+        )
 
     @property
     def duration_minutes(self):

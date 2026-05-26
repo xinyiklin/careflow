@@ -11,9 +11,10 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from audit.models import AuditEvent
-from facilities.access import get_default_staff_profile, get_staff_profile_for_facility
+from clinical.models import Encounter, ProgressNote
 from facilities.security import user_has_facility_permission
 from patients.models import Patient
+from shared.scoping import FacilityScopedViewSetMixin
 
 from .models import Appointment, AppointmentEditSession
 from .serializers import AppointmentSerializer
@@ -87,28 +88,7 @@ def build_audit_history_item(event):
     }
 
 
-class FacilityScopedAppointmentMixin:
-    def get_staff_profile(self):
-        facility_id = self.request.query_params.get("facility_id")
-
-        if facility_id:
-            profile = get_staff_profile_for_facility(self.request.user, facility_id)
-            if not profile:
-                raise PermissionDenied("You do not have access to this facility.")
-            return profile
-
-        profile = get_default_staff_profile(self.request.user)
-        if not profile:
-            raise PermissionDenied(
-                "No active default facility found. If the user has multiple facilities, one must be default."
-            )
-        return profile
-
-    def get_facility(self):
-        return self.get_staff_profile().facility
-
-
-class AppointmentViewSet(FacilityScopedAppointmentMixin, viewsets.ModelViewSet):
+class AppointmentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = AppointmentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -334,6 +314,21 @@ class AppointmentViewSet(FacilityScopedAppointmentMixin, viewsets.ModelViewSet):
             },
         )
 
+        if appointment.is_effectively_billable:
+            encounter = Encounter.objects.create(
+                patient=appointment.patient,
+                facility=appointment.facility,
+                appointment=appointment,
+                rendering_provider=appointment.rendering_provider,
+                reason=appointment.reason,
+                started_at=appointment.appointment_time,
+                created_by=self.request.user,
+            )
+            ProgressNote.objects.create(
+                encounter=encounter,
+                created_by=self.request.user,
+            )
+
     def perform_update(self, serializer):
         profile = self.get_staff_profile()
         changed_fields = get_changed_field_labels(
@@ -407,6 +402,24 @@ class AppointmentViewSet(FacilityScopedAppointmentMixin, viewsets.ModelViewSet):
                 "changed_fields": changed_fields,
             },
         )
+
+        if (
+            appointment.is_effectively_billable
+            and not Encounter.objects.filter(appointment=appointment).exists()
+        ):
+            encounter = Encounter.objects.create(
+                patient=appointment.patient,
+                facility=appointment.facility,
+                appointment=appointment,
+                rendering_provider=appointment.rendering_provider,
+                reason=appointment.reason,
+                started_at=appointment.appointment_time,
+                created_by=self.request.user,
+            )
+            ProgressNote.objects.create(
+                encounter=encounter,
+                created_by=self.request.user,
+            )
 
     def perform_destroy(self, instance):
         profile = self.get_staff_profile()
