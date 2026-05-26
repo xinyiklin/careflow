@@ -1,27 +1,33 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  CheckCircle2,
-  ClipboardList,
-  FileText,
-  Stethoscope,
-} from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { CheckCircle2, RotateCcw } from "lucide-react";
 
-import { FormLabel as Label } from "./PatientFormFields";
-import {
-  Badge,
-  Button,
-  Input,
-  ModalShell,
-} from "../../../shared/components/ui";
-import { formatDateTime } from "./PatientHubSections";
+import ConfirmDialog from "../../../shared/components/ConfirmDialog";
 
-import type { EntityId } from "../../../shared/api/types";
+import { Badge, Button, ModalShell } from "../../../shared/components/ui";
+import {
+  ProgressNoteSoapWorkspace,
+  ProgressNoteVisitPanel,
+} from "./ProgressNoteModalSections";
+import ProgressNoteReviewRail from "./ProgressNoteReviewRail";
+import {
+  areProgressNoteValuesEqual,
+  getCompletedSoapCount,
+  getInitialProgressNoteValues,
+  getProviderLabel,
+  hasProgressNoteContent,
+  noteContentRequiredMessage,
+} from "./progressNoteModalUtils";
+
 import type { AppointmentLike } from "../../../shared/types/domain";
 import type {
   ClinicalEncounter,
-  PatientCareProvider,
   ProgressNoteFormValues,
-} from "../types";
+} from "../../billing/types";
+import type { PatientCareProvider } from "../types";
+import type {
+  ProgressNoteFieldIds,
+  SoapFieldKey,
+} from "./progressNoteModalUtils";
 
 type ProgressNoteModalProps = {
   isOpen: boolean;
@@ -31,12 +37,15 @@ type ProgressNoteModalProps = {
   providers: PatientCareProvider[];
   canEdit: boolean;
   canSign: boolean;
+  canUnsign?: boolean;
   saving?: boolean;
   signing?: boolean;
+  unsigning?: boolean;
   error?: string;
   onClose: () => void;
   onSaveDraft: (values: ProgressNoteFormValues) => void | Promise<void>;
   onSign: (values: ProgressNoteFormValues) => void | Promise<void>;
+  onUnsign?: () => void | Promise<void>;
 };
 
 const emptyValues: ProgressNoteFormValues = {
@@ -48,32 +57,14 @@ const emptyValues: ProgressNoteFormValues = {
   plan: "",
 };
 
-function getProviderLabel(provider: PatientCareProvider) {
-  const userName = [provider.user?.first_name, provider.user?.last_name]
-    .filter(Boolean)
-    .join(" ");
-  return (
-    provider.display_name ||
-    [provider.title_name, userName].filter(Boolean).join(" ") ||
-    [provider.first_name, provider.last_name].filter(Boolean).join(" ") ||
-    "Provider"
-  );
-}
-
-function getInitialValues(
-  encounter?: ClinicalEncounter | null,
-  appointment?: AppointmentLike | null
-): ProgressNoteFormValues {
-  const note = encounter?.progress_note;
-
+function buildFieldIds(prefix: string): ProgressNoteFieldIds {
   return {
-    reason: encounter?.reason || appointment?.reason || "",
-    rendering_provider:
-      encounter?.rendering_provider || appointment?.rendering_provider || "",
-    subjective: note?.subjective || "",
-    objective: note?.objective || "",
-    assessment: note?.assessment || "",
-    plan: note?.plan || "",
+    reason: `${prefix}-reason`,
+    provider: `${prefix}-provider`,
+    subjective: `${prefix}-subjective`,
+    objective: `${prefix}-objective`,
+    assessment: `${prefix}-assessment`,
+    plan: `${prefix}-plan`,
   };
 }
 
@@ -85,27 +76,47 @@ export default function ProgressNoteModal({
   providers,
   canEdit,
   canSign,
+  canUnsign = false,
   saving = false,
   signing = false,
+  unsigning = false,
   error = "",
   onClose,
   onSaveDraft,
   onSign,
+  onUnsign,
 }: ProgressNoteModalProps) {
   const [values, setValues] = useState<ProgressNoteFormValues>(emptyValues);
+  const [initialValues, setInitialValues] =
+    useState<ProgressNoteFormValues>(emptyValues);
+  const [activeField, setActiveField] = useState<SoapFieldKey>("subjective");
+  const [contentError, setContentError] = useState("");
+  const contentRequirementId = useId();
+  const contentErrorId = useId();
+  const fieldIdPrefix = useId();
+  const fieldIds = useMemo(() => buildFieldIds(fieldIdPrefix), [fieldIdPrefix]);
   const isSigned =
     encounter?.status === "signed" ||
     encounter?.progress_note?.status === "signed";
   const isExisting = Boolean(encounter?.id);
-  const isBusy = saving || signing;
+  const isBusy = saving || signing || unsigning;
+  const [confirmUnsign, setConfirmUnsign] = useState(false);
   const canEditDraft = canEdit && !isSigned && !isBusy;
   const canSignDraft = canSign && !isSigned && !isBusy;
-  const hasNoteContent = [
-    values.subjective,
-    values.objective,
-    values.assessment,
-    values.plan,
-  ].some((value) => value.trim());
+  const hasNoteContent = hasProgressNoteContent(values);
+  const completedSoapCount = getCompletedSoapCount(values);
+  const isDirty = !areProgressNoteValuesEqual(values, initialValues);
+  const canSaveDraft = canEditDraft && hasNoteContent && isDirty;
+  const canSubmitSign = canSignDraft && hasNoteContent;
+  const textFieldsReadOnly = isSigned;
+  const textFieldsDisabled = !isSigned && !canEditDraft;
+  const noteFieldsDescription =
+    [
+      !isSigned && !hasNoteContent ? contentRequirementId : "",
+      contentError ? contentErrorId : "",
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined;
   const selectedProvider = useMemo(
     () =>
       providers.find(
@@ -116,14 +127,44 @@ export default function ProgressNoteModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setValues(getInitialValues(encounter, appointment));
+    const nextValues = getInitialProgressNoteValues(encounter, appointment);
+    setValues(nextValues);
+    setInitialValues(nextValues);
+    setActiveField("subjective");
+    setContentError("");
   }, [appointment, encounter, isOpen]);
+
+  useEffect(() => {
+    if (hasNoteContent && contentError) setContentError("");
+  }, [contentError, hasNoteContent]);
 
   const setField = <TField extends keyof ProgressNoteFormValues>(
     field: TField,
     value: ProgressNoteFormValues[TField]
   ) => {
     setValues((current) => ({ ...current, [field]: value }));
+  };
+
+  const validateNoteContent = () => {
+    if (hasNoteContent) return true;
+    setContentError(noteContentRequiredMessage);
+    return false;
+  };
+
+  const handleResetChanges = () => {
+    setValues(initialValues);
+    setActiveField("subjective");
+    setContentError("");
+  };
+
+  const handleSaveDraft = () => {
+    if (!canEditDraft || !isDirty || !validateNoteContent()) return;
+    void onSaveDraft(values);
+  };
+
+  const handleSign = () => {
+    if (!canSignDraft || !validateNoteContent()) return;
+    void onSign(values);
   };
 
   return (
@@ -133,18 +174,29 @@ export default function ProgressNoteModal({
       eyebrow="Clinical Charting"
       title={isSigned ? "Signed Progress Note" : "Progress Note"}
       maxWidth="4xl"
-      panelClassName="max-h-[min(94dvh,760px)] max-w-5xl"
-      bodyClassName="overflow-hidden p-0"
+      panelClassName="max-h-[min(96dvh,860px)] max-w-7xl"
+      bodyClassName="p-0"
       footerClassName="bg-cf-surface !py-3"
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-cf-text-muted">
-            <Badge variant={isSigned ? "success" : "outline"}>
-              {isSigned ? "Signed" : isExisting ? "Draft" : "New"}
+            <Badge
+              variant={isSigned ? "success" : isDirty ? "outline" : "muted"}
+            >
+              {isSigned
+                ? "Signed"
+                : isDirty
+                  ? "Unsaved Changes"
+                  : isExisting
+                    ? "Draft Saved"
+                    : "New Note"}
             </Badge>
-            {encounter?.progress_note?.signed_at ? (
+            <span className="truncate">
+              {completedSoapCount}/4 SOAP sections filled
+            </span>
+            {selectedProvider ? (
               <span className="truncate">
-                Signed {formatDateTime(encounter.progress_note.signed_at)}
+                {getProviderLabel(selectedProvider)}
               </span>
             ) : null}
           </div>
@@ -157,27 +209,45 @@ export default function ProgressNoteModal({
             >
               Close
             </Button>
-            {!isSigned ? (
+            {isSigned ? (
+              canUnsign && onUnsign ? (
+                <Button
+                  type="button"
+                  variant="warning"
+                  disabled={isBusy}
+                  onClick={() => setConfirmUnsign(true)}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {unsigning ? "Unsigning..." : "Unsign"}
+                </Button>
+              ) : null
+            ) : (
               <>
                 <Button
                   type="submit"
                   form="progress-note-form"
                   variant="default"
-                  disabled={!canEditDraft}
+                  disabled={!canSaveDraft}
+                  aria-describedby={
+                    !hasNoteContent ? contentRequirementId : undefined
+                  }
                 >
                   {saving ? "Saving..." : "Save Draft"}
                 </Button>
                 <Button
                   type="button"
                   variant="primary"
-                  disabled={!canSignDraft || !hasNoteContent}
-                  onClick={() => void onSign(values)}
+                  disabled={!canSubmitSign}
+                  aria-describedby={
+                    !hasNoteContent ? contentRequirementId : undefined
+                  }
+                  onClick={handleSign}
                 >
                   <CheckCircle2 className="h-4 w-4" />
                   {signing ? "Signing..." : "Sign Note"}
                 </Button>
               </>
-            ) : null}
+            )}
           </div>
         </div>
       }
@@ -186,120 +256,78 @@ export default function ProgressNoteModal({
         id="progress-note-form"
         onSubmit={(event) => {
           event.preventDefault();
-          void onSaveDraft(values);
+          handleSaveDraft();
         }}
         className="flex min-h-0 flex-col"
       >
-        <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/50 px-5 py-2.5">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <span className="inline-flex min-w-0 items-center gap-2 font-semibold text-cf-text">
-              <ClipboardList className="h-4 w-4 text-cf-text-subtle" />
-              <span className="truncate">{patientName}</span>
-            </span>
-            <span className="inline-flex items-center gap-1 text-cf-text-muted">
-              <Stethoscope className="h-3.5 w-3.5" />
-              {selectedProvider
-                ? getProviderLabel(selectedProvider)
-                : "Provider not set"}
-            </span>
-            {appointment?.appointment_time || encounter?.appointment_time ? (
-              <span className="inline-flex items-center gap-1 text-cf-text-muted">
-                <FileText className="h-3.5 w-3.5" />
-                {formatDateTime(
-                  encounter?.appointment_time || appointment?.appointment_time
-                )}
-              </span>
-            ) : null}
-          </div>
-        </div>
-
         {error ? (
-          <div className="border-b border-cf-border bg-cf-danger-bg px-5 py-3 text-sm text-cf-danger-text">
+          <div
+            className="border-b border-cf-border bg-cf-danger-bg px-5 py-3 text-sm text-cf-danger-text"
+            role="alert"
+          >
             {error}
           </div>
         ) : null}
 
-        <div className="grid min-h-0 gap-0 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="border-b border-cf-border bg-cf-surface px-5 py-4 lg:border-b-0 lg:border-r">
-            <div className="space-y-4">
-              <div>
-                <Label compact>Visit Reason</Label>
-                <Input
-                  as="textarea"
-                  rows={4}
-                  value={values.reason}
-                  disabled={!canEditDraft}
-                  onChange={(event) => setField("reason", event.target.value)}
-                />
-              </div>
-              <div>
-                <Label compact>Rendering Provider</Label>
-                <Input
-                  as="select"
-                  value={String(values.rendering_provider || "")}
-                  disabled={!canEditDraft}
-                  onChange={(event) =>
-                    setField(
-                      "rendering_provider",
-                      event.target.value as EntityId | ""
-                    )
-                  }
-                >
-                  <option value="">Not set</option>
-                  {providers.map((provider) => (
-                    <option key={provider.id} value={String(provider.id)}>
-                      {getProviderLabel(provider)}
-                    </option>
-                  ))}
-                </Input>
-              </div>
-            </div>
-          </aside>
+        <div className="grid min-h-0 gap-0 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_280px]">
+          <ProgressNoteVisitPanel
+            values={values}
+            fieldIds={fieldIds}
+            providers={providers}
+            selectedProvider={selectedProvider}
+            patientName={patientName}
+            appointment={appointment}
+            encounter={encounter}
+            canEditDraft={canEditDraft}
+            textFieldsReadOnly={textFieldsReadOnly}
+            textFieldsDisabled={textFieldsDisabled}
+            isSigned={isSigned}
+            setField={setField}
+          />
 
-          <div className="grid gap-4 px-5 py-4 md:grid-cols-2">
-            <div>
-              <Label compact>Subjective</Label>
-              <Input
-                as="textarea"
-                rows={7}
-                value={values.subjective}
-                disabled={!canEditDraft}
-                onChange={(event) => setField("subjective", event.target.value)}
-              />
-            </div>
-            <div>
-              <Label compact>Objective</Label>
-              <Input
-                as="textarea"
-                rows={7}
-                value={values.objective}
-                disabled={!canEditDraft}
-                onChange={(event) => setField("objective", event.target.value)}
-              />
-            </div>
-            <div>
-              <Label compact>Assessment</Label>
-              <Input
-                as="textarea"
-                rows={7}
-                value={values.assessment}
-                disabled={!canEditDraft}
-                onChange={(event) => setField("assessment", event.target.value)}
-              />
-            </div>
-            <div>
-              <Label compact>Plan</Label>
-              <Input
-                as="textarea"
-                rows={7}
-                value={values.plan}
-                disabled={!canEditDraft}
-                onChange={(event) => setField("plan", event.target.value)}
-              />
-            </div>
-          </div>
+          <ProgressNoteSoapWorkspace
+            values={values}
+            fieldIds={fieldIds}
+            activeField={activeField}
+            setActiveField={setActiveField}
+            setField={setField}
+            contentRequirementId={contentRequirementId}
+            contentErrorId={contentErrorId}
+            contentError={contentError}
+            noteFieldsDescription={noteFieldsDescription}
+            hasNoteContent={hasNoteContent}
+            canEditDraft={canEditDraft}
+            textFieldsReadOnly={textFieldsReadOnly}
+            textFieldsDisabled={textFieldsDisabled}
+            isSigned={isSigned}
+          />
+
+          <ProgressNoteReviewRail
+            values={values}
+            encounter={encounter}
+            isSigned={isSigned}
+            isDirty={isDirty}
+            canEditDraft={canEditDraft}
+            hasNoteContent={hasNoteContent}
+            completedSoapCount={completedSoapCount}
+            selectedProvider={selectedProvider}
+            onReset={handleResetChanges}
+          />
         </div>
       </form>
+
+      <ConfirmDialog
+        isOpen={confirmUnsign}
+        title="Unsign Progress Note"
+        message="This will revert the note to draft status. The note content will be preserved but it will need to be re-signed. This action is audited."
+        confirmText="Unsign Note"
+        variant="warning"
+        onCancel={() => setConfirmUnsign(false)}
+        onConfirm={() => {
+          setConfirmUnsign(false);
+          void onUnsign?.();
+        }}
+      />
     </ModalShell>
   );
 }

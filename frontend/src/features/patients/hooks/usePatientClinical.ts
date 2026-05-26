@@ -4,16 +4,17 @@ import {
   createClinicalEncounter,
   fetchClinicalEncounters,
   signProgressNote,
+  unsignProgressNote,
   updateClinicalEncounter,
   updateProgressNote,
-} from "../api/clinical";
+} from "../../billing/api/clinical";
 
 import type { ApiPayload, EntityId } from "../../../shared/api/types";
 import type {
   ClinicalEncounter,
   ClinicalEncounterPayload,
   ProgressNotePayload,
-} from "../types";
+} from "../../billing/types";
 
 type UsePatientClinicalParams = {
   facilityId?: EntityId | null;
@@ -87,6 +88,12 @@ export default function usePatientClinical({
     onSuccess: invalidateClinicalEncounters,
   });
 
+  const unsignProgressNoteMutation = useMutation({
+    mutationFn: (noteId: EntityId) =>
+      unsignProgressNote({ facilityId, noteId }),
+    onSuccess: invalidateClinicalEncounters,
+  });
+
   return {
     encounters: Array.isArray(encountersQuery.data) ? encountersQuery.data : [],
     encountersQuery,
@@ -94,6 +101,7 @@ export default function usePatientClinical({
     updateEncounterMutation,
     updateProgressNoteMutation,
     signProgressNoteMutation,
+    unsignProgressNoteMutation,
     invalidateClinicalEncounters,
   };
 }

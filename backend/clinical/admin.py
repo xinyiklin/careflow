@@ -14,6 +14,21 @@ class ProgressNoteInline(admin.StackedInline):
         "updated_at",
     )
 
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if obj and obj.status == Encounter.STATUS_SIGNED:
+            readonly_fields.extend(
+                [
+                    "subjective",
+                    "objective",
+                    "assessment",
+                    "plan",
+                    "created_by",
+                    "signed_by",
+                ]
+            )
+        return tuple(dict.fromkeys(readonly_fields))
+
 
 @admin.register(Encounter)
 class EncounterAdmin(admin.ModelAdmin):
@@ -42,3 +57,21 @@ class EncounterAdmin(admin.ModelAdmin):
         "created_by",
     ]
     inlines = [ProgressNoteInline]
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly_fields = list(super().get_readonly_fields(request, obj))
+        if obj and obj.status == Encounter.STATUS_SIGNED:
+            readonly_fields.extend(
+                [
+                    "patient",
+                    "facility",
+                    "appointment",
+                    "rendering_provider",
+                    "status",
+                    "reason",
+                    "started_at",
+                    "ended_at",
+                    "created_by",
+                ]
+            )
+        return tuple(dict.fromkeys(readonly_fields))

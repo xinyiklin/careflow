@@ -10,6 +10,13 @@ def get_user_display_name(user):
     return user.get_full_name() or user.get_username() or ""
 
 
+def has_changed(instance, original, field_names):
+    for field_name in field_names:
+        if getattr(instance, field_name) != getattr(original, field_name):
+            return True
+    return False
+
+
 class Encounter(models.Model):
     STATUS_IN_PROGRESS = "in_progress"
     STATUS_SIGNED = "signed"
@@ -19,6 +26,16 @@ class Encounter(models.Model):
         (STATUS_IN_PROGRESS, "In Progress"),
         (STATUS_SIGNED, "Signed"),
         (STATUS_CANCELLED, "Cancelled"),
+    ]
+    SIGNED_LOCKED_FIELDS = [
+        "patient_id",
+        "facility_id",
+        "appointment_id",
+        "rendering_provider_id",
+        "status",
+        "reason",
+        "started_at",
+        "ended_at",
     ]
 
     patient = models.ForeignKey(
@@ -33,7 +50,7 @@ class Encounter(models.Model):
     )
     appointment = models.OneToOneField(
         "appointments.Appointment",
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="clinical_encounter",
@@ -73,6 +90,15 @@ class Encounter(models.Model):
         ]
 
     def clean(self):
+        if self.pk:
+            original = Encounter.objects.filter(pk=self.pk).first()
+            if (
+                original
+                and original.status == self.STATUS_SIGNED
+                and has_changed(self, original, self.SIGNED_LOCKED_FIELDS)
+            ):
+                raise ValidationError({"status": "Signed encounters cannot be edited."})
+
         if self.patient and self.facility_id != self.patient.facility_id:
             raise ValidationError(
                 {"patient": "Encounter facility must match patient facility."}
@@ -136,6 +162,18 @@ class ProgressNote(models.Model):
         (STATUS_DRAFT, "Draft"),
         (STATUS_SIGNED, "Signed"),
     ]
+    SIGNED_LOCKED_FIELDS = [
+        "encounter_id",
+        "status",
+        "subjective",
+        "objective",
+        "assessment",
+        "plan",
+        "created_by_id",
+        "signed_by_id",
+        "signed_by_name",
+        "signed_at",
+    ]
 
     encounter = models.OneToOneField(
         Encounter,
@@ -174,8 +212,23 @@ class ProgressNote(models.Model):
         ordering = ["-updated_at"]
 
     def clean(self):
+        if self.pk:
+            original = ProgressNote.objects.filter(pk=self.pk).first()
+            if (
+                original
+                and original.status == self.STATUS_SIGNED
+                and has_changed(self, original, self.SIGNED_LOCKED_FIELDS)
+            ):
+                raise ValidationError(
+                    {"status": "Signed progress notes cannot be edited."}
+                )
+
         if self.status == self.STATUS_SIGNED and not self.signed_at:
             raise ValidationError({"signed_at": "Signed notes require a signed time."})
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
     def sign(self, user):
         if self.status == self.STATUS_SIGNED:
@@ -196,6 +249,26 @@ class ProgressNote(models.Model):
                 "signed_at",
                 "updated_at",
             ]
+        )
+
+    def unsign(self):
+        if self.status != self.STATUS_SIGNED:
+            return
+
+        Encounter.objects.filter(pk=self.encounter_id).update(
+            status=Encounter.STATUS_IN_PROGRESS,
+        )
+        self.encounter.status = Encounter.STATUS_IN_PROGRESS
+
+        self.status = self.STATUS_DRAFT
+        self.signed_by = None
+        self.signed_by_name = ""
+        self.signed_at = None
+        ProgressNote.objects.filter(pk=self.pk).update(
+            status=self.STATUS_DRAFT,
+            signed_by=None,
+            signed_by_name="",
+            signed_at=None,
         )
 
     def __str__(self):
