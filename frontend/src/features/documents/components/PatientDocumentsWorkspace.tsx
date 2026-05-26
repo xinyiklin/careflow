@@ -20,6 +20,7 @@ import type { DocumentsWorkspaceProps } from "./DocumentsWorkspace";
 type PatientDocumentsWorkspaceProps = {
   patient?: PatientWithDocuments | null;
   facilityId?: EntityId | null;
+  canManageDocuments?: boolean;
   canManageCategories?: boolean;
   onDocumentUploaded?: (document: PatientDocument | null) => void;
 } & Omit<
@@ -62,6 +63,7 @@ function getCategoryNavLabel(category: DocumentCategory) {
 export default function PatientDocumentsWorkspace({
   patient,
   facilityId,
+  canManageDocuments = true,
   canManageCategories = false,
   onDocumentUploaded,
   ...workspaceProps
@@ -132,6 +134,7 @@ export default function PatientDocumentsWorkspace({
         categories={categories}
         selectedPatient={patient}
         selectedFacilityId={facilityId}
+        canManageDocuments={canManageDocuments}
         canManageCategories={canManageCategories}
         onManageCategories={() => setIsCategoryModalOpen(true)}
         isLoadingDocuments={documentsQuery.loading}

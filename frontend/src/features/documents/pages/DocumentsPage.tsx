@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { ShieldAlert } from "lucide-react";
 
 import PatientDocumentsWorkspace from "../components/PatientDocumentsWorkspace";
 import useFacility from "../../facilities/hooks/useFacility";
 import PatientSearchField from "../../patients/components/PatientSearchField";
 import { useBootReadiness } from "../../../app/BootReadinessContext";
-import WorkspaceShell from "../../../shared/components/WorkspaceShell";
+import WorkspaceShell from "../../../app/components/WorkspaceShell";
+import Panel from "../../../shared/components/ui/Panel";
 
 import type { ComponentType } from "react";
 import type { EntityId } from "../../../shared/api/types";
@@ -30,10 +32,12 @@ export default function DocumentsPage() {
   const [selectedPatient, setSelectedPatient] = useState<PatientLike | null>(
     null
   );
+  const securityPermissions =
+    selectedMembership?.effective_security_permissions || {};
+  const canViewDocuments = Boolean(securityPermissions["documents.view"]);
+  const canManageDocuments = Boolean(securityPermissions["documents.manage"]);
   const canManageCategories = Boolean(
-    selectedMembership?.effective_security_permissions?.[
-      "documents.categories.manage"
-    ]
+    securityPermissions["documents.categories.manage"]
   );
 
   useEffect(() => {
@@ -42,25 +46,41 @@ export default function DocumentsPage() {
 
   return (
     <WorkspaceShell>
-      <div className="min-h-0 flex-1 bg-transparent px-0 pt-0 pb-4">
-        <PatientDocumentsWorkspace
-          title="Document Center"
-          patient={selectedPatient}
-          facilityId={selectedFacilityId}
-          canManageCategories={canManageCategories}
-          toolbarAccessory={
-            <PatientSearchFieldComponent
-              facilityId={selectedFacilityId}
-              selectedPatient={selectedPatient}
-              onSelectPatient={setSelectedPatient}
-              recentPatients={[]}
-              showDetailedSearch={false}
-              showNoResultActions={false}
-              compactSelected
-              showSelectedAvatar={false}
-            />
-          }
-        />
+      <div className="min-h-0 flex-1 bg-transparent">
+        {canViewDocuments ? (
+          <PatientDocumentsWorkspace
+            title="Document Center"
+            patient={selectedPatient}
+            facilityId={selectedFacilityId}
+            canManageDocuments={canManageDocuments}
+            canManageCategories={canManageCategories}
+            toolbarAccessory={
+              <PatientSearchFieldComponent
+                facilityId={selectedFacilityId}
+                selectedPatient={selectedPatient}
+                onSelectPatient={setSelectedPatient}
+                recentPatients={[]}
+                showDetailedSearch={false}
+                showNoResultActions={false}
+                compactSelected
+                showSelectedAvatar={false}
+              />
+            }
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center p-6">
+            <Panel
+              icon={ShieldAlert}
+              title="Access Denied"
+              tone="subtle"
+              className="w-full max-w-md"
+            >
+              <div className="text-sm text-cf-text-muted">
+                You do not have permission to view documents.
+              </div>
+            </Panel>
+          </div>
+        )}
       </div>
     </WorkspaceShell>
   );

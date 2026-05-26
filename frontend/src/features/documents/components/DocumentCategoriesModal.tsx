@@ -222,10 +222,7 @@ function EditorPanel({
               disabled={saving}
             >
               {saving ? (
-                <span className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Saving...
-                </span>
+                <span className="flex items-center gap-1.5">Saving...</span>
               ) : editing ? (
                 <span className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-3.5 w-3.5" />
@@ -433,16 +430,7 @@ export default function DocumentCategoriesModal({
 
         {/* Rows */}
         <div className="divide-y divide-cf-border">
-          {loading ? (
-            <div className="space-y-2 px-6 py-4">
-              {[0, 1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="cf-loading-skeleton h-11 rounded-xl bg-cf-surface-soft"
-                />
-              ))}
-            </div>
-          ) : orderedCategories.length === 0 ? (
+          {loading ? null : orderedCategories.length === 0 ? (
             <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
               <p className="text-sm font-semibold text-cf-text">
                 No categories yet
