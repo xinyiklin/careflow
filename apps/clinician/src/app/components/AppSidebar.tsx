@@ -8,7 +8,7 @@ import {
   SIDEBAR_EXPANDED_WIDTH,
 } from "../../shared/constants/layout";
 import { getSidebarNavItems } from "../../shared/constants/navItems";
-import { CareFlowIcon } from "../../shared/components/icons";
+import { CareFlowIcon } from "@careflow/ui-icons";
 import SidebarItem from "../../shared/components/SidebarItem";
 
 type AppSidebarProps = {

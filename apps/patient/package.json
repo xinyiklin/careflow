@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@careflow/api-types": "*",
+    "@careflow/ui-icons": "*",
     "@tailwindcss/vite": "^4.2.2",
     "@tanstack/react-query": "^5.97.0",
     "date-fns": "^4.1.0",
