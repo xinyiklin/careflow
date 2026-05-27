@@ -8,3 +8,9 @@ export { CategoryRail, CategoryRailItem } from "./CategoryRail";
 export { default as SegmentedControl } from "./SegmentedControl";
 export { default as EmptyState } from "./EmptyState";
 export { default as IconButton } from "./IconButton";
+export { default as TimelineFeed } from "./TimelineFeed";
+export type {
+  TimelineEvent,
+  TimelineTone,
+  TimelineBadgeVariant,
+} from "./TimelineFeed";

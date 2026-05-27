@@ -4,12 +4,23 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Eye,
   FileJson,
+  LogIn,
+  Pencil,
+  PlusCircle,
   RefreshCw,
   Search,
+  Share2,
+  Trash2,
 } from "lucide-react";
 
-import { Badge, Button } from "../../../../shared/components/ui";
+import {
+  Badge,
+  Button,
+  SegmentedControl,
+  TimelineFeed,
+} from "../../../../shared/components/ui";
 import useOrganizationFacilities from "../../hooks/organization/useOrganizationFacilities";
 import useOrganizationActivityLog from "../../hooks/organization/useOrganizationActivityLog";
 import {
@@ -22,8 +33,14 @@ import {
   formatDateOnlyInTimeZone,
   formatTimeInTimeZone,
 } from "../../../../shared/utils/dateTime";
+import type {
+  TimelineBadgeVariant,
+  TimelineEvent,
+  TimelineTone,
+} from "../../../../shared/components/ui";
 import type { AdminAuditEvent } from "../../types";
 import type { EntityId } from "../../../../shared/api/types";
+import type { LucideIcon } from "lucide-react";
 
 const LOG_SORT_OPTIONS: Array<{
   key: string;
@@ -71,6 +88,55 @@ const ACTION_BADGES: Record<
   other: "neutral",
 };
 
+const ACTION_TONES: Record<string, TimelineTone> = {
+  create: "success",
+  update: "warning",
+  delete: "danger",
+  login: "accent",
+  export: "muted",
+  view: "muted",
+  other: "muted",
+};
+
+const ACTION_ICONS: Record<string, LucideIcon> = {
+  create: PlusCircle,
+  update: Pencil,
+  delete: Trash2,
+  login: LogIn,
+  export: Share2,
+  view: Eye,
+};
+
+const VIEW_OPTIONS = [
+  { value: "table", label: "Table" },
+  { value: "timeline", label: "Timeline" },
+] as const;
+
+type ActivityViewMode = (typeof VIEW_OPTIONS)[number]["value"];
+
+function toTimelineEvent(event: AdminAuditEvent): TimelineEvent {
+  const key = event.action.toLowerCase();
+  const tone = ACTION_TONES[key] || "muted";
+  const badgeVariant: TimelineBadgeVariant =
+    (ACTION_BADGES[key] as TimelineBadgeVariant | undefined) || "neutral";
+  const icon = ACTION_ICONS[key];
+  const contextParts = [
+    event.actor_name || "System",
+    event.facility_name,
+    event.patient_name,
+  ].filter(Boolean);
+
+  return {
+    id: String(event.id),
+    occurredAt: event.created_at,
+    title: event.summary || `${event.action} ${event.model_name || ""}`.trim(),
+    subtitle: contextParts.join(" • ") || null,
+    icon,
+    tone,
+    badge: { label: event.action.toUpperCase(), variant: badgeVariant },
+  };
+}
+
 type OrganizationActivityLogPanelProps = {
   facilityId?: EntityId | null;
   scopeLabel?: string;
@@ -91,6 +157,7 @@ export default function OrganizationActivityLogPanel({
   const [activeSort, setActiveSort] = useState("newest");
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<ActivityViewMode>("table");
 
   const { facilities = [] } = useOrganizationFacilities({
     enabled: showFacilityFilter,
@@ -279,159 +346,199 @@ export default function OrganizationActivityLogPanel({
                 <ChevronDown className="pointer-events-none absolute right-2 h-3.5 w-3.5 text-cf-text-subtle/80" />
               </div>
             ) : null}
+
+            <SegmentedControl
+              options={VIEW_OPTIONS}
+              value={viewMode}
+              onChange={(next) => {
+                setViewMode(next);
+                setExpandedId(null);
+              }}
+              variant="pill"
+              size="xs"
+              className="ml-auto"
+            />
           </div>
         </AdminListToolbar>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-              <tr>
-                <th className="px-5 py-3 text-left w-24">Action</th>
-                <th className="px-5 py-3 text-left">Summary</th>
-                <th className="px-5 py-3 text-left">Actor</th>
-                <th className="px-5 py-3 text-left">Facility</th>
-                <th className="px-5 py-3 text-left">Patient</th>
-                <th className="px-5 py-3 text-left">Timestamp</th>
-                <th className="px-5 py-3 text-center w-12">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-cf-border text-cf-text">
-              {loading && events.length === 0 ? null : loadError ? (
-                <AdminTableLoadError
-                  colSpan={7}
-                  message={`Couldn't load ${scopeLabel} activity log.`}
-                  onRetry={() => void reload()}
-                />
-              ) : events.length === 0 ? (
+        {viewMode === "timeline" ? (
+          <div className="border-t border-cf-border bg-cf-surface px-5 py-4">
+            {loading && events.length === 0 ? (
+              <div className="py-10 text-center text-sm text-cf-text-muted">
+                Loading activity log...
+              </div>
+            ) : loadError ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cf-border bg-cf-surface-soft/40 px-4 py-3">
+                <div className="text-sm text-cf-text-muted">
+                  Couldn&apos;t load {scopeLabel} activity log.
+                </div>
+                <Button size="sm" onClick={() => void reload()}>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Retry
+                </Button>
+              </div>
+            ) : visibleEvents.length === 0 ? (
+              <div className="py-10 text-center text-sm text-cf-text-muted">
+                {events.length === 0
+                  ? `No ${scopeLabel} activity logs recorded.`
+                  : "No logs match the selected filters or search query."}
+              </div>
+            ) : (
+              <TimelineFeed events={paginatedEvents.map(toTimelineEvent)} />
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    No {scopeLabel} activity logs recorded.
-                  </td>
+                  <th className="px-5 py-3 text-left w-24">Action</th>
+                  <th className="px-5 py-3 text-left">Summary</th>
+                  <th className="px-5 py-3 text-left">Actor</th>
+                  <th className="px-5 py-3 text-left">Facility</th>
+                  <th className="px-5 py-3 text-left">Patient</th>
+                  <th className="px-5 py-3 text-left">Timestamp</th>
+                  <th className="px-5 py-3 text-center w-12">Details</th>
                 </tr>
-              ) : visibleEvents.length === 0 ? (
-                <tr>
-                  <td
+              </thead>
+              <tbody className="divide-y divide-cf-border text-cf-text">
+                {loading && events.length === 0 ? null : loadError ? (
+                  <AdminTableLoadError
                     colSpan={7}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
-                  >
-                    No logs match the selected filters or search query.
-                  </td>
-                </tr>
-              ) : (
-                paginatedEvents.map((event) => {
-                  const isExpanded = expandedId === event.id;
-                  const badgeVariant =
-                    ACTION_BADGES[event.action.toLowerCase()] || "neutral";
+                    message={`Couldn't load ${scopeLabel} activity log.`}
+                    onRetry={() => void reload()}
+                  />
+                ) : events.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    >
+                      No {scopeLabel} activity logs recorded.
+                    </td>
+                  </tr>
+                ) : visibleEvents.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={7}
+                      className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    >
+                      No logs match the selected filters or search query.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedEvents.map((event) => {
+                    const isExpanded = expandedId === event.id;
+                    const badgeVariant =
+                      ACTION_BADGES[event.action.toLowerCase()] || "neutral";
 
-                  return (
-                    <Fragment key={event.id}>
-                      <tr className={isExpanded ? "bg-cf-accent/[0.03]" : ""}>
-                        <td className="px-5 py-4 w-24 align-middle">
-                          <Badge
-                            variant={badgeVariant}
-                            className="uppercase text-[9px] tracking-wider px-2 py-0.5"
-                          >
-                            {event.action}
-                          </Badge>
-                        </td>
-                        <td className="px-5 py-4 align-middle font-medium text-cf-text">
-                          {event.summary}
-                        </td>
-                        <td className="px-5 py-4 align-middle text-cf-text-muted">
-                          {event.actor_name || "System"}
-                        </td>
-                        <td className="px-5 py-4 align-middle text-cf-text-muted">
-                          {event.facility_name || "—"}
-                        </td>
-                        <td className="px-5 py-4 align-middle text-cf-text-muted">
-                          {event.patient_name || "—"}
-                        </td>
-                        <td className="px-5 py-4 align-middle text-cf-text-muted whitespace-nowrap">
-                          {formatTimestamp(event.created_at)}
-                        </td>
-                        <td className="px-5 py-4 align-middle text-center">
-                          <button
-                            type="button"
-                            onClick={() => toggleRow(event.id)}
-                            className="p-1.5 rounded-lg border border-cf-border hover:bg-cf-surface-soft text-cf-text-subtle hover:text-cf-text transition"
-                            aria-label={
-                              isExpanded ? "Hide metadata" : "View metadata"
-                            }
-                            title={
-                              isExpanded ? "Hide metadata" : "View metadata"
-                            }
-                          >
-                            {isExpanded ? (
-                              <ChevronUp className="h-4 w-4" />
-                            ) : (
-                              <ChevronDown className="h-4 w-4" />
-                            )}
-                          </button>
-                        </td>
-                      </tr>
-                      {isExpanded && (
-                        <tr className="bg-cf-surface-soft/20">
-                          <td colSpan={7} className="px-5 py-4">
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-cf-text-subtle uppercase tracking-wider">
-                                <FileJson className="h-3.5 w-3.5 text-cf-accent" />
-                                Event Context Details
-                              </div>
-                              <div className="grid gap-4 sm:grid-cols-3">
-                                <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-3 text-xs shadow-sm">
-                                  <div className="font-semibold text-cf-text-muted uppercase text-[9px] tracking-wider mb-2 border-b border-cf-border/60 pb-1">
-                                    System Spec
-                                  </div>
-                                  <div className="space-y-1.5 font-mono text-cf-text leading-relaxed">
-                                    <div>
-                                      <span className="text-cf-text-subtle">
-                                        ID:
-                                      </span>{" "}
-                                      {event.id}
-                                    </div>
-                                    <div>
-                                      <span className="text-cf-text-subtle">
-                                        App:
-                                      </span>{" "}
-                                      {event.app_label}
-                                    </div>
-                                    <div>
-                                      <span className="text-cf-text-subtle">
-                                        Model:
-                                      </span>{" "}
-                                      {event.model_name || "—"}
-                                    </div>
-                                    <div>
-                                      <span className="text-cf-text-subtle">
-                                        PK:
-                                      </span>{" "}
-                                      {event.object_pk || "—"}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-3 text-xs shadow-sm sm:col-span-2">
-                                  <div className="font-semibold text-cf-text-muted uppercase text-[9px] tracking-wider mb-2 border-b border-cf-border/60 pb-1">
-                                    Payload Metadata
-                                  </div>
-                                  <pre className="max-h-48 overflow-y-auto rounded-lg bg-cf-surface-soft/60 p-2.5 font-mono text-[11px] text-cf-text leading-relaxed border border-cf-border/40">
-                                    {JSON.stringify(event.metadata, null, 2)}
-                                  </pre>
-                                </div>
-                              </div>
-                            </div>
+                    return (
+                      <Fragment key={event.id}>
+                        <tr className={isExpanded ? "bg-cf-accent/[0.03]" : ""}>
+                          <td className="px-5 py-4 w-24 align-middle">
+                            <Badge
+                              variant={badgeVariant}
+                              className="uppercase text-[9px] tracking-wider px-2 py-0.5"
+                            >
+                              {event.action}
+                            </Badge>
+                          </td>
+                          <td className="px-5 py-4 align-middle font-medium text-cf-text">
+                            {event.summary}
+                          </td>
+                          <td className="px-5 py-4 align-middle text-cf-text-muted">
+                            {event.actor_name || "System"}
+                          </td>
+                          <td className="px-5 py-4 align-middle text-cf-text-muted">
+                            {event.facility_name || "—"}
+                          </td>
+                          <td className="px-5 py-4 align-middle text-cf-text-muted">
+                            {event.patient_name || "—"}
+                          </td>
+                          <td className="px-5 py-4 align-middle text-cf-text-muted whitespace-nowrap">
+                            {formatTimestamp(event.created_at)}
+                          </td>
+                          <td className="px-5 py-4 align-middle text-center">
+                            <button
+                              type="button"
+                              onClick={() => toggleRow(event.id)}
+                              className="p-1.5 rounded-lg border border-cf-border hover:bg-cf-surface-soft text-cf-text-subtle hover:text-cf-text transition"
+                              aria-label={
+                                isExpanded ? "Hide metadata" : "View metadata"
+                              }
+                              title={
+                                isExpanded ? "Hide metadata" : "View metadata"
+                              }
+                            >
+                              {isExpanded ? (
+                                <ChevronUp className="h-4 w-4" />
+                              ) : (
+                                <ChevronDown className="h-4 w-4" />
+                              )}
+                            </button>
                           </td>
                         </tr>
-                      )}
-                    </Fragment>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        {isExpanded && (
+                          <tr className="bg-cf-surface-soft/20">
+                            <td colSpan={7} className="px-5 py-4">
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2 text-xs font-semibold text-cf-text-subtle uppercase tracking-wider">
+                                  <FileJson className="h-3.5 w-3.5 text-cf-accent" />
+                                  Event Context Details
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                  <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-3 text-xs shadow-sm">
+                                    <div className="font-semibold text-cf-text-muted uppercase text-[9px] tracking-wider mb-2 border-b border-cf-border/60 pb-1">
+                                      System Spec
+                                    </div>
+                                    <div className="space-y-1.5 font-mono text-cf-text leading-relaxed">
+                                      <div>
+                                        <span className="text-cf-text-subtle">
+                                          ID:
+                                        </span>{" "}
+                                        {event.id}
+                                      </div>
+                                      <div>
+                                        <span className="text-cf-text-subtle">
+                                          App:
+                                        </span>{" "}
+                                        {event.app_label}
+                                      </div>
+                                      <div>
+                                        <span className="text-cf-text-subtle">
+                                          Model:
+                                        </span>{" "}
+                                        {event.model_name || "—"}
+                                      </div>
+                                      <div>
+                                        <span className="text-cf-text-subtle">
+                                          PK:
+                                        </span>{" "}
+                                        {event.object_pk || "—"}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-3 text-xs shadow-sm sm:col-span-2">
+                                    <div className="font-semibold text-cf-text-muted uppercase text-[9px] tracking-wider mb-2 border-b border-cf-border/60 pb-1">
+                                      Payload Metadata
+                                    </div>
+                                    <pre className="max-h-48 overflow-y-auto rounded-lg bg-cf-surface-soft/60 p-2.5 font-mono text-[11px] text-cf-text leading-relaxed border border-cf-border/40">
+                                      {JSON.stringify(event.metadata, null, 2)}
+                                    </pre>
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <div className="border-t border-cf-border bg-cf-surface-soft/40 px-5 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-cf-text-muted">
           <div className="font-medium tabular-nums">

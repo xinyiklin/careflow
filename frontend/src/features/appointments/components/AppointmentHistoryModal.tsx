@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock3, History } from "lucide-react";
+import { History, Pencil, PlusCircle, Trash2 } from "lucide-react";
 
 import { fetchAppointmentHistory } from "../api/appointments";
-import { Badge, Button, ModalShell } from "../../../shared/components/ui";
+import {
+  Badge,
+  Button,
+  ModalShell,
+  TimelineFeed,
+} from "../../../shared/components/ui";
 import { useModalPresence } from "../../../shared/hooks/useModalPresence";
 import {
   formatDateOnlyInTimeZone,
@@ -10,25 +15,19 @@ import {
 } from "../../../shared/utils/dateTime";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import type { EntityId } from "../../../shared/api/types";
+import type {
+  TimelineBadgeVariant,
+  TimelineEvent,
+  TimelineTone,
+} from "../../../shared/components/ui";
+import type { LucideIcon } from "lucide-react";
 import type { AppointmentHistoryEntry } from "../types";
 
-type HistoryBadgeVariant = "success" | "warning" | "danger" | "outline";
-
-type HistoryActionStyle = {
+type ActionStyle = {
   label: string;
-  badge: HistoryBadgeVariant;
-  dot: string;
-};
-
-type HistoryRowProps = {
-  entry: AppointmentHistoryEntry;
-  timeZone?: string | null;
-};
-
-type HistoryStateProps = {
-  tone?: "default" | "danger";
-  title: string;
-  body?: string;
+  badge: TimelineBadgeVariant;
+  tone: TimelineTone;
+  icon: LucideIcon;
 };
 
 type AppointmentHistoryModalProps = {
@@ -41,109 +40,75 @@ type AppointmentHistoryModalProps = {
   onClose: () => void;
 };
 
-const actionStyles: Record<string, HistoryActionStyle> = {
+const actionStyles: Record<string, ActionStyle> = {
   create: {
     label: "Created",
     badge: "success",
-    dot: "bg-cf-success-text",
+    tone: "success",
+    icon: PlusCircle,
   },
   update: {
     label: "Updated",
     badge: "warning",
-    dot: "bg-cf-warning-text",
+    tone: "warning",
+    icon: Pencil,
   },
   delete: {
     label: "Deleted",
     badge: "danger",
-    dot: "bg-cf-danger-text",
+    tone: "danger",
+    icon: Trash2,
   },
 };
 
-function getActionStyle(action: unknown): HistoryActionStyle {
+function getActionStyle(action: unknown): ActionStyle {
   const key = String(action || "").toLowerCase();
   return (
     actionStyles[key] || {
       label: String(action || "Activity"),
       badge: "outline",
-      dot: "bg-cf-text-subtle",
+      tone: "muted",
+      icon: History,
     }
   );
 }
 
-function formatTimestamp(
-  value: string | Date | null | undefined,
-  timeZone?: string | null
-) {
-  const timestamp = new Date(value || "");
-  if (Number.isNaN(timestamp.getTime())) {
-    return { date: "Unknown date", time: "" };
-  }
+function toTimelineEvent(entry: AppointmentHistoryEntry): TimelineEvent | null {
+  if (!entry.created_at) return null;
+  const style = getActionStyle(entry.action);
 
   return {
-    date: formatDateOnlyInTimeZone(timestamp, timeZone, "MMM d, yyyy"),
-    time: formatTimeInTimeZone(timestamp, timeZone, "h:mm a"),
+    id: String(entry.id),
+    occurredAt:
+      typeof entry.created_at === "string"
+        ? entry.created_at
+        : entry.created_at.toISOString(),
+    title: entry.actor_name || "Unknown user",
+    subtitle: entry.summary || "Appointment activity recorded.",
+    icon: style.icon,
+    tone: style.tone,
+    badge: { label: style.label, variant: style.badge },
+    meta: entry.changed_fields?.length ? (
+      <>
+        {entry.changed_fields.map((field) => (
+          <Badge key={field} variant="muted" className="text-[10px] px-2 py-0">
+            {field}
+          </Badge>
+        ))}
+      </>
+    ) : null,
   };
 }
 
-function HistoryRow({ entry, timeZone }: HistoryRowProps) {
-  const actionStyle = getActionStyle(entry.action);
-  const { date, time } = formatTimestamp(entry.created_at, timeZone);
-
-  return (
-    <div className="relative pl-8 pb-1">
-      {/* Dot marker */}
-      <div
-        className={[
-          "absolute left-0 top-1 h-3.5 w-3.5 rounded-full border-2 border-cf-surface bg-cf-surface shadow-sm flex items-center justify-center ring-4 ring-cf-surface",
-        ].join(" ")}
-      >
-        <span
-          className={["h-1.5 w-1.5 rounded-full", actionStyle.dot].join(" ")}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-cf-text">
-              {entry.actor_name || "Unknown user"}
-            </span>
-            <Badge
-              variant={actionStyle.badge}
-              className="text-[10px] px-2 py-0"
-            >
-              {actionStyle.label}
-            </Badge>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-cf-text-subtle">
-            <Clock3 className="h-3.5 w-3.5 text-cf-text-subtle" />
-            <span>{[date, time].filter(Boolean).join(" at ")}</span>
-          </div>
-        </div>
-
-        <p className="text-sm text-cf-text-muted leading-relaxed">
-          {entry.summary || "Appointment activity recorded."}
-        </p>
-
-        {entry.changed_fields?.length ? (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {entry.changed_fields.map((field) => (
-              <Badge
-                key={field}
-                variant="muted"
-                className="text-[10px] px-2 py-0"
-              >
-                {field}
-              </Badge>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function HistoryState({ tone = "default", title, body }: HistoryStateProps) {
+function HistoryState({
+  tone = "default",
+  title,
+  body,
+}: {
+  tone?: "default" | "danger";
+  title: string;
+  body?: string;
+}) {
   const toneClasses = {
     default: "border-cf-border bg-cf-surface-soft text-cf-text-muted",
     danger: "border-cf-danger-bg bg-cf-danger-bg text-cf-danger-text",
@@ -224,6 +189,14 @@ export default function AppointmentHistoryModal({
     setError("");
   }, [shouldRender]);
 
+  const timelineEvents = useMemo(
+    () =>
+      entries
+        .map(toTimelineEvent)
+        .filter((event): event is TimelineEvent => event !== null),
+    [entries]
+  );
+
   const appointmentSummary = useMemo(() => {
     if (!appointmentTime) return null;
     const timestamp = new Date(appointmentTime);
@@ -282,20 +255,13 @@ export default function AppointmentHistoryModal({
             title="Unable to load activity log"
             body={error}
           />
-        ) : entries.length === 0 ? (
+        ) : timelineEvents.length === 0 ? (
           <HistoryState
             title="No activity yet"
             body="Changes will appear here after this appointment is updated."
           />
         ) : (
-          <div className="relative pl-1 py-1">
-            <div className="absolute left-[7px] top-2 bottom-3 w-px bg-cf-border" />
-            <div className="space-y-6">
-              {entries.map((entry) => (
-                <HistoryRow key={entry.id} entry={entry} timeZone={timeZone} />
-              ))}
-            </div>
-          </div>
+          <TimelineFeed events={timelineEvents} timeZone={timeZone} />
         )}
       </div>
     </ModalShell>
