@@ -203,14 +203,15 @@ if not DEBUG:
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- CORS / CSRF ---
+# Local dev origins: 5173 = clinician app, 5174 = patient portal app.
 CORS_ALLOWED_ORIGINS = get_csv_setting(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:5173,https://careflow.xinyiklin.com",
+    "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,https://portal.careflow.xinyiklin.com",
 )
 
 CSRF_TRUSTED_ORIGINS = get_csv_setting(
     "CSRF_TRUSTED_ORIGINS",
-    "http://localhost:5173,https://careflow.xinyiklin.com,https://api.careflow.xinyiklin.com",
+    "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,https://portal.careflow.xinyiklin.com,https://api.careflow.xinyiklin.com",
 )
 
 CORS_ALLOW_CREDENTIALS = True

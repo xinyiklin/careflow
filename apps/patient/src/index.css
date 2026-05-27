@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  /* Surfaces */
+  --color-cf-page-bg: #f6f7f9;
+  --color-cf-surface: #ffffff;
+  --color-cf-surface-muted: #f8fafc;
+  --color-cf-surface-soft: #f1f5f9;
+
+  /* Borders */
+  --color-cf-border: #e6e9ee;
+  --color-cf-border-strong: #cbd5e1;
+
+  /* Text */
+  --color-cf-text: #0f172a;
+  --color-cf-text-muted: #475569;
+  --color-cf-text-subtle: #64748b;
+
+  /* Accent (primary action color) */
+  --color-cf-accent: #0f172a;
+  --color-cf-accent-hover: #1e293b;
+  --color-cf-accent-soft: #e2e8f0;
+
+  /* Semantic status */
+  --color-cf-success-bg: #ecfdf5;
+  --color-cf-success-text: #047857;
+  --color-cf-warning-bg: #fffbeb;
+  --color-cf-warning-text: #b45309;
+  --color-cf-danger-bg: #fef2f2;
+  --color-cf-danger-text: #b91c1c;
+
+  /* Shadows */
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-panel-lg: 0 22px 60px -32px rgba(15, 23, 42, 0.28);
+
+  /* Shape scale:
+     controls 0.75rem, cards 1rem, shells/modals 1.5rem.
+     Full pills are reserved for badges, chips, toggles, dots, and avatars. */
+  --radius-cf-control: 0.75rem;
+  --radius-cf-card: 1rem;
+  --radius-cf-shell: 1.5rem;
+}
+
+@layer base {
+  body {
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    background:
+      radial-gradient(
+        1000px 520px at 84% -14%,
+        rgba(219, 234, 254, 0.55),
+        transparent 60%
+      ),
+      radial-gradient(
+        840px 480px at -10% 108%,
+        rgba(226, 232, 240, 0.75),
+        transparent 62%
+      ),
+      linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    color: var(--color-cf-text);
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family:
+      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+}

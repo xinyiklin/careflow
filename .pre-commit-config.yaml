@@ -39,3 +39,17 @@ repos:
         language: system
         files: ^apps/clinician/.*\.(js|jsx|ts|tsx)$
         pass_filenames: true
+
+      - id: patient-prettier
+        name: patient-prettier
+        entry: bash -c 'cd apps/patient && npx prettier --write "${@/#apps\/patient\//}"' --
+        language: system
+        files: ^apps/patient/.*\.(js|jsx|ts|tsx|json|css|md|html)$
+        pass_filenames: true
+
+      - id: patient-eslint
+        name: patient-eslint
+        entry: bash -c 'cd apps/patient && npx eslint --fix "${@/#apps\/patient\//}"' --
+        language: system
+        files: ^apps/patient/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: true
