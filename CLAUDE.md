@@ -18,10 +18,6 @@ this file wins.
 Use `mcp__Claude_in_Chrome` when available: `navigate` → `get_page_text` or
 `computer` (screenshot) after `npm run dev`. Note the gap if unavailable.
 
-## Git
-
-Do not stage `CLAUDE.md` unless the user explicitly asks.
-
 ## Communication
 
 Think privately. Report actions, blockers, and outputs only. Skip preambles
