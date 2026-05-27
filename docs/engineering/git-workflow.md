@@ -123,17 +123,29 @@ asks to stage, commit, push, or open a PR.
 
 ### Agent push/PR cadence
 
-Coding agents may decide *when* work is push/PR ready — grouping, timing,
-choice of base branch are agent calls. The push or PR action itself is not:
-before running `git push` or `gh pr create`, the agent surfaces the proposed
-move (branch, file list, verification status) and asks the user whether to
-proceed or take a different plan. Treat the pause as a planning fork, not
-just a yes/no — the user may redirect (split the PR, hold for visual review,
-stack differently, swap base, drop a change).
+Coding agents may decide *when* work is push/PR ready (grouping, timing,
+base branch). The action itself is not autonomous: before `git push` or
+`gh pr create`, the agent surfaces the proposed move (branch, file list,
+verification status) and asks the user to proceed or steer to a different
+plan. Treat the pause as a planning fork, not a yes/no — the user may
+redirect (split the PR, hold for visual review, stack differently, swap
+base, drop a change). Approval is an affirmative response in the next turn
+("go", "sure", "yes", "proceed"); silence or unrelated follow-up doesn't
+count.
 
-The user may waive confirmation with a phrase in the same prompt — e.g.
-"push it", "no need to confirm", "commit and PR". An opening waiver applies
-only to the immediate batch; subsequent pushes need a fresh waiver.
+On approval, the agent runs the full flow end-to-end: push → open PR →
+squash-merge with branch delete (see Merge Strategy below). The user can
+shorten the flow per-step in that same approval — "open PR but don't
+merge", "push only", "hold the merge", "no auto-merge".
+
+The pause itself can be waived in the original prompt that asks for the
+work, with phrases like "push it", "no need to confirm", or "commit and
+PR". A waiver applies only to the immediate batch; subsequent pushes need
+a fresh nod.
+
+For stacked PRs, follow the rebase sequence in Merge Strategy. If a merge
+fails (red CI, branch protection, conflicts), the agent surfaces the
+failure and waits for direction; never retries blindly.
 
 ### Merge strategy
 
