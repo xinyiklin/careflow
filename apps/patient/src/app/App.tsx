@@ -4,21 +4,7 @@ import { useAuth } from "../features/auth/AuthProvider";
 import { LoginPage } from "../features/auth/pages/LoginPage";
 import { LoadingScreen } from "../shared/components/LoadingScreen";
 import { Layout } from "./Layout";
-
-function DashboardPlaceholder() {
-  const { patient } = useAuth();
-  return (
-    <div className="px-6 py-10">
-      <h1 className="text-2xl font-semibold text-cf-text">
-        Welcome, {patient?.first_name ?? "Patient"}
-      </h1>
-      <p className="mt-2 text-sm text-cf-text-muted">
-        Your portal is in scaffolding. Appointments, medications, and allergies
-        land in the next change.
-      </p>
-    </div>
-  );
-}
+import { PortalRoutes } from "./router";
 
 export function App() {
   const { status, patient } = useAuth();
@@ -38,11 +24,7 @@ export function App() {
 
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<DashboardPlaceholder />} />
-        <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <PortalRoutes />
     </Layout>
   );
 }

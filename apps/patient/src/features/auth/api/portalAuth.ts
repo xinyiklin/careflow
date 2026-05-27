@@ -7,12 +7,12 @@ export type PortalEmergencyContact = {
 };
 
 export type PortalAddress = {
-  line1?: string | null;
-  line2?: string | null;
+  id?: number;
+  line_1?: string | null;
+  line_2?: string | null;
   city?: string | null;
   state?: string | null;
-  postal_code?: string | null;
-  country?: string | null;
+  zip_code?: string | null;
 } | null;
 
 export type PortalPatient = {
