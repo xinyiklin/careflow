@@ -8,6 +8,8 @@ than a basic CRUD sample. It focuses on facility-scoped workflows, configurable
 clinical scheduling, secure-by-default data handling, and UI patterns that feel
 closer to a real clinic workspace.
 
+![CareFlow schedule view](./docs/screenshots/schedule.png)
+
 ## Live Demo
 
 https://careflow.xinyiklin.com
@@ -40,6 +42,33 @@ compliance.
 - **Hardening**: facility-scoped APIs, short-lived JWT access plus HTTP-only
   refresh cookies, CSRF on cookie-backed routes, SSN encrypted at rest with
   Fernet, and audit events for sensitive mutations.
+
+## Screenshots
+
+### Patient Hub
+
+Per-patient workspace with identity, insurance, care team, emergency contacts,
+and tab navigation across demographics, documents, medications, allergies,
+appointments, clinical charting, billing, and the unified Timeline.
+
+![Patient Hub registration view](./docs/screenshots/patient-hub.png)
+
+### Patient Timeline
+
+A chronological cross-cut of a patient's history — appointments, encounters,
+progress notes, medications, and allergies — aggregated via a shared
+`TimelineFeed` primitive reused across audit, history, and note-review
+surfaces.
+
+![Patient Timeline tab](./docs/screenshots/timeline.png)
+
+### Facility Security &amp; Permissions
+
+Role-based permission matrix at facility scope, with sensitive actions flagged
+as audited and per-role staff counts. Org-level permissions and an org/facility
+audit log live under the same admin shell.
+
+![Facility security permissions matrix](./docs/screenshots/security.png)
 
 ## Tech Stack
 
