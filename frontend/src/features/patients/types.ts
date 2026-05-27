@@ -111,7 +111,8 @@ export type PatientHubTabKey =
   | "documents"
   | "notes"
   | "billing"
-  | "appointments";
+  | "appointments"
+  | "timeline";
 
 export type PatientHubTab = {
   key: PatientHubTabKey;

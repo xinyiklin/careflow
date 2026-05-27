@@ -292,6 +292,7 @@ export function PatientHubContent({
               patient={patient}
               patientId={patientId || null}
               facilityId={selectedFacilityId}
+              timeZone={facility?.timezone ?? undefined}
               patientQuery={{
                 isLoading: patientQuery.isLoading,
                 error: patientQuery.error,

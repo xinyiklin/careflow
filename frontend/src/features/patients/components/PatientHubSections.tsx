@@ -1,4 +1,5 @@
 import {
+  Activity,
   AlertTriangle,
   CalendarClock,
   ClipboardList,
@@ -36,6 +37,7 @@ export const HUB_TABS: PatientHubTab[] = [
   { key: "medications", label: "Medications", icon: Pill },
   { key: "allergies", label: "Allergies", icon: AlertTriangle },
   { key: "appointments", label: "Appointments", icon: CalendarClock },
+  { key: "timeline", label: "Timeline", icon: Activity },
   { key: "notes", label: "Clinical", icon: ClipboardList },
   { key: "billing", label: "Billing", icon: CreditCard },
 ];

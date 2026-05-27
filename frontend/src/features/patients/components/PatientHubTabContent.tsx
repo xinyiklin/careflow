@@ -6,6 +6,7 @@ import PatientAllergiesTab from "./PatientAllergiesTab";
 import PatientBillingTab from "../../billing/components/PatientBillingTab";
 import { ClinicalChartingTab } from "./PatientClinicalTabs";
 import PatientMedicationsTab from "./medications/PatientMedicationsTab";
+import PatientTimelineTab from "./timeline/PatientTimelineTab";
 import HubRegistrationInline from "./hub/HubRegistrationInline";
 import { Button, Panel } from "../../../shared/components/ui";
 
@@ -39,6 +40,7 @@ type PatientHubTabContentProps = {
   patient: PatientRecord | null;
   patientId: EntityId | null;
   facilityId: EntityId | null;
+  timeZone?: string | null;
   patientQuery: QueryState;
   insurancePolicies: PatientHubInsurancePolicy[];
   insurancePoliciesQuery: UseQueryResult<PatientHubInsurancePolicy[] | null>;
@@ -235,6 +237,21 @@ export default function PatientHubTabContent(props: PatientHubTabContentProps) {
         appointmentGroups={props.appointmentGroups}
         onOpenAppointment={props.onOpenAppointment}
         onSchedule={props.onScheduleEncounter}
+      />
+    );
+  }
+
+  if (activeTab === "timeline") {
+    return (
+      <PatientTimelineTab
+        facilityId={props.facilityId}
+        patientId={props.patientId}
+        appointmentGroups={props.appointmentGroups}
+        clinicalEncounters={props.clinicalEncounters}
+        canViewClinical={props.canViewClinical}
+        canViewMedications={props.canViewMedications}
+        canViewAllergies={props.canViewAllergies}
+        timeZone={props.timeZone}
       />
     );
   }

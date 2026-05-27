@@ -1,7 +1,15 @@
-import { RotateCcw } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  ClipboardList,
+  FilePen,
+  History,
+  RotateCcw,
+} from "lucide-react";
 
 import { Badge, Button } from "../../../shared/components/ui";
 import { formatDateTime } from "./PatientHubSections";
+import NoteHistoryModal from "./NoteHistoryModal";
 import { getProviderLabel } from "./progressNoteModalUtils";
 
 import type {
@@ -9,6 +17,7 @@ import type {
   ProgressNoteFormValues,
 } from "../../billing/types";
 import type { PatientCareProvider } from "../types";
+import type { TimelineEvent } from "../../../shared/components/ui";
 
 export default function ProgressNoteReviewRail({
   values,
@@ -31,9 +40,67 @@ export default function ProgressNoteReviewRail({
   selectedProvider?: PatientCareProvider;
   onReset: () => void;
 }) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const signedAt = encounter?.progress_note?.signed_at || "";
   const updatedAt =
     encounter?.progress_note?.updated_at || encounter?.updated_at || "";
+  const encounterOpenedAt =
+    encounter?.started_at || encounter?.created_at || "";
+  const noteCreatedAt = encounter?.progress_note?.created_at || "";
+  const signedByName = encounter?.progress_note?.signed_by_name || "";
+
+  const historyEvents = useMemo<TimelineEvent[]>(() => {
+    const events: TimelineEvent[] = [];
+
+    if (encounterOpenedAt) {
+      events.push({
+        id: "encounter-opened",
+        occurredAt: encounterOpenedAt,
+        title: "Encounter opened",
+        icon: ClipboardList,
+        tone: "accent",
+      });
+    }
+
+    if (noteCreatedAt && noteCreatedAt !== encounterOpenedAt) {
+      events.push({
+        id: "note-drafted",
+        occurredAt: noteCreatedAt,
+        title: "Draft started",
+        icon: FilePen,
+        tone: "muted",
+      });
+    }
+
+    if (updatedAt && updatedAt !== noteCreatedAt && updatedAt !== signedAt) {
+      events.push({
+        id: "note-updated",
+        occurredAt: updatedAt,
+        title: "Draft saved",
+        icon: FilePen,
+        tone: "warning",
+      });
+    }
+
+    if (signedAt) {
+      events.push({
+        id: "note-signed",
+        occurredAt: signedAt,
+        title: "Progress note signed",
+        subtitle: signedByName ? `Signed by ${signedByName}` : null,
+        icon: CheckCircle2,
+        tone: "success",
+        badge: { label: "Signed", variant: "success" },
+      });
+    }
+
+    return events.sort((a, b) => {
+      const aTime = new Date(a.occurredAt).getTime();
+      const bTime = new Date(b.occurredAt).getTime();
+      if (Number.isNaN(aTime) || Number.isNaN(bTime)) return 0;
+      return bTime - aTime;
+    });
+  }, [encounterOpenedAt, noteCreatedAt, signedAt, signedByName, updatedAt]);
 
   return (
     <aside className="border-t border-cf-border bg-cf-surface px-5 py-4 xl:border-l xl:border-t-0">
@@ -97,6 +164,18 @@ export default function ProgressNoteReviewRail({
           ) : null}
         </div>
 
+        {historyEvents.length >= 2 ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="default"
+            onClick={() => setIsHistoryOpen(true)}
+          >
+            <History className="h-3.5 w-3.5" />
+            Note History
+          </Button>
+        ) : null}
+
         {!isSigned && canEditDraft && isDirty ? (
           <Button type="button" size="sm" variant="default" onClick={onReset}>
             <RotateCcw className="h-3.5 w-3.5" />
@@ -104,6 +183,12 @@ export default function ProgressNoteReviewRail({
           </Button>
         ) : null}
       </div>
+
+      <NoteHistoryModal
+        isOpen={isHistoryOpen}
+        events={historyEvents}
+        onClose={() => setIsHistoryOpen(false)}
+      />
     </aside>
   );
 }
