@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
+import { CareFlowIcon } from "../../../shared/components/icons";
 import { DEMO_MODE } from "../../../shared/config/appConfig";
 import { useAuth } from "../AuthProvider";
 
@@ -69,12 +70,17 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-cf-page-bg px-4">
       <div className="w-full max-w-sm rounded-cf-shell border border-cf-border bg-cf-surface px-7 py-7 shadow-[var(--shadow-panel-lg)]">
-        <div className="mb-6">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-            CareFlow
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cf-accent-soft">
+            <CareFlowIcon className="h-5 w-5 text-cf-accent" />
           </div>
-          <div className="mt-1 text-sm font-semibold tracking-tight text-cf-text">
-            Patient Portal
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+              CareFlow
+            </div>
+            <div className="text-sm font-semibold tracking-tight text-cf-text">
+              Patient Portal
+            </div>
           </div>
         </div>
 
