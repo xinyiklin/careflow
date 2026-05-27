@@ -5,11 +5,11 @@ from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from facilities.models import Facility, Staff, StaffRole
 from organizations.models import Organization, OrganizationMembership
-from patients.models import Patient
+from patients.models import Patient, PatientEmergencyContact, PatientPhone
 from users.permissions import IsPortalPatient
 from users.portal import PatientPortalAccount
 from users.portal_access import get_patient_for_user
@@ -174,3 +174,111 @@ class GetPatientForUserTests(PortalTestMixin, TestCase):
 
         with self.assertRaises(PermissionDenied):
             get_patient_for_user(user)
+
+
+PORTAL_FORBIDDEN_KEYS = {
+    "ssn",
+    "ssn_last4",
+    "chart_number",
+    "created_by",
+    "updated_by",
+    "created_by_name",
+    "updated_by_name",
+    "pcp",
+    "pcp_name",
+    "referring_provider",
+    "referring_provider_name",
+}
+
+
+class PortalMeViewTests(PortalTestMixin, APITestCase):
+    """End-to-end tests for ``GET /v1/portal/me/``."""
+
+    def setUp(self):
+        super().setUp()
+        # Give the patient enough surface area to test the serializer's
+        # derived fields (primary phone, primary emergency contact).
+        self.patient.email = "riley@example.com"
+        self.patient.pronouns = "they/them"
+        self.patient.preferred_language = "English"
+        self.patient.save()
+
+        PatientPhone.objects.create(
+            patient=self.patient,
+            number="2025550199",
+            label="cell",
+            is_primary=True,
+        )
+        PatientPhone.objects.create(
+            patient=self.patient,
+            number="2025550100",
+            label="home",
+            is_primary=False,
+        )
+        PatientEmergencyContact.objects.create(
+            patient=self.patient,
+            name="Sky Quinn",
+            relationship="Sibling",
+            phone_number="2025550150",
+            is_primary=True,
+        )
+
+    def test_anonymous_request_returns_401(self):
+        response = self.client.get("/v1/portal/me/")
+        self.assertEqual(response.status_code, 401)
+
+    def test_clinician_without_portal_account_returns_403(self):
+        clinician = self._make_clinician_user()
+        self.client.force_authenticate(clinician)
+
+        response = self.client.get("/v1/portal/me/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_inactive_portal_account_returns_403(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(
+            user=user,
+            patient=self.patient,
+            is_active=False,
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/v1/portal/me/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_active_portal_account_returns_own_profile(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/v1/portal/me/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["id"], self.patient.id)
+        self.assertEqual(data["first_name"], "Riley")
+        self.assertEqual(data["last_name"], "Quinn")
+        self.assertEqual(data["email"], "riley@example.com")
+        self.assertEqual(data["primary_phone_number"], "2025550199")
+        self.assertEqual(data["facility_name"], "Portal Test Clinic")
+        self.assertEqual(data["facility_timezone"], "America/New_York")
+        self.assertEqual(data["preferred_pharmacy_name"], "")
+        contact = data["primary_emergency_contact"]
+        self.assertEqual(contact["name"], "Sky Quinn")
+        self.assertEqual(contact["relationship"], "Sibling")
+        self.assertEqual(contact["phone_number"], "2025550150")
+
+    def test_portal_profile_excludes_clinician_and_phi_fields(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/v1/portal/me/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        leaked = PORTAL_FORBIDDEN_KEYS & set(data.keys())
+        self.assertFalse(
+            leaked,
+            f"Portal profile must not expose clinician/PHI fields: {sorted(leaked)}",
+        )

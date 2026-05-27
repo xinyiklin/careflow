@@ -18,6 +18,7 @@ urlpatterns = [
         name="token_refresh",
     ),
     path("v1/users/", include("users.urls")),
+    path("v1/portal/", include("users.portal_urls")),
     path("v1/organizations/", include("organizations.urls")),
     path("v1/facilities/", include("facilities.urls")),
     path("v1/patients/", include("patients.urls")),
