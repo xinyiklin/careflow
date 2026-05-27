@@ -58,12 +58,19 @@ export type PortalLoginCredentials = {
 export type PortalAuthTokenResponse = {
   access?: string | null;
   refresh?: string | null;
+  is_demo?: boolean;
 };
 
 export function loginPortal(credentials: PortalLoginCredentials) {
   return apiRequest<PortalAuthTokenResponse>("/users/token/", {
     method: "POST",
     body: JSON.stringify(credentials),
+  });
+}
+
+export function demoLoginPortal() {
+  return apiRequest<PortalAuthTokenResponse>("/portal/demo-login/", {
+    method: "POST",
   });
 }
 

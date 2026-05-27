@@ -12,6 +12,7 @@ import {
   setAuthTokens,
 } from "../../shared/api/client";
 import {
+  demoLoginPortal,
   fetchPortalMe,
   loginPortal,
   type PortalLoginCredentials,
@@ -27,6 +28,7 @@ export type AuthContextValue = {
   patient: PortalPatient | null;
   error: string | null;
   login: (credentials: PortalLoginCredentials) => Promise<void>;
+  demoLogin: () => Promise<void>;
   logout: () => void;
 };
 
@@ -126,6 +128,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [loadPatient]
   );
 
+  const demoLogin = useCallback(async () => {
+    setError(null);
+    const tokens = await demoLoginPortal();
+    if (!tokens?.access) {
+      throw new Error("Demo login response did not include an access token.");
+    }
+
+    setAuthTokens({
+      access: tokens.access,
+      refresh: tokens.refresh ?? null,
+    });
+
+    await loadPatient();
+  }, [loadPatient]);
+
   useEffect(() => {
     const handleAuthLogout = () => {
       setPatient(null);
@@ -150,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         patient,
         error,
         login,
+        demoLogin,
         logout,
       }}
     >

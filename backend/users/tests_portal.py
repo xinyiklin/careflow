@@ -357,3 +357,39 @@ class PortalMeViewTests(PortalTestMixin, APITestCase):
         self.assertEqual(self.patient.first_name, "Riley")
         self.assertEqual(self.patient.last_name, "Quinn")
         self.assertEqual(self.patient.date_of_birth, date(1992, 7, 14))
+
+
+class PortalDemoLoginViewTests(PortalTestMixin, APITestCase):
+    DEMO_USERNAME = "patient_demo_test"
+
+    def _make_demo_user_with_portal(self):
+        user = User.objects.create_user(username=self.DEMO_USERNAME, password="ignored")
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        return user
+
+    def test_demo_login_returns_token_when_enabled(self):
+        self._make_demo_user_with_portal()
+        with self.settings(DEMO_MODE=True, PORTAL_DEMO_USERNAME=self.DEMO_USERNAME):
+            response = self.client.post("/v1/portal/demo-login/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.data)
+        self.assertTrue(response.data["is_demo"])
+
+    def test_demo_login_rejected_when_disabled(self):
+        self._make_demo_user_with_portal()
+        with self.settings(DEMO_MODE=False, PORTAL_DEMO_USERNAME=self.DEMO_USERNAME):
+            response = self.client.post("/v1/portal/demo-login/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_demo_login_500_when_user_missing(self):
+        # User does not exist; demo mode on
+        with self.settings(DEMO_MODE=True, PORTAL_DEMO_USERNAME="does_not_exist"):
+            response = self.client.post("/v1/portal/demo-login/")
+        self.assertEqual(response.status_code, 500)
+
+    def test_demo_login_500_when_no_portal_account(self):
+        # User exists but no portal account
+        User.objects.create_user(username=self.DEMO_USERNAME, password="x")
+        with self.settings(DEMO_MODE=True, PORTAL_DEMO_USERNAME=self.DEMO_USERNAME):
+            response = self.client.post("/v1/portal/demo-login/")
+        self.assertEqual(response.status_code, 500)

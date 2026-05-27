@@ -18,6 +18,7 @@ def get_csv_setting(name, default):
 # --- ENV FLAGS ---
 DEMO_MODE = os.environ.get("DEMO_MODE", "False").lower() == "true"
 DEMO_USERNAME = os.environ.get("DEMO_USERNAME", "demo")
+PORTAL_DEMO_USERNAME = os.environ.get("PORTAL_DEMO_USERNAME", "patient_demo")
 ALLOW_PUBLIC_REGISTRATION = (
     os.environ.get("ALLOW_PUBLIC_REGISTRATION", "False").lower() == "true"
 )
