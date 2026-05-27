@@ -5,6 +5,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.db.models import Count
 from django.utils import timezone
 
 from allergies.models import PatientAllergy
@@ -1461,9 +1462,23 @@ class Command(BaseCommand):
         # -----------------------------
         # Patient portal demo account
         # -----------------------------
+        # Pick the seed patient with the richest clinical data so the portal
+        # demo lands on populated lists rather than empty states.
         portal_patient = (
             Patient.objects.filter(email__endswith="@demo-patient.local")
-            .order_by("last_name", "first_name", "id")
+            .annotate(
+                appt_count=Count("appointments", distinct=True),
+                med_count=Count("medications", distinct=True),
+                allergy_count=Count("allergies", distinct=True),
+            )
+            .order_by(
+                "-appt_count",
+                "-med_count",
+                "-allergy_count",
+                "last_name",
+                "first_name",
+                "id",
+            )
             .first()
         )
         if portal_patient is not None:

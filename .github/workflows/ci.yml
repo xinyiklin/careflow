@@ -6,8 +6,12 @@ on:
   pull_request:
 
 jobs:
-  clinician:
+  frontend:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [clinician, patient]
 
     steps:
       - uses: actions/checkout@v4
@@ -23,13 +27,13 @@ jobs:
         run: npm ci
 
       - name: Lint
-        run: npm -w @careflow/clinician run lint
+        run: npm -w @careflow/${{ matrix.app }} run lint
 
       - name: Type check
-        run: npm -w @careflow/clinician run typecheck
+        run: npm -w @careflow/${{ matrix.app }} run typecheck
 
       - name: Build
-        run: npm -w @careflow/clinician run build
+        run: npm -w @careflow/${{ matrix.app }} run build
 
   backend:
     runs-on: ubuntu-latest

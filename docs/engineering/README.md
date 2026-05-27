@@ -7,6 +7,7 @@ Start with the root docs when shaping product or UI work:
 
 Engineering guides:
 
+- [Architecture](architecture.md)
 - [UI principles](ui-principles.md)
 - [Backend guidelines](backend-guidelines.md)
 - [Testing](testing.md)

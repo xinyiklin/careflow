@@ -47,6 +47,12 @@ compliance.
 - **Hardening**: facility-scoped APIs, short-lived JWT access plus HTTP-only
   refresh cookies, CSRF on cookie-backed routes, SSN encrypted at rest with
   Fernet, and audit events for sensitive mutations.
+- **Patient portal** (v1): separate React app at `apps/patient/` for
+  patient-facing read-only views (profile, appointments, medications,
+  allergies). Shares the Django backend through a dedicated `/v1/portal/`
+  namespace gated by a `PatientPortalAccount` join model. See
+  [docs/engineering/architecture.md](docs/engineering/architecture.md) for
+  the monorepo layout, subdomain plan, and mobile-wrap considerations.
 
 ## Screenshots
 
