@@ -87,7 +87,7 @@ What CareFlow is **not**:
    and billing lists/mutations are bound to a facility. UI never invents a
    cross-facility shortcut without an organization-admin permission gate.
 3. **Reuse over invention.** Shared primitives in
-   `frontend/src/shared/components/ui/` (SegmentedControl, CategoryRail,
+   `apps/clinician/src/shared/components/ui/` (SegmentedControl, CategoryRail,
    TimelineFeed) win over hand-rolled variants. New variants extend the
    primitive; they don't replace it.
 4. **Compact density, calm hierarchy.** Smaller type, tighter spacing,

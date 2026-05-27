@@ -1,5 +1,5 @@
 {
-  "name": "frontend",
+  "name": "@careflow/clinician",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,12 +14,10 @@
     "format": "prettier . --write",
     "format:check": "prettier . --check",
     "precommit:prettier": "prettier --write",
-    "precommit:eslint": "eslint --fix",
-    "generate:schema": "cd ../backend && ./venv/bin/python manage.py spectacular --file ../frontend/src/shared/api/schema.yaml",
-    "generate:types": "npx openapi-typescript src/shared/api/schema.yaml -o src/shared/api/generated.ts",
-    "generate": "npm run generate:schema && npm run generate:types"
+    "precommit:eslint": "eslint --fix"
   },
   "dependencies": {
+    "@careflow/api-types": "*",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.9",

@@ -102,11 +102,14 @@ backend/
   shared/           Cross-domain models, serializers, and seed utilities
   users/            Auth, memberships, and user preferences
 
-frontend/src/
+apps/clinician/src/
   app/              App shell, routing, providers, and error boundary
   features/         Admin, appointments, auth, billing, documents,
                     facilities, patients, schedule
   shared/           API client, UI primitives, constants, hooks, tokens
+
+packages/
+  api-types/        Generated OpenAPI types shared across frontend apps
 ```
 
 ## Local Setup
@@ -151,11 +154,14 @@ add sample patient documents without reseeding the full database.
 ### Frontend
 
 ```bash
-cd frontend
 npm install
 ```
 
-Create `frontend/.env.local` if the API is not using the default local URL:
+Run from the repo root — npm workspaces install dependencies for every app
+(`apps/clinician`, future patient portal) and the `packages/api-types/`
+shared types package in one pass.
+
+Create `apps/clinician/.env.local` if the API is not using the default local URL:
 
 ```bash
 VITE_API_URL=http://localhost:8000
@@ -166,8 +172,10 @@ VITE_DEMO_MODE=true
 Start the Vite dev server:
 
 ```bash
-npm run dev
+npm run dev:clinician
 ```
+
+Or from inside `apps/clinician/`, `npm run dev`.
 
 The frontend dev server is expected to use `http://localhost:5173`. Vite is
 configured with `strictPort`, so do not switch to another port for normal
@@ -201,10 +209,9 @@ cd backend
 Frontend:
 
 ```bash
-cd frontend
-npm run lint
-npx tsc --noEmit
-npm run build
+npm -w @careflow/clinician run lint
+npm -w @careflow/clinician run typecheck
+npm -w @careflow/clinician run build
 ```
 
 For major UI changes, run the app locally and visually inspect the changed flow

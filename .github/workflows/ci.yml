@@ -6,11 +6,8 @@ on:
   pull_request:
 
 jobs:
-  frontend:
+  clinician:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -20,19 +17,19 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
-        run: npm run lint
+        run: npm -w @careflow/clinician run lint
 
       - name: Type check
-        run: npm run typecheck
+        run: npm -w @careflow/clinician run typecheck
 
       - name: Build
-        run: npm run build
+        run: npm -w @careflow/clinician run build
 
   backend:
     runs-on: ubuntu-latest

@@ -1,0 +1,19 @@
+{
+  "name": "@careflow/api-types",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate:schema": "cd ../../backend && ./venv/bin/python manage.py spectacular --file ../packages/api-types/src/schema.yaml",
+    "generate:types": "openapi-typescript src/schema.yaml -o src/generated.ts",
+    "generate": "npm run generate:schema && npm run generate:types"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.0.0"
+  }
+}

@@ -6,7 +6,7 @@ AI tooling alongside [PRODUCT.md](PRODUCT.md). Authoritative source for
 **rules**: [docs/engineering/ui-principles.md](docs/engineering/ui-principles.md).
 When this file and `ui-principles.md` conflict, `ui-principles.md` wins.
 
-Token definitions live in [frontend/src/index.css](frontend/src/index.css)
+Token definitions live in [apps/clinician/src/index.css](apps/clinician/src/index.css)
 under `@theme`. This doc summarizes; the CSS is canonical.
 
 ## Color
@@ -185,8 +185,8 @@ violations.
 
 ## Component vocabulary
 
-Shared primitives live in `frontend/src/shared/components/ui/`. Audit and
-critique passes should prefer these over hand-rolled variants.
+Shared primitives live in `apps/clinician/src/shared/components/ui/`. Audit
+and critique passes should prefer these over hand-rolled variants.
 
 - **SegmentedControl** — horizontal pill toggles, 2–N options, each option
   fills an equal share of the track (no floating pill). Canonical for view

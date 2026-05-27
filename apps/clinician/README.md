@@ -1,6 +1,7 @@
-# CareFlow Frontend
+# CareFlow Clinician App
 
-React frontend for CareFlow, an EHR-style clinic workflow demo covering
+React frontend for CareFlow clinicians and admin staff, an EHR-style clinic
+workflow demo covering
 scheduling, patient registration, clinical charting, medications, allergies,
 documents, billing, facility administration, and organization administration.
 
@@ -63,19 +64,25 @@ src/
 
 ## Local Setup
 
+From the repo root:
+
 ```bash
 npm install
-npm run dev
+npm run dev:clinician
 ```
+
+Or from this directory: `npm install` then `npm run dev`. Either works — the
+repo is an npm workspaces monorepo, so installing at the root hoists shared
+deps.
 
 The Vite dev server is fixed to `http://localhost:5173` with `strictPort`.
 For local QA, use that port instead of falling back to a different one. If
-`5173` is already occupied, confirm whether the CareFlow frontend is running
-there and use it if so; otherwise stop the stale process and rerun
+`5173` is already occupied, confirm whether the CareFlow clinician app is
+running there and use it if so; otherwise stop the stale process and rerun
 `npm run dev`.
 
 The default local API base is `http://localhost:8000`; requests are versioned
-under `/v1`. If the backend is elsewhere, create `frontend/.env.local`:
+under `/v1`. If the backend is elsewhere, create `apps/clinician/.env.local`:
 
 ```bash
 VITE_API_URL=http://localhost:8000
@@ -136,18 +143,22 @@ Current auth endpoints include:
 - Keep clinical screens compact and calm; avoid extra subtitles, wrappers, and
   hidden overflow unless the component intentionally owns scrolling.
 - For major UI work, inspect the changed flow in Chrome before finalizing.
-- Dev-only visual experiments belong in `frontend/dev-previews/`, which is
-  gitignored.
+- Dev-only visual experiments belong in `apps/clinician/dev-previews/`, which
+  is gitignored.
 
 ## Deployment
 
 The production frontend is intended for Vercel. Typical settings:
 
 ```text
-Root Directory: frontend
+Root Directory: apps/clinician
 Build Command: npm run build
 Output Directory: dist
+Install Command: npm install --workspaces --include-workspace-root
 ```
+
+The Install Command runs at the repo root so npm workspaces resolve the
+`@careflow/api-types` symlink before the build runs from `apps/clinician`.
 
 Set `VITE_API_URL` to the deployed backend base URL, for example:
 

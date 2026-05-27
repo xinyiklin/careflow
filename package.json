@@ -1,0 +1,16 @@
+{
+  "name": "careflow",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:clinician": "npm -w @careflow/clinician run dev",
+    "build:clinician": "npm -w @careflow/clinician run build",
+    "typecheck:clinician": "npm -w @careflow/clinician run typecheck",
+    "lint:clinician": "npm -w @careflow/clinician run lint",
+    "generate": "npm -w @careflow/api-types run generate"
+  }
+}

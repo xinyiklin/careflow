@@ -4,9 +4,11 @@ Operational rules for coding agents working in the CareFlow repository.
 
 CareFlow is a full-stack EHR-style scheduling and patient workflow app:
 React + Vite frontend, Django + DRF backend, PostgreSQL, Vercel + Render.
-API routes are versioned under `/v1/`. Framework and dependency versions live
-in `frontend/package.json` and `backend/requirements.txt`; check those files
-instead of copying version numbers here.
+API routes are versioned under `/v1/`. The repo is an npm workspaces monorepo:
+clinician frontend at `apps/clinician/`, shared OpenAPI types at
+`packages/api-types/`, Django backend at `backend/`. Framework and dependency
+versions live in `apps/clinician/package.json` and `backend/requirements.txt`;
+check those files instead of copying version numbers here.
 
 Product register context lives in `PRODUCT.md`; design tokens and component
 vocabulary live in `DESIGN.md`. UI, backend, testing, and workflow philosophy
@@ -283,10 +285,13 @@ If checks are skipped, explain why.
 
 ## Commands
 
-Run from the relevant subdirectory.
+Run from the relevant directory. The frontend lives in an npm workspaces
+monorepo — workspace commands work from the repo root.
 
-- **Frontend**: `npm run build`, `npx eslint <files>`, `npm run dev`
-  (from `frontend/`).
+- **Frontend**: `npm -w @careflow/clinician run build|lint|typecheck|dev`
+  from the repo root, or the same script names from inside `apps/clinician/`.
+- **Generated API types**: `npm run generate` from the repo root (requires the
+  backend Python venv). Writes `packages/api-types/src/{schema.yaml,generated.ts}`.
 - **Backend safe** (run unprompted): `./venv/bin/python manage.py check`,
   `./venv/bin/python manage.py test` (from `backend/`).
 - **Backend state-changing** (need task justification):
