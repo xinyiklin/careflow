@@ -13,7 +13,7 @@ const tsRecommended = tseslint.configs.recommended.map((config) =>
 
 export default tseslint.config(
   {
-    ignores: ["dist", "build", "node_modules", "coverage"],
+    ignores: ["dist", "build", "node_modules", "coverage", ".vite"],
   },
   js.configs.recommended,
   ...tsRecommended,

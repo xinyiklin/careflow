@@ -1,4 +1,4 @@
-import { CareFlowIcon } from "./icons";
+import { CareFlowIcon } from "@careflow/ui-icons";
 
 type LoadingScreenProps = {
   title?: string;

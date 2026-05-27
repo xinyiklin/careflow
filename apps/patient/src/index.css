@@ -21,6 +21,11 @@
   --color-cf-accent-hover: #1e293b;
   --color-cf-accent-soft: #e2e8f0;
 
+  /* Sidebar tokens — kept in sync with the clinician app so the login
+     icon badge and any future shared chrome match across apps. */
+  --color-cf-sidebar-bg: #1d2735;
+  --color-cf-sidebar-accent: #b8cfdf;
+
   /* Semantic status */
   --color-cf-success-bg: #ecfdf5;
   --color-cf-success-text: #047857;

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { AlertCircle, ArrowRight } from "lucide-react";
+import { CareFlowIcon } from "@careflow/ui-icons";
+
 import type { ChangeEvent, FormEvent } from "react";
 
-import { CareFlowIcon } from "../../../shared/components/icons";
 import { DEMO_MODE } from "../../../shared/config/appConfig";
 import { useAuth } from "../AuthProvider";
 
@@ -19,6 +21,7 @@ export function LoginPage() {
   const { login, demoLogin, error: providerError } = useAuth();
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   // Surface bootstrap errors (e.g. clinician account hitting /portal/me/).
@@ -54,7 +57,7 @@ export function LoginPage() {
   };
 
   const handleDemoLogin = async () => {
-    setSubmitting(true);
+    setDemoLoading(true);
     setFormError(null);
     try {
       await demoLogin();
@@ -63,23 +66,25 @@ export function LoginPage() {
         getErrorMessage(err, "Demo login is currently unavailable.")
       );
     } finally {
-      setSubmitting(false);
+      setDemoLoading(false);
     }
   };
 
+  const loading = submitting || demoLoading;
+
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-cf-page-bg px-4">
-      <div className="w-full max-w-sm rounded-cf-shell border border-cf-border bg-cf-surface px-7 py-7 shadow-[var(--shadow-panel-lg)]">
+    <div className="cf-app-shell flex h-[100dvh] w-full items-center justify-center bg-cf-page-bg px-4">
+      <div className="w-full max-w-sm rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface px-7 py-7 shadow-[var(--shadow-panel-lg)]">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cf-accent-soft">
-            <CareFlowIcon className="h-5 w-5 text-cf-accent" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-cf-sidebar-bg)]">
+            <CareFlowIcon className="h-5 w-5 text-[var(--color-cf-sidebar-accent)]" />
           </div>
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-              CareFlow
+              Patient Portal
             </div>
             <div className="text-sm font-semibold tracking-tight text-cf-text">
-              Patient Portal
+              CareFlow
             </div>
           </div>
         </div>
@@ -92,9 +97,13 @@ export function LoginPage() {
           {formError && (
             <div
               role="alert"
-              className="rounded-cf-control border border-cf-danger-text/30 bg-cf-danger-bg px-3 py-2 text-sm text-cf-danger-text"
+              className="flex items-start gap-3 rounded-2xl border border-cf-danger-bg bg-cf-danger-bg px-4 py-3 text-sm text-cf-danger-text"
             >
-              {formError}
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="min-w-0">
+                <div className="font-semibold">Sign in failed</div>
+                <div className="mt-0.5">{formError}</div>
+              </div>
             </div>
           )}
 
@@ -113,7 +122,7 @@ export function LoginPage() {
               onChange={handleChange}
               required
               autoComplete="username"
-              className="w-full rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
+              className="w-full rounded-xl border border-cf-border-strong bg-cf-surface px-3 py-2.5 text-sm text-cf-text shadow-sm outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
@@ -132,17 +141,17 @@ export function LoginPage() {
               onChange={handleChange}
               required
               autoComplete="current-password"
-              className="w-full rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
+              className="w-full rounded-xl border border-cf-border-strong bg-cf-surface px-3 py-2.5 text-sm text-cf-text shadow-sm outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 
           <div className="pt-1">
             <button
               type="submit"
-              disabled={submitting}
-              className="w-full rounded-cf-control bg-cf-accent px-4 py-2 text-sm font-medium text-cf-surface transition-colors hover:bg-cf-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading}
+              className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-cf-accent bg-cf-accent px-4 py-2.5 text-sm font-medium leading-none text-cf-page-bg shadow-[var(--shadow-panel)] transition hover:border-cf-accent-hover hover:bg-cf-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cf-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {submitting ? "Signing in…" : "Sign in"}
+              {submitting ? "Signing in..." : "Sign In"}
             </button>
           </div>
         </form>
@@ -160,10 +169,11 @@ export function LoginPage() {
             <button
               type="button"
               onClick={handleDemoLogin}
-              disabled={submitting}
-              className="w-full rounded-cf-control border border-cf-border bg-cf-surface px-4 py-2 text-sm font-medium text-cf-text transition-colors hover:bg-cf-surface-soft disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading}
+              className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-cf-border bg-cf-surface px-4 py-2.5 text-sm font-medium leading-none text-cf-text-muted shadow-[var(--shadow-panel)] transition hover:border-cf-border-strong hover:bg-cf-surface-soft hover:text-cf-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cf-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Continue with demo patient
+              {demoLoading ? "Opening demo..." : "Continue with Demo"}
+              {!demoLoading && <ArrowRight className="h-4 w-4" />}
             </button>
 
             <p className="mt-2.5 text-center text-xs text-cf-text-subtle">

@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 import { APP_NAME } from "../../../shared/constants/app";
 import { DEMO_MODE } from "../../../shared/config/appConfig";
-import { CareFlowIcon } from "../../../shared/components/icons";
+import { CareFlowIcon } from "@careflow/ui-icons";
 import { Button, Input, Notice } from "../../../shared/components/ui";
 
 import type { ChangeEvent, FormEvent } from "react";
