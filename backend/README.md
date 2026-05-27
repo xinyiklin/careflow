@@ -1,8 +1,9 @@
 # CareFlow Backend
 
 Django REST backend for CareFlow, an EHR-style clinic workflow demo covering
-scheduling, patient registration, documents, insurance, facility administration,
-organization administration, permissions, and audit-style activity records.
+scheduling, patient registration, clinical charting, medications, allergies,
+documents, insurance, billing, facility administration, organization
+administration, permissions, and audit-style activity records.
 
 The backend is built around facility-scoped access control. APIs should preserve
 facility boundaries, role checks, and masked/safe handling of sensitive patient
@@ -19,16 +20,21 @@ fields.
 
 ## Apps
 
-- `appointments` - scheduling, appointment mutations, status/type activity.
+- `allergies` - patient allergy and adverse reaction records.
+- `appointments` - scheduling, appointment mutations, edit sessions, status/type
+  activity, and appointment history.
 - `audit` - audit-style event records and helpers.
+- `billing` - encounter-linked superbills, fee schedules, and CPT catalog.
+- `clinical` - encounters and progress note charting.
 - `facilities` - facilities, staff, resources, roles, security permissions,
   appointment config, operating hours, and seeded defaults.
 - `insurance` - insurance carriers and patient insurance policies.
-- `organizations` - organization profile, memberships, facilities, and
-  pharmacy preferences.
+- `medications` - patient medication records.
+- `organizations` - organization profile, memberships, facilities,
+  organization-level preferences, and pharmacy/payer administration.
 - `patients` - demographics, search, phones, emergency contacts, care team,
   pharmacies, document metadata, document previews/downloads, and categories.
-- `shared` - cross-domain address model, serializers, and management commands.
+- `shared` - cross-domain models, serializers, and management commands.
 - `users` - custom user model, auth endpoints, memberships, and user
   preferences.
 
@@ -43,15 +49,22 @@ APIs are versioned under `/v1/`.
   history.
 - Patient registration, search, inline demographics editing, masked SSN flow,
   phone validation, emergency contacts, insurance, care team, and pharmacy data.
+- Clinical encounters and SOAP progress notes with draft, signed, and unsigned
+  workflows.
+- Patient medications and allergies with active/historical state and audit
+  history.
 - Patient document upload, preview, download, category management, and bundled
   PDF export.
+- Encounter-linked billing records, organization/facility fee schedules,
+  overrides, and CPT catalog population.
 - Local filesystem document storage for development and optional Cloudflare R2
   storage for deployed demos.
 - Organization/facility admin APIs for staff, roles, permissions, resources,
-  operating hours, appointment config, document categories, and pharmacy
-  preferences.
+  operating hours, appointment config, fee schedules, payer/pharmacy
+  preferences, document categories, and read-only activity logs.
 - Synthetic demo seeding for Clinic A, Clinic B, Clinic C, users, patients,
-  appointments, admin config, and sample documents.
+  appointments, clinical records, medications, allergies, billing workflows,
+  admin config, and sample documents.
 
 ## Local Setup
 
@@ -72,7 +85,7 @@ DB_PASSWORD=password
 DB_HOST=localhost
 DB_PORT=5433
 DEMO_MODE=True
-DEMO_USERNAME=demo_admin
+DEMO_USERNAME=demo
 ```
 
 Run migrations and seed synthetic demo data:
@@ -83,9 +96,10 @@ python manage.py seed_demo
 ```
 
 `seed_demo` already creates demo users, Clinic A/B/C, facility configuration,
-patients, appointments, insurance, pharmacies, document categories, and sample
-documents. Use the document-only command when you want to refresh/add sample
-documents without reseeding the whole database:
+patients, appointments, insurance, pharmacies, document categories, clinical
+records, medications, allergies, billing records, fee schedules, CPT catalog
+items, and sample documents. Use the document-only command when you want to
+refresh/add sample documents without reseeding the whole database:
 
 ```bash
 python manage.py seed_patient_documents
@@ -102,7 +116,7 @@ python manage.py runserver
 After `seed_demo`:
 
 ```text
-Username: demo_admin
+Username: demo
 Password: Admin123!
 ```
 
@@ -192,11 +206,12 @@ ALLOWED_HOSTS=api.careflow.xinyiklin.com,.onrender.com
 CORS_ALLOWED_ORIGINS=https://careflow.xinyiklin.com
 CSRF_TRUSTED_ORIGINS=https://careflow.xinyiklin.com,https://api.careflow.xinyiklin.com
 DEMO_MODE=True
-DEMO_USERNAME=demo_admin
+DEMO_USERNAME=demo
 PATIENT_DOCUMENT_STORAGE_BACKEND=r2
 ```
 
-Do not commit real secret values.
+Do not commit real secret values. When `DEBUG=False`, `SECRET_KEY` must be at
+least 32 bytes so JWT signing uses a strong HMAC key.
 
 ## Useful Commands
 

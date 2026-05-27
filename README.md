@@ -5,7 +5,8 @@
 [![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](./LICENSE)
 
 CareFlow is a full-stack EHR-style clinic workflow demo for scheduling,
-patient registration, facility administration, and document management.
+patient registration, clinical charting, documents, billing, facility
+administration, and organization administration.
 
 The project is designed as a portfolio-grade healthcare operations app rather
 than a basic CRUD sample. It focuses on facility-scoped workflows, configurable
@@ -140,11 +141,12 @@ Run migrations, seed synthetic demo data, and start the API:
 ```bash
 python manage.py migrate
 python manage.py seed_demo
-python manage.py seed_patient_documents
 python manage.py runserver
 ```
 
 The backend serves versioned APIs under `/v1/`.
+Use `python manage.py seed_patient_documents` only when you want to refresh or
+add sample patient documents without reseeding the full database.
 
 ### Frontend
 
@@ -200,7 +202,7 @@ Frontend:
 
 ```bash
 cd frontend
-npx eslint src
+npm run lint
 npx tsc --noEmit
 npm run build
 ```
@@ -229,6 +231,9 @@ CLOUDFLARE_R2_ENDPOINT_URL=...
 
 - Keep patient data synthetic. Do not use real PHI in local, demo, or portfolio
   environments.
+- Use [PRODUCT.md](./PRODUCT.md) for product context and
+  [DESIGN.md](./DESIGN.md) for token/component vocabulary before larger UI
+  changes.
 - Treat sensitive fields as masked by default. Full SSN display should be
   intentional and user-triggered.
 - Keep APIs facility-scoped and permission-aware.

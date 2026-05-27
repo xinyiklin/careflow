@@ -1,8 +1,8 @@
 # CareFlow Frontend
 
 React frontend for CareFlow, an EHR-style clinic workflow demo covering
-scheduling, patient registration, facility administration, and document
-management.
+scheduling, patient registration, clinical charting, medications, allergies,
+documents, billing, facility administration, and organization administration.
 
 The app is built to feel like a compact clinical workspace: facility-scoped,
 permission-aware, keyboard-friendly where practical, and organized around
@@ -25,12 +25,16 @@ front-desk and clinical workflows rather than raw database tables.
   activity log, configurable status/type colors, rooms, and resources.
 - Patient workflows with Quick Start registration, smart search, inline Patient
   Hub registration editing, phone/SSN formatting, insurance, pharmacy, care
-  team, and emergency contacts.
+  team, emergency contacts, and a unified Timeline.
+- Clinical charting with encounters and SOAP progress notes, including draft,
+  signed, and unsigned states.
+- Medications and allergies tracked in Patient Hub with active/historical state.
 - Document Center with patient-scoped document lists, uploads, in-app PDF
   preview, download, category management, and bundled PDF export.
+- Billing workspace with encounter-linked records and fee-schedule handoff.
 - Admin areas for organization profile, facilities, staff, roles/permissions,
   resources, appointment statuses/types, operating hours, document categories,
-  and pharmacy preferences.
+  fee schedules, payer/pharmacy preferences, and activity logs.
 - User preferences for theme, schedule behavior, sidebar startup state,
   appointment block display, and persisted recent patients.
 
@@ -43,9 +47,10 @@ src/
     admin/          Organization/facility admin surfaces
     appointments/   Appointment API, modals, blocks, history, mutations
     auth/           Login, auth provider, current-user flow
+    billing/        Billing workspace and encounter billing records
     documents/      Document Center and shared patient document workspace
     facilities/     Active facility context and facility config hooks
-    patients/       Patient search, Patient Hub, registration, insurance
+    patients/       Patient search, Patient Hub, clinical, insurance
     schedule/       Schedule page, grid/agenda/resource views, utilities
   shared/
     api/            Versioned API client and auth refresh behavior
@@ -113,6 +118,8 @@ Current auth endpoints include:
 
 ```text
 /v1/users/token/
+/v1/users/csrf/
+/v1/users/demo-login/
 /v1/users/token/refresh/
 /v1/users/logout/
 /v1/users/me/
@@ -122,6 +129,8 @@ Current auth endpoints include:
 ## UI Notes
 
 - Prefer shared primitives from `src/shared/components/ui/`.
+- Use root `PRODUCT.md` for product register and `DESIGN.md` for token/component
+  vocabulary before larger UI changes.
 - Prefer existing CareFlow tokens/classes from `src/index.css` over one-off
   colors.
 - Keep clinical screens compact and calm; avoid extra subtitles, wrappers, and

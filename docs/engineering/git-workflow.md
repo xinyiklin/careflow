@@ -113,10 +113,13 @@ fix: correct CORS header on auth refresh
 
 ### When to open a PR
 
-Open a PR for every change that touches the repo, including single-file edits
-and documentation. Do not commit directly to `main`. The PR list is the
-project's portfolio surface and the diff view is a forced second look at the
-change.
+When GitHub work is requested, open a PR for every change that touches the repo,
+including single-file edits and documentation. Do not commit directly to
+`main`. The PR list is the project's portfolio surface and the diff view is a
+forced second look at the change.
+
+Coding agents still follow `AGENTS.md`: stay local unless the user explicitly
+asks to stage, commit, push, or open a PR.
 
 ### Merge strategy
 
@@ -152,8 +155,8 @@ primary check.
 ```bash
 # Frontend
 cd frontend
-npx eslint src
-npx tsc --noEmit
+npm run lint
+npm run typecheck
 npm run build
 
 # Backend
