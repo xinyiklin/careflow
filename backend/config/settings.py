@@ -33,6 +33,10 @@ if not SECRET_KEY:
     if not DEBUG:
         raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG is false.")
     SECRET_KEY = "careflow-dev-secret-key-change-me-before-production-2026"
+elif not DEBUG and len(SECRET_KEY.encode("utf-8")) < 32:
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be at least 32 bytes when DEBUG is false."
+    )
 
 FIELD_ENCRYPTION_KEY = os.environ.get("FIELD_ENCRYPTION_KEY")
 if not FIELD_ENCRYPTION_KEY:

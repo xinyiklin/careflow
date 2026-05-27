@@ -8,8 +8,10 @@ API routes are versioned under `/v1/`. Framework and dependency versions live
 in `frontend/package.json` and `backend/requirements.txt`; check those files
 instead of copying version numbers here.
 
-Product, UI, backend, and testing philosophy lives in `docs/engineering/`.
-This root guide is for agent behavior, safety, continuity, and execution.
+Product register context lives in `PRODUCT.md`; design tokens and component
+vocabulary live in `DESIGN.md`. UI, backend, testing, and workflow philosophy
+live in `docs/engineering/`. This root guide is for agent behavior, safety,
+continuity, and execution.
 
 ---
 
@@ -58,7 +60,8 @@ Before any code:
 2. Confirm scope; ask only if ambiguity blocks progress.
 3. Inspect the files you will touch.
 4. Read the relevant engineering docs:
-   - UI work: `docs/engineering/ui-principles.md`
+   - UI/design work: `PRODUCT.md`, `DESIGN.md`, and
+     `docs/engineering/ui-principles.md`
    - Backend/API work: `docs/engineering/backend-guidelines.md`
    - Test planning: `docs/engineering/testing.md`
 5. For non-trivial work, sketch a verification plan.
@@ -165,6 +168,7 @@ verified access to the relevant tooling wins.
 
 Before changing authenticated UI:
 
+- Read `PRODUCT.md` and `DESIGN.md`.
 - Read `docs/engineering/ui-principles.md`.
 - Reuse existing tokens/components.
 - Preserve workflow density and visual restraint.

@@ -10,10 +10,22 @@ API_ENDPOINT_SECTIONS = [
                 "description": "Obtain JWT access and refresh tokens.",
             },
             {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/users/csrf/",
+                "description": "Issue a CSRF cookie for cookie-backed auth routes.",
+            },
+            {
                 "method": "POST",
                 "class": "post",
                 "path": "/v1/users/token/refresh/",
                 "description": "Refresh an access token.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/users/logout/",
+                "description": "Clear the refresh cookie and end the current session.",
             },
             {
                 "method": "POST",
@@ -32,6 +44,12 @@ API_ENDPOINT_SECTIONS = [
                 "class": "get",
                 "path": "/v1/users/me/",
                 "description": "Return the current user, organization membership, and facility context.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/users/me/preferences/",
+                "description": "Update current-user preferences such as theme and last facility.",
             },
         ],
     },
@@ -93,6 +111,30 @@ API_ENDPOINT_SECTIONS = [
                 "path": "/v1/organizations/pharmacies/<id>/",
                 "description": "Update organization pharmacy preference details.",
             },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/organizations/facility-pharmacy-overrides/?facility_id=<id>",
+                "description": "List facility-specific pharmacy overrides.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/organizations/roles/",
+                "description": "List organization role types.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/organizations/security/",
+                "description": "List organization role security permissions.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/organizations/security/update-role/",
+                "description": "Update organization role security permissions.",
+            },
         ],
     },
     {
@@ -109,7 +151,7 @@ API_ENDPOINT_SECTIONS = [
                 "method": "PATCH",
                 "class": "patch",
                 "path": "/v1/facilities/<id>/",
-                "description": "Update facility profile and operational details.",
+                "description": "Update facility profile, operating hours, and operational details.",
             },
             {
                 "method": "GET",
@@ -128,6 +170,12 @@ API_ENDPOINT_SECTIONS = [
                 "class": "get",
                 "path": "/v1/facilities/appointment-types/?facility_id=<id>",
                 "description": "List appointment types and scheduling defaults.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/facilities/resources/?facility_id=<id>",
+                "description": "List rooms, providers, and schedule resources for a facility.",
             },
             {
                 "method": "GET",
@@ -174,6 +222,30 @@ API_ENDPOINT_SECTIONS = [
             {
                 "method": "GET",
                 "class": "get",
+                "path": "/v1/patients/<id>/reveal-ssn/?facility_id=<id>",
+                "description": "Reveal a masked patient SSN and record an audit event.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/patients/document-categories/?facility_id=<id>",
+                "description": "List patient document categories for a facility.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/patients/documents/?facility_id=<id>&patient_id=<id>",
+                "description": "List document metadata for a patient.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/patients/documents/bundle/view/?facility_id=<id>",
+                "description": "Build a combined preview PDF for selected patient documents.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
                 "path": "/v1/patients/pharmacies/?facility_id=<id>",
                 "description": "List facility-effective pharmacies from organization pharmacy settings and facility overrides.",
             },
@@ -194,6 +266,18 @@ API_ENDPOINT_SECTIONS = [
                 "class": "get",
                 "path": "/v1/insurance/carriers/?facility_id=<id>",
                 "description": "List facility-effective insurance carriers from organization payer settings and facility overrides.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/insurance/organization-carriers/",
+                "description": "List organization payer preferences.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/insurance/facility-carrier-overrides/?facility_id=<id>",
+                "description": "List facility-specific payer overrides.",
             },
             {
                 "method": "GET",
@@ -237,6 +321,24 @@ API_ENDPOINT_SECTIONS = [
                 "path": "/v1/appointments/<id>/?facility_id=<id>",
                 "description": "Update appointment schedule, status, and operational notes.",
             },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/appointments/heatmap/?facility_id=<id>&month=2026-04",
+                "description": "Return appointment counts per local date for a schedule heatmap.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/appointments/<id>/edit-session/?facility_id=<id>",
+                "description": "Check appointment edit-session occupancy.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/appointments/<id>/history/?facility_id=<id>",
+                "description": "List audit-style history for an appointment.",
+            },
         ],
     },
     {
@@ -266,6 +368,12 @@ API_ENDPOINT_SECTIONS = [
                 "class": "post",
                 "path": "/v1/clinical/progress-notes/<id>/sign/?facility_id=<id>",
                 "description": "Sign a progress note and lock it from further edits.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/clinical/progress-notes/<id>/unsign/?facility_id=<id>",
+                "description": "Reopen a signed progress note when the user is permitted.",
             },
         ],
     },
@@ -356,6 +464,24 @@ API_ENDPOINT_SECTIONS = [
                 "class": "get",
                 "path": "/v1/billing/fee-schedule-items/?facility_id=<id>",
                 "description": "List facility-effective fee schedule items merged from organization defaults and facility overrides.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/billing/organization-fee-schedules/",
+                "description": "List organization fee schedule sheets.",
+            },
+            {
+                "method": "GET",
+                "class": "get",
+                "path": "/v1/billing/facility-fee-schedules/?facility_id=<id>",
+                "description": "List facility-specific fee schedule sheets.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/billing/facility-fee-schedules/copy-from-org/?facility_id=<id>",
+                "description": "Create a facility fee schedule from an organization schedule.",
             },
             {
                 "method": "GET",
