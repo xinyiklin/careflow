@@ -18,6 +18,8 @@ CareFlow uses synthetic demo data only. It is not production medical software,
 not a real EHR, and has not been formally audited or certified for HIPAA
 compliance.
 
+![Patient search to Patient Hub Timeline](./docs/screenshots/demo.gif)
+
 ## Highlights
 
 - **Scheduling** with facility-local time, configurable statuses, visit types,
