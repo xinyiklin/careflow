@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
+import { DEMO_MODE } from "../../../shared/config/appConfig";
 import { useAuth } from "../AuthProvider";
-
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 function getErrorMessage(err: unknown, fallback: string) {
   if (err instanceof Error && err.message) {
@@ -160,8 +159,16 @@ export function LoginPage() {
             >
               Continue with demo patient
             </button>
+
+            <p className="mt-2.5 text-center text-xs text-cf-text-subtle">
+              No credentials needed &mdash; built for portfolio and preview use.
+            </p>
           </>
         )}
+
+        <p className="mt-5 text-center text-xs text-cf-text-subtle">
+          For authorized patient use only.
+        </p>
       </div>
     </div>
   );
