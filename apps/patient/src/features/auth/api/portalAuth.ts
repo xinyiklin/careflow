@@ -15,6 +15,20 @@ export type PortalAddress = {
   zip_code?: string | null;
 } | null;
 
+export type PortalInsurancePolicy = {
+  id: number;
+  carrier_name: string;
+  plan_name: string;
+  member_id: string;
+  group_number: string;
+  subscriber_name: string;
+  relationship_to_subscriber: string;
+  effective_date: string | null;
+  termination_date: string | null;
+  is_primary: boolean;
+  notes: string | null;
+};
+
 export type PortalPatient = {
   id: number;
   first_name: string;
@@ -33,6 +47,7 @@ export type PortalPatient = {
   preferred_pharmacy_name: string;
   facility_name: string;
   facility_timezone: string;
+  insurance_policies?: PortalInsurancePolicy[];
 };
 
 export type PortalLoginCredentials = {

@@ -282,3 +282,78 @@ class PortalMeViewTests(PortalTestMixin, APITestCase):
             leaked,
             f"Portal profile must not expose clinician/PHI fields: {sorted(leaked)}",
         )
+
+    def test_update_portal_profile_success(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.client.force_authenticate(user)
+
+        update_data = {
+            "preferred_name": "Riles",
+            "pronouns": "they/them",
+            "preferred_language": "Spanish",
+            "email": "riley.new@example.com",
+            "primary_phone_number": "3035559988",
+            "address": {
+                "line_1": "123 New Way",
+                "city": "Denver",
+                "state": "NY",
+                "zip_code": "80202",
+            },
+            "primary_emergency_contact": {
+                "name": "Alex Quinn",
+                "relationship": "Parent",
+                "phone_number": "3035557766",
+            },
+        }
+
+        response = self.client.patch("/v1/portal/me/", data=update_data, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        # Verify DB updates
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.preferred_name, "Riles")
+        self.assertEqual(self.patient.pronouns, "they/them")
+        self.assertEqual(self.patient.preferred_language, "Spanish")
+        self.assertEqual(self.patient.email, "riley.new@example.com")
+        self.assertEqual(
+            self.patient.phones.filter(is_primary=True).first().number, "3035559988"
+        )
+        self.assertEqual(self.patient.address.line_1, "123 New Way")
+        self.assertEqual(self.patient.address.city, "Denver")
+        self.assertEqual(
+            self.patient.emergency_contacts.filter(is_primary=True).first().name,
+            "Alex Quinn",
+        )
+        self.assertEqual(
+            self.patient.emergency_contacts.filter(is_primary=True)
+            .first()
+            .relationship,
+            "Parent",
+        )
+        self.assertEqual(
+            self.patient.emergency_contacts.filter(is_primary=True)
+            .first()
+            .phone_number,
+            "3035557766",
+        )
+
+    def test_update_portal_profile_read_only_fields_ignored(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.client.force_authenticate(user)
+
+        update_data = {
+            "first_name": "ShouldNotChange",
+            "last_name": "ShouldNotChangeEither",
+            "date_of_birth": "1990-01-01",
+        }
+
+        response = self.client.patch("/v1/portal/me/", data=update_data, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        # Verify DB fields did NOT change
+        self.patient.refresh_from_db()
+        self.assertEqual(self.patient.first_name, "Riley")
+        self.assertEqual(self.patient.last_name, "Quinn")
+        self.assertEqual(self.patient.date_of_birth, date(1992, 7, 14))

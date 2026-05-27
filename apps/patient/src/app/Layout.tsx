@@ -24,10 +24,10 @@ const NAV_ITEMS: NavItem[] = [
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   const base =
-    "inline-flex items-center gap-1.5 rounded-cf-control px-2.5 py-1.5 text-xs font-medium transition-colors";
+    "relative inline-flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold transition-colors border-b-2 -mb-[1px]";
   return isActive
-    ? `${base} bg-cf-accent-soft text-cf-text`
-    : `${base} text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text`;
+    ? `${base} border-cf-accent text-cf-text`
+    : `${base} border-transparent text-cf-text-muted hover:text-cf-text hover:border-cf-border-strong`;
 }
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -35,28 +35,33 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-cf-page-bg">
       <header className="border-b border-cf-border bg-cf-surface">
-        <div className="mx-auto max-w-3xl px-4 pt-3 sm:px-6">
+        <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold tracking-tight text-cf-text">
-              CareFlow Portal
-            </span>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-cf-accent" />
+              <span className="text-sm font-semibold tracking-tight text-cf-text">
+                CareFlow Patient Portal
+              </span>
+            </div>
           </div>
           <nav
             aria-label="Primary"
-            className="-mx-1 mt-2 flex flex-wrap items-center gap-1 pb-2"
+            className="mt-3 flex items-center justify-between"
           >
-            {NAV_ITEMS.map(({ to, label, Icon, end }) => (
-              <NavLink key={to} to={to} end={end} className={navLinkClass}>
-                <Icon size={14} aria-hidden="true" />
-                <span>{label}</span>
-              </NavLink>
-            ))}
+            <div className="flex gap-2">
+              {NAV_ITEMS.map(({ to, label, Icon, end }) => (
+                <NavLink key={to} to={to} end={end} className={navLinkClass}>
+                  <Icon size={14} className="shrink-0" aria-hidden="true" />
+                  <span>{label}</span>
+                </NavLink>
+              ))}
+            </div>
             <button
               type="button"
               onClick={() => logout()}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-cf-control px-2.5 py-1.5 text-xs font-medium text-cf-text-muted transition-colors hover:bg-cf-surface-soft hover:text-cf-text"
+              className="mb-2 inline-flex items-center gap-1.5 rounded-cf-control border border-cf-border bg-cf-surface px-2.5 py-1.5 text-xs font-semibold text-cf-text-muted transition-colors hover:bg-cf-surface-soft hover:text-cf-text"
             >
-              <LogOut size={14} aria-hidden="true" />
+              <LogOut size={13} aria-hidden="true" />
               <span>Sign out</span>
             </button>
           </nav>
