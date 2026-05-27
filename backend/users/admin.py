@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import User
+from .models import PatientPortalAccount, User
 
 
 @admin.register(User)
@@ -49,3 +49,17 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
     )
+
+
+@admin.register(PatientPortalAccount)
+class PatientPortalAccountAdmin(admin.ModelAdmin):
+    list_display = ("user", "patient", "is_active", "created_at")
+    list_filter = ("is_active",)
+    search_fields = (
+        "user__username",
+        "user__email",
+        "patient__first_name",
+        "patient__last_name",
+    )
+    readonly_fields = ("created_at", "updated_at", "last_login_at")
+    ordering = ("-created_at",)

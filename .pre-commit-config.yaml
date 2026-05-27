@@ -26,16 +26,30 @@ repos:
 
   - repo: local
     hooks:
-      - id: frontend-prettier
-        name: frontend-prettier
-        entry: bash -c 'cd frontend && npx prettier --write "${@/#frontend\//}"' --
+      - id: clinician-prettier
+        name: clinician-prettier
+        entry: bash -c 'cd apps/clinician && npx prettier --write "${@/#apps\/clinician\//}"' --
         language: system
-        files: ^frontend/.*\.(js|jsx|ts|tsx|json|css|md|html)$
+        files: ^apps/clinician/.*\.(js|jsx|ts|tsx|json|css|md|html)$
         pass_filenames: true
 
-      - id: frontend-eslint
-        name: frontend-eslint
-        entry: bash -c 'cd frontend && npx eslint --fix "${@/#frontend\//}"' --
+      - id: clinician-eslint
+        name: clinician-eslint
+        entry: bash -c 'cd apps/clinician && npx eslint --fix "${@/#apps\/clinician\//}"' --
         language: system
-        files: ^frontend/.*\.(js|jsx|ts|tsx)$
+        files: ^apps/clinician/.*\.(js|jsx|ts|tsx)$
+        pass_filenames: true
+
+      - id: patient-prettier
+        name: patient-prettier
+        entry: bash -c 'cd apps/patient && npx prettier --write "${@/#apps\/patient\//}"' --
+        language: system
+        files: ^apps/patient/.*\.(js|jsx|ts|tsx|json|css|md|html)$
+        pass_filenames: true
+
+      - id: patient-eslint
+        name: patient-eslint
+        entry: bash -c 'cd apps/patient && npx eslint --fix "${@/#apps\/patient\//}"' --
+        language: system
+        files: ^apps/patient/.*\.(js|jsx|ts|tsx)$
         pass_filenames: true

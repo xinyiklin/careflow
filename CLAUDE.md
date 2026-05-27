@@ -8,8 +8,10 @@ this file wins.
 
 - `Read` before `Edit`/`Write`. Never `Write` without reading first.
 - Prefer `Grep` over shell grep for codebase searches.
-- Run commands via `Bash` from the relevant subdirectory (`frontend/` or
-  `backend/`). Use `./venv/bin/python` for backend commands.
+- Frontend lives in an npm workspaces monorepo. Run workspace commands from
+  the repo root (`npm -w @careflow/clinician run ...`) or from
+  `apps/clinician/` directly. Backend commands run from `backend/` with
+  `./venv/bin/python`.
 
 ## Visual QA
 

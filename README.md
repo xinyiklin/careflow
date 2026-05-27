@@ -47,6 +47,12 @@ compliance.
 - **Hardening**: facility-scoped APIs, short-lived JWT access plus HTTP-only
   refresh cookies, CSRF on cookie-backed routes, SSN encrypted at rest with
   Fernet, and audit events for sensitive mutations.
+- **Patient portal** (v1): separate React app at `apps/patient/` for
+  patient-facing read-only views (profile, appointments, medications,
+  allergies). Shares the Django backend through a dedicated `/v1/portal/`
+  namespace gated by a `PatientPortalAccount` join model. See
+  [docs/engineering/architecture.md](docs/engineering/architecture.md) for
+  the monorepo layout, subdomain plan, and mobile-wrap considerations.
 
 ## Screenshots
 
@@ -102,11 +108,14 @@ backend/
   shared/           Cross-domain models, serializers, and seed utilities
   users/            Auth, memberships, and user preferences
 
-frontend/src/
+apps/clinician/src/
   app/              App shell, routing, providers, and error boundary
   features/         Admin, appointments, auth, billing, documents,
                     facilities, patients, schedule
   shared/           API client, UI primitives, constants, hooks, tokens
+
+packages/
+  api-types/        Generated OpenAPI types shared across frontend apps
 ```
 
 ## Local Setup
@@ -151,11 +160,14 @@ add sample patient documents without reseeding the full database.
 ### Frontend
 
 ```bash
-cd frontend
 npm install
 ```
 
-Create `frontend/.env.local` if the API is not using the default local URL:
+Run from the repo root — npm workspaces install dependencies for every app
+(`apps/clinician`, future patient portal) and the `packages/api-types/`
+shared types package in one pass.
+
+Create `apps/clinician/.env.local` if the API is not using the default local URL:
 
 ```bash
 VITE_API_URL=http://localhost:8000
@@ -166,8 +178,10 @@ VITE_DEMO_MODE=true
 Start the Vite dev server:
 
 ```bash
-npm run dev
+npm run dev:clinician
 ```
+
+Or from inside `apps/clinician/`, `npm run dev`.
 
 The frontend dev server is expected to use `http://localhost:5173`. Vite is
 configured with `strictPort`, so do not switch to another port for normal
@@ -188,6 +202,14 @@ The demo user is granted full security permissions across every facility in
 the seeded organization. Additional seeded accounts cover physician, nursing,
 staff, and facility-admin roles for role-based workflow testing.
 
+Patient portal demo account (linked to a seeded patient via
+`PatientPortalAccount`):
+
+```text
+Username: patient_demo
+Password: Patient123!
+```
+
 ## Verification
 
 Backend:
@@ -201,10 +223,9 @@ cd backend
 Frontend:
 
 ```bash
-cd frontend
-npm run lint
-npx tsc --noEmit
-npm run build
+npm -w @careflow/clinician run lint
+npm -w @careflow/clinician run typecheck
+npm -w @careflow/clinician run build
 ```
 
 For major UI changes, run the app locally and visually inspect the changed flow

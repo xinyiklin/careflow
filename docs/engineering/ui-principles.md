@@ -6,14 +6,14 @@ documents, admin, and modal workflows.
 
 ## Source Of Truth
 
-- Reuse shared primitives from `frontend/src/shared/components/ui/`.
-- Prefer CareFlow tokens and classes from `frontend/src/index.css`.
+- Reuse shared primitives from `apps/clinician/src/shared/components/ui/`.
+- Prefer CareFlow tokens and classes from `apps/clinician/src/index.css`.
 - Keep page container, shell, modal, and header treatments consistent across
   dashboard, schedule, admin, documents, and patient surfaces.
 - Use Google Chrome for visual inspection/QA unless the user explicitly asks for
   another browser surface.
-- Dev-only visual experiments belong in `frontend/dev-previews/` and must be
-  guarded by `import.meta.env.DEV`.
+- Dev-only visual experiments belong in `apps/clinician/dev-previews/` and must
+  be guarded by `import.meta.env.DEV`.
 
 ## Visual Direction
 
