@@ -12,8 +12,6 @@ than a basic CRUD sample. It focuses on facility-scoped workflows, configurable
 clinical scheduling, secure-by-default data handling, and UI patterns that feel
 closer to a real clinic workspace.
 
-![CareFlow schedule view](./docs/screenshots/schedule.png)
-
 ## Live Demo
 
 https://careflow.xinyiklin.com
