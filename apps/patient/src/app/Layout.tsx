@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   AlertTriangle,
   Calendar,
+  FileText,
   Home,
   LogOut,
   Pill,
@@ -17,6 +18,7 @@ type NavItem = { to: string; label: string; Icon: LucideIcon; end?: boolean };
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Home", Icon: Home, end: true },
   { to: "/appointments", label: "Appointments", Icon: Calendar },
+  { to: "/records", label: "Records", Icon: FileText },
   { to: "/medications", label: "Medications", Icon: Pill },
   { to: "/allergies", label: "Allergies", Icon: AlertTriangle },
   { to: "/profile", label: "Profile", Icon: User },
