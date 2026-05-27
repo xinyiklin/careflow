@@ -1,5 +1,8 @@
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -273,3 +276,158 @@ class ProgressNote(models.Model):
 
     def __str__(self):
         return f"Progress note for encounter {self.encounter_id}"
+
+
+class Vitals(models.Model):
+    """A single set of observed vital signs attached to a clinical encounter.
+
+    Cohesive with :class:`Encounter` (1-to-1): each visit records at most one
+    vitals snapshot in this MVP; multi-set workflows (admit/discharge) can be
+    layered later. Locked from edits once the parent encounter is signed,
+    matching the :class:`ProgressNote` sign-off contract.
+    """
+
+    LOCKED_FIELDS = [
+        "height_cm",
+        "weight_kg",
+        "bp_systolic",
+        "bp_diastolic",
+        "heart_rate_bpm",
+        "respiratory_rate",
+        "temperature_c",
+        "spo2_percent",
+        "pain_score",
+        "measured_at",
+        "notes",
+    ]
+
+    encounter = models.OneToOneField(
+        Encounter,
+        on_delete=models.CASCADE,
+        related_name="vitals",
+    )
+    height_cm = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(Decimal("20")),
+            MaxValueValidator(Decimal("260")),
+        ],
+    )
+    weight_kg = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[
+            MinValueValidator(Decimal("0.5")),
+            MaxValueValidator(Decimal("500")),
+        ],
+    )
+    bp_systolic = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(50), MaxValueValidator(260)],
+    )
+    bp_diastolic = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(30), MaxValueValidator(180)],
+    )
+    heart_rate_bpm = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(20), MaxValueValidator(260)],
+    )
+    respiratory_rate = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(4), MaxValueValidator(80)],
+    )
+    temperature_c = models.DecimalField(
+        max_digits=4,
+        decimal_places=1,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("25")), MaxValueValidator(Decimal("45"))],
+    )
+    spo2_percent = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(50), MaxValueValidator(100)],
+    )
+    pain_score = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MaxValueValidator(10)],
+    )
+    measured_at = models.DateTimeField(default=timezone.now)
+    recorded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="recorded_vitals",
+    )
+    recorded_by_name = models.CharField(max_length=150, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-measured_at"]
+        verbose_name_plural = "Vitals"
+
+    @property
+    def bmi(self):
+        """Compute body mass index from stored height/weight, rounded to 1 dp."""
+        if not self.height_cm or not self.weight_kg:
+            return None
+        height_m = Decimal(self.height_cm) / Decimal("100")
+        if height_m <= 0:
+            return None
+        value = Decimal(self.weight_kg) / (height_m * height_m)
+        return value.quantize(Decimal("0.1"))
+
+    def clean(self):
+        if self.pk:
+            original = Vitals.objects.filter(pk=self.pk).first()
+            encounter_signed = (
+                original and original.encounter.status == Encounter.STATUS_SIGNED
+            )
+            if encounter_signed and has_changed(self, original, self.LOCKED_FIELDS):
+                raise ValidationError(
+                    {"encounter": "Vitals are locked after the encounter is signed."}
+                )
+
+        if (
+            self.bp_systolic
+            and self.bp_diastolic
+            and self.bp_diastolic >= self.bp_systolic
+        ):
+            raise ValidationError(
+                {"bp_diastolic": "Diastolic must be less than systolic."}
+            )
+
+        if (
+            self.measured_at
+            and self.encounter_id
+            and self.encounter.started_at
+            and self.measured_at < self.encounter.started_at
+        ):
+            raise ValidationError(
+                {
+                    "measured_at": "Vitals cannot be measured before the encounter starts."
+                }
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.recorded_by and not self.recorded_by_name:
+            self.recorded_by_name = get_user_display_name(self.recorded_by)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Vitals for encounter {self.encounter_id}"

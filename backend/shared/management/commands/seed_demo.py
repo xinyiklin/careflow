@@ -19,7 +19,7 @@ from billing.models import (
     OrganizationFeeSchedule,
     OrganizationFeeScheduleItem,
 )
-from clinical.models import Encounter, ProgressNote
+from clinical.models import Encounter, ProgressNote, Vitals
 from facilities.models import (
     AppointmentStatus,
     AppointmentType,
@@ -987,6 +987,25 @@ class Command(BaseCommand):
                     plan=template["plan"],
                     created_by=admin_user,
                 )
+
+                # Seed deterministic-but-varied vitals (skip every 5th visit so
+                # the portal renders a "no vitals" state for some encounters).
+                if index % 5 != 0:
+                    Vitals.objects.create(
+                        encounter=encounter,
+                        height_cm=Decimal("170") + Decimal((index % 20) - 10),
+                        weight_kg=Decimal("72") + Decimal((index * 3 % 25) - 10),
+                        bp_systolic=110 + (index * 7 % 30),
+                        bp_diastolic=68 + (index * 5 % 20),
+                        heart_rate_bpm=64 + (index * 3 % 26),
+                        respiratory_rate=14 + (index % 6),
+                        temperature_c=Decimal("36.5")
+                        + Decimal(index % 7) / Decimal("10"),
+                        spo2_percent=96 + (index % 4),
+                        pain_score=index % 5,
+                        measured_at=appointment.appointment_time,
+                        recorded_by=admin_user,
+                    )
 
                 if index % 4 == 0:
                     continue

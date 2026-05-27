@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
+import { DEMO_MODE } from "../../../shared/config/appConfig";
 import { useAuth } from "../AuthProvider";
-
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
-const DEMO_USERNAME = "patient_demo";
-const DEMO_PASSWORD = "Patient123!";
 
 function getErrorMessage(err: unknown, fallback: string) {
   if (err instanceof Error && err.message) {
@@ -18,7 +15,7 @@ function getErrorMessage(err: unknown, fallback: string) {
 }
 
 export function LoginPage() {
-  const { login, error: providerError } = useAuth();
+  const { login, demoLogin, error: providerError } = useAuth();
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -55,9 +52,18 @@ export function LoginPage() {
     void submit(formData);
   };
 
-  const handleDemoLogin = () => {
-    setFormData({ username: DEMO_USERNAME, password: DEMO_PASSWORD });
-    void submit({ username: DEMO_USERNAME, password: DEMO_PASSWORD });
+  const handleDemoLogin = async () => {
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await demoLogin();
+    } catch (err) {
+      setFormError(
+        getErrorMessage(err, "Demo login is currently unavailable.")
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -153,8 +159,16 @@ export function LoginPage() {
             >
               Continue with demo patient
             </button>
+
+            <p className="mt-2.5 text-center text-xs text-cf-text-subtle">
+              No credentials needed &mdash; built for portfolio and preview use.
+            </p>
           </>
         )}
+
+        <p className="mt-5 text-center text-xs text-cf-text-subtle">
+          For authorized patient use only.
+        </p>
       </div>
     </div>
   );
