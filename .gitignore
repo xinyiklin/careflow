@@ -32,10 +32,13 @@ docker-compose.*.override.yml
 .env.*
 !.env.example
 
-# Local agent/session guidance
-AGENTS.md
-CLAUDE.md
+# Agent/session guidance
+# AGENTS.md and CLAUDE.md are tracked so any contributor (human or AI)
+# picks up the conventions on a fresh clone. Personal overrides go in
+# *.local.md (gitignored below) so private context never leaks into the repo.
+# CONTINUITY.md is a running session ledger and stays local.
 CONTINUITY.md
+*.local.md
 
 # Node / Frontend
 node_modules/
