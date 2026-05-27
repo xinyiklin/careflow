@@ -1,5 +1,9 @@
 # CareFlow
 
+[![CI](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml/badge.svg)](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-careflow.xinyiklin.com-1F3A60?style=flat&logo=vercel&logoColor=white)](https://careflow.xinyiklin.com)
+[![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](./LICENSE)
+
 CareFlow is a full-stack EHR-style clinic workflow demo for scheduling,
 patient registration, facility administration, and document management.
 
@@ -7,8 +11,6 @@ The project is designed as a portfolio-grade healthcare operations app rather
 than a basic CRUD sample. It focuses on facility-scoped workflows, configurable
 clinical scheduling, secure-by-default data handling, and UI patterns that feel
 closer to a real clinic workspace.
-
-![CareFlow schedule view](./docs/screenshots/schedule.png)
 
 ## Live Demo
 
