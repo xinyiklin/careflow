@@ -229,8 +229,6 @@ Never:
 - use destructive git operations without explicit instruction
 - rebase, amend, force-push, reset, or delete branches unless requested
 - stage unrelated files
-- stage ignored local agent files such as `AGENTS.md` or `CONTINUITY.md` unless
-  the user explicitly asks
 
 Always:
 

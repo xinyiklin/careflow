@@ -121,6 +121,20 @@ forced second look at the change.
 Coding agents still follow `AGENTS.md`: stay local unless the user explicitly
 asks to stage, commit, push, or open a PR.
 
+### Agent push/PR cadence
+
+Coding agents may decide *when* work is push/PR ready — grouping, timing,
+choice of base branch are agent calls. The push or PR action itself is not:
+before running `git push` or `gh pr create`, the agent surfaces the proposed
+move (branch, file list, verification status) and asks the user whether to
+proceed or take a different plan. Treat the pause as a planning fork, not
+just a yes/no — the user may redirect (split the PR, hold for visual review,
+stack differently, swap base, drop a change).
+
+The user may waive confirmation with a phrase in the same prompt — e.g.
+"push it", "no need to confirm", "commit and PR". An opening waiver applies
+only to the immediate batch; subsequent pushes need a fresh waiver.
+
 ### Merge strategy
 
 Default to **squash and merge** so each PR collapses to one commit on `main`.
