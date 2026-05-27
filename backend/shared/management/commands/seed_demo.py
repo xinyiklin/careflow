@@ -54,6 +54,7 @@ from patients.models import (
 from patients.sample_documents import SAMPLE_DOCUMENTS, save_sample_pdf
 from shared.models import Address
 from users.demo_access import ensure_demo_user_full_access
+from users.portal import PatientPortalAccount
 
 User = get_user_model()
 
@@ -1457,7 +1458,51 @@ class Command(BaseCommand):
                 f"  - Seeded {facility.name}: {len(patients)} patients, appointments, clinical records, meds, allergies, and billing workflow data"
             )
 
+        # -----------------------------
+        # Patient portal demo account
+        # -----------------------------
+        portal_patient = (
+            Patient.objects.filter(email__endswith="@demo-patient.local")
+            .order_by("last_name", "first_name", "id")
+            .first()
+        )
+        if portal_patient is not None:
+            portal_user, portal_created = User.objects.get_or_create(
+                username="patient_demo",
+                defaults={
+                    "email": "patient.demo@careflow.xinyiklin.com",
+                    "first_name": portal_patient.first_name,
+                    "last_name": portal_patient.last_name,
+                    "is_active": True,
+                },
+            )
+            portal_user.email = "patient.demo@careflow.xinyiklin.com"
+            portal_user.first_name = portal_patient.first_name
+            portal_user.last_name = portal_patient.last_name
+            portal_user.is_active = True
+            portal_user.set_password("Patient123!")
+            portal_user.save()
+
+            if not PatientPortalAccount.objects.filter(user=portal_user).exists():
+                PatientPortalAccount.objects.create(
+                    user=portal_user,
+                    patient=portal_patient,
+                    is_active=True,
+                )
+
+            self.stdout.write(
+                f"  - {'Created' if portal_created else 'Updated'} portal user: "
+                f"patient_demo → {portal_patient}"
+            )
+        else:
+            self.stdout.write(
+                "  - Skipped portal demo account (no demo patients found)"
+            )
+
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully!"))
         self.stdout.write("Demo user login:")
         self.stdout.write(f"  username: {getattr(settings, 'DEMO_USERNAME', 'demo')}")
         self.stdout.write("  password: Admin123!")
+        self.stdout.write("Patient portal login:")
+        self.stdout.write("  username: patient_demo")
+        self.stdout.write("  password: Patient123!")

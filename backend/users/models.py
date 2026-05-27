@@ -29,3 +29,6 @@ class UserPreference(models.Model):
 
     def __str__(self):
         return f"Preferences for {self.user}"
+
+
+from .portal import PatientPortalAccount  # noqa: E402, F401

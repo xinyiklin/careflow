@@ -196,6 +196,14 @@ The demo user is granted full security permissions across every facility in
 the seeded organization. Additional seeded accounts cover physician, nursing,
 staff, and facility-admin roles for role-based workflow testing.
 
+Patient portal demo account (linked to a seeded patient via
+`PatientPortalAccount`):
+
+```text
+Username: patient_demo
+Password: Patient123!
+```
+
 ## Verification
 
 Backend:
