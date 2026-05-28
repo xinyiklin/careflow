@@ -258,8 +258,11 @@ function AppShellLayout({
         />
 
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-0 pb-4 sm:px-5 sm:pb-5 lg:px-6 lg:pb-6 xl:px-7 xl:pb-7">
-          <div className="cf-route-frame min-h-0 flex-1 overflow-hidden">
-            <Outlet key={location.pathname} />
+          <div
+            key={location.pathname}
+            className="cf-route-frame cf-page-fade-in min-h-0 flex-1 overflow-hidden"
+          >
+            <Outlet />
           </div>
         </main>
       </div>

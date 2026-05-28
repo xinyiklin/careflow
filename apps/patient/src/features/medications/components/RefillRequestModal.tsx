@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
+import { Button, Field, Modal, Select, Textarea } from "../../../shared/ui";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import { useProfile } from "../../profile/api/profile";
 import { usePortalPharmacies, type PortalPharmacy } from "../api/pharmacies";
@@ -30,6 +33,7 @@ export function RefillRequestModal({
   medication,
   onClose,
 }: RefillRequestModalProps) {
+  const { t } = useTranslation();
   const pharmaciesQuery = usePortalPharmacies();
   const profileQuery = useProfile();
   const requestRefill = useRequestRefill();
@@ -58,17 +62,10 @@ export function RefillRequestModal({
     }
   }, [defaultPharmacyId, pharmacyId]);
 
-  // Close on Esc.
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const loading = pharmaciesQuery.isLoading || profileQuery.isLoading;
+  const showLoading = useMinimumLoading(loading);
   const isPending = requestRefill.isPending;
+  const hasPharmacies = pharmacies.length > 0;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -85,153 +82,124 @@ export function RefillRequestModal({
     }
   };
 
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="refill-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6"
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !isPending) {
-          onClose();
+  const titleKey = success
+    ? "medications.refillSuccessTitle"
+    : "medications.refillModalTitle";
+
+  const subtitle = [medication.medication_name, medication.dose ?? ""]
+    .filter(Boolean)
+    .join(" · ");
+
+  if (success) {
+    return (
+      <Modal
+        open
+        onClose={onClose}
+        title={t(titleKey)}
+        description={subtitle}
+        size="sm"
+        footer={
+          <Button variant="primary" size="md" onClick={onClose}>
+            {t("common.done")}
+          </Button>
         }
+      >
+        <div className="flex items-start gap-3 rounded-md bg-success-soft px-3 py-3 text-sm text-success">
+          <CheckCircle2
+            size={18}
+            aria-hidden="true"
+            className="mt-0.5 shrink-0"
+          />
+          <span>{t("medications.refillSuccessBody")}</span>
+        </div>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal
+      open
+      onClose={() => {
+        if (!isPending) onClose();
       }}
-    >
-      <div className="w-full max-w-md rounded-cf-shell border border-cf-border bg-cf-surface shadow-panel-lg">
-        <header className="flex items-start justify-between gap-3 border-b border-cf-border px-5 py-4">
-          <div className="min-w-0">
-            <h2
-              id="refill-modal-title"
-              className="text-base font-semibold text-cf-text"
-            >
-              {success ? "Refill requested" : "Request refill"}
-            </h2>
-            <p className="mt-0.5 truncate text-xs text-cf-text-muted">
-              {medication.medication_name}
-              {medication.dose ? ` · ${medication.dose}` : ""}
-            </p>
-          </div>
-          <button
-            type="button"
+      title={t(titleKey)}
+      description={subtitle}
+      size="md"
+      disableBackdropClose={isPending}
+      footer={
+        <>
+          <Button
+            variant="secondary"
+            size="md"
             onClick={onClose}
             disabled={isPending}
-            className="rounded-cf-control p-1 text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text disabled:opacity-50"
-            aria-label="Close"
           >
-            <X size={16} />
-          </button>
-        </header>
-
-        {success ? (
-          <div className="space-y-3 px-5 py-5">
-            <div className="flex items-start gap-2 rounded-cf-control bg-cf-success-bg px-3 py-2 text-sm text-cf-success-text">
-              <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
-              <span>
-                Your refill request was sent. Your care team will review it and
-                follow up.
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-full rounded-cf-control bg-cf-accent px-3 py-2 text-sm font-semibold text-cf-surface transition hover:bg-cf-accent-hover"
+            {t("common.cancel")}
+          </Button>
+          <Button
+            variant="primary"
+            size="md"
+            type="submit"
+            form="refill-form"
+            isLoading={isPending}
+            disabled={loading || !hasPharmacies}
+          >
+            {t("medications.submitRefill")}
+          </Button>
+        </>
+      }
+    >
+      <form id="refill-form" onSubmit={handleSubmit} className="space-y-4">
+        <Field label={t("medications.refillPharmacyLabel")}>
+          {showLoading ? (
+            <p className="text-sm text-text-muted">
+              {t("profile.preferredPharmacyLoading")}
+            </p>
+          ) : loading ? null : !hasPharmacies ? (
+            <p className="text-sm text-text-muted">
+              {t("medications.refillNoPharmacies")}
+            </p>
+          ) : (
+            <Select
+              value={pharmacyId ?? ""}
+              onChange={(event) =>
+                setPharmacyId(
+                  event.target.value === "" ? null : Number(event.target.value)
+                )
+              }
             >
-              Done
-            </button>
+              {pharmacies.map((pharmacy) => (
+                <option key={pharmacy.id} value={pharmacy.id}>
+                  {pharmacy.name}
+                  {pharmacy.city ? ` · ${pharmacy.city}` : ""}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+
+        <Field
+          label={t("medications.noteLabel")}
+          helperText={`${note.length} / ${NOTE_MAX}`}
+        >
+          <Textarea
+            value={note}
+            onChange={(event) => setNote(event.target.value.slice(0, NOTE_MAX))}
+            rows={3}
+            maxLength={NOTE_MAX}
+            placeholder={t("medications.notePlaceholder")}
+          />
+        </Field>
+
+        {submitError ? (
+          <div
+            role="alert"
+            className="rounded-md border border-danger/30 bg-danger-soft px-3 py-2 text-sm text-danger"
+          >
+            {submitError}
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-            <div>
-              <label
-                htmlFor="refill-pharmacy"
-                className="mb-1 block text-xs font-semibold text-cf-text-muted"
-              >
-                Send to pharmacy
-              </label>
-              {loading ? (
-                <p className="text-sm text-cf-text-muted">
-                  Loading pharmacies…
-                </p>
-              ) : pharmacies.length === 0 ? (
-                <p className="text-sm text-cf-text-muted">
-                  No pharmacies available at your facility. Please contact your
-                  care team.
-                </p>
-              ) : (
-                <select
-                  id="refill-pharmacy"
-                  value={pharmacyId ?? ""}
-                  onChange={(event) =>
-                    setPharmacyId(
-                      event.target.value === ""
-                        ? null
-                        : Number(event.target.value)
-                    )
-                  }
-                  className="w-full rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
-                >
-                  {pharmacies.map((pharmacy) => (
-                    <option key={pharmacy.id} value={pharmacy.id}>
-                      {pharmacy.name}
-                      {pharmacy.city ? ` — ${pharmacy.city}` : ""}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="refill-note"
-                className="mb-1 block text-xs font-semibold text-cf-text-muted"
-              >
-                Note for your care team (optional)
-              </label>
-              <textarea
-                id="refill-note"
-                value={note}
-                onChange={(event) =>
-                  setNote(event.target.value.slice(0, NOTE_MAX))
-                }
-                rows={3}
-                maxLength={NOTE_MAX}
-                placeholder="Anything we should know before sending the refill?"
-                className="w-full rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
-              />
-              <p className="mt-1 text-right text-[10px] text-cf-text-subtle">
-                {note.length}/{NOTE_MAX}
-              </p>
-            </div>
-
-            {submitError ? (
-              <div
-                role="alert"
-                className="rounded-cf-control border border-cf-danger-text/30 bg-cf-danger-bg px-3 py-2 text-sm text-cf-danger-text"
-              >
-                {submitError}
-              </div>
-            ) : null}
-
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isPending}
-                className="inline-flex items-center rounded-cf-control border border-cf-border bg-cf-surface px-3 py-1.5 text-xs font-semibold text-cf-text transition hover:bg-cf-surface-soft disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isPending || loading || pharmacies.length === 0}
-                className="inline-flex items-center rounded-cf-control bg-cf-accent px-3 py-1.5 text-xs font-semibold text-cf-surface transition hover:bg-cf-accent-hover disabled:opacity-60"
-              >
-                {isPending ? "Sending…" : "Send request"}
-              </button>
-            </div>
-          </form>
-        )}
-      </div>
-    </div>
+        ) : null}
+      </form>
+    </Modal>
   );
 }

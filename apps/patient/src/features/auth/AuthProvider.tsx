@@ -83,8 +83,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       const errStatus = getErrorStatus(err);
       if (errStatus === 403) {
-        // Authenticated user without portal access (e.g. clinician account).
-        setError(NO_PORTAL_ACCESS_MESSAGE);
+        // Authenticated user without portal access (e.g. clinician
+        // cookie left over on the same browser). Stay silent on the
+        // login screen — the user hasn't tried to sign in yet, so we
+        // shouldn't surface "Sign in failed" out of nowhere. Just
+        // clear the stale session and fall through to anonymous.
         logoutUser();
         setPatient(null);
         setStatus("anonymous");

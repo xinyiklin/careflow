@@ -14,8 +14,13 @@ export function App() {
   // flashing on quick auth restores.
   const showLoading = useMinimumLoading(status === "loading");
 
-  if (showLoading) {
-    return <LoadingScreen />;
+  // While auth is still resolving, render nothing for the first 150ms
+  // (delay window inside ``useMinimumLoading``), then the LoadingScreen
+  // once that delay elapses. Critically: do NOT fall through to the
+  // /login routes during this window — that's what caused the brief
+  // login flash on reload for already-signed-in users.
+  if (status === "loading") {
+    return showLoading ? <LoadingScreen /> : null;
   }
 
   if (status === "anonymous" || !patient) {

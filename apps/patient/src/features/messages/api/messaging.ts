@@ -59,6 +59,7 @@ export function useMessageThreads() {
 }
 
 export function useMessageThread(threadId: number | null | undefined) {
+  const queryClient = useQueryClient();
   return useQuery<PortalMessageThreadDetail | null>({
     queryKey: threadId
       ? threadQueryKey(threadId)
@@ -66,11 +67,24 @@ export function useMessageThread(threadId: number | null | undefined) {
     enabled: threadId !== null && threadId !== undefined,
     queryFn: async () => {
       if (threadId === null || threadId === undefined) return null;
-      return (
-        (await apiRequest<PortalMessageThreadDetail>(
-          `/portal/messaging/threads/${threadId}/`
-        )) ?? null
+      const result = await apiRequest<PortalMessageThreadDetail>(
+        `/portal/messaging/threads/${threadId}/`
       );
+      // The detail GET marks the thread read on the server. Patch the
+      // list cache so the unread dot, nav badge, and dashboard count
+      // update immediately instead of waiting for a manual refresh.
+      if (result && result.unread_for_patient === false) {
+        queryClient.setQueryData<PortalMessageThreadSummary[] | undefined>(
+          THREADS_QUERY_KEY,
+          (prev) =>
+            prev?.map((thread) =>
+              thread.id === result.id
+                ? { ...thread, unread_for_patient: false }
+                : thread
+            )
+        );
+      }
+      return result ?? null;
     },
   });
 }

@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Send } from "lucide-react";
+import { ArrowLeft, Loader2, MessageSquare, Send } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
-import { Badge } from "../../../shared/components/ui/Badge";
-import { EmptyState } from "../../../shared/components/ui/EmptyState";
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Textarea,
+  cn,
+} from "../../../shared/ui";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
   useMessageThread,
@@ -18,7 +26,13 @@ type ConversationProps = {
   onBack?: () => void;
 };
 
-function MessagesList({ messages }: { messages: PortalMessage[] }) {
+function MessagesList({
+  messages,
+  emptyLabel,
+}: {
+  messages: PortalMessage[];
+  emptyLabel: string;
+}) {
   const endRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll to newest message whenever the list updates.
@@ -28,8 +42,8 @@ function MessagesList({ messages }: { messages: PortalMessage[] }) {
 
   if (messages.length === 0) {
     return (
-      <div className="px-4 py-8 text-center text-sm text-cf-text-muted">
-        No messages yet.
+      <div className="px-4 py-8 text-center text-sm text-text-muted">
+        {emptyLabel}
       </div>
     );
   }
@@ -51,6 +65,7 @@ function ReplyComposer({
   threadId: number;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   const reply = useReplyToThread(threadId);
   const [body, setBody] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -72,8 +87,8 @@ function ReplyComposer({
 
   if (disabled) {
     return (
-      <div className="border-t border-cf-border bg-cf-surface-soft px-4 py-3 text-xs text-cf-text-muted">
-        This conversation is closed. Start a new one to keep talking.
+      <div className="border-t border-border bg-surface-soft px-4 py-3 text-xs text-text-muted">
+        {t("messages.threadClosed")}
       </div>
     );
   }
@@ -81,97 +96,128 @@ function ReplyComposer({
   return (
     <form
       onSubmit={handleSubmit}
-      className="border-t border-cf-border bg-cf-surface px-4 py-3"
+      className="border-t border-border bg-surface px-4 py-3"
     >
-      <label htmlFor="reply-body" className="sr-only">
-        Reply
+      <label htmlFor={`reply-body-${threadId}`} className="sr-only">
+        {t("messages.replyLabel")}
       </label>
-      <textarea
-        id="reply-body"
+      <Textarea
+        id={`reply-body-${threadId}`}
         value={body}
         onChange={(event) => setBody(event.target.value.slice(0, REPLY_MAX))}
         rows={3}
         maxLength={REPLY_MAX}
-        placeholder="Write a reply…"
-        className="w-full resize-none rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
+        placeholder={t("messages.replyPlaceholder")}
       />
       {submitError ? (
-        <p role="alert" className="mt-1 text-[11px] text-cf-danger-text">
+        <p role="alert" className="mt-1 text-xs text-danger">
           {submitError}
         </p>
       ) : null}
       <div className="mt-2 flex items-center justify-between gap-2">
-        <p className="text-[10px] text-cf-text-subtle">
+        <p className="text-[11px] text-text-subtle">
           {body.length}/{REPLY_MAX}
         </p>
-        <button
+        <Button
           type="submit"
+          variant="primary"
+          size="sm"
           disabled={!canSend}
-          className="inline-flex items-center gap-1.5 rounded-cf-control bg-cf-accent px-3 py-1.5 text-xs font-semibold text-cf-surface transition hover:bg-cf-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+          isLoading={reply.isPending}
+          leadingIcon={<Send size={13} aria-hidden="true" />}
         >
-          <Send size={12} aria-hidden="true" />
-          {reply.isPending ? "Sending…" : "Send"}
-        </button>
+          {t("messages.send")}
+        </Button>
       </div>
     </form>
   );
 }
 
 export function Conversation({ threadId, onBack }: ConversationProps) {
+  const { t } = useTranslation();
   const { data, isLoading, isError, error } = useMessageThread(threadId);
+  const showLoading = useMinimumLoading(isLoading);
 
   if (threadId === null) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <EmptyState message="Select a conversation to read messages." />
-      </div>
+      <Card padded={false} className="flex h-full items-center justify-center">
+        <div className="p-6">
+          <EmptyState
+            icon={MessageSquare}
+            title={t("messages.selectThreadTitle")}
+            description={t("messages.selectThreadBody")}
+          />
+        </div>
+      </Card>
+    );
+  }
+
+  if (showLoading) {
+    return (
+      <Card
+        padded={false}
+        className="flex h-full items-center justify-center text-text-muted"
+      >
+        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+      </Card>
     );
   }
 
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-cf-text-muted">
-        Loading…
-      </div>
-    );
+    return <Card padded={false} className="h-full" />;
   }
 
   if (isError || !data) {
     return (
-      <div className="flex h-full items-center justify-center px-4 text-sm text-cf-text-muted">
-        {isError ? getErrorMessage(error) : "Conversation not found."}
-      </div>
+      <Card
+        padded={false}
+        className="flex h-full items-center justify-center px-4 text-sm text-text-muted"
+      >
+        {isError ? getErrorMessage(error) : t("messages.threadNotFound")}
+      </Card>
     );
   }
 
   const isClosed = data.status === "closed";
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-start gap-2 border-b border-cf-border bg-cf-surface px-4 py-3">
+    <Card padded={false} className="flex h-full flex-col overflow-hidden">
+      <header className="flex items-center gap-2 border-b border-border bg-surface px-4 py-3">
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
-            aria-label="Back to thread list"
-            className="rounded-cf-control p-1 text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text lg:hidden"
+            aria-label={t("messages.backToList")}
+            className={cn(
+              "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
+              "text-text-muted hover:bg-surface-soft hover:text-text",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
+              "md:hidden"
+            )}
           >
             <ArrowLeft size={16} />
           </button>
         ) : null}
         <div className="min-w-0 flex-1">
-          <h2 className="truncate text-sm font-semibold text-cf-text">
-            {data.subject || "(no subject)"}
+          <h2 className="truncate text-sm font-semibold tracking-tight text-text">
+            {data.subject?.trim() || t("messages.noSubject")}
           </h2>
         </div>
-        {isClosed ? <Badge tone="neutral">{data.status_label}</Badge> : null}
+        {isClosed ? (
+          <Badge tone="neutral">{data.status_label}</Badge>
+        ) : (
+          <Badge tone="accent">{data.status_label}</Badge>
+        )}
       </header>
 
-      <div className="flex-1 overflow-y-auto bg-cf-page-bg">
-        <MessagesList messages={data.messages} />
+      <div className="flex-1 overflow-y-auto bg-bg">
+        <MessagesList
+          messages={data.messages}
+          emptyLabel={t("messages.noMessagesYet")}
+        />
       </div>
 
       <ReplyComposer threadId={data.id} disabled={isClosed} />
-    </div>
+    </Card>
   );
 }

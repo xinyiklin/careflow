@@ -191,6 +191,32 @@ cd backend
 ./venv/bin/python manage.py test
 ```
 
+### Self-review
+
+After the verification gate passes, run `/review` on the local diff to catch
+issues lint and type checks can't surface: silent failures, test gaps, type
+design problems, dead code, and stylistic drift. The skill defaults to a full
+sweep across all applicable aspects; narrow it when you want a focused pass:
+
+```bash
+/review                    # full sweep (default)
+/review code errors        # general code review + error handling
+/review tests              # test coverage and quality
+```
+
+Findings are returned in chat, grouped by severity. Address critical and
+important findings before opening the PR; suggestions are optional.
+
+The `simplify` aspect is intentionally omitted from the default flow. It
+applies built-in style defaults (e.g. `function` over arrow, no nested
+ternaries, explicit return types) that CareFlow hasn't codified, so it can
+suggest churn against the existing house style. Invoke it manually when you
+specifically want a polish pass.
+
+For an automated second look once the PR is open, `/code-review` reviews the
+PR's diff against project conventions and bug heuristics, with stricter
+false-positive filtering than `/review`.
+
 ### Safety rules
 
 - Never force-push to `main`. Force-push with `--force-with-lease` is fine on

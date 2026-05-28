@@ -1,4 +1,5 @@
 import PatientSearchField from "../../patients/components/PatientSearchField";
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 import { formatDOB } from "../../../shared/utils/dateTime";
 import { PatientMetaItem, SummaryItem } from "./AppointmentModalFields";
 import type { ComponentType } from "react";
@@ -62,7 +63,10 @@ export default function AppointmentPatientLens({
   insurancePoliciesQuery,
   primaryInsurancePolicy,
 }: AppointmentPatientLensProps) {
-  const isPatientLoading = patientDetailsQuery.isLoading;
+  const isPatientLoading = useMinimumLoading(patientDetailsQuery.isLoading);
+  const isInsuranceLoading = useMinimumLoading(
+    insurancePoliciesQuery.isLoading
+  );
   const dobValue = patientSnapshot.date_of_birth
     ? formatDOB(patientSnapshot.date_of_birth)
     : "";
@@ -157,9 +161,7 @@ export default function AppointmentPatientLens({
             <SummaryItem
               label="Carrier"
               value={
-                insurancePoliciesQuery.isLoading
-                  ? "—"
-                  : primaryInsurancePolicy?.carrier_name
+                isInsuranceLoading ? "—" : primaryInsurancePolicy?.carrier_name
               }
             />
             <SummaryItem
@@ -184,16 +186,12 @@ export default function AppointmentPatientLens({
           <div className="mt-2 space-y-2">
             <SummaryItem
               label="PCP"
-              value={
-                patientDetailsQuery.isLoading ? "—" : patientSnapshot.pcp_name
-              }
+              value={isPatientLoading ? "—" : patientSnapshot.pcp_name}
             />
             <SummaryItem
               label="Referring"
               value={
-                patientDetailsQuery.isLoading
-                  ? "—"
-                  : patientSnapshot.referring_provider_name
+                isPatientLoading ? "—" : patientSnapshot.referring_provider_name
               }
             />
           </div>

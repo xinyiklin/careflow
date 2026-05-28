@@ -24,8 +24,10 @@ from messaging.portal_views import (
 
 from .portal_views import (
     PortalDemoLoginView,
+    PortalLogoutView,
     PortalMeView,
     PortalPreferredPharmacyView,
+    PortalTokenRefreshView,
 )
 
 urlpatterns = [
@@ -36,6 +38,12 @@ urlpatterns = [
         name="portal_me_preferred_pharmacy",
     ),
     path("demo-login/", PortalDemoLoginView.as_view(), name="portal_demo_login"),
+    path(
+        "auth/refresh/",
+        PortalTokenRefreshView.as_view(),
+        name="portal_token_refresh",
+    ),
+    path("auth/logout/", PortalLogoutView.as_view(), name="portal_logout"),
     path(
         "appointments/",
         PortalAppointmentListView.as_view(),

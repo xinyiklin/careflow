@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
-import { PageHeader } from "../../../shared/components/ui/PageHeader";
+import { PageHeader } from "../../../shared/ui";
 import { ComposerForm } from "../components/ComposerForm";
 import { Conversation } from "../components/Conversation";
 import { ThreadList } from "../components/ThreadList";
@@ -16,6 +17,7 @@ function parseThreadId(raw: string | null): number | null {
 }
 
 export function MessagesPage() {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isComposerOpen, setComposerOpen] = useState(false);
 
@@ -53,30 +55,19 @@ export function MessagesPage() {
   );
 
   return (
-    <div className="px-4 py-6 sm:px-6 sm:py-8">
-      <PageHeader title="Messages" />
+    <div>
+      <PageHeader title={t("messages.pageTitle")} />
 
-      <div className="overflow-hidden rounded-cf-shell border border-cf-border bg-cf-surface shadow-panel">
-        {/* Desktop: two-pane. Mobile: one-pane swap based on selection. */}
-        <div className="grid h-[calc(100vh-14rem)] min-h-[420px] grid-cols-1 lg:grid-cols-[320px_1fr]">
-          <aside
-            className={`border-cf-border lg:border-r ${
-              activeThreadId !== null ? "hidden lg:block" : "block"
-            }`}
-          >
-            <ThreadList
-              activeThreadId={activeThreadId}
-              onSelectThread={handleSelectThread}
-              onStartNew={() => setComposerOpen(true)}
-            />
-          </aside>
-          <section
-            className={`${
-              activeThreadId !== null ? "block" : "hidden lg:block"
-            }`}
-          >
-            <Conversation threadId={activeThreadId} onBack={handleBackToList} />
-          </section>
+      <div className="grid h-[calc(100vh-12rem)] min-h-[480px] grid-cols-1 gap-4 md:grid-cols-[320px_1fr] md:gap-6">
+        <div className={activeThreadId !== null ? "hidden md:block" : "block"}>
+          <ThreadList
+            activeThreadId={activeThreadId}
+            onSelectThread={handleSelectThread}
+            onStartNew={() => setComposerOpen(true)}
+          />
+        </div>
+        <div className={activeThreadId !== null ? "block" : "hidden md:block"}>
+          <Conversation threadId={activeThreadId} onBack={handleBackToList} />
         </div>
       </div>
 

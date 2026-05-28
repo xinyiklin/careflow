@@ -15,6 +15,7 @@ const PRODUCTION_API_HOST = "api.careflow.xinyiklin.com";
 const PRODUCTION_API_BASE = `https://${PRODUCTION_API_HOST}`;
 export const API_PREFIX = "/v1";
 
+// Access token lives in memory only; refresh is an HttpOnly cookie set by the backend. Nothing token-y is persisted in localStorage.
 let inMemoryAccessToken: string | null = null;
 let inMemoryCsrfToken: string | null = null;
 let csrfTokenRequest: Promise<string> | null = null;
@@ -63,21 +64,14 @@ function getStoredAccessToken(): string | null {
   return inMemoryAccessToken;
 }
 
-function clearLegacyStoredTokens() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-}
-
 function setStoredTokens({ access }: AuthTokens) {
   if (access) {
     inMemoryAccessToken = access;
   }
-  clearLegacyStoredTokens();
 }
 
 function clearStoredTokens() {
   inMemoryAccessToken = null;
-  clearLegacyStoredTokens();
 }
 
 export function setAuthTokens({
