@@ -16,6 +16,11 @@ from medications.portal_views import (
     RefillRequestCancelView,
     RefillRequestListCreateView,
 )
+from messaging.portal_views import (
+    MessageThreadDetailView,
+    MessageThreadListCreateView,
+    MessageThreadReplyView,
+)
 
 from .portal_views import (
     PortalDemoLoginView,
@@ -86,5 +91,20 @@ urlpatterns = [
         "medical-summary/",
         PortalMedicalSummaryView.as_view(),
         name="portal_medical_summary",
+    ),
+    path(
+        "messaging/threads/",
+        MessageThreadListCreateView.as_view(),
+        name="portal_messaging_threads",
+    ),
+    path(
+        "messaging/threads/<int:pk>/",
+        MessageThreadDetailView.as_view(),
+        name="portal_messaging_thread_detail",
+    ),
+    path(
+        "messaging/threads/<int:pk>/reply/",
+        MessageThreadReplyView.as_view(),
+        name="portal_messaging_thread_reply",
     ),
 ]
