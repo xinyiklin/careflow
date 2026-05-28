@@ -36,7 +36,8 @@ from insurance.models import (
     OrganizationInsuranceCarrierPreference,
     PatientInsurancePolicy,
 )
-from medications.models import Medication
+from medications.models import Medication, RefillRequest
+from messaging.models import Message, MessageThread
 from organizations.models import (
     Organization,
     OrganizationMembership,
@@ -52,6 +53,7 @@ from patients.models import (
     Pharmacy,
     ensure_default_document_categories,
 )
+from patients.pharmacy_access import get_effective_pharmacy_ids
 from patients.sample_documents import SAMPLE_DOCUMENTS, save_sample_pdf
 from shared.models import Address
 from users.demo_access import ensure_demo_user_full_access
@@ -1345,6 +1347,12 @@ class Command(BaseCommand):
             Encounter.objects.filter(
                 facility=facility, patient__in=demo_patient_qs
             ).delete()
+            # ``Medication`` is the protected target of ``RefillRequest``;
+            # clear seeded refills first so the medication reset below can
+            # cascade cleanly on every re-run.
+            RefillRequest.objects.filter(
+                facility=facility, patient__in=demo_patient_qs
+            ).delete()
             Medication.objects.filter(
                 facility=facility, patient__in=demo_patient_qs
             ).delete()
@@ -1615,6 +1623,87 @@ class Command(BaseCommand):
                             slots_created += 1
             self.stdout.write(
                 f"  - Created {slots_created} bookable slots for online scheduling"
+            )
+
+        # -----------------------------
+        # Refill request + message thread for the portal demo patient
+        # -----------------------------
+        # Seed one pending refill and one open patient-initiated message
+        # thread so the clinician inbox + refill queue show non-empty state
+        # for the demo. Both helpers are idempotent on re-run.
+        def seed_refill_requests(patient):
+            if RefillRequest.objects.filter(
+                patient=patient,
+                status=RefillRequest.STATUS_PENDING,
+            ).exists():
+                return False
+
+            active_medication = (
+                Medication.objects.filter(
+                    patient=patient,
+                    status=Medication.STATUS_ACTIVE,
+                )
+                .order_by("id")
+                .first()
+            )
+            if not active_medication:
+                return False
+
+            pharmacy = patient.preferred_pharmacy
+            if not pharmacy:
+                allowed_ids = get_effective_pharmacy_ids(patient.facility)
+                pharmacy = (
+                    Pharmacy.objects.filter(id__in=allowed_ids, is_active=True)
+                    .order_by("id")
+                    .first()
+                )
+
+            RefillRequest.objects.create(
+                medication=active_medication,
+                patient=patient,
+                facility=patient.facility,
+                pharmacy=pharmacy,
+                pharmacy_name=(pharmacy.name if pharmacy else ""),
+                status=RefillRequest.STATUS_PENDING,
+                patient_note=(
+                    "I'm running low on this medication and would like a refill "
+                    "before my next visit."
+                ),
+            )
+            return True
+
+        def seed_message_threads(patient):
+            subject = "Question about my medication"
+            if MessageThread.objects.filter(
+                patient=patient,
+                subject=subject,
+            ).exists():
+                return False
+
+            thread = MessageThread.objects.create(
+                facility=patient.facility,
+                patient=patient,
+                subject=subject,
+                status=MessageThread.STATUS_OPEN,
+            )
+            Message.objects.create(
+                thread=thread,
+                sender_kind=Message.SENDER_PATIENT,
+                sender_display_name=f"{patient.first_name} {patient.last_name}",
+                body=(
+                    "Hi — I've been having mild dizziness in the mornings since "
+                    "starting my new medication. Should I be concerned, or is "
+                    "this expected for the first couple of weeks?"
+                ),
+            )
+            return True
+
+        if portal_patient is not None:
+            refill_created = seed_refill_requests(portal_patient)
+            thread_created = seed_message_threads(portal_patient)
+            self.stdout.write(
+                f"  - Portal demo refill {'created' if refill_created else 'skipped'}; "
+                f"message thread {'created' if thread_created else 'skipped'}"
             )
 
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully!"))
