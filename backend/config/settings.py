@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "clinical",
     "allergies",
     "medications",
+    "messaging",
     "billing",
     "users",
     "organizations",
