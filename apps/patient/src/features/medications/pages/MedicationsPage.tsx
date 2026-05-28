@@ -1,10 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { PageHeader } from "../../../shared/components/ui/PageHeader";
 import { EmptyState } from "../../../shared/components/ui/EmptyState";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import { useMedications, type PortalMedication } from "../api/medications";
+import { useRefillRequests } from "../api/refills";
 import { MedicationRow } from "../components/MedicationRow";
+import { RefillRequestList } from "../components/RefillRequestList";
+import { RefillRequestModal } from "../components/RefillRequestModal";
 
 type Groups = {
   active: PortalMedication[];
@@ -26,8 +29,24 @@ function splitByStatus(meds: PortalMedication[]): Groups {
 
 export function MedicationsPage() {
   const { data, isError, error } = useMedications();
+  const refillsQuery = useRefillRequests();
+
   const { active, inactive } = useMemo(() => splitByStatus(data ?? []), [data]);
   const medications = data ?? [];
+
+  const pendingMedicationIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const refill of refillsQuery.data ?? []) {
+      if (refill.status === "pending") {
+        ids.add(refill.medication_id);
+      }
+    }
+    return ids;
+  }, [refillsQuery.data]);
+
+  const [refillTarget, setRefillTarget] = useState<PortalMedication | null>(
+    null
+  );
 
   return (
     <div className="px-4 py-6 sm:px-6 sm:py-8">
@@ -52,7 +71,12 @@ export function MedicationsPage() {
             ) : (
               <ul className="mt-1">
                 {active.map((medication) => (
-                  <MedicationRow key={medication.id} medication={medication} />
+                  <MedicationRow
+                    key={medication.id}
+                    medication={medication}
+                    hasPendingRefill={pendingMedicationIds.has(medication.id)}
+                    onRequestRefill={(med) => setRefillTarget(med)}
+                  />
                 ))}
               </ul>
             )}
@@ -70,8 +94,17 @@ export function MedicationsPage() {
               </ul>
             </section>
           ) : null}
+
+          <RefillRequestList />
         </div>
       )}
+
+      {refillTarget ? (
+        <RefillRequestModal
+          medication={refillTarget}
+          onClose={() => setRefillTarget(null)}
+        />
+      ) : null}
     </div>
   );
 }
