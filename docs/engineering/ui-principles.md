@@ -128,6 +128,79 @@ use a shared selector component so behavior and layout are consistent:
 Do not hand-roll new inline segmented toggles or tab-strip selectors. Use the
 shared components and extend them if a new variant is genuinely needed.
 
+## Loading States & Layout Stability
+
+Three patterns work together to keep CareFlow surfaces from feeling jumpy
+when data fetches resolve. Apply all three together; in isolation each
+fixes only part of the problem.
+
+### 1. Suppress sub-150 ms loading UI
+
+Anywhere a component renders a visible loading state (skeleton, spinner,
+"Loading…" text), wrap the raw `isLoading` flag with
+`useMinimumLoading` before driving the conditional render. Available in
+both apps:
+
+- `apps/clinician/src/shared/hooks/useMinimumLoading.ts`
+- `apps/patient/src/shared/hooks/useMinimumLoading.ts`
+
+Default behavior:
+
+- If `isLoading` clears within 150 ms, the loading UI never renders.
+- Once shown, the loading UI stays for at least 300 ms before swapping
+  to content.
+
+```tsx
+const showLoading = useMinimumLoading(query.isLoading);
+return showLoading ? <Skeleton ... /> : <Populated ... />;
+```
+
+Wrap at the page or component-shell level; the inner card just
+receives a smoothed `loading` prop. Do not wrap:
+
+- Button-disabled states for save / submit mutations (intentional
+  feedback while the user is staring at the button).
+- React Query's `isFetching` for background revalidations when cached
+  data is already displayed.
+
+### 2. Reserve stable dimensions for variable states
+
+A card that shows different shapes for empty vs populated vs loading
+states must occupy the **same outer dimensions** in all three. The
+inner content can vary; the container does not shrink or grow.
+
+- Pick a `min-h-*` value that fits the populated state's natural
+  height, apply it to the outermost wrapper (e.g. the `Card`).
+- While loading, render a `Skeleton` that fills the same space.
+  Patient portal primitive: `apps/patient/src/shared/ui/Skeleton.tsx`
+  (accepts a `lines={n}` prop for stacked text-line placeholders).
+- Empty-state composition must fit within the same `min-h-*` without
+  fighting it. Center vertically rather than letting the container
+  shrink.
+- Never use conditional dimensions per state (`h-32` for empty,
+  `h-auto` for populated). That is the layout shift this pattern
+  exists to prevent.
+
+### 3. Lock modal dimensions
+
+Modals must not resize after they open. A modal that grows when an
+async fetch resolves reads as a glitch because the user is already
+focused on the panel.
+
+Apply on the consumer (not on the shared Modal primitive):
+
+- Set a fixed (or `min` + `max`) height on the modal panel via
+  `panelClassName="h-[min(85dvh,640px)]"` or similar. Choose values
+  that fit the largest expected populated state.
+- Internal flex column: header + footer stay `shrink-0`; the body
+  gets `flex-1 min-h-0 overflow-y-auto` so it scrolls inside the
+  panel instead of growing the panel.
+- If a sub-section inside the modal has variable height (an activity
+  log, an audit trail), clamp it independently with `max-h-*` +
+  `overflow-y-auto` so it scrolls within the body.
+
+Reference fix: `apps/clinician/src/features/appointments/components/AppointmentHistoryModal.tsx`.
+
 ## Interaction
 
 - Keep keyboard access for changed controls.
