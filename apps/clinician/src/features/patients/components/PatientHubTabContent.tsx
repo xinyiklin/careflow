@@ -10,6 +10,7 @@ import PatientRefillRequestsTab from "./medications/PatientRefillRequestsTab";
 import PatientTimelineTab from "./timeline/PatientTimelineTab";
 import HubRegistrationInline from "./hub/HubRegistrationInline";
 import { Button, Panel } from "../../../shared/components/ui";
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { EntityId } from "../../../shared/api/types";
@@ -100,8 +101,9 @@ function UnavailablePanel({ label }: { label: string }) {
 
 export default function PatientHubTabContent(props: PatientHubTabContentProps) {
   const { activeTab, patient, patientQuery } = props;
+  const showPatientLoading = useMinimumLoading(patientQuery.isLoading);
 
-  if (patientQuery.isLoading) {
+  if (showPatientLoading) {
     return (
       <Panel icon={CircleUserRound} title="" className="h-full min-h-[360px]" />
     );

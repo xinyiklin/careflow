@@ -8,6 +8,7 @@ import {
   SegmentedControl,
   TimelineFeed,
 } from "../../../../shared/components/ui";
+import useMinimumLoading from "../../../../shared/hooks/useMinimumLoading";
 import usePatientAllergies from "../../hooks/usePatientAllergies";
 import usePatientMedications from "../../hooks/usePatientMedications";
 import {
@@ -115,9 +116,10 @@ export default function PatientTimelineTab({
     return events.filter((event) => event.category === filter);
   }, [events, filter]);
 
-  const isLoading =
+  const rawIsLoading =
     (canViewMedications && medicationsHook.medicationsQuery.isLoading) ||
     (canViewAllergies && allergiesHook.allergiesQuery.isLoading);
+  const isLoading = useMinimumLoading(rawIsLoading);
 
   const loadError =
     (canViewMedications && medicationsHook.medicationsQuery.error) ||
@@ -138,7 +140,9 @@ export default function PatientTimelineTab({
         <Badge variant="outline">
           {isLoading
             ? "Loading..."
-            : `${filteredEvents.length} event${filteredEvents.length === 1 ? "" : "s"}`}
+            : rawIsLoading
+              ? ""
+              : `${filteredEvents.length} event${filteredEvents.length === 1 ? "" : "s"}`}
         </Badge>
       </div>
 
@@ -171,7 +175,7 @@ export default function PatientTimelineTab({
         <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-4">
           <TimelineFeed events={filteredEvents} timeZone={timeZone} />
         </div>
-      ) : isLoading ? null : (
+      ) : isLoading || rawIsLoading ? null : (
         <EmptyState
           title={
             filter === "all"

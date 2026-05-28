@@ -49,6 +49,7 @@ from patients.models import (
     Patient,
     PatientDocument,
     PatientEmergencyContact,
+    PatientPharmacy,
     PatientPhone,
     Pharmacy,
     ensure_default_document_categories,
@@ -1489,25 +1490,40 @@ class Command(BaseCommand):
         # -----------------------------
         # Patient portal demo account
         # -----------------------------
-        # Pick the seed patient with the richest clinical data so the portal
-        # demo lands on populated lists rather than empty states.
-        portal_patient = (
-            Patient.objects.filter(email__endswith="@demo-patient.local")
-            .annotate(
-                appt_count=Count("appointments", distinct=True),
-                med_count=Count("medications", distinct=True),
-                allergy_count=Count("allergies", distinct=True),
-            )
-            .order_by(
-                "-appt_count",
-                "-med_count",
-                "-allergy_count",
-                "last_name",
-                "first_name",
-                "id",
-            )
+        # Prefer an already-bound portal account so a re-run keeps the same
+        # demo patient (and the same showcase data sitting on them). Fall
+        # back to the seed patient with the richest clinical data on first
+        # run so the portal demo lands on populated lists.
+        existing_portal_account = (
+            PatientPortalAccount.objects.filter(user__username="patient_demo")
+            .select_related("patient")
             .first()
         )
+        if existing_portal_account and existing_portal_account.patient_id:
+            portal_patient = Patient.objects.filter(
+                pk=existing_portal_account.patient_id
+            ).first()
+        else:
+            portal_patient = None
+
+        if portal_patient is None:
+            portal_patient = (
+                Patient.objects.filter(email__endswith="@demo-patient.local")
+                .annotate(
+                    appt_count=Count("appointments", distinct=True),
+                    med_count=Count("medications", distinct=True),
+                    allergy_count=Count("allergies", distinct=True),
+                )
+                .order_by(
+                    "-appt_count",
+                    "-med_count",
+                    "-allergy_count",
+                    "last_name",
+                    "first_name",
+                    "id",
+                )
+                .first()
+            )
         if portal_patient is not None:
             portal_user, portal_created = User.objects.get_or_create(
                 username="patient_demo",
@@ -1628,9 +1644,11 @@ class Command(BaseCommand):
         # -----------------------------
         # Refill request + message thread for the portal demo patient
         # -----------------------------
-        # Seed one pending refill and one open patient-initiated message
-        # thread so the clinician inbox + refill queue show non-empty state
-        # for the demo. Both helpers are idempotent on re-run.
+        # Seed one pending refill, one approved refill, one denied refill,
+        # plus three message threads (one patient-only open, one with a
+        # clinician reply still unread, one closed) so the clinician inbox +
+        # refill queue and the patient portal show non-empty, varied state
+        # for the demo. Every helper is idempotent on re-run.
         def seed_refill_requests(patient):
             if RefillRequest.objects.filter(
                 patient=patient,
@@ -1672,6 +1690,86 @@ class Command(BaseCommand):
             )
             return True
 
+        def seed_resolved_refill_requests(patient):
+            """Seed one approved and one denied refill so history pages render."""
+            created_any = False
+            active_medications = list(
+                Medication.objects.filter(
+                    patient=patient,
+                    status=Medication.STATUS_ACTIVE,
+                ).order_by("id")
+            )
+            if not active_medications:
+                return False
+
+            pharmacy = patient.preferred_pharmacy
+            if not pharmacy:
+                allowed_ids = get_effective_pharmacy_ids(patient.facility)
+                pharmacy = (
+                    Pharmacy.objects.filter(id__in=allowed_ids, is_active=True)
+                    .order_by("id")
+                    .first()
+                )
+
+            approved_medication = active_medications[0]
+            if not RefillRequest.objects.filter(
+                patient=patient,
+                status=RefillRequest.STATUS_APPROVED,
+            ).exists():
+                approved = RefillRequest.objects.create(
+                    medication=approved_medication,
+                    patient=patient,
+                    facility=patient.facility,
+                    pharmacy=pharmacy,
+                    pharmacy_name=(pharmacy.name if pharmacy else ""),
+                    status=RefillRequest.STATUS_APPROVED,
+                    patient_note=(
+                        "Hi — could I get a refill on this prescription? " "Thanks!"
+                    ),
+                    clinician_note=("Approved — pickup ready at preferred pharmacy."),
+                    resolved_at=timezone.now() - timedelta(days=14),
+                    resolved_by=admin_user,
+                )
+                # Backdate requested_at so the resolved record reads as
+                # historical alongside the recent pending one.
+                RefillRequest.objects.filter(pk=approved.pk).update(
+                    requested_at=timezone.now() - timedelta(days=16),
+                    resolved_at=timezone.now() - timedelta(days=14),
+                )
+                created_any = True
+
+            # Use a different medication for the denied refill when possible.
+            denied_medication = (
+                active_medications[1]
+                if len(active_medications) > 1
+                else active_medications[0]
+            )
+            if not RefillRequest.objects.filter(
+                patient=patient,
+                status=RefillRequest.STATUS_DENIED,
+            ).exists():
+                denied = RefillRequest.objects.create(
+                    medication=denied_medication,
+                    patient=patient,
+                    facility=patient.facility,
+                    pharmacy=pharmacy,
+                    pharmacy_name=(pharmacy.name if pharmacy else ""),
+                    status=RefillRequest.STATUS_DENIED,
+                    patient_note=("Refill request for my evening medication."),
+                    clinician_note=(
+                        "Please schedule a follow-up visit before refilling."
+                    ),
+                    resolved_at=timezone.now() - timedelta(days=10),
+                    resolved_by=admin_user,
+                )
+                RefillRequest.objects.filter(pk=denied.pk).update(
+                    requested_at=timezone.now() - timedelta(days=12),
+                    resolved_at=timezone.now() - timedelta(days=10),
+                )
+                created_any = True
+
+            return created_any
+
         def seed_message_threads(patient):
             subject = "Question about my medication"
             if MessageThread.objects.filter(
@@ -1698,18 +1796,555 @@ class Command(BaseCommand):
             )
             return True
 
+        def seed_reply_message_thread(patient):
+            """Seed an open thread with a clinician reply still unread."""
+            subject = "Lab results from last visit"
+            if MessageThread.objects.filter(
+                patient=patient,
+                subject=subject,
+            ).exists():
+                return False
+
+            thread = MessageThread.objects.create(
+                facility=patient.facility,
+                patient=patient,
+                subject=subject,
+                status=MessageThread.STATUS_OPEN,
+            )
+            Message.objects.create(
+                thread=thread,
+                sender_kind=Message.SENDER_PATIENT,
+                sender_display_name=f"{patient.first_name} {patient.last_name}",
+                body=(
+                    "I just saw my lab results posted on the portal. The "
+                    "cholesterol number looked higher than last time — "
+                    "should I be worried, or is it still in a safe range?"
+                ),
+            )
+            Message.objects.create(
+                thread=thread,
+                sender_kind=Message.SENDER_CLINICIAN,
+                sender_user=admin_user,
+                sender_display_name=f"Care Team at {patient.facility.name}",
+                body=(
+                    "Thanks for reaching out. Your latest cholesterol is "
+                    "slightly above target but still well within a safe "
+                    "range. We'll review trends together at your next visit. "
+                    "In the meantime, keep up with the diet and exercise "
+                    "changes we discussed."
+                ),
+            )
+
+            # Post-save: clinician reply leaves unread_for_patient=True
+            # (so the portal shows a fresh-reply badge on demo login) and
+            # unread_for_clinician=False (the clinician has read the patient
+            # message they responded to).
+            MessageThread.objects.filter(pk=thread.pk).update(
+                unread_for_clinician=False,
+                unread_for_patient=True,
+            )
+            return True
+
+        def seed_closed_message_thread(patient):
+            """Seed a closed thread with patient + clinician + close message."""
+            subject = "Pharmacy hours question"
+            if MessageThread.objects.filter(
+                patient=patient,
+                subject=subject,
+            ).exists():
+                return False
+
+            thread = MessageThread.objects.create(
+                facility=patient.facility,
+                patient=patient,
+                subject=subject,
+                status=MessageThread.STATUS_OPEN,
+            )
+            Message.objects.create(
+                thread=thread,
+                sender_kind=Message.SENDER_PATIENT,
+                sender_display_name=f"{patient.first_name} {patient.last_name}",
+                body=(
+                    "Quick question — what are the pharmacy hours on "
+                    "weekends? I'd like to pick up my refill this Saturday."
+                ),
+            )
+            Message.objects.create(
+                thread=thread,
+                sender_kind=Message.SENDER_CLINICIAN,
+                sender_user=admin_user,
+                sender_display_name=f"Care Team at {patient.facility.name}",
+                body=(
+                    "Our on-site pharmacy is open Saturdays 9 AM – 1 PM. "
+                    "Your refill will be ready any time after 10 AM on "
+                    "Saturday. Have a great weekend!"
+                ),
+            )
+            Message.objects.create(
+                thread=thread,
+                sender_kind=Message.SENDER_CLINICIAN,
+                sender_user=admin_user,
+                sender_display_name=f"Care Team at {patient.facility.name}",
+                body="Closing this thread — feel free to reach out anytime.",
+            )
+
+            MessageThread.objects.filter(pk=thread.pk).update(
+                status=MessageThread.STATUS_CLOSED,
+                unread_for_clinician=False,
+                unread_for_patient=False,
+            )
+            return True
+
+        def seed_portal_patient_vitals(patient):
+            """Ensure the most recent signed encounters carry a vitals row.
+
+            ``seed_clinical_flow_for_facility`` already creates vitals for ~4
+            of every 5 encounters via a stable index pattern. Explicitly
+            backfill the portal patient's three most recent signed encounters
+            so the medical-summary demo always shows a vitals trend.
+            """
+            recent_signed = list(
+                Encounter.objects.filter(
+                    patient=patient,
+                    status=Encounter.STATUS_SIGNED,
+                ).order_by("-started_at")[:3]
+            )
+            if not recent_signed:
+                return 0
+
+            # Slightly varying values so the chart/trend renders meaningful.
+            vitals_seed = [
+                {
+                    "bp_systolic": 118,
+                    "bp_diastolic": 76,
+                    "heart_rate_bpm": 68,
+                    "respiratory_rate": 14,
+                    "temperature_c": Decimal("36.7"),
+                    "spo2_percent": 99,
+                    "pain_score": 0,
+                    "height_cm": Decimal("170"),
+                    "weight_kg": Decimal("72.0"),
+                },
+                {
+                    "bp_systolic": 124,
+                    "bp_diastolic": 80,
+                    "heart_rate_bpm": 74,
+                    "respiratory_rate": 16,
+                    "temperature_c": Decimal("36.9"),
+                    "spo2_percent": 98,
+                    "pain_score": 1,
+                    "height_cm": Decimal("170"),
+                    "weight_kg": Decimal("72.4"),
+                },
+                {
+                    "bp_systolic": 130,
+                    "bp_diastolic": 84,
+                    "heart_rate_bpm": 82,
+                    "respiratory_rate": 18,
+                    "temperature_c": Decimal("37.1"),
+                    "spo2_percent": 97,
+                    "pain_score": 2,
+                    "height_cm": Decimal("170"),
+                    "weight_kg": Decimal("72.8"),
+                },
+            ]
+
+            created = 0
+            for encounter, values in zip(recent_signed, vitals_seed):
+                if Vitals.objects.filter(encounter=encounter).exists():
+                    continue
+                Vitals.objects.create(
+                    encounter=encounter,
+                    measured_at=encounter.started_at,
+                    recorded_by=admin_user,
+                    notes="Seeded for demo medical-summary trend.",
+                    **values,
+                )
+                created += 1
+            return created
+
+        def ensure_portal_patient_preferred_pharmacy(patient):
+            """Ensure the portal patient has a default PatientPharmacy row.
+
+            The portal endpoint sets the preferred pharmacy via the
+            ``PatientPharmacy`` join table (whose ``save`` cascades the id
+            onto ``Patient.preferred_pharmacy``), so we mirror that here
+            instead of writing the FK directly.
+            """
+            allowed_ids = get_effective_pharmacy_ids(patient.facility)
+            if not allowed_ids:
+                return False
+
+            # Prefer the facility's own seeded pharmacy when present.
+            facility_pharmacy = Pharmacy.objects.filter(
+                id__in=allowed_ids,
+                is_active=True,
+                name=f"{patient.facility.name} Pharmacy",
+            ).first()
+            pharmacy = (
+                facility_pharmacy
+                or Pharmacy.objects.filter(id__in=allowed_ids, is_active=True)
+                .order_by("id")
+                .first()
+            )
+            if not pharmacy:
+                return False
+
+            existing = PatientPharmacy.objects.filter(
+                patient=patient,
+                pharmacy=pharmacy,
+            ).first()
+            if existing:
+                if existing.is_default and existing.is_active:
+                    return False
+                existing.is_default = True
+                existing.is_active = True
+                existing.save()
+                return True
+
+            PatientPharmacy.objects.create(
+                patient=patient,
+                pharmacy=pharmacy,
+                is_default=True,
+                is_active=True,
+                notes="Seeded default pharmacy for portal demo.",
+            )
+            return True
+
+        def seed_portal_patient_clinical_topup(patient):
+            """Guarantee the portal patient has rich medication + allergy data.
+
+            Tops up to at least 5 active medications, 2 inactive medications,
+            and 4 allergies so the demo medical-summary page never reads as
+            anemic. Idempotent: existing rows are kept and matched by
+            case-insensitive name/allergen so reruns do not duplicate.
+            """
+            active_target = 5
+            inactive_target = 2
+            allergy_target = 4
+
+            portal_active_meds = [
+                {
+                    "medication_name": "Lisinopril",
+                    "dose": "10 mg",
+                    "route": "Oral",
+                    "frequency": "Once daily",
+                    "notes": "Blood pressure management.",
+                },
+                {
+                    "medication_name": "Metformin",
+                    "dose": "500 mg",
+                    "route": "Oral",
+                    "frequency": "Twice daily with meals",
+                    "notes": "Type 2 diabetes management.",
+                },
+                {
+                    "medication_name": "Atorvastatin",
+                    "dose": "20 mg",
+                    "route": "Oral",
+                    "frequency": "Once daily at bedtime",
+                    "notes": "Cholesterol management.",
+                },
+                {
+                    "medication_name": "Levothyroxine",
+                    "dose": "75 mcg",
+                    "route": "Oral",
+                    "frequency": "Once daily on empty stomach",
+                    "notes": "Hypothyroidism — take 30 minutes before breakfast.",
+                },
+                {
+                    "medication_name": "Omeprazole",
+                    "dose": "20 mg",
+                    "route": "Oral",
+                    "frequency": "Once daily before meals",
+                    "notes": "Acid reflux management.",
+                },
+                {
+                    "medication_name": "Albuterol HFA",
+                    "dose": "90 mcg/actuation",
+                    "route": "Inhalation",
+                    "frequency": "Two puffs every 4-6 hours as needed",
+                    "notes": "Rescue inhaler for intermittent wheezing.",
+                },
+                {
+                    "medication_name": "Sertraline",
+                    "dose": "50 mg",
+                    "route": "Oral",
+                    "frequency": "Once daily",
+                    "notes": "Anxiety and depression management.",
+                },
+            ]
+
+            portal_inactive_meds = [
+                {
+                    "medication_name": "Ibuprofen",
+                    "dose": "200 mg",
+                    "route": "Oral",
+                    "frequency": "As needed for pain",
+                    "notes": "Discontinued — completed course.",
+                },
+                {
+                    "medication_name": "Amoxicillin",
+                    "dose": "500 mg",
+                    "route": "Oral",
+                    "frequency": "Three times daily",
+                    "notes": "Discontinued — completed antibiotic course.",
+                },
+            ]
+
+            portal_allergies = [
+                {
+                    "allergen": "Penicillin",
+                    "category": PatientAllergy.CATEGORY_MEDICATION,
+                    "reaction": "Hives, swelling",
+                    "severity": PatientAllergy.SEVERITY_SEVERE,
+                    "notes": "Avoid beta-lactam antibiotics unless reviewed.",
+                },
+                {
+                    "allergen": "Sulfa drugs",
+                    "category": PatientAllergy.CATEGORY_MEDICATION,
+                    "reaction": "Rash",
+                    "severity": PatientAllergy.SEVERITY_MODERATE,
+                    "notes": "Avoid sulfonamide antibiotics.",
+                },
+                {
+                    "allergen": "Latex",
+                    "category": PatientAllergy.CATEGORY_LATEX,
+                    "reaction": "Skin irritation",
+                    "severity": PatientAllergy.SEVERITY_MILD,
+                    "notes": "Use non-latex supplies.",
+                },
+                {
+                    "allergen": "Peanuts",
+                    "category": PatientAllergy.CATEGORY_FOOD,
+                    "reaction": "Anaphylaxis",
+                    "severity": PatientAllergy.SEVERITY_SEVERE,
+                    "notes": "Patient carries epinephrine auto-injector.",
+                },
+                {
+                    "allergen": "Shellfish",
+                    "category": PatientAllergy.CATEGORY_FOOD,
+                    "reaction": "GI upset, hives",
+                    "severity": PatientAllergy.SEVERITY_MODERATE,
+                    "notes": "Patient carries OTC antihistamine.",
+                },
+            ]
+
+            existing_active = Medication.objects.filter(
+                patient=patient,
+                status=Medication.STATUS_ACTIVE,
+            ).count()
+            existing_inactive = (
+                Medication.objects.filter(patient=patient)
+                .exclude(status=Medication.STATUS_ACTIVE)
+                .count()
+            )
+            existing_allergies = PatientAllergy.objects.filter(
+                patient=patient,
+            ).count()
+
+            prescriber_name = "Demo User"
+            active_meds_added = 0
+            inactive_meds_added = 0
+            allergies_added = 0
+
+            for index, template in enumerate(portal_active_meds):
+                if existing_active + active_meds_added >= active_target:
+                    break
+                if Medication.objects.filter(
+                    patient=patient,
+                    medication_name__iexact=template["medication_name"],
+                ).exists():
+                    continue
+                Medication.objects.create(
+                    patient=patient,
+                    facility=patient.facility,
+                    status=Medication.STATUS_ACTIVE,
+                    start_date=today - timedelta(days=120 + index * 25),
+                    prescriber_name=prescriber_name,
+                    created_by=admin_user,
+                    updated_by=admin_user,
+                    **template,
+                )
+                active_meds_added += 1
+
+            for index, template in enumerate(portal_inactive_meds):
+                if existing_inactive + inactive_meds_added >= inactive_target:
+                    break
+                if Medication.objects.filter(
+                    patient=patient,
+                    medication_name__iexact=template["medication_name"],
+                ).exists():
+                    continue
+                Medication.objects.create(
+                    patient=patient,
+                    facility=patient.facility,
+                    status=Medication.STATUS_DISCONTINUED,
+                    start_date=today - timedelta(days=240 + index * 30),
+                    end_date=today - timedelta(days=45 + index * 15),
+                    prescriber_name=prescriber_name,
+                    created_by=admin_user,
+                    updated_by=admin_user,
+                    **template,
+                )
+                inactive_meds_added += 1
+
+            for index, template in enumerate(portal_allergies):
+                if existing_allergies + allergies_added >= allergy_target:
+                    break
+                if PatientAllergy.objects.filter(
+                    patient=patient,
+                    allergen__iexact=template["allergen"],
+                ).exists():
+                    continue
+                PatientAllergy.objects.create(
+                    patient=patient,
+                    facility=patient.facility,
+                    onset_date=today - timedelta(days=400 + index * 60),
+                    status=PatientAllergy.STATUS_ACTIVE,
+                    created_by=admin_user,
+                    updated_by=admin_user,
+                    **template,
+                )
+                allergies_added += 1
+
+            return (active_meds_added, inactive_meds_added, allergies_added)
+
         if portal_patient is not None:
             refill_created = seed_refill_requests(portal_patient)
+            resolved_refills_created = seed_resolved_refill_requests(portal_patient)
             thread_created = seed_message_threads(portal_patient)
+            reply_thread_created = seed_reply_message_thread(portal_patient)
+            closed_thread_created = seed_closed_message_thread(portal_patient)
+            vitals_created = seed_portal_patient_vitals(portal_patient)
+            pharmacy_updated = ensure_portal_patient_preferred_pharmacy(portal_patient)
+            (
+                clinical_active_added,
+                clinical_inactive_added,
+                clinical_allergies_added,
+            ) = seed_portal_patient_clinical_topup(portal_patient)
+            # Refresh so summary queries reflect the PatientPharmacy cascade.
+            portal_patient.refresh_from_db()
+
             self.stdout.write(
                 f"  - Portal demo refill {'created' if refill_created else 'skipped'}; "
-                f"message thread {'created' if thread_created else 'skipped'}"
+                f"resolved refills {'created' if resolved_refills_created else 'skipped'}; "
+                f"open thread {'created' if thread_created else 'skipped'}; "
+                f"reply thread {'created' if reply_thread_created else 'skipped'}; "
+                f"closed thread {'created' if closed_thread_created else 'skipped'}; "
+                f"vitals backfilled: {vitals_created}; "
+                f"preferred pharmacy {'set' if pharmacy_updated else 'unchanged'}; "
+                f"clinical top-up — active meds: +{clinical_active_added}, "
+                f"inactive meds: +{clinical_inactive_added}, "
+                f"allergies: +{clinical_allergies_added}"
             )
 
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully!"))
-        self.stdout.write("Demo user login:")
-        self.stdout.write(f"  username: {getattr(settings, 'DEMO_USERNAME', 'demo')}")
-        self.stdout.write("  password: Admin123!")
-        self.stdout.write("Patient portal login:")
-        self.stdout.write("  username: patient_demo")
-        self.stdout.write("  password: Patient123!")
+
+        # -----------------------------
+        # Demo accounts showcase summary
+        # -----------------------------
+        if portal_patient is not None:
+            now = timezone.now()
+            upcoming_appts = Appointment.objects.filter(
+                patient=portal_patient,
+                appointment_time__gte=now,
+            ).count()
+            past_appts = Appointment.objects.filter(
+                patient=portal_patient,
+                appointment_time__lt=now,
+            ).count()
+            active_meds = Medication.objects.filter(
+                patient=portal_patient,
+                status=Medication.STATUS_ACTIVE,
+            ).count()
+            inactive_meds = (
+                Medication.objects.filter(
+                    patient=portal_patient,
+                )
+                .exclude(status=Medication.STATUS_ACTIVE)
+                .count()
+            )
+            allergy_count = PatientAllergy.objects.filter(
+                patient=portal_patient,
+            ).count()
+            vitals_count = Vitals.objects.filter(
+                encounter__patient=portal_patient,
+            ).count()
+
+            threads_qs = MessageThread.objects.filter(patient=portal_patient)
+            thread_total = threads_qs.count()
+            thread_open = threads_qs.filter(status=MessageThread.STATUS_OPEN).count()
+            thread_closed = threads_qs.filter(
+                status=MessageThread.STATUS_CLOSED
+            ).count()
+            thread_unread_patient = threads_qs.filter(unread_for_patient=True).count()
+
+            refills_qs = RefillRequest.objects.filter(patient=portal_patient)
+            refill_total = refills_qs.count()
+            refill_pending = refills_qs.filter(
+                status=RefillRequest.STATUS_PENDING
+            ).count()
+            refill_approved = refills_qs.filter(
+                status=RefillRequest.STATUS_APPROVED
+            ).count()
+            refill_denied = refills_qs.filter(
+                status=RefillRequest.STATUS_DENIED
+            ).count()
+
+            pharmacy_name = (
+                portal_patient.preferred_pharmacy.name
+                if portal_patient.preferred_pharmacy
+                else "none"
+            )
+            patient_display = f"{portal_patient.first_name} {portal_patient.last_name}"
+            facility_name = portal_patient.facility.name
+            demo_username = getattr(settings, "DEMO_USERNAME", "demo")
+
+            divider = "=" * 44
+            lines = [
+                divider,
+                "Demo accounts ready",
+                divider,
+                "",
+                "Clinician (https://app or local clinician URL):",
+                f"  username: {demo_username}",
+                "  password: Admin123!",
+                "  display:  Demo User (Owner)",
+                f"  facility: {facility_name}",
+                "",
+                "Patient portal (https://portal or local portal URL):",
+                "  username: patient_demo",
+                "  password: Patient123!",
+                f"  display:  {patient_display}",
+                f"  facility: {facility_name}",
+                "",
+                "Patient data on patient_demo:",
+                f"  Appointments:    {upcoming_appts} upcoming, {past_appts} past",
+                f"  Medications:     {active_meds} active, {inactive_meds} inactive",
+                f"  Allergies:       {allergy_count}",
+                f"  Vitals records:  {vitals_count}",
+                (
+                    f"  Message threads: {thread_total} total "
+                    f"({thread_open} open, {thread_closed} closed; "
+                    f"{thread_unread_patient} unread_for_patient)"
+                ),
+                (
+                    f"  Refill requests: {refill_total} total "
+                    f"({refill_pending} pending, {refill_approved} approved, "
+                    f"{refill_denied} denied)"
+                ),
+                f"  Preferred pharmacy: {pharmacy_name}",
+                divider,
+            ]
+            for line in lines:
+                self.stdout.write(line)
+        else:
+            self.stdout.write("Demo user login:")
+            self.stdout.write(
+                f"  username: {getattr(settings, 'DEMO_USERNAME', 'demo')}"
+            )
+            self.stdout.write("  password: Admin123!")
+            self.stdout.write("Patient portal login:")
+            self.stdout.write("  username: patient_demo")
+            self.stdout.write("  password: Patient123!")

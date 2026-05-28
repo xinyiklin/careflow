@@ -18,7 +18,7 @@ function buildFields(vitals: PortalSummaryVitals): Field[] {
     ["Heart rate", format(vitals.heart_rate_bpm, "bpm")],
     ["Respiratory rate", format(vitals.respiratory_rate, "/min")],
     ["Temperature", format(vitals.temperature_c, "°C")],
-    ["SpO₂", format(vitals.spo2_percent, "%")],
+    ["SpO2", format(vitals.spo2_percent, "%")],
     ["Pain", vitals.pain_score === null ? null : `${vitals.pain_score} / 10`],
     ["Height", format(vitals.height_cm, "cm")],
     ["Weight", format(vitals.weight_kg, "kg")],
@@ -35,13 +35,13 @@ export function VitalsGrid({ vitals }: { vitals: PortalSummaryVitals }) {
   if (fields.length === 0) return null;
 
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3">
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
       {fields.map((field) => (
         <div key={field.label}>
-          <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-cf-text-subtle">
+          <dt className="text-[11px] font-semibold uppercase tracking-[0.1em] text-text-subtle">
             {field.label}
           </dt>
-          <dd className="mt-0.5 text-sm text-cf-text">{field.value}</dd>
+          <dd className="mt-0.5 text-sm text-text">{field.value}</dd>
         </div>
       ))}
     </dl>

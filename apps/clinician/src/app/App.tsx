@@ -9,13 +9,19 @@ import { BootReadinessProvider } from "./BootReadinessContext";
 import { preloadRouteForPath } from "./routeModules";
 
 function App() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const { facility, selectedFacilityId } = useFacility();
   const location = useLocation();
   const [isRoutePreloading, setIsRoutePreloading] = useState(true);
   const [isShellReady, setIsShellReady] = useState(false);
   const hasCompletedInitialPreloadRef = useRef(false);
   const canRenderWorkspace = !!user && !!facility && !!selectedFacilityId;
+  // We only know a user has *no* assignable facilities once the user
+  // object is loaded AND it reports an empty memberships array. While
+  // memberships exist, FacilityProvider is still resolving the active
+  // selection and the workspace should keep waiting instead of flashing
+  // the "no facility" fallback.
+  const hasNoFacilities = !!user && !user.memberships?.length;
   // App-level LoadingScreen only covers the cold-start path: auth,
   // facility resolution, route chunk preload, and initial shell layout.
   // Once those resolve, the LoadingScreen is permanently dismissed and
@@ -23,7 +29,10 @@ function App() {
   // chrome may render immediately, but its body waits for its primary
   // query so partial/empty fields never flash in.
   const bootLoading =
-    authLoading || isRoutePreloading || (canRenderWorkspace && !isShellReady);
+    authLoading ||
+    isRoutePreloading ||
+    (!!user && !hasNoFacilities && !canRenderWorkspace) ||
+    (canRenderWorkspace && !isShellReady);
   const showBootLoading = useMinimumLoading(bootLoading);
 
   useEffect(() => {
@@ -54,11 +63,27 @@ function App() {
       return <Navigate to="/login" replace />;
     }
 
-    if (!canRenderWorkspace) {
+    if (hasNoFacilities) {
       return (
         <div className="flex h-[100dvh] items-center justify-center bg-cf-page-bg px-4">
-          <div className="w-full max-w-lg rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-700">
-            No facility is selected or available for this account.
+          <div className="w-full max-w-md rounded-2xl border border-yellow-200 bg-yellow-50 px-6 py-6 text-sm text-yellow-900 shadow-sm">
+            <div className="text-base font-semibold">
+              No clinic access on this account
+            </div>
+            <p className="mt-2 text-yellow-800">
+              The account currently signed in isn't assigned to any clinic
+              workspace. Try signing in with another account, or contact your
+              administrator if you believe this is an error.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="inline-flex items-center justify-center rounded-lg border border-yellow-300 bg-white px-4 py-2 text-sm font-medium text-yellow-900 shadow-sm transition hover:bg-yellow-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500/40"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       );

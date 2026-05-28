@@ -8,7 +8,9 @@ from rest_framework import permissions, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from medications.portal_serializers import PortalPreferredPharmacyUpdateSerializer
 from patients.models import PatientPharmacy, Pharmacy
@@ -17,7 +19,12 @@ from users.permissions import IsPortalPatient
 from users.portal import PatientPortalAccount
 from users.portal_access import get_patient_for_user
 from users.portal_serializers import PortalPatientSerializer
-from users.views import set_refresh_cookie
+from users.views import (
+    PORTAL_REFRESH_COOKIE_PATH,
+    REFRESH_COOKIE_NAME,
+    clear_refresh_cookie,
+    set_refresh_cookie,
+)
 
 
 class PortalMeView(APIView):
@@ -166,4 +173,47 @@ class PortalDemoLoginView(APIView):
             {"access": str(refresh.access_token), "is_demo": True},
             status=status.HTTP_200_OK,
         )
-        return set_refresh_cookie(response, str(refresh))
+        return set_refresh_cookie(
+            response, str(refresh), path=PORTAL_REFRESH_COOKIE_PATH
+        )
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class PortalTokenRefreshView(TokenRefreshView):
+    """Refresh a portal session token using the portal-path refresh cookie.
+
+    Mirrors :class:`users.views.CookieTokenRefreshView` but reads and writes
+    the cookie at :data:`users.views.PORTAL_REFRESH_COOKIE_PATH` so the
+    browser keeps clinic and portal sessions isolated even on a shared host.
+    """
+
+    def post(self, request, *args, **kwargs):
+        data = (
+            request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
+        )
+        if not data.get("refresh"):
+            data["refresh"] = request.COOKIES.get(REFRESH_COOKIE_NAME, "")
+
+        serializer = self.get_serializer(data=data)
+
+        try:
+            serializer.is_valid(raise_exception=True)
+        except TokenError as exc:
+            raise InvalidToken(exc.args[0]) from exc
+
+        response = Response(serializer.validated_data, status=status.HTTP_200_OK)
+        refresh_token = response.data.pop("refresh", None)
+        return set_refresh_cookie(
+            response, refresh_token, path=PORTAL_REFRESH_COOKIE_PATH
+        )
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class PortalLogoutView(APIView):
+    """Clear the portal-scoped refresh cookie."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        return clear_refresh_cookie(response, path=PORTAL_REFRESH_COOKIE_PATH)

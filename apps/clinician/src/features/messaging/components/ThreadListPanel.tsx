@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 
 import { Badge, Button, SegmentedControl } from "../../../shared/components/ui";
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 import {
   useMessageThreads,
   type MessageThreadStatus,
@@ -137,6 +138,7 @@ export default function ThreadListPanel({
     status,
     search: debouncedSearch || undefined,
   });
+  const showThreadsLoading = useMinimumLoading(isLoading);
 
   const threads = useMemo(() => data ?? [], [data]);
 
@@ -200,9 +202,9 @@ export default function ThreadListPanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {isLoading ? (
+        {showThreadsLoading ? (
           <p className="px-4 py-6 text-sm text-cf-text-muted">Loading…</p>
-        ) : isError ? (
+        ) : isLoading ? null : isError ? (
           <div className="px-4 py-6 text-sm text-cf-text-muted">
             <p>Could not load conversations.</p>
             <Button

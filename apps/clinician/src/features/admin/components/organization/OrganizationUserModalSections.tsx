@@ -1,5 +1,6 @@
 import { Mail, Building2 } from "lucide-react";
 import { Badge } from "../../../../shared/components/ui";
+import useMinimumLoading from "../../../../shared/hooks/useMinimumLoading";
 import type { AdminOrganizationUserForm, AdminFacility } from "../../types";
 
 const ROLE_LABELS: Record<AdminOrganizationUserForm["role"], string> = {
@@ -32,6 +33,7 @@ export function UserPreviewPanel({
   const totalFacilitiesCount = facilities.length;
   const accessedFacilities = formData.facility_ids || [];
   const adminFacilities = formData.admin_facility_ids || [];
+  const showFacilitiesLoading = useMinimumLoading(loadingFacilities);
 
   return (
     <div className="flex flex-col items-center bg-cf-surface-soft/20 border border-cf-border/40 rounded-2xl p-6 text-center space-y-5 h-full md:sticky md:top-2">
@@ -78,9 +80,9 @@ export function UserPreviewPanel({
               Facility Coverage
             </span>
             <span className="text-cf-text block truncate">
-              {loadingFacilities ? (
+              {showFacilitiesLoading ? (
                 "Loading..."
-              ) : (
+              ) : loadingFacilities ? null : (
                 <>
                   {accessedFacilities.length} of {totalFacilitiesCount}{" "}
                   {totalFacilitiesCount === 1 ? "facility" : "facilities"}

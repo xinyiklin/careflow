@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowRight } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { CareFlowIcon } from "@careflow/ui-icons";
 
 import type { ChangeEvent, FormEvent } from "react";
 
 import { DEMO_MODE } from "../../../shared/config/appConfig";
+import { Button, Card, Field, Input } from "../../../shared/ui";
 import { useAuth } from "../AuthProvider";
 
 function getErrorMessage(err: unknown, fallback: string) {
@@ -18,6 +20,7 @@ function getErrorMessage(err: unknown, fallback: string) {
 }
 
 export function LoginPage() {
+  const { t } = useTranslation();
   const { login, demoLogin, error: providerError } = useAuth();
   const [formData, setFormData] = useState({ username: "", password: "" });
   const [submitting, setSubmitting] = useState(false);
@@ -45,7 +48,7 @@ export function LoginPage() {
     try {
       await login(credentials);
     } catch (err) {
-      setFormError(getErrorMessage(err, "Invalid username or password."));
+      setFormError(getErrorMessage(err, t("auth.invalidCredentials")));
     } finally {
       setSubmitting(false);
     }
@@ -62,9 +65,7 @@ export function LoginPage() {
     try {
       await demoLogin();
     } catch (err) {
-      setFormError(
-        getErrorMessage(err, "Demo login is currently unavailable.")
-      );
+      setFormError(getErrorMessage(err, t("auth.demoUnavailable")));
     } finally {
       setDemoLoading(false);
     }
@@ -73,119 +74,113 @@ export function LoginPage() {
   const loading = submitting || demoLoading;
 
   return (
-    <div className="cf-app-shell flex h-[100dvh] w-full items-center justify-center bg-cf-page-bg px-4">
-      <div className="w-full max-w-sm rounded-[var(--radius-cf-shell)] border border-cf-border bg-cf-surface px-7 py-7 shadow-[var(--shadow-panel-lg)]">
+    <div className="flex min-h-[100dvh] w-full items-center justify-center bg-bg px-4 py-10">
+      <Card
+        as="div"
+        padded={false}
+        className="w-full max-w-sm px-6 py-7 sm:px-7"
+      >
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-cf-sidebar-bg)]">
-            <CareFlowIcon className="h-5 w-5 text-[var(--color-cf-sidebar-accent)]" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent-soft">
+            <CareFlowIcon className="h-5 w-5 text-accent" />
           </div>
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-              Patient Portal
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-subtle">
+              {t("auth.portalLabel")}
             </div>
-            <div className="text-sm font-semibold tracking-tight text-cf-text">
-              CareFlow
+            <div className="text-sm font-semibold tracking-tight text-text">
+              {t("common.appName")}
             </div>
           </div>
         </div>
 
-        <h1 className="mb-5 text-xl font-semibold tracking-tight text-cf-text">
-          Sign in to your account
+        <h1 className="mb-5 text-xl font-semibold tracking-tight text-text">
+          {t("auth.signInHeading")}
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {formError && (
+          {formError ? (
             <div
               role="alert"
-              className="flex items-start gap-3 rounded-2xl border border-cf-danger-bg bg-cf-danger-bg px-4 py-3 text-sm text-cf-danger-text"
+              className="flex items-start gap-3 rounded-md border border-border bg-danger-soft px-3 py-2.5 text-sm text-danger"
             >
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              <AlertCircle
+                className="mt-0.5 h-4 w-4 shrink-0"
+                aria-hidden="true"
+              />
               <div className="min-w-0">
-                <div className="font-semibold">Sign in failed</div>
+                <div className="font-semibold">{t("auth.signInFailed")}</div>
                 <div className="mt-0.5">{formError}</div>
               </div>
             </div>
-          )}
+          ) : null}
 
-          <div>
-            <label
-              htmlFor="username"
-              className="mb-1.5 block text-sm font-medium text-cf-text"
-            >
-              Username
-            </label>
-            <input
-              id="username"
+          <Field label={t("auth.usernameLabel")} required>
+            <Input
               type="text"
               name="username"
               value={formData.username}
               onChange={handleChange}
-              required
               autoComplete="username"
-              className="w-full rounded-xl border border-cf-border-strong bg-cf-surface px-3 py-2.5 text-sm text-cf-text shadow-sm outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={loading}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-1.5 block text-sm font-medium text-cf-text"
-            >
-              Password
-            </label>
-            <input
-              id="password"
+          <Field label={t("auth.passwordLabel")} required>
+            <Input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              required
               autoComplete="current-password"
-              className="w-full rounded-xl border border-cf-border-strong bg-cf-surface px-3 py-2.5 text-sm text-cf-text shadow-sm outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-
-          <div className="pt-1">
-            <button
-              type="submit"
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-cf-accent bg-cf-accent px-4 py-2.5 text-sm font-medium leading-none text-cf-page-bg shadow-[var(--shadow-panel)] transition hover:border-cf-accent-hover hover:bg-cf-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cf-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {submitting ? "Signing in..." : "Sign In"}
-            </button>
-          </div>
+            />
+          </Field>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="lg"
+            fullWidth
+            isLoading={submitting}
+            disabled={loading}
+          >
+            {submitting ? t("auth.signingIn") : t("auth.signInButton")}
+          </Button>
         </form>
 
-        {DEMO_MODE && (
+        {DEMO_MODE ? (
           <>
             <div className="my-4 flex items-center gap-3">
-              <div className="h-px flex-1 bg-cf-border" />
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-                or
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-subtle">
+                {t("auth.or")}
               </span>
-              <div className="h-px flex-1 bg-cf-border" />
+              <div className="h-px flex-1 bg-border" />
             </div>
 
-            <button
+            <Button
               type="button"
-              onClick={handleDemoLogin}
+              variant="secondary"
+              size="lg"
+              fullWidth
+              isLoading={demoLoading}
               disabled={loading}
-              className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-cf-border bg-cf-surface px-4 py-2.5 text-sm font-medium leading-none text-cf-text-muted shadow-[var(--shadow-panel)] transition hover:border-cf-border-strong hover:bg-cf-surface-soft hover:text-cf-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cf-accent/25 disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={handleDemoLogin}
             >
-              {demoLoading ? "Opening demo..." : "Continue with Demo"}
-              {!demoLoading && <ArrowRight className="h-4 w-4" />}
-            </button>
+              {demoLoading ? t("auth.demoOpening") : t("auth.demoButton")}
+            </Button>
 
-            <p className="mt-2.5 text-center text-xs text-cf-text-subtle">
-              No credentials needed &mdash; built for portfolio and preview use.
+            <p className="mt-2.5 text-center text-xs text-text-subtle">
+              {t("auth.demoNote")}
             </p>
           </>
-        )}
+        ) : null}
 
-        <p className="mt-5 text-center text-xs text-cf-text-subtle">
-          For authorized patient use only.
+        <p className="mt-5 text-center text-xs text-text-subtle">
+          {t("auth.footerNote")}
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

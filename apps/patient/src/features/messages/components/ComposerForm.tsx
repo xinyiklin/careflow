@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
+import { Button, Field, Input, Modal, Textarea } from "../../../shared/ui";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
   useStartThread,
@@ -16,6 +17,7 @@ type ComposerFormProps = {
 };
 
 export function ComposerForm({ onClose, onCreated }: ComposerFormProps) {
+  const { t } = useTranslation();
   const startThread = useStartThread();
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -27,16 +29,7 @@ export function ComposerForm({ onClose, onCreated }: ComposerFormProps) {
     trimmedSubject.length > 0 &&
     trimmedBody.length > 0 &&
     !startThread.isPending;
-
   const isPending = startThread.isPending;
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isPending) onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose, isPending]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -48,7 +41,7 @@ export function ComposerForm({ onClose, onCreated }: ComposerFormProps) {
         body: trimmedBody,
       });
       if (!result) {
-        setSubmitError("Could not start a new conversation.");
+        setSubmitError(t("messages.startFailed"));
         return;
       }
       onCreated(result);
@@ -57,117 +50,86 @@ export function ComposerForm({ onClose, onCreated }: ComposerFormProps) {
     }
   };
 
+  const handleClose = () => {
+    if (isPending) return;
+    onClose();
+  };
+
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="new-thread-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6"
-      onClick={(event) => {
-        if (event.target === event.currentTarget && !isPending) {
-          onClose();
-        }
-      }}
-    >
-      <div className="w-full max-w-md rounded-cf-shell border border-cf-border bg-cf-surface shadow-panel-lg">
-        <header className="flex items-start justify-between gap-3 border-b border-cf-border px-5 py-4">
-          <div className="min-w-0">
-            <h2
-              id="new-thread-title"
-              className="text-base font-semibold text-cf-text"
-            >
-              New conversation
-            </h2>
-            <p className="mt-0.5 text-xs text-cf-text-muted">
-              Send a secure message to your care team.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
+    <Modal
+      open
+      onClose={handleClose}
+      title={t("messages.newConversation")}
+      description={t("messages.newConversationSubtitle")}
+      size="md"
+      disableBackdropClose={isPending}
+      footer={
+        <>
+          <Button
+            variant="secondary"
+            onClick={handleClose}
             disabled={isPending}
-            className="rounded-cf-control p-1 text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text disabled:opacity-50"
-            aria-label="Close"
           >
-            <X size={16} />
-          </button>
-        </header>
+            {t("messages.cancel")}
+          </Button>
+          <Button
+            variant="primary"
+            type="submit"
+            form="new-thread-form"
+            disabled={!canSubmit}
+            isLoading={isPending}
+          >
+            {t("messages.send")}
+          </Button>
+        </>
+      }
+    >
+      <form
+        id="new-thread-form"
+        onSubmit={handleSubmit}
+        className="space-y-4"
+        noValidate
+      >
+        <Field
+          label={t("messages.subjectLabel")}
+          helperText={`${subject.length}/${SUBJECT_MAX}`}
+          required
+        >
+          <Input
+            type="text"
+            value={subject}
+            onChange={(event) =>
+              setSubject(event.target.value.slice(0, SUBJECT_MAX))
+            }
+            maxLength={SUBJECT_MAX}
+            placeholder={t("messages.subjectPlaceholder")}
+            autoFocus
+          />
+        </Field>
 
-        <form onSubmit={handleSubmit} className="space-y-4 px-5 py-5">
-          <div>
-            <label
-              htmlFor="new-thread-subject"
-              className="mb-1 block text-xs font-semibold text-cf-text-muted"
-            >
-              Subject
-            </label>
-            <input
-              id="new-thread-subject"
-              type="text"
-              value={subject}
-              onChange={(event) =>
-                setSubject(event.target.value.slice(0, SUBJECT_MAX))
-              }
-              maxLength={SUBJECT_MAX}
-              placeholder="What's this about?"
-              className="w-full rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
-            />
-            <p className="mt-1 text-right text-[10px] text-cf-text-subtle">
-              {subject.length}/{SUBJECT_MAX}
-            </p>
-          </div>
+        <Field
+          label={t("messages.messageLabel")}
+          helperText={`${body.length}/${BODY_MAX}`}
+          required
+        >
+          <Textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value.slice(0, BODY_MAX))}
+            rows={6}
+            maxLength={BODY_MAX}
+            placeholder={t("messages.bodyPlaceholder")}
+          />
+        </Field>
 
-          <div>
-            <label
-              htmlFor="new-thread-body"
-              className="mb-1 block text-xs font-semibold text-cf-text-muted"
-            >
-              Message
-            </label>
-            <textarea
-              id="new-thread-body"
-              value={body}
-              onChange={(event) =>
-                setBody(event.target.value.slice(0, BODY_MAX))
-              }
-              rows={5}
-              maxLength={BODY_MAX}
-              placeholder="Share details with your care team…"
-              className="w-full resize-none rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
-            />
-            <p className="mt-1 text-right text-[10px] text-cf-text-subtle">
-              {body.length}/{BODY_MAX}
-            </p>
-          </div>
-
-          {submitError ? (
-            <div
-              role="alert"
-              className="rounded-cf-control border border-cf-danger-text/30 bg-cf-danger-bg px-3 py-2 text-sm text-cf-danger-text"
-            >
-              {submitError}
-            </div>
-          ) : null}
-
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isPending}
-              className="inline-flex items-center rounded-cf-control border border-cf-border bg-cf-surface px-3 py-1.5 text-xs font-semibold text-cf-text transition hover:bg-cf-surface-soft disabled:opacity-60"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className="inline-flex items-center rounded-cf-control bg-cf-accent px-3 py-1.5 text-xs font-semibold text-cf-surface transition hover:bg-cf-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isPending ? "Sending…" : "Send message"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        {submitError ? (
+          <p
+            role="alert"
+            className="rounded-md border border-danger-soft bg-danger-soft px-3 py-2 text-sm text-danger"
+          >
+            {submitError}
+          </p>
+        ) : null}
+      </form>
+    </Modal>
   );
 }

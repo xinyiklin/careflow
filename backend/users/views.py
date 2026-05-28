@@ -16,10 +16,13 @@ from .models import UserPreference
 from .serializers import RegisterSerializer, UserPreferenceSerializer, UserSerializer
 
 REFRESH_COOKIE_NAME = "careflow_refresh"
-REFRESH_COOKIE_PATH = "/v1/users/"
+# Clinician app cookies are scoped so the browser only sends them to
+# /v1/users/* requests; the patient portal uses its own path below.
+CLINIC_REFRESH_COOKIE_PATH = "/v1/users/"
+PORTAL_REFRESH_COOKIE_PATH = "/v1/portal/"
 
 
-def set_refresh_cookie(response, refresh_token):
+def set_refresh_cookie(response, refresh_token, *, path):
     if not refresh_token:
         return response
 
@@ -29,16 +32,16 @@ def set_refresh_cookie(response, refresh_token):
         httponly=True,
         secure=not settings.DEBUG,
         samesite="None" if not settings.DEBUG else "Lax",
-        path=REFRESH_COOKIE_PATH,
+        path=path,
         max_age=14 * 24 * 60 * 60,
     )
     return response
 
 
-def clear_refresh_cookie(response):
+def clear_refresh_cookie(response, *, path):
     response.delete_cookie(
         REFRESH_COOKIE_NAME,
-        path=REFRESH_COOKIE_PATH,
+        path=path,
         samesite="None" if not settings.DEBUG else "Lax",
     )
     return response
@@ -58,7 +61,9 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         refresh_token = response.data.pop("refresh", None)
-        return set_refresh_cookie(response, refresh_token)
+        return set_refresh_cookie(
+            response, refresh_token, path=CLINIC_REFRESH_COOKIE_PATH
+        )
 
 
 @method_decorator(csrf_protect, name="dispatch")
@@ -79,7 +84,9 @@ class CookieTokenRefreshView(TokenRefreshView):
 
         response = Response(serializer.validated_data, status=status.HTTP_200_OK)
         refresh_token = response.data.pop("refresh", None)
-        return set_refresh_cookie(response, refresh_token)
+        return set_refresh_cookie(
+            response, refresh_token, path=CLINIC_REFRESH_COOKIE_PATH
+        )
 
 
 @method_decorator(csrf_protect, name="dispatch")
@@ -88,7 +95,7 @@ class LogoutView(APIView):
 
     def post(self, request):
         response = Response(status=status.HTTP_204_NO_CONTENT)
-        return clear_refresh_cookie(response)
+        return clear_refresh_cookie(response, path=CLINIC_REFRESH_COOKIE_PATH)
 
 
 class RegisterView(APIView):
@@ -164,4 +171,6 @@ class DemoLoginView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-        return set_refresh_cookie(response, str(refresh))
+        return set_refresh_cookie(
+            response, str(refresh), path=CLINIC_REFRESH_COOKIE_PATH
+        )

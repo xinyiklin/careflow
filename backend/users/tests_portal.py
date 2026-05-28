@@ -374,6 +374,9 @@ class PortalDemoLoginViewTests(PortalTestMixin, APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("access", response.data)
         self.assertTrue(response.data["is_demo"])
+        self.assertIn("careflow_refresh", response.cookies)
+        self.assertEqual(response.cookies["careflow_refresh"]["path"], "/v1/portal/")
+        self.assertTrue(response.cookies["careflow_refresh"]["httponly"])
 
     def test_demo_login_rejected_when_disabled(self):
         self._make_demo_user_with_portal()
@@ -393,3 +396,61 @@ class PortalDemoLoginViewTests(PortalTestMixin, APITestCase):
         with self.settings(DEMO_MODE=True, PORTAL_DEMO_USERNAME=self.DEMO_USERNAME):
             response = self.client.post("/v1/portal/demo-login/")
         self.assertEqual(response.status_code, 500)
+
+
+class PortalAuthCookieIsolationTests(PortalTestMixin, APITestCase):
+    """The portal refresh/logout endpoints write the cookie at /v1/portal/.
+
+    These guard against regressing cross-app session bleed: clinician and
+    portal apps share localhost in dev, so cookies are isolated by path.
+    """
+
+    DEMO_USERNAME = "patient_demo_cookie_path"
+
+    def _login_demo_patient(self):
+        user = User.objects.create_user(username=self.DEMO_USERNAME, password="ignored")
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        with self.settings(DEMO_MODE=True, PORTAL_DEMO_USERNAME=self.DEMO_USERNAME):
+            return self.client.post("/v1/portal/demo-login/")
+
+    def test_portal_refresh_endpoint_works(self):
+        login_response = self._login_demo_patient()
+        self.assertEqual(login_response.status_code, 200)
+        self.client.cookies["careflow_refresh"] = login_response.cookies[
+            "careflow_refresh"
+        ].value
+
+        response = self.client.post("/v1/portal/auth/refresh/", {}, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.data)
+        self.assertNotIn("refresh", response.data)
+
+    def test_portal_refresh_rejects_request_without_cookie(self):
+        # Browser would not send a clinic-path cookie to /v1/portal/*; this
+        # simulates that by sending no cookie at all.
+        response = self.client.post("/v1/portal/auth/refresh/", {}, format="json")
+        # SimpleJWT raises a validation error (400) when the refresh value is
+        # missing rather than an auth error; either way the caller cannot
+        # mint a new access token, which is the protection we care about.
+        self.assertIn(response.status_code, (400, 401))
+
+    def test_portal_refresh_rejects_garbage_token(self):
+        # If somehow a non-portal value reaches the portal endpoint, the
+        # JWT layer rejects it rather than minting a new access token.
+        self.client.cookies["careflow_refresh"] = "not-a-real-token"
+        response = self.client.post("/v1/portal/auth/refresh/", {}, format="json")
+        self.assertEqual(response.status_code, 401)
+
+    def test_portal_logout_clears_portal_scoped_cookie(self):
+        login_response = self._login_demo_patient()
+        self.assertEqual(login_response.status_code, 200)
+        self.client.cookies["careflow_refresh"] = login_response.cookies[
+            "careflow_refresh"
+        ].value
+
+        response = self.client.post("/v1/portal/auth/logout/")
+
+        self.assertEqual(response.status_code, 204)
+        self.assertIn("careflow_refresh", response.cookies)
+        self.assertEqual(response.cookies["careflow_refresh"]["path"], "/v1/portal/")

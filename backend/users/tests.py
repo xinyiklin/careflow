@@ -30,6 +30,7 @@ class DemoLoginViewTests(TestCase):
         self.assertNotIn("refresh", response.data)
         self.assertIn("careflow_refresh", response.cookies)
         self.assertTrue(response.cookies["careflow_refresh"]["httponly"])
+        self.assertEqual(response.cookies["careflow_refresh"]["path"], "/v1/users/")
         self.assertTrue(response.data["is_demo"])
         self.assertEqual(response.data["user"]["id"], user.id)
         self.assertEqual(response.data["user"]["username"], user.username)
@@ -158,6 +159,9 @@ class CookieAuthCsrfTests(TestCase):
         )
         self.assertEqual(login_response.status_code, 200)
         self.assertIn("careflow_refresh", login_response.cookies)
+        self.assertEqual(
+            login_response.cookies["careflow_refresh"]["path"], "/v1/users/"
+        )
 
         blocked_response = self.client.post(
             "/v1/users/token/refresh/",

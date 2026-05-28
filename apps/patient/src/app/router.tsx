@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import { AllergiesPage } from "../features/allergies/pages/AllergiesPage";
 import { AppointmentsPage } from "../features/appointments/pages/AppointmentsPage";
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { MedicalSummaryPage } from "../features/medical-summary/pages/MedicalSummaryPage";
@@ -19,7 +18,6 @@ export function PortalRoutes() {
       <Route path="/records" element={<MedicalSummaryPage />} />
       <Route path="/medications" element={<MedicationsPage />} />
       <Route path="/messages" element={<MessagesPage />} />
-      <Route path="/allergies" element={<AllergiesPage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -8,6 +8,7 @@ import {
   ModalShell,
   TimelineFeed,
 } from "../../../shared/components/ui";
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 import { useModalPresence } from "../../../shared/hooks/useModalPresence";
 import {
   formatDateOnlyInTimeZone,
@@ -143,6 +144,7 @@ export default function AppointmentHistoryModal({
   const [entries, setEntries] = useState<AppointmentHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const showLoading = useMinimumLoading(loading);
 
   useEffect(() => {
     if (!isOpen || !appointmentId || !facilityId) return;
@@ -219,6 +221,7 @@ export default function AppointmentHistoryModal({
       }
       maxWidth="lg"
       zIndex={90}
+      panelClassName="h-[min(85dvh,640px)]"
       footer={
         <Button
           type="button"
@@ -238,13 +241,15 @@ export default function AppointmentHistoryModal({
             Change History
           </div>
           <Badge variant="outline">
-            {loading
+            {showLoading
               ? "Loading..."
-              : `${entries.length} event${entries.length === 1 ? "" : "s"}`}
+              : loading
+                ? ""
+                : `${entries.length} event${entries.length === 1 ? "" : "s"}`}
           </Badge>
         </div>
 
-        {loading ? (
+        {showLoading ? (
           <HistoryState
             title="Loading activity log"
             body="Pulling the latest activity for this appointment."
@@ -255,7 +260,7 @@ export default function AppointmentHistoryModal({
             title="Unable to load activity log"
             body={error}
           />
-        ) : timelineEvents.length === 0 ? (
+        ) : loading ? null : timelineEvents.length === 0 ? (
           <HistoryState
             title="No activity yet"
             body="Changes will appear here after this appointment is updated."

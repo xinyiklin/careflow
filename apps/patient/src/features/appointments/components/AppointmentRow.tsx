@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
-import { Badge } from "../../../shared/components/ui/Badge";
+import { Badge, Button, Card, Modal } from "../../../shared/ui";
+import type { BadgeTone } from "../../../shared/ui";
 import { formatFacilityLocalDateTime } from "../../../shared/utils/dates";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import { useCancelAppointment } from "../../schedule/api/schedule";
@@ -8,95 +10,127 @@ import type { PortalAppointment } from "../api/appointments";
 
 const CANCELLED_CODES = new Set(["cancelled", "canceled", "no_show", "noshow"]);
 
-function statusTone(
-  code: string
-): "neutral" | "success" | "warning" | "danger" {
+function statusTone(code: string): BadgeTone {
   const normalized = (code || "").toLowerCase();
   if (CANCELLED_CODES.has(normalized)) return "danger";
   if (normalized === "completed" || normalized === "checked_out") {
     return "success";
   }
-  if (normalized === "confirmed" || normalized === "scheduled") {
-    return "neutral";
-  }
-  return "neutral";
+  return "accent";
 }
 
-export function AppointmentRow({
-  appointment,
-}: {
+type AppointmentRowProps = {
   appointment: PortalAppointment;
-}) {
+};
+
+export function AppointmentRow({ appointment }: AppointmentRowProps) {
+  const { t } = useTranslation();
   const when = formatFacilityLocalDateTime(
     appointment.appointment_time,
     appointment.facility_timezone
   );
-  const provider = appointment.provider_display_name || "—";
+  const provider = appointment.provider_display_name || "";
   const type = appointment.appointment_type_name;
 
   const cancelMutation = useCancelAppointment();
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   const canCancel = Boolean(appointment.cancel_eligibility?.can_cancel);
   const cutoffHours = appointment.cancel_eligibility?.cutoff_hours ?? 0;
 
-  const handleCancel = async () => {
-    if (!canCancel) return;
-    const ok = window.confirm(
-      "Cancel this appointment? You'll need to call the office if you change your mind."
-    );
-    if (!ok) return;
+  const handleConfirmCancel = async () => {
     setError(null);
     try {
       await cancelMutation.mutateAsync(appointment.id);
+      setConfirmOpen(false);
     } catch (err) {
       setError(getErrorMessage(err));
     }
   };
 
   return (
-    <li className="border-t border-cf-border py-3 first:border-t-0">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium text-cf-text">{when}</div>
-          {type ? (
-            <div className="mt-0.5 text-xs text-cf-text-muted">{type}</div>
-          ) : null}
+    <>
+      <Card padded={false} className="p-4 sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-medium text-text">{provider}</div>
+            {type ? (
+              <div className="mt-0.5 text-xs text-text-muted">{type}</div>
+            ) : null}
+            <div className="mt-2 text-sm text-text-muted">{when}</div>
+            <div className="mt-1 text-xs text-text-subtle">
+              <span>{appointment.facility_name}</span>
+              {appointment.room ? (
+                <span>
+                  {" "}
+                  · {t("appointments.roomLabel", { room: appointment.room })}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+            <Badge tone={statusTone(appointment.status_code)}>
+              {appointment.status_name}
+            </Badge>
+            {canCancel ? (
+              <div className="flex flex-col items-start gap-1 sm:items-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={cancelMutation.isPending}
+                >
+                  {cancelMutation.isPending
+                    ? t("appointments.cancelling")
+                    : t("appointments.cancel")}
+                </Button>
+                <span className="text-[11px] text-text-subtle">
+                  {t("appointments.cancelCutoffHint", { hours: cutoffHours })}
+                </span>
+              </div>
+            ) : null}
+          </div>
         </div>
-        <Badge tone={statusTone(appointment.status_code)}>
-          {appointment.status_name}
-        </Badge>
-      </div>
-      <div className="mt-1.5 text-xs text-cf-text-subtle">
-        <span>{provider}</span>
-        <span className="mx-1.5 text-cf-border-strong">·</span>
-        <span>{appointment.facility_name}</span>
-        {appointment.room ? (
-          <>
-            <span className="mx-1.5 text-cf-border-strong">·</span>
-            <span>Room {appointment.room}</span>
-          </>
+
+        {error ? (
+          <p role="alert" className="mt-3 text-xs text-danger">
+            {error}
+          </p>
         ) : null}
-      </div>
+      </Card>
 
-      {canCancel ? (
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <span className="text-[11px] text-cf-text-subtle">
-            Cancel online up to {cutoffHours}h before the visit
-          </span>
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={cancelMutation.isPending}
-            className="rounded-cf-control border border-cf-border bg-cf-surface px-2.5 py-1 text-[11px] font-semibold text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {cancelMutation.isPending ? "Cancelling..." : "Cancel"}
-          </button>
+      <Modal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title={t("appointments.confirmCancelTitle")}
+        description={t("appointments.confirmCancelBody")}
+        size="sm"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setConfirmOpen(false)}
+              disabled={cancelMutation.isPending}
+            >
+              {t("appointments.confirmKeep")}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleConfirmCancel}
+              isLoading={cancelMutation.isPending}
+            >
+              {t("appointments.confirmCancel")}
+            </Button>
+          </>
+        }
+      >
+        <div className="text-sm text-text-muted">
+          <p className="font-medium text-text">{provider}</p>
+          {type ? <p className="mt-0.5 text-text-muted">{type}</p> : null}
+          <p className="mt-1">{when}</p>
         </div>
-      ) : null}
-
-      {error ? (
-        <p className="mt-1 text-[11px] text-cf-danger-text">{error}</p>
-      ) : null}
-    </li>
+      </Modal>
+    </>
   );
 }

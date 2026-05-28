@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArchiveRestore, Lock, MessageSquare } from "lucide-react";
 
 import { Badge, Button, EmptyState } from "../../../shared/components/ui";
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 import {
   useCloseThread,
   useMessageThread,
@@ -31,6 +32,7 @@ export default function ThreadDetailPanel({
   canRespond,
 }: ThreadDetailPanelProps) {
   const detailQuery = useMessageThread({ threadId, facilityId });
+  const showDetailLoading = useMinimumLoading(detailQuery.isLoading);
   const replyMutation = useReplyToThread({ facilityId });
   const closeMutation = useCloseThread({ facilityId });
   const reopenMutation = useReopenThread({ facilityId });
@@ -108,11 +110,17 @@ export default function ThreadDetailPanel({
     );
   }
 
-  if (detailQuery.isLoading) {
+  if (showDetailLoading) {
     return (
       <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-cf-surface-muted/30 px-6 text-sm text-cf-text-muted">
         Loading conversation…
       </div>
+    );
+  }
+
+  if (detailQuery.isLoading) {
+    return (
+      <div className="flex h-full min-h-0 flex-1 items-center justify-center bg-cf-surface-muted/30 px-6" />
     );
   }
 

@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Building2, CheckCircle2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
+import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
+import { Button, Card, Field, Select } from "../../../shared/ui";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
   usePortalPharmacies,
   type PortalPharmacy,
 } from "../../medications/api/pharmacies";
 import { useUpdatePreferredPharmacy } from "../api/profile";
+import { SectionHeader } from "./sectionUi";
 
 type PreferredPharmacySectionProps = {
   preferredPharmacyName: string;
@@ -27,8 +31,10 @@ function matchByName(
 export function PreferredPharmacySection({
   preferredPharmacyName,
 }: PreferredPharmacySectionProps) {
+  const { t } = useTranslation();
   const pharmaciesQuery = usePortalPharmacies();
   const updatePharmacy = useUpdatePreferredPharmacy();
+  const showPharmaciesLoading = useMinimumLoading(pharmaciesQuery.isLoading);
 
   const pharmacies = useMemo(
     () => pharmaciesQuery.data ?? [],
@@ -98,132 +104,132 @@ export function PreferredPharmacySection({
   const isPending = updatePharmacy.isPending;
 
   return (
-    <section className="border-t border-cf-border pt-4">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-cf-text-subtle">
-          Preferred Pharmacy
-        </h3>
-        {saved ? (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cf-success-text">
-            <CheckCircle2 size={12} aria-hidden="true" />
-            Saved
-          </span>
-        ) : null}
-      </div>
+    <Card padded>
+      <div className="space-y-4">
+        <SectionHeader
+          title={t("profile.preferredPharmacyHeading")}
+          actions={
+            saved ? (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                <CheckCircle2 size={12} aria-hidden="true" />
+                {t("profile.preferredPharmacySaved")}
+              </span>
+            ) : null
+          }
+        />
 
-      {!editing ? (
-        <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex items-start gap-2">
-            <Building2
-              size={16}
-              aria-hidden="true"
-              className="mt-0.5 shrink-0 text-cf-text-subtle"
-            />
-            {hasPreferred ? (
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-cf-text">
-                  {preferredPharmacyName}
-                </div>
-                <p className="mt-0.5 text-xs text-cf-text-muted">
-                  Refill requests default to this pharmacy.
-                </p>
+        {!editing ? (
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-soft text-text-muted">
+                <Building2 size={16} aria-hidden="true" />
               </div>
-            ) : (
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-cf-text">
-                  No pharmacy selected
-                </div>
-                <p className="mt-0.5 text-xs text-cf-text-muted">
-                  Pick one so refill requests have a default destination.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={startEditing}
-            className="inline-flex items-center gap-1.5 rounded-cf-control border border-cf-border bg-cf-surface px-3 py-1.5 text-xs font-semibold text-cf-text transition hover:bg-cf-surface-soft"
-          >
-            {hasPreferred ? "Change" : "Choose pharmacy"}
-          </button>
-        </div>
-      ) : (
-        <div className="mt-3 space-y-3">
-          <label htmlFor="preferred-pharmacy-select" className="sr-only">
-            Preferred pharmacy
-          </label>
-          {pharmaciesQuery.isLoading ? (
-            <p className="text-sm text-cf-text-muted">Loading pharmacies…</p>
-          ) : pharmaciesQuery.isError ? (
-            <p className="text-sm text-cf-danger-text">
-              {getErrorMessage(pharmaciesQuery.error)}
-            </p>
-          ) : pharmacies.length === 0 ? (
-            <p className="text-sm text-cf-text-muted">
-              No pharmacies available at your facility.
-            </p>
-          ) : (
-            <select
-              id="preferred-pharmacy-select"
-              value={selectedId}
-              onChange={(event) =>
-                setSelectedId(
-                  event.target.value === "" ? "" : Number(event.target.value)
-                )
-              }
-              className="w-full rounded-cf-control border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text focus:border-cf-accent focus:outline-none"
-            >
-              <option value="">No preferred pharmacy</option>
-              {pharmacies.map((pharmacy) => (
-                <option key={pharmacy.id} value={pharmacy.id}>
-                  {pharmacy.name}
-                  {pharmacy.city ? ` — ${pharmacy.city}` : ""}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {error ? (
-            <p role="alert" className="text-sm text-cf-danger-text">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
               {hasPreferred ? (
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  disabled={isPending}
-                  className="text-xs font-semibold text-cf-text-muted underline-offset-2 hover:text-cf-text hover:underline disabled:opacity-50"
-                >
-                  Clear preferred pharmacy
-                </button>
-              ) : null}
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-text">
+                    {preferredPharmacyName}
+                  </div>
+                  <p className="mt-0.5 text-xs text-text-muted">
+                    {t("profile.preferredPharmacyDefaultHelp")}
+                  </p>
+                </div>
+              ) : (
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-text">
+                    {t("profile.preferredPharmacyEmpty")}
+                  </div>
+                  <p className="mt-0.5 text-xs text-text-muted">
+                    {t("profile.preferredPharmacyEmptyHelp")}
+                  </p>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={cancelEditing}
-                disabled={isPending}
-                className="inline-flex items-center rounded-cf-control border border-cf-border bg-cf-surface px-3 py-1.5 text-xs font-semibold text-cf-text transition hover:bg-cf-surface-soft disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={isPending || pharmacies.length === 0}
-                className="inline-flex items-center rounded-cf-control bg-cf-accent px-3 py-1.5 text-xs font-semibold text-cf-surface transition hover:bg-cf-accent-hover disabled:opacity-60"
-              >
-                {isPending ? "Saving…" : "Save"}
-              </button>
+
+            <Button variant="secondary" size="sm" onClick={startEditing}>
+              {hasPreferred
+                ? t("profile.preferredPharmacyChange")
+                : t("profile.preferredPharmacyChoose")}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {showPharmaciesLoading ? (
+              <p className="text-sm text-text-muted">
+                {t("profile.preferredPharmacyLoading")}
+              </p>
+            ) : pharmaciesQuery.isLoading ? null : pharmaciesQuery.isError ? (
+              <p className="text-sm text-danger">
+                {getErrorMessage(pharmaciesQuery.error)}
+              </p>
+            ) : pharmacies.length === 0 ? (
+              <p className="text-sm text-text-muted">
+                {t("profile.preferredPharmacyEmptyFacility")}
+              </p>
+            ) : (
+              <Field label={t("profile.preferredPharmacyHeading")}>
+                <Select
+                  value={selectedId}
+                  onChange={(event) =>
+                    setSelectedId(
+                      event.target.value === ""
+                        ? ""
+                        : Number(event.target.value)
+                    )
+                  }
+                >
+                  <option value="">{t("profile.preferredPharmacyNone")}</option>
+                  {pharmacies.map((pharmacy) => (
+                    <option key={pharmacy.id} value={pharmacy.id}>
+                      {pharmacy.name}
+                      {pharmacy.city ? `, ${pharmacy.city}` : ""}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            )}
+
+            {error ? (
+              <p role="alert" className="text-sm text-danger">
+                {error}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                {hasPreferred ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClear}
+                    disabled={isPending}
+                  >
+                    {t("profile.preferredPharmacyClear")}
+                  </Button>
+                ) : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={cancelEditing}
+                  disabled={isPending}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSave}
+                  isLoading={isPending}
+                  disabled={isPending || pharmacies.length === 0}
+                >
+                  {isPending ? t("profile.saving") : t("common.save")}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </section>
+        )}
+      </div>
+    </Card>
   );
 }

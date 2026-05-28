@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 
 import { ORGANIZATION_PERMISSION_KEYS } from "../../constants/organizationPermissions";
+import useMinimumLoading from "../../../../shared/hooks/useMinimumLoading";
 import RoleTypeCard from "../shared/RoleTypeCard";
 
 import type { OrgSecurityRole } from "../../api/organization/security";
@@ -18,12 +19,18 @@ export default function OrganizationRoleTypesView({
   onEditRole?: (role: OrgSecurityRole) => void;
   onAddRole?: () => void;
 }) {
-  if (loading) {
+  const showLoading = useMinimumLoading(loading);
+
+  if (showLoading) {
     return (
       <div className="rounded-2xl border border-dashed border-cf-border px-5 py-10 text-center text-sm text-cf-text-muted">
         Loading role types…
       </div>
     );
+  }
+
+  if (loading) {
+    return null;
   }
 
   if (roles.length === 0) {
