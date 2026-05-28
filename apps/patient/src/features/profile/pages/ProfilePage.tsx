@@ -9,6 +9,7 @@ import { EmptyState } from "../../../shared/components/ui/EmptyState";
 import { formatDateOnly } from "../../../shared/utils/dates";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import { useProfile, useUpdateProfile } from "../api/profile";
+import { PreferredPharmacySection } from "../components/PreferredPharmacySection";
 
 type Row = { label: string; value: ReactNode };
 type Tab = "personal" | "contact" | "emergency" | "insurance";
@@ -691,6 +692,9 @@ export function ProfilePage() {
                     ]}
                   />
                 </div>
+                <PreferredPharmacySection
+                  preferredPharmacyName={patient.preferred_pharmacy_name ?? ""}
+                />
               </div>
             )}
 
