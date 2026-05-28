@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
 import { Navigate, createBrowserRouter } from "react-router-dom";
 
 import App from "./App";
@@ -143,51 +143,12 @@ const devPreviewRoutes = import.meta.env.DEV
     ]
   : [];
 
-function DelayedFallback({
-  children,
-  // 300ms — long enough that preloaded chunks don't flicker the
-  // fallback at all, short enough that genuinely slow loads still get
-  // visible feedback.
-  delayMs = 300,
-}: {
-  children: ReactNode;
-  delayMs?: number;
-}) {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShow(true), delayMs);
-    return () => clearTimeout(timer);
-  }, [delayMs]);
-
-  return show ? <>{children}</> : null;
-}
-
+// Lazy route chunks resolve through Suspense with a null fallback —
+// no intermediate "Preparing view" panel. The shell (sidebar + navbar)
+// stays visible; the content area is briefly empty until the chunk
+// arrives, matching the accepted gap pattern used elsewhere.
 function PageRouteLoader({ children }: { children: ReactNode }) {
-  return (
-    <Suspense
-      fallback={
-        <DelayedFallback>
-          <div className="flex h-full min-h-0 items-center justify-center bg-cf-page-bg px-4">
-            <div className="cf-ui-panel w-full max-w-sm px-5 py-5">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-                CareFlow
-              </div>
-              <div className="mt-1 text-base font-semibold text-cf-text">
-                Preparing view
-              </div>
-              <div className="mt-4 space-y-2" aria-hidden="true">
-                <div className="h-2.5 w-11/12 rounded-full bg-cf-surface-soft" />
-                <div className="h-2.5 w-8/12 rounded-full bg-cf-surface-soft" />
-              </div>
-            </div>
-          </div>
-        </DelayedFallback>
-      }
-    >
-      {children}
-    </Suspense>
-  );
+  return <Suspense fallback={null}>{children}</Suspense>;
 }
 
 const router = createBrowserRouter([
