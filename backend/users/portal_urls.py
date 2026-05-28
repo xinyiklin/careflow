@@ -10,12 +10,26 @@ from appointments.portal_scheduling_views import (
 )
 from appointments.portal_views import PortalAppointmentListView
 from clinical.portal_views import PortalMedicalSummaryView
-from medications.portal_views import PortalMedicationListView
+from medications.portal_views import (
+    PortalMedicationListView,
+    PortalPharmacyListView,
+    RefillRequestCancelView,
+    RefillRequestListCreateView,
+)
 
-from .portal_views import PortalDemoLoginView, PortalMeView
+from .portal_views import (
+    PortalDemoLoginView,
+    PortalMeView,
+    PortalPreferredPharmacyView,
+)
 
 urlpatterns = [
     path("me/", PortalMeView.as_view(), name="portal_me"),
+    path(
+        "me/preferred-pharmacy/",
+        PortalPreferredPharmacyView.as_view(),
+        name="portal_me_preferred_pharmacy",
+    ),
     path("demo-login/", PortalDemoLoginView.as_view(), name="portal_demo_login"),
     path(
         "appointments/",
@@ -51,6 +65,21 @@ urlpatterns = [
         "medications/",
         PortalMedicationListView.as_view(),
         name="portal_medications",
+    ),
+    path(
+        "refill-requests/",
+        RefillRequestListCreateView.as_view(),
+        name="portal_refill_requests",
+    ),
+    path(
+        "refill-requests/<int:pk>/cancel/",
+        RefillRequestCancelView.as_view(),
+        name="portal_refill_request_cancel",
+    ),
+    path(
+        "pharmacies/",
+        PortalPharmacyListView.as_view(),
+        name="portal_pharmacies",
     ),
     path("allergies/", PortalAllergyListView.as_view(), name="portal_allergies"),
     path(
