@@ -12,6 +12,7 @@ import {
   BillingPage,
   DocumentsPage,
   FacilityAdminPage,
+  InboxPage,
   OrganizationAdminPage,
   SchedulePage,
 } from "./routeModules";
@@ -242,7 +243,11 @@ const router = createBrowserRouter([
           },
           {
             path: "inbox",
-            element: <Navigate to="/schedule" replace />,
+            element: (
+              <PageRouteLoader>
+                <InboxPage />
+              </PageRouteLoader>
+            ),
           },
           {
             path: "tasks",
