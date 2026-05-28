@@ -2,6 +2,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Appointment
+from .scheduling import cancellation_cutoff_for, cancellation_window_open
 
 
 class PortalAppointmentSerializer(serializers.ModelSerializer):
@@ -27,6 +28,7 @@ class PortalAppointmentSerializer(serializers.ModelSerializer):
     )
     provider_display_name = serializers.SerializerMethodField()
     duration_minutes = serializers.SerializerMethodField()
+    cancel_eligibility = serializers.SerializerMethodField()
 
     class Meta:
         model = Appointment
@@ -44,6 +46,7 @@ class PortalAppointmentSerializer(serializers.ModelSerializer):
             "provider_display_name",
             "room",
             "reason",
+            "cancel_eligibility",
         ]
         read_only_fields = fields
 
@@ -59,3 +62,14 @@ class PortalAppointmentSerializer(serializers.ModelSerializer):
     def get_facility_timezone(self, obj):
         tz = getattr(obj.facility, "timezone", None)
         return str(tz) if tz else ""
+
+    @extend_schema_field(
+        serializers.DictField(
+            child=serializers.IntegerField(), help_text="can_cancel + cutoff_hours"
+        )
+    )
+    def get_cancel_eligibility(self, obj):
+        return {
+            "can_cancel": cancellation_window_open(obj),
+            "cutoff_hours": cancellation_cutoff_for(obj),
+        }

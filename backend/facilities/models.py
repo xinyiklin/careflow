@@ -52,6 +52,16 @@ class Facility(models.Model):
         blank=True,
         related_name="linked_facilities",
     )
+
+    # --- Online scheduling (patient portal) ---
+    # Master kill-switch: when True, the portal does not surface any
+    # bookable slot from this facility, regardless of per-provider or
+    # per-type opt-in. Negative default so the kill-switch never
+    # accidentally turns the feature on.
+    online_scheduling_disabled = models.BooleanField(default=False)
+    online_cancellation_enabled = models.BooleanField(default=False)
+    cancellation_cutoff_hours = models.PositiveSmallIntegerField(default=24)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -340,6 +350,16 @@ class AppointmentType(models.Model):
     is_billable = models.BooleanField(default=True)
     is_deletable = models.BooleanField(default=True)
 
+    # --- Online scheduling (patient portal) ---
+    # Whether this appointment type is exposed to patients in the portal
+    # scheduling flow. In-person vs telehealth is encoded in the type
+    # itself ("Follow-up", "Telehealth visit") — no separate toggle.
+    bookable_online = models.BooleanField(default=False)
+    # When True, portal bookings of this type auto-confirm; else they
+    # land in `pending` for staff review. Final resolution AND-merges
+    # this with `Staff.auto_confirm_bookings` (least permissive wins).
+    auto_confirm_bookings = models.BooleanField(default=False)
+
     class Meta:
         unique_together = ("facility", "code")
         ordering = ["name"]
@@ -461,6 +481,20 @@ class Staff(models.Model):
         blank=True,
         related_name="linked_staff",
     )
+
+    # --- Online scheduling (patient portal) ---
+    # Provider opts in to portal bookings. Combined with
+    # `AppointmentType.bookable_online` (and the facility kill-switch)
+    # to decide whether a slot is offered to patients.
+    online_scheduling_enabled = models.BooleanField(default=False)
+    # Provider's auto-confirm preference. AND-merged with the type's
+    # `auto_confirm_bookings`; if either says "no", booking is `pending`.
+    auto_confirm_bookings = models.BooleanField(default=False)
+    # Per-provider cancellation policy. AND-merged with the facility's
+    # `online_cancellation_enabled`. Cutoff uses the largest (most
+    # restrictive) value between facility and provider.
+    online_cancellation_enabled = models.BooleanField(default=False)
+    cancellation_cutoff_hours = models.PositiveSmallIntegerField(default=24)
 
     class Meta:
         unique_together = ("user", "facility")

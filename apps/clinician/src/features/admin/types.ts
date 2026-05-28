@@ -73,6 +73,9 @@ export type AdminFacility = Facility & {
   fee_schedule_name?: string | null;
   operating_days?: Array<string | number> | null;
   custom_operating_hours?: AdminCustomOperatingHours[] | null;
+  online_scheduling_disabled?: boolean | null;
+  online_cancellation_enabled?: boolean | null;
+  cancellation_cutoff_hours?: number | null;
 };
 
 export type AdminFacilityForm = ApiPayload & {
@@ -89,6 +92,9 @@ export type AdminFacilityForm = ApiPayload & {
   notes: string;
   is_active: boolean;
   address: AdminAddressForm;
+  online_scheduling_disabled: boolean;
+  online_cancellation_enabled: boolean;
+  cancellation_cutoff_hours: number;
 };
 
 export type AdminAppointmentType = {
@@ -100,6 +106,8 @@ export type AdminAppointmentType = {
   is_active?: boolean | null;
   is_billable?: boolean | null;
   is_deletable?: boolean | null;
+  bookable_online?: boolean | null;
+  auto_confirm_bookings?: boolean | null;
 };
 
 export type AdminAppointmentStatus = {
@@ -164,6 +172,10 @@ export type AdminStaff = StaffLike & {
   security_overrides?: SecurityPermissions | null;
   resource_operating_start_time?: string | null;
   resource_operating_end_time?: string | null;
+  online_scheduling_enabled?: boolean | null;
+  auto_confirm_bookings?: boolean | null;
+  online_cancellation_enabled?: boolean | null;
+  cancellation_cutoff_hours?: number | null;
   user?: {
     id?: EntityId;
     first_name?: string | null;

@@ -16,6 +16,10 @@ export type PortalAppointment = {
   provider_display_name: string;
   room: string | null;
   reason: string | null;
+  cancel_eligibility?: {
+    can_cancel: boolean;
+    cutoff_hours: number;
+  };
 };
 
 export function useUpcomingAppointments() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, Palette, Eye } from "lucide-react";
+import { Activity, Palette, Eye, Globe } from "lucide-react";
 
 import ColorPickerField from "../../../../shared/components/ColorPickerField";
 import { Input } from "../../../../shared/components/ui";
@@ -18,6 +18,8 @@ const DEFAULT_FORM = {
   duration_minutes: 15,
   is_active: true,
   is_billable: true,
+  bookable_online: false,
+  auto_confirm_bookings: false,
 };
 
 export default function AppointmentTypeModal({
@@ -56,6 +58,8 @@ export default function AppointmentTypeModal({
           typeof initialValues.is_billable === "boolean"
             ? initialValues.is_billable
             : true,
+        bookable_online: Boolean(initialValues.bookable_online),
+        auto_confirm_bookings: Boolean(initialValues.auto_confirm_bookings),
       });
     } else {
       setFormData(DEFAULT_FORM);
@@ -248,7 +252,53 @@ export default function AppointmentTypeModal({
           />
         </div>
 
-        {/* Section 3: Live Preview */}
+        {/* Section 3: Online Booking */}
+        <div className="border-t border-cf-border/60 pt-5 space-y-3">
+          <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+            <Globe className="h-4 w-4 text-cf-accent" />
+            Online Booking
+          </h3>
+
+          <label className="flex items-start gap-3 rounded-xl border border-cf-border bg-cf-surface px-3 py-2.5 cursor-pointer hover:bg-cf-surface-soft transition">
+            <input
+              type="checkbox"
+              name="bookable_online"
+              checked={formData.bookable_online}
+              onChange={handleChange}
+              className="mt-0.5 h-4 w-4 accent-[var(--color-cf-accent)] cursor-pointer"
+            />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-cf-text">
+                Bookable through the patient portal
+              </div>
+              <div className="text-[11px] text-cf-text-muted mt-0.5">
+                Patients can pick this appointment type when scheduling online.
+              </div>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 rounded-xl border border-cf-border bg-cf-surface px-3 py-2.5 cursor-pointer hover:bg-cf-surface-soft transition">
+            <input
+              type="checkbox"
+              name="auto_confirm_bookings"
+              checked={formData.auto_confirm_bookings}
+              onChange={handleChange}
+              disabled={!formData.bookable_online}
+              className="mt-0.5 h-4 w-4 accent-[var(--color-cf-accent)] cursor-pointer disabled:opacity-40"
+            />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-cf-text">
+                Auto-confirm portal bookings
+              </div>
+              <div className="text-[11px] text-cf-text-muted mt-0.5">
+                When off, this type's portal bookings land as <em>pending</em>{" "}
+                for staff review. The provider must also enable auto-confirm.
+              </div>
+            </div>
+          </label>
+        </div>
+
+        {/* Section 4: Live Preview */}
         <div className="border-t border-cf-border/60 pt-5 space-y-4">
           <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
             <Eye className="h-4 w-4 text-cf-accent" />
