@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 import useAdminPermissions from "../../features/admin/hooks/shared/useAdminPermissions";
 import useFacility from "../../features/facilities/hooks/useFacility";
+import { useMessageThreads } from "../../features/messaging/api/messaging";
 import { APP_NAME } from "../../shared/constants/app";
 import {
   SIDEBAR_COLLAPSED_WIDTH,
@@ -27,10 +28,23 @@ export default function AppSidebar({
     canAccessOrganizationAdmin,
     hasAnyAdminAccess,
   } = useAdminPermissions();
-  const { selectedMembership } = useFacility();
-  const canViewBilling = Boolean(
-    selectedMembership?.effective_security_permissions?.["billing.view"]
-  );
+  const { selectedFacilityId, selectedMembership } = useFacility();
+  const permissions = selectedMembership?.effective_security_permissions || {};
+  const canViewBilling = Boolean(permissions["billing.view"]);
+  const canViewMessaging = Boolean(permissions["messaging.view"]);
+
+  // Poll open threads so the sidebar badge reflects new patient messages
+  // without a hard refresh. Disabled when the user lacks messaging access.
+  const messagingThreadsQuery = useMessageThreads({
+    facilityId: selectedFacilityId,
+    status: "open",
+    enabled: canViewMessaging,
+  });
+  const inboxUnreadCount = canViewMessaging
+    ? (messagingThreadsQuery.data ?? []).filter(
+        (thread) => thread.unread_for_clinician
+      ).length
+    : 0;
 
   const navItems = getSidebarNavItems({
     location,
@@ -39,6 +53,8 @@ export default function AppSidebar({
     canAccessOrganizationAdmin,
     hasAnyAdminAccess,
     canViewBilling,
+    canViewMessaging,
+    inboxUnreadCount,
   });
 
   return (
@@ -98,6 +114,7 @@ export default function AppSidebar({
                   isActive={item.isActive}
                   isCollapsed={isCollapsed}
                   onClick={item.onClick}
+                  badgeCount={item.badgeCount}
                 />
               ))}
             </div>
