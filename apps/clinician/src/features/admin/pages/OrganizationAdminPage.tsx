@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 
-import { useBootReadiness } from "../../../app/BootReadinessContext";
 import OrganizationOverviewPanel from "../components/organization/OrganizationOverviewPanel";
 import FacilitiesPanel from "../components/organization/FacilitiesPanel";
 import OrganizationFeeSchedulePanel from "../components/organization/OrganizationFeeSchedulePanel";
@@ -31,11 +30,10 @@ export default function OrganizationAdminPage() {
     canAccessOrganizationAdmin,
     canManageOrganizationPharmacies,
   } = useAdminPermissions();
-  const { setRouteReady } = useBootReadiness();
-
-  useEffect(() => {
-    setRouteReady(true);
-  }, [setRouteReady]);
+  // Each section panel gates its own body behind its primary query
+  // so it doesn't render with empty fields. Tab switches show the
+  // new panel's loading indicator until its data resolves — no
+  // route- or tab-level coordination is needed here.
 
   const availableSections = useMemo(() => {
     if (isOrgAdmin) return ORGANIZATION_SECTIONS;

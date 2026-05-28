@@ -124,7 +124,13 @@ export function ChipPicker<TOption extends AppointmentPickerOption>({
       <div
         className={[
           "flex gap-2",
-          singleRow ? "overflow-x-auto pb-1" : "flex-wrap",
+          singleRow
+            ? // Keep horizontal scrolling but hide the visible scrollbar:
+              // ``[scrollbar-width:none]`` covers Firefox + the modern
+              // CSS standard, ``[&::-webkit-scrollbar]:hidden`` covers
+              // Chrome/Safari/Edge.
+              "overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            : "flex-wrap",
         ].join(" ")}
       >
         {options.map((option) => {

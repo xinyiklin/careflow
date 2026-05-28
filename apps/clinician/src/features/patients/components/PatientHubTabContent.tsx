@@ -72,6 +72,7 @@ type PatientHubTabContentProps = {
   onOpenAppointment: (appointment: AppointmentLike) => Promise<void>;
   onScheduleEncounter: () => void;
   onOpenProgressNote: (encounter: ClinicalEncounter) => void;
+  onOpenVitals?: (encounter: ClinicalEncounter) => void;
   onStartClinicalEncounter: (appointment?: AppointmentLike | null) => void;
   onSaveBillingRecord: (
     record: EncounterBillingRecord | null,
@@ -188,6 +189,7 @@ export default function PatientHubTabContent(props: PatientHubTabContentProps) {
         queryState={props.clinicalQuery}
         canCreate={props.canCreateClinical}
         onOpenEncounter={props.onOpenProgressNote}
+        onOpenVitals={props.onOpenVitals}
         onStartEncounter={props.onStartClinicalEncounter}
         onOpenAppointment={props.onOpenAppointment}
       />

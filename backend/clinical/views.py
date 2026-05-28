@@ -11,8 +11,8 @@ from facilities.security import user_has_facility_permission
 from patients.models import Patient
 from shared.scoping import FacilityScopedViewSetMixin
 
-from .models import Encounter, ProgressNote
-from .serializers import EncounterSerializer, ProgressNoteSerializer
+from .models import Encounter, ProgressNote, Vitals
+from .serializers import EncounterSerializer, ProgressNoteSerializer, VitalsSerializer
 
 
 class ClinicalViewSetMixin(FacilityScopedViewSetMixin):
@@ -318,3 +318,67 @@ class ProgressNoteViewSet(
             )
 
         return Response(self.get_serializer(note).data)
+
+
+class VitalsViewSet(
+    ClinicalViewSetMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Clinician-side CRUD for the per-encounter Vitals row.
+
+    The relationship is 1:1 (``Vitals.encounter``); list is intentionally
+    supported and filtered by ``?encounter=<id>`` so the frontend can
+    fetch either "the vitals for this encounter" or an empty list,
+    rather than relying on retrieve-by-id when it doesn't know the id.
+    """
+
+    serializer_class = VitalsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "post", "patch", "head", "options"]
+
+    def get_queryset(self):
+        facility = self.require_clinical_permission("clinical.view")
+        queryset = (
+            Vitals.objects.filter(encounter__facility=facility)
+            .select_related("encounter", "recorded_by")
+            .order_by("-measured_at", "-id")
+        )
+
+        encounter_id = self.request.query_params.get("encounter")
+        if encounter_id:
+            try:
+                encounter_id_int = int(encounter_id)
+            except (TypeError, ValueError):
+                raise ValidationError({"encounter": ["Must be a positive integer."]})
+            self._ensure_encounter_is_in_facility(encounter_id_int, facility)
+            queryset = queryset.filter(encounter_id=encounter_id_int)
+        return queryset
+
+    def _ensure_encounter_is_in_facility(self, encounter_id, facility):
+        encounter = (
+            Encounter.objects.filter(pk=encounter_id).only("facility_id").first()
+        )
+        if encounter and encounter.facility_id != facility.id:
+            raise PermissionDenied("You do not have access to this encounter.")
+
+    def perform_create(self, serializer):
+        facility = self.require_clinical_permission("clinical.create")
+        encounter = serializer.validated_data.get("encounter")
+        if not encounter or encounter.facility_id != facility.id:
+            raise PermissionDenied("Encounter must belong to your facility.")
+        if encounter.status == Encounter.STATUS_SIGNED:
+            raise ValidationError(
+                {"encounter": ["Cannot record vitals on a signed encounter."]}
+            )
+        serializer.save(recorded_by=self.request.user)
+
+    def perform_update(self, serializer):
+        facility = self.require_clinical_permission("clinical.update")
+        encounter = serializer.instance.encounter
+        if encounter.facility_id != facility.id:
+            raise PermissionDenied("You do not have access to this encounter.")
+        serializer.save(recorded_by=self.request.user)

@@ -363,11 +363,7 @@ export default function OrganizationActivityLogPanel({
 
         {viewMode === "timeline" ? (
           <div className="border-t border-cf-border bg-cf-surface px-5 py-4">
-            {loading && events.length === 0 ? (
-              <div className="py-10 text-center text-sm text-cf-text-muted">
-                Loading activity log...
-              </div>
-            ) : loadError ? (
+            {loading && events.length === 0 ? null : loadError ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cf-border bg-cf-surface-soft/40 px-4 py-3">
                 <div className="text-sm text-cf-text-muted">
                   Couldn&apos;t load {scopeLabel} activity log.

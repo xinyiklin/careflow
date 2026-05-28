@@ -193,7 +193,7 @@ export default function OrganizationSecurityPanel() {
           </>
         }
       >
-        {viewMode === "role-types" ? (
+        {loading ? null : viewMode === "role-types" ? (
           <OrganizationRoleTypesView
             roles={roles}
             loading={loading}
@@ -273,11 +273,9 @@ export default function OrganizationSecurityPanel() {
         ) : (
           <div className="p-4">
             <div className="rounded-2xl border border-dashed border-cf-border px-5 py-10 text-center text-sm text-cf-text-muted">
-              {loading
-                ? "Loading security permissions…"
-                : roles.length
-                  ? "No permission rows match your search."
-                  : "Unable to load organization security roles."}
+              {roles.length
+                ? "No permission rows match your search."
+                : "Unable to load organization security roles."}
             </div>
           </div>
         )}

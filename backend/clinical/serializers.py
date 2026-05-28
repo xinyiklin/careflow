@@ -3,7 +3,67 @@ from rest_framework import serializers
 
 from shared.serializers import StrictPayloadMixin
 
-from .models import Encounter, ProgressNote
+from .models import Encounter, ProgressNote, Vitals
+
+
+class VitalsSerializer(StrictPayloadMixin, serializers.ModelSerializer):
+    bmi = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vitals
+        fields = [
+            "id",
+            "encounter",
+            "height_cm",
+            "weight_kg",
+            "bp_systolic",
+            "bp_diastolic",
+            "heart_rate_bpm",
+            "respiratory_rate",
+            "temperature_c",
+            "spo2_percent",
+            "pain_score",
+            "measured_at",
+            "recorded_by",
+            "recorded_by_name",
+            "notes",
+            "bmi",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "recorded_by",
+            "recorded_by_name",
+            "bmi",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_bmi(self, obj):
+        value = obj.bmi
+        return str(value) if value is not None else None
+
+    def validate(self, attrs):
+        if self.instance and self.instance.encounter.status == Encounter.STATUS_SIGNED:
+            raise serializers.ValidationError(
+                {"encounter": ["Vitals are locked after the encounter is signed."]}
+            )
+
+        # Mirror the model-level clean() check so DRF returns a clean
+        # ``400 Bad Request`` instead of a 500 from
+        # ``full_clean()`` raising during save.
+        bp_systolic = attrs.get(
+            "bp_systolic", getattr(self.instance, "bp_systolic", None)
+        )
+        bp_diastolic = attrs.get(
+            "bp_diastolic", getattr(self.instance, "bp_diastolic", None)
+        )
+        if bp_systolic and bp_diastolic and bp_diastolic >= bp_systolic:
+            raise serializers.ValidationError(
+                {"bp_diastolic": ["Diastolic must be less than systolic."]}
+            )
+        return attrs
 
 
 class ProgressNoteSerializer(StrictPayloadMixin, serializers.ModelSerializer):

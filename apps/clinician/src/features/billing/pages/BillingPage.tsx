@@ -1,23 +1,16 @@
-import { useEffect } from "react";
 import { ShieldAlert } from "lucide-react";
 
 import BillingWorkspace from "../components/BillingWorkspace";
 import useFacility from "../../facilities/hooks/useFacility";
-import { useBootReadiness } from "../../../app/BootReadinessContext";
 import Panel from "../../../shared/components/ui/Panel";
 
 export default function BillingPage() {
   const { selectedFacilityId, selectedMembership } = useFacility();
-  const { setRouteReady } = useBootReadiness();
 
   const securityPermissions =
     selectedMembership?.effective_security_permissions || {};
   const canViewBilling = Boolean(securityPermissions["billing.view"]);
   const canManageBilling = Boolean(securityPermissions["billing.manage"]);
-
-  useEffect(() => {
-    setRouteReady(true);
-  }, [setRouteReady]);
 
   if (!canViewBilling) {
     return (
