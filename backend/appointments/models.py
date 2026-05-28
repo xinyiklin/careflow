@@ -199,3 +199,93 @@ class AppointmentEditSession(models.Model):
     def __str__(self):
         user_name = self.user_display_name or "Unknown user"
         return f"{user_name} editing appointment {self.appointment_id}"
+
+
+class BookableSlot(models.Model):
+    """Admin-curated time slot a patient can book through the portal.
+
+    No automatic slot calculation in this phase: admins explicitly create
+    one row per (provider, appointment_type, time range) they want to
+    offer online. Visibility to patients is gated by
+    ``Staff.online_scheduling_enabled``,
+    ``AppointmentType.bookable_online``, and
+    ``Facility.online_scheduling_disabled`` (kill-switch); see
+    :func:`appointments.scheduling.slot_offered`.
+    """
+
+    provider = models.ForeignKey(
+        "facilities.Staff",
+        on_delete=models.CASCADE,
+        related_name="bookable_slots",
+    )
+    appointment_type = models.ForeignKey(
+        "facilities.AppointmentType",
+        on_delete=models.PROTECT,
+        related_name="bookable_slots",
+    )
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    is_booked = models.BooleanField(default=False)
+    appointment = models.OneToOneField(
+        Appointment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bookable_slot",
+    )
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_bookable_slots",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["start_time", "id"]
+        indexes = [
+            models.Index(
+                fields=["provider", "is_booked", "start_time"],
+                name="bookable_provider_open_idx",
+            ),
+            models.Index(
+                fields=["appointment_type", "is_booked", "start_time"],
+                name="bookable_type_open_idx",
+            ),
+        ]
+
+    def clean(self):
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            raise ValidationError({"end_time": "End time must be after start time."})
+
+        if (
+            self.provider_id
+            and self.appointment_type_id
+            and self.provider.facility_id != self.appointment_type.facility_id
+        ):
+            raise ValidationError(
+                {
+                    "appointment_type": (
+                        "Appointment type must belong to the provider's facility."
+                    )
+                }
+            )
+
+        if self.is_booked and self.appointment_id is None:
+            raise ValidationError(
+                {"appointment": "Booked slots must reference an appointment."}
+            )
+        if not self.is_booked and self.appointment_id is not None:
+            raise ValidationError(
+                {"is_booked": "Slot with an appointment must be marked booked."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Slot for provider {self.provider_id} at {self.start_time}"

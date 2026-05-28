@@ -1533,6 +1533,90 @@ class Command(BaseCommand):
                 "  - Skipped portal demo account (no demo patients found)"
             )
 
+        # -----------------------------
+        # Online scheduling demo data
+        # -----------------------------
+        # Enable portal scheduling on the demo patient's facility and create
+        # a handful of forward-looking bookable slots so the patient app
+        # demos with non-empty state.
+        if portal_patient is not None:
+            from appointments.models import BookableSlot
+
+            demo_facility = portal_patient.facility
+            demo_facility.online_cancellation_enabled = True
+            demo_facility.cancellation_cutoff_hours = 24
+            demo_facility.online_scheduling_disabled = False
+            demo_facility.save()
+
+            # Enable bookable_online on common types (and auto_confirm on a
+            # couple so the demo shows both code paths).
+            bookable_codes = ["follow_up", "tele_visit", "new_patient"]
+            auto_confirm_codes = ["follow_up", "tele_visit"]
+            for code in bookable_codes:
+                appt_type = AppointmentType.objects.filter(
+                    facility=demo_facility, code=code
+                ).first()
+                if appt_type:
+                    appt_type.bookable_online = True
+                    appt_type.auto_confirm_bookings = code in auto_confirm_codes
+                    appt_type.save()
+
+            # Opt the facility's active providers into portal scheduling.
+            demo_providers = Staff.objects.filter(
+                facility=demo_facility,
+                is_active=True,
+                role__code="physician",
+            )
+            for provider in demo_providers:
+                provider.online_scheduling_enabled = True
+                provider.auto_confirm_bookings = True
+                provider.online_cancellation_enabled = True
+                provider.cancellation_cutoff_hours = 24
+                provider.save()
+
+            # Create future bookable slots for the demo providers across the
+            # next 14 days at 9:00, 10:30, 14:00 local time. Idempotent: skip
+            # slots that already exist for (provider, start_time).
+            bookable_types_for_slots = list(
+                AppointmentType.objects.filter(
+                    facility=demo_facility, bookable_online=True
+                )
+            )
+            slot_hours = [(9, 0), (10, 30), (14, 0)]
+            now = timezone.now()
+            slots_created = 0
+            for provider in demo_providers:
+                if not bookable_types_for_slots:
+                    break
+                for day_offset in range(1, 15):
+                    base = (now + timedelta(days=day_offset)).replace(
+                        microsecond=0, second=0
+                    )
+                    for slot_index, (hour, minute) in enumerate(slot_hours):
+                        start = base.replace(hour=hour, minute=minute)
+                        if start <= now:
+                            continue
+                        appt_type = bookable_types_for_slots[
+                            (day_offset + slot_index) % len(bookable_types_for_slots)
+                        ]
+                        end = start + timedelta(
+                            minutes=appt_type.duration_minutes or 30
+                        )
+                        if not BookableSlot.objects.filter(
+                            provider=provider, start_time=start
+                        ).exists():
+                            BookableSlot.objects.create(
+                                provider=provider,
+                                appointment_type=appt_type,
+                                start_time=start,
+                                end_time=end,
+                                created_by=admin_user,
+                            )
+                            slots_created += 1
+            self.stdout.write(
+                f"  - Created {slots_created} bookable slots for online scheduling"
+            )
+
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully!"))
         self.stdout.write("Demo user login:")
         self.stdout.write(f"  username: {getattr(settings, 'DEMO_USERNAME', 'demo')}")

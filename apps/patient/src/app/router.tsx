@@ -6,6 +6,7 @@ import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { MedicalSummaryPage } from "../features/medical-summary/pages/MedicalSummaryPage";
 import { MedicationsPage } from "../features/medications/pages/MedicationsPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
+import { SchedulePage } from "../features/schedule/pages/SchedulePage";
 
 export function PortalRoutes() {
   return (
@@ -13,6 +14,7 @@ export function PortalRoutes() {
       <Route path="/" element={<DashboardPage />} />
       <Route path="/profile" element={<ProfilePage />} />
       <Route path="/appointments" element={<AppointmentsPage />} />
+      <Route path="/schedule" element={<SchedulePage />} />
       <Route path="/records" element={<MedicalSummaryPage />} />
       <Route path="/medications" element={<MedicationsPage />} />
       <Route path="/allergies" element={<AllergiesPage />} />

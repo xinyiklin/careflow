@@ -37,6 +37,9 @@ const DEFAULT_FORM: AdminFacilityForm = {
   notes: "",
   is_active: true,
   address: { line_1: "", line_2: "", city: "", state: "NY", zip_code: "" },
+  online_scheduling_disabled: false,
+  online_cancellation_enabled: false,
+  cancellation_cutoff_hours: 24,
 };
 
 type FacilityModalProps = {
@@ -138,6 +141,16 @@ export default function FacilityModal({
             ? initialValues.is_active
             : true,
         address: normalizeAddress(initialValues.address),
+        online_scheduling_disabled: Boolean(
+          initialValues.online_scheduling_disabled
+        ),
+        online_cancellation_enabled: Boolean(
+          initialValues.online_cancellation_enabled
+        ),
+        cancellation_cutoff_hours:
+          typeof initialValues.cancellation_cutoff_hours === "number"
+            ? initialValues.cancellation_cutoff_hours
+            : 24,
       });
       setFeeScheduleId(String(initialValues.fee_schedule || ""));
     } else {

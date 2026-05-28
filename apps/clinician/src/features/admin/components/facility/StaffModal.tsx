@@ -39,6 +39,10 @@ const DEFAULT_FORM = {
   specialty: "",
   taxonomy_code: "",
   security_overrides: {} as Partial<Record<SecurityPermissionKey, boolean>>,
+  online_scheduling_enabled: false,
+  auto_confirm_bookings: false,
+  online_cancellation_enabled: false,
+  cancellation_cutoff_hours: 24,
 };
 
 function getStaffRoleId(role: AdminStaff["role"]) {
@@ -110,6 +114,17 @@ export default function StaffModal({
         specialty: initialValues.specialty || "",
         taxonomy_code: initialValues.taxonomy_code || "",
         security_overrides: initialValues.security_overrides || {},
+        online_scheduling_enabled: Boolean(
+          initialValues.online_scheduling_enabled
+        ),
+        auto_confirm_bookings: Boolean(initialValues.auto_confirm_bookings),
+        online_cancellation_enabled: Boolean(
+          initialValues.online_cancellation_enabled
+        ),
+        cancellation_cutoff_hours:
+          typeof initialValues.cancellation_cutoff_hours === "number"
+            ? initialValues.cancellation_cutoff_hours
+            : 24,
       });
     } else {
       setFormData(DEFAULT_FORM);
@@ -164,6 +179,12 @@ export default function StaffModal({
       specialty: formData.specialty || "",
       taxonomy_code: formData.taxonomy_code || "",
       security_overrides: formData.security_overrides,
+      online_scheduling_enabled: formData.online_scheduling_enabled,
+      auto_confirm_bookings: formData.auto_confirm_bookings,
+      online_cancellation_enabled: formData.online_cancellation_enabled,
+      cancellation_cutoff_hours: Number(
+        formData.cancellation_cutoff_hours ?? 24
+      ),
     });
   };
 
@@ -479,6 +500,89 @@ export default function StaffModal({
                   </div>
                 </div>
               )}
+
+              {/* Online scheduling */}
+              <div className="space-y-3 border-t border-cf-border/60 pt-5">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
+                  Online scheduling
+                </h3>
+
+                <label className="flex items-start gap-3 rounded-xl border border-cf-border bg-cf-surface px-3 py-2.5 cursor-pointer hover:bg-cf-surface-soft transition">
+                  <input
+                    type="checkbox"
+                    name="online_scheduling_enabled"
+                    checked={formData.online_scheduling_enabled}
+                    onChange={handleChange}
+                    className="mt-0.5 h-4 w-4 accent-[var(--color-cf-accent)] cursor-pointer"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-cf-text">
+                      Accept patient portal bookings
+                    </div>
+                    <div className="text-[11px] text-cf-text-muted mt-0.5">
+                      Patients can see this provider's available slots in the
+                      portal. Must also have at least one bookable appointment
+                      type and at least one open slot.
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 rounded-xl border border-cf-border bg-cf-surface px-3 py-2.5 cursor-pointer hover:bg-cf-surface-soft transition">
+                  <input
+                    type="checkbox"
+                    name="auto_confirm_bookings"
+                    checked={formData.auto_confirm_bookings}
+                    onChange={handleChange}
+                    disabled={!formData.online_scheduling_enabled}
+                    className="mt-0.5 h-4 w-4 accent-[var(--color-cf-accent)] cursor-pointer disabled:opacity-40"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-cf-text">
+                      Auto-confirm portal bookings
+                    </div>
+                    <div className="text-[11px] text-cf-text-muted mt-0.5">
+                      When off, portal bookings for this provider land as{" "}
+                      <em>pending</em> for staff review. The appointment type
+                      must also enable auto-confirm.
+                    </div>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 rounded-xl border border-cf-border bg-cf-surface px-3 py-2.5 cursor-pointer hover:bg-cf-surface-soft transition">
+                  <input
+                    type="checkbox"
+                    name="online_cancellation_enabled"
+                    checked={formData.online_cancellation_enabled}
+                    onChange={handleChange}
+                    className="mt-0.5 h-4 w-4 accent-[var(--color-cf-accent)] cursor-pointer"
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-cf-text">
+                      Allow online cancellation
+                    </div>
+                    <div className="text-[11px] text-cf-text-muted mt-0.5">
+                      Patients can cancel appointments with this provider online
+                      (subject to facility's setting and the cutoff window).
+                    </div>
+                  </div>
+                </label>
+
+                <label className="block">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+                    Cancellation cutoff (hours before appointment)
+                  </span>
+                  <input
+                    type="number"
+                    name="cancellation_cutoff_hours"
+                    min={0}
+                    max={336}
+                    value={Number(formData.cancellation_cutoff_hours ?? 24)}
+                    onChange={handleChange}
+                    disabled={!formData.online_cancellation_enabled}
+                    className="w-full rounded-xl border border-cf-border-strong bg-cf-surface px-3 py-2 text-sm text-cf-text shadow-sm outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </label>
+              </div>
             </div>
           )}
 

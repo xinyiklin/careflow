@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Plus } from "lucide-react";
 
 import { PageHeader } from "../../../shared/components/ui/PageHeader";
 import { SegmentedControl } from "../../../shared/components/ui/SegmentedControl";
@@ -31,7 +33,16 @@ export function AppointmentsPage() {
 
   return (
     <div className="px-4 py-6 sm:px-6 sm:py-8">
-      <PageHeader title="Appointments" />
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <PageHeader title="Appointments" />
+        <Link
+          to="/schedule"
+          className="inline-flex items-center gap-1.5 rounded-cf-control border border-cf-accent bg-cf-accent px-3 py-2 text-xs font-semibold text-cf-page-bg shadow-[var(--shadow-panel)] transition hover:bg-cf-accent-hover"
+        >
+          <Plus size={13} aria-hidden="true" />
+          Book new
+        </Link>
+      </div>
       <div className="mb-4">
         <SegmentedControl<Mode>
           options={OPTIONS}

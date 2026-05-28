@@ -130,6 +130,10 @@ class StaffSerializer(serializers.ModelSerializer):
             "resource_operating_end_time",
             "security_overrides",
             "effective_security_permissions",
+            "online_scheduling_enabled",
+            "auto_confirm_bookings",
+            "online_cancellation_enabled",
+            "cancellation_cutoff_hours",
         ]
         read_only_fields = ["facility"]
         extra_kwargs = {
@@ -233,6 +237,9 @@ class FacilitySerializer(FacilityAddressMixin, serializers.ModelSerializer):
             "is_active",
             "fee_schedule",
             "fee_schedule_name",
+            "online_scheduling_disabled",
+            "online_cancellation_enabled",
+            "cancellation_cutoff_hours",
             "created_at",
         ]
         read_only_fields = ["organization", "organization_name", "created_at"]
@@ -332,6 +339,8 @@ class AppointmentTypeSerializer(serializers.ModelSerializer):
             "is_active",
             "is_billable",
             "is_deletable",
+            "bookable_online",
+            "auto_confirm_bookings",
         ]
         read_only_fields = ["facility"]
 

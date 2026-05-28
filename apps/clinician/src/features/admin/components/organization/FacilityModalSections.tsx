@@ -766,11 +766,97 @@ export function FacilityFormPanel({
           saving={saving}
         />
       </div>
+      <div className="border-t border-cf-border/50 pt-5">
+        <FacilityOnlineSchedulingCard
+          formData={formData}
+          onChange={onChange}
+          saving={saving}
+        />
+      </div>
       <FacilityStatusCard
         formData={formData}
         onChange={onChange}
         saving={saving}
       />
+    </div>
+  );
+}
+
+export function FacilityOnlineSchedulingCard({
+  formData,
+  onChange,
+  saving = false,
+}: {
+  formData: AdminFacilityForm;
+  onChange: (event: AdminFormChangeEvent) => void;
+  saving?: boolean;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          Online scheduling
+        </div>
+        <div className="text-[11px] text-cf-text-muted mt-1">
+          Facility-level controls for the patient portal scheduling feature.
+        </div>
+      </div>
+
+      <label className="flex items-start gap-3 rounded-xl border border-cf-border bg-cf-surface px-3 py-2.5 cursor-pointer hover:bg-cf-surface-soft transition">
+        <input
+          type="checkbox"
+          name="online_scheduling_disabled"
+          checked={Boolean(formData.online_scheduling_disabled)}
+          onChange={onChange}
+          disabled={saving}
+          className="mt-0.5 h-4 w-4 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-cf-text">
+            Disable portal scheduling (kill switch)
+          </div>
+          <div className="text-[11px] text-cf-text-muted mt-0.5">
+            When on, the patient portal hides all slots from this facility,
+            regardless of provider or appointment-type opt-in.
+          </div>
+        </div>
+      </label>
+
+      <label className="flex items-start gap-3 rounded-xl border border-cf-border bg-cf-surface px-3 py-2.5 cursor-pointer hover:bg-cf-surface-soft transition">
+        <input
+          type="checkbox"
+          name="online_cancellation_enabled"
+          checked={Boolean(formData.online_cancellation_enabled)}
+          onChange={onChange}
+          disabled={saving}
+          className="mt-0.5 h-4 w-4 accent-[var(--color-cf-accent)] cursor-pointer"
+        />
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-cf-text">
+            Allow patients to cancel online
+          </div>
+          <div className="text-[11px] text-cf-text-muted mt-0.5">
+            Patients can cancel their own appointments through the portal,
+            subject to the cutoff window. Provider must also opt in.
+          </div>
+        </div>
+      </label>
+
+      <label className="block">
+        <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+          Cancellation cutoff (hours before appointment)
+        </span>
+        <input
+          type="number"
+          name="cancellation_cutoff_hours"
+          min={0}
+          max={336}
+          value={Number(formData.cancellation_cutoff_hours ?? 24)}
+          onChange={onChange}
+          disabled={saving || !formData.online_cancellation_enabled}
+          className="w-full rounded-xl border border-cf-border-strong bg-cf-surface px-3 py-2 text-sm text-cf-text shadow-sm outline-none transition focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
+        />
+      </label>
     </div>
   );
 }
