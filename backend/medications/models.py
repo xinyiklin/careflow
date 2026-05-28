@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
 
@@ -97,3 +98,107 @@ class Medication(models.Model):
 
     def __str__(self):
         return f"{self.medication_name} - {self.patient}"
+
+
+STATUS_PENDING = "pending"
+STATUS_APPROVED = "approved"
+STATUS_DENIED = "denied"
+STATUS_CANCELLED = "cancelled"
+
+
+class RefillRequest(models.Model):
+    STATUS_PENDING = STATUS_PENDING
+    STATUS_APPROVED = STATUS_APPROVED
+    STATUS_DENIED = STATUS_DENIED
+    STATUS_CANCELLED = STATUS_CANCELLED
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_APPROVED, "Approved"),
+        (STATUS_DENIED, "Denied"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    medication = models.ForeignKey(
+        Medication,
+        on_delete=models.PROTECT,
+        related_name="refill_requests",
+    )
+    patient = models.ForeignKey(
+        "patients.Patient",
+        on_delete=models.PROTECT,
+        related_name="refill_requests",
+    )
+    facility = models.ForeignKey(
+        "facilities.Facility",
+        on_delete=models.CASCADE,
+        related_name="refill_requests",
+    )
+    pharmacy = models.ForeignKey(
+        "patients.Pharmacy",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="refill_requests",
+    )
+    pharmacy_name = models.CharField(max_length=150, blank=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+    )
+    patient_note = models.TextField(blank=True, max_length=500)
+    clinician_note = models.TextField(blank=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_refill_requests",
+    )
+    resolved_by_name = models.CharField(max_length=150, blank=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+        indexes = [
+            models.Index(fields=["facility", "status", "-requested_at"]),
+            models.Index(fields=["patient", "-requested_at"]),
+        ]
+        constraints = [
+            UniqueConstraint(
+                fields=["medication"],
+                condition=Q(status=STATUS_PENDING),
+                name="unique_pending_refill_per_medication",
+            ),
+        ]
+
+    def clean(self):
+        if self.medication and self.medication.status != Medication.STATUS_ACTIVE:
+            raise ValidationError(
+                {"medication": "Refill requests require an active medication."}
+            )
+
+        if self.patient and self.facility_id != self.patient.facility_id:
+            raise ValidationError(
+                {"patient": "Refill request facility must match patient facility."}
+            )
+
+        if (
+            self.medication
+            and self.patient
+            and self.medication.facility_id != self.patient.facility_id
+        ):
+            raise ValidationError(
+                {"medication": "Medication facility must match patient facility."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.resolved_by:
+            self.resolved_by_name = get_user_display_name(self.resolved_by)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"Refill request for {self.medication.medication_name} ({self.status})"
