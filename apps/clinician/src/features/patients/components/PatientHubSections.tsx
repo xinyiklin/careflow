@@ -10,6 +10,7 @@ import {
   MapPin,
   Phone,
   Pill,
+  RotateCw,
   ShieldCheck,
   UserRoundCheck,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export const HUB_TABS: PatientHubTab[] = [
   { key: "insurance", label: "Insurance", icon: ShieldCheck },
   { key: "documents", label: "Documents", icon: FileText },
   { key: "medications", label: "Medications", icon: Pill },
+  { key: "refills", label: "Refills", icon: RotateCw },
   { key: "allergies", label: "Allergies", icon: AlertTriangle },
   { key: "appointments", label: "Appointments", icon: CalendarClock },
   { key: "timeline", label: "Timeline", icon: Activity },

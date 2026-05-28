@@ -6,6 +6,7 @@ import PatientAllergiesTab from "./PatientAllergiesTab";
 import PatientBillingTab from "../../billing/components/PatientBillingTab";
 import { ClinicalChartingTab } from "./PatientClinicalTabs";
 import PatientMedicationsTab from "./medications/PatientMedicationsTab";
+import PatientRefillRequestsTab from "./medications/PatientRefillRequestsTab";
 import PatientTimelineTab from "./timeline/PatientTimelineTab";
 import HubRegistrationInline from "./hub/HubRegistrationInline";
 import { Button, Panel } from "../../../shared/components/ui";
@@ -166,6 +167,18 @@ export default function PatientHubTabContent(props: PatientHubTabContentProps) {
       />
     ) : (
       <UnavailablePanel label="Medications" />
+    );
+  }
+
+  if (activeTab === "refills") {
+    return props.canViewMedications ? (
+      <PatientRefillRequestsTab
+        facilityId={props.facilityId}
+        patientId={props.patientId}
+        canManage={props.canManageMedications}
+      />
+    ) : (
+      <UnavailablePanel label="Refill requests" />
     );
   }
 
