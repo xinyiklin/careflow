@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   AlertTriangle,
   Calendar,
+  MessageSquare,
   Pill,
   User,
   ArrowRight,
@@ -12,6 +13,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { useUpcomingAppointments } from "../../appointments/api/appointments";
 import { useMedications } from "../../medications/api/medications";
 import { useAllergies } from "../../allergies/api/allergies";
+import { useMessageThreads } from "../../messages/api/messaging";
 import { formatFacilityLocalDateTime } from "../../../shared/utils/dates";
 
 export function DashboardPage() {
@@ -26,12 +28,16 @@ export function DashboardPage() {
   const { data: upcoming } = useUpcomingAppointments();
   const { data: medications } = useMedications();
   const { data: allergies } = useAllergies();
+  const { data: messageThreads } = useMessageThreads();
 
   const nextAppt = upcoming && upcoming.length > 0 ? upcoming[0] : null;
   const activeMeds = medications
     ? medications.filter((m) => m.status === "active")
     : [];
   const activeAllergies = allergies || [];
+  const unreadMessages = messageThreads
+    ? messageThreads.filter((thread) => thread.unread_for_patient).length
+    : 0;
 
   return (
     <div className="px-4 py-6 sm:px-6 sm:py-8 space-y-6">
@@ -101,43 +107,65 @@ export function DashboardPage() {
         <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-cf-text-subtle mb-3 px-1">
           Quick Access
         </h2>
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-5">
           {[
             {
               to: "/appointments",
               label: "Appointments",
               Icon: Calendar,
               desc: "Schedule / History",
+              badge: 0,
             },
             {
               to: "/medications",
               label: "Medications",
               Icon: Pill,
               desc: "Prescriptions",
+              badge: 0,
+            },
+            {
+              to: "/messages",
+              label: "Messages",
+              Icon: MessageSquare,
+              desc:
+                unreadMessages > 0
+                  ? `${unreadMessages} unread`
+                  : "Talk to your team",
+              badge: unreadMessages,
             },
             {
               to: "/allergies",
               label: "Allergies",
               Icon: AlertTriangle,
               desc: "Known triggers",
+              badge: 0,
             },
             {
               to: "/profile",
               label: "Profile",
               Icon: User,
               desc: "Account details",
+              badge: 0,
             },
-          ].map(({ to, label, Icon, desc }) => (
+          ].map(({ to, label, Icon, desc, badge }) => (
             <Link
               key={to}
               to={to}
               className="group flex flex-col items-center justify-center text-center p-4 rounded-cf-card border border-cf-border bg-cf-surface shadow-panel transition-all duration-150 hover:-translate-y-0.5 hover:border-cf-border-strong hover:bg-cf-surface-soft"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cf-surface-soft group-hover:bg-cf-accent-soft transition-colors mb-2">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-cf-surface-soft group-hover:bg-cf-accent-soft transition-colors mb-2">
                 <Icon
                   size={16}
                   className="text-cf-text group-hover:text-cf-accent transition-colors"
                 />
+                {badge > 0 ? (
+                  <span
+                    aria-label={`${badge} unread`}
+                    className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cf-accent px-1 text-[9px] font-bold text-cf-surface"
+                  >
+                    {badge > 9 ? "9+" : badge}
+                  </span>
+                ) : null}
               </div>
               <div className="text-xs font-semibold text-cf-text">{label}</div>
               <div className="text-[10px] text-cf-text-subtle mt-0.5 leading-tight">

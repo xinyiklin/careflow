@@ -5,6 +5,7 @@ import {
   FileText,
   Home,
   LogOut,
+  MessageSquare,
   Pill,
   User,
 } from "lucide-react";
@@ -12,14 +13,22 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { useAuth } from "../features/auth/AuthProvider";
+import { useMessageThreads } from "../features/messages/api/messaging";
 
-type NavItem = { to: string; label: string; Icon: LucideIcon; end?: boolean };
+type NavItem = {
+  to: string;
+  label: string;
+  Icon: LucideIcon;
+  end?: boolean;
+  showUnread?: boolean;
+};
 
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Home", Icon: Home, end: true },
   { to: "/appointments", label: "Appointments", Icon: Calendar },
   { to: "/records", label: "Records", Icon: FileText },
   { to: "/medications", label: "Medications", Icon: Pill },
+  { to: "/messages", label: "Messages", Icon: MessageSquare, showUnread: true },
   { to: "/allergies", label: "Allergies", Icon: AlertTriangle },
   { to: "/profile", label: "Profile", Icon: User },
 ];
@@ -34,6 +43,10 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 
 export function Layout({ children }: { children: ReactNode }) {
   const { logout } = useAuth();
+  const { data: threads } = useMessageThreads();
+  const hasUnreadMessages =
+    threads?.some((thread) => thread.unread_for_patient) ?? false;
+
   return (
     <div className="min-h-screen bg-cf-page-bg">
       <header className="border-b border-cf-border bg-cf-surface">
@@ -51,9 +64,17 @@ export function Layout({ children }: { children: ReactNode }) {
             className="mt-3 flex items-center justify-between"
           >
             <div className="flex gap-2">
-              {NAV_ITEMS.map(({ to, label, Icon, end }) => (
+              {NAV_ITEMS.map(({ to, label, Icon, end, showUnread }) => (
                 <NavLink key={to} to={to} end={end} className={navLinkClass}>
-                  <Icon size={14} className="shrink-0" aria-hidden="true" />
+                  <span className="relative inline-flex">
+                    <Icon size={14} className="shrink-0" aria-hidden="true" />
+                    {showUnread && hasUnreadMessages ? (
+                      <span
+                        aria-label="Unread messages"
+                        className="absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full bg-cf-accent"
+                      />
+                    ) : null}
+                  </span>
                   <span>{label}</span>
                 </NavLink>
               ))}
