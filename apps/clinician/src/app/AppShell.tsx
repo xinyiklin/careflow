@@ -48,6 +48,13 @@ type AppNavbarContainerProps = {
   onOpenRecentPatient: (patient: PatientLike) => void;
 };
 
+// Paths whose only job is to <Navigate replace /> elsewhere (e.g.
+// /admin resolves to /admin/organization or /admin/facility based on
+// the user's permissions). Skipping the fade on these prevents the
+// double-flicker that a transient mount + redirect would otherwise
+// produce.
+const TRANSIENT_REDIRECT_PATHS = new Set(["/admin"]);
+
 function AppNavbarContainer({
   onOpenPatientSearch,
   onOpenQuickActions,
@@ -260,7 +267,15 @@ function AppShellLayout({
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-0 pb-4 sm:px-5 sm:pb-5 lg:px-6 lg:pb-6 xl:px-7 xl:pb-7">
           <div
             key={location.pathname}
-            className="cf-route-frame cf-page-fade-in min-h-0 flex-1 overflow-hidden"
+            className={`cf-route-frame min-h-0 flex-1 overflow-hidden ${
+              // Routes whose sole job is to <Navigate replace /> elsewhere
+              // (e.g. /admin → /admin/organization or /admin/facility based
+              // on permissions) shouldn't fire the page fade — otherwise
+              // the user sees two fades in rapid succession.
+              TRANSIENT_REDIRECT_PATHS.has(location.pathname)
+                ? ""
+                : "cf-page-fade-in"
+            }`}
           >
             <Outlet />
           </div>

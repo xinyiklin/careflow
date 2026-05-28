@@ -26,7 +26,6 @@ export default function NoteHistoryModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      eyebrow="Clinical Charting"
       title="Note History"
       description="Audit trail of changes to this progress note."
       maxWidth="lg"
