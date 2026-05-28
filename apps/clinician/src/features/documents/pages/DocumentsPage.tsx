@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ShieldAlert } from "lucide-react";
 
 import PatientDocumentsWorkspace from "../components/PatientDocumentsWorkspace";
 import useFacility from "../../facilities/hooks/useFacility";
 import PatientSearchField from "../../patients/components/PatientSearchField";
-import { useBootReadiness } from "../../../app/BootReadinessContext";
 import WorkspaceShell from "../../../app/components/WorkspaceShell";
 import Panel from "../../../shared/components/ui/Panel";
 
@@ -28,7 +27,6 @@ const PatientSearchFieldComponent =
 
 export default function DocumentsPage() {
   const { selectedFacilityId, selectedMembership } = useFacility();
-  const { setRouteReady } = useBootReadiness();
   const [selectedPatient, setSelectedPatient] = useState<PatientLike | null>(
     null
   );
@@ -39,10 +37,6 @@ export default function DocumentsPage() {
   const canManageCategories = Boolean(
     securityPermissions["documents.categories.manage"]
   );
-
-  useEffect(() => {
-    setRouteReady(true);
-  }, [setRouteReady]);
 
   return (
     <WorkspaceShell>

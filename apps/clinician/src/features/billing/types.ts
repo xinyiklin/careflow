@@ -68,6 +68,53 @@ export type ClinicalEncounterPayload = ApiPayload & {
   progress_note: ProgressNotePayload;
 };
 
+export type ClinicalVitals = {
+  id: EntityId;
+  encounter: EntityId;
+  height_cm: string | null;
+  weight_kg: string | null;
+  bp_systolic: number | null;
+  bp_diastolic: number | null;
+  heart_rate_bpm: number | null;
+  respiratory_rate: number | null;
+  temperature_c: string | null;
+  spo2_percent: number | null;
+  pain_score: number | null;
+  measured_at: string;
+  recorded_by_name: string | null;
+  notes: string;
+  bmi: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type ClinicalVitalsFormValues = {
+  height_cm: string;
+  weight_kg: string;
+  bp_systolic: string;
+  bp_diastolic: string;
+  heart_rate_bpm: string;
+  respiratory_rate: string;
+  temperature_c: string;
+  spo2_percent: string;
+  pain_score: string;
+  notes: string;
+};
+
+export type ClinicalVitalsPayload = ApiPayload & {
+  encounter: number;
+  height_cm?: string | null;
+  weight_kg?: string | null;
+  bp_systolic?: number | null;
+  bp_diastolic?: number | null;
+  heart_rate_bpm?: number | null;
+  respiratory_rate?: number | null;
+  temperature_c?: string | null;
+  spo2_percent?: number | null;
+  pain_score?: number | null;
+  notes?: string;
+};
+
 export type BillingRecordStatus =
   | "coding_needed"
   | "ready_to_submit"

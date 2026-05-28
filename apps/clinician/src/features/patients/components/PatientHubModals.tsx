@@ -3,6 +3,7 @@ import AppointmentHistoryModal from "../../appointments/components/AppointmentHi
 import AppointmentModal from "../../appointments/components/AppointmentModal";
 import InsurancePolicyModal from "./InsurancePolicyModal";
 import ProgressNoteModal from "./ProgressNoteModal";
+import VitalsIntakeModal from "./VitalsIntakeModal";
 import ConfirmDialog from "../../../shared/components/ConfirmDialog";
 
 import type { EntityId } from "../../../shared/api/types";
@@ -18,6 +19,8 @@ import type {
 } from "../../appointments/types";
 import type {
   ClinicalEncounter,
+  ClinicalVitals,
+  ClinicalVitalsFormValues,
   ProgressNoteFormValues,
 } from "../../billing/types";
 import type {
@@ -115,6 +118,18 @@ export type PatientHubModalsProps = {
     onUnsign: () => Promise<void>;
   };
 
+  vitals?: {
+    state: {
+      isOpen: boolean;
+      encounter: ClinicalEncounter | null;
+      vitals: ClinicalVitals | null;
+    };
+    saving: boolean;
+    error: string;
+    onClose: () => void;
+    onSubmit: (values: ClinicalVitalsFormValues) => Promise<void>;
+  };
+
   confirmDialog: ConfirmDialogState & { onCancel: () => void };
 
   editBlockedDialog: EditBlockedDialogState & { onClose: () => void };
@@ -128,6 +143,7 @@ export default function PatientHubModals({
   appointment,
   historyModal,
   progressNote,
+  vitals,
   confirmDialog,
   editBlockedDialog,
 }: PatientHubModalsProps) {
@@ -193,6 +209,19 @@ export default function PatientHubModals({
         onSign={progressNote.onSign}
         onUnsign={progressNote.onUnsign}
       />
+
+      {vitals ? (
+        <VitalsIntakeModal
+          isOpen={vitals.state.isOpen}
+          encounter={vitals.state.encounter}
+          vitals={vitals.state.vitals}
+          patientName={patientName}
+          saving={vitals.saving}
+          error={vitals.error}
+          onClose={vitals.onClose}
+          onSubmit={vitals.onSubmit}
+        />
+      ) : null}
 
       <ConfirmDialog
         isOpen={confirmDialog.isOpen}

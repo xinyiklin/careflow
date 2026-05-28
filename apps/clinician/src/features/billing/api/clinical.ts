@@ -8,6 +8,8 @@ import type {
 import type {
   ClinicalEncounter,
   ClinicalEncounterPayload,
+  ClinicalVitals,
+  ClinicalVitalsPayload,
   ProgressNote,
   ProgressNotePayload,
 } from "../types";
@@ -110,4 +112,46 @@ export function unsignProgressNote({
       body: JSON.stringify({}),
     }
   );
+}
+
+export function fetchEncounterVitals({
+  facilityId,
+  encounterId,
+}: {
+  facilityId?: EntityId | null;
+  encounterId: EntityId;
+}) {
+  return apiRequest<ClinicalVitals[]>("/clinical/vitals/", {
+    params: { facility_id: facilityId, encounter: encounterId },
+  });
+}
+
+export function createEncounterVitals({
+  facilityId,
+  values,
+}: {
+  facilityId?: EntityId | null;
+  values: ClinicalVitalsPayload;
+}) {
+  return apiRequest<ClinicalVitals>("/clinical/vitals/", {
+    method: "POST",
+    params: { facility_id: facilityId },
+    body: JSON.stringify(values),
+  });
+}
+
+export function updateEncounterVitals({
+  facilityId,
+  vitalsId,
+  values,
+}: {
+  facilityId?: EntityId | null;
+  vitalsId: EntityId;
+  values: ApiPayload;
+}) {
+  return apiRequest<ClinicalVitals>(`/clinical/vitals/${vitalsId}/`, {
+    method: "PATCH",
+    params: { facility_id: facilityId },
+    body: JSON.stringify(values),
+  });
 }

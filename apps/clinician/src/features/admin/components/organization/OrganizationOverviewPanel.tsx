@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
-import { useBootReadiness } from "../../../../app/BootReadinessContext";
 import useOrganizationOverview from "../../hooks/organization/useOrganizationOverview";
 import useOrganizationFacilities from "../../hooks/organization/useOrganizationFacilities";
 import useOrganizationPayers from "../../hooks/organization/useOrganizationPayers";
@@ -25,14 +24,8 @@ export default function OrganizationOverviewPanel() {
   const { facilities, loading: loadingFacilities } =
     useOrganizationFacilities();
   const { payers, loading: loadingPayers } = useOrganizationPayers();
-  const { setRouteReady } = useBootReadiness();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saveError, setSaveError] = useState("");
-
-  useEffect(() => {
-    if (loading) return;
-    setRouteReady(true);
-  }, [loading, setRouteReady]);
 
   const adminCount = useMemo(() => {
     const members = Array.isArray(organization?.members)

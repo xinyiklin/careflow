@@ -10,6 +10,7 @@ import usePatientClinical from "./hooks/usePatientClinical";
 import usePatientHubInsurance from "./hooks/usePatientHubInsurance";
 import usePatientBilling from "../../features/billing/hooks/usePatientBilling";
 import usePatientHubActions from "./hooks/usePatientHubActions";
+import { useVitalsIntakeModal } from "./hooks/useVitalsIntakeModal";
 import PatientIdentitySidebar from "./components/PatientHubSidebar";
 import PatientHubTabContent from "./components/PatientHubTabContent";
 import PatientHubModals from "./components/PatientHubModals";
@@ -161,6 +162,11 @@ export function PatientHubContent({
     patientClinical,
     patientBilling,
     canCreateClinical,
+  });
+
+  const vitalsModal = useVitalsIntakeModal({
+    facilityId: selectedFacilityId,
+    onSaved: () => patientClinical.encountersQuery.refetch(),
   });
 
   const insurance = usePatientHubInsurance({
@@ -340,6 +346,7 @@ export function PatientHubContent({
               onOpenAppointment={actions.handleOpenAppointment}
               onScheduleEncounter={actions.handleScheduleEncounter}
               onOpenProgressNote={actions.handleOpenProgressNote}
+              onOpenVitals={(encounter) => void vitalsModal.open({ encounter })}
               onStartClinicalEncounter={actions.handleStartClinicalEncounter}
               onSaveBillingRecord={actions.handleSaveBillingRecord}
               onSwitchToInsurance={() => setActiveTab("insurance")}
@@ -431,6 +438,15 @@ export function PatientHubContent({
           onSaveDraft: actions.handleSaveProgressNoteDraft,
           onSign: actions.handleSignProgressNote,
           onUnsign: actions.handleUnsignProgressNote,
+        }}
+        vitals={{
+          state: vitalsModal.state,
+          saving: vitalsModal.saving,
+          error: vitalsModal.error,
+          onClose: vitalsModal.close,
+          onSubmit: async (values) => {
+            await vitalsModal.submit({ values });
+          },
         }}
         confirmDialog={{
           ...actions.confirmDialogState,

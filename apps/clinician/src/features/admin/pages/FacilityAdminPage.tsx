@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Navigate } from "react-router-dom";
 
 import { AdminFacilityProvider } from "../AdminFacilityProvider";
-import { useBootReadiness } from "../../../app/BootReadinessContext";
 import AppointmentTypesPanel from "../components/facility/AppointmentTypesPanel";
 import AppointmentStatusesPanel from "../components/facility/AppointmentStatusesPanel";
 import ResourcesPanel from "../components/facility/ResourcesPanel";
@@ -34,12 +33,11 @@ const FACILITY_SECTIONS = [
 
 export default function FacilityAdminPage() {
   const [activeSection, setActiveSection] = useState("overview");
-  const { setRouteReady } = useBootReadiness();
   const { canAccessFacilityAdmin } = useAdminPermissions();
-
-  useEffect(() => {
-    setRouteReady(true);
-  }, [setRouteReady]);
+  // Each section panel gates its own body behind its primary query
+  // so it doesn't render with empty fields. Tab switches show the
+  // new panel's loading indicator until its data resolves — no
+  // route- or tab-level coordination is needed here.
 
   const activeSectionContent = useMemo(() => {
     switch (activeSection) {

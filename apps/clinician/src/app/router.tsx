@@ -144,7 +144,10 @@ const devPreviewRoutes = import.meta.env.DEV
 
 function DelayedFallback({
   children,
-  delayMs = 150,
+  // 300ms — long enough that preloaded chunks don't flicker the
+  // fallback at all, short enough that genuinely slow loads still get
+  // visible feedback.
+  delayMs = 300,
 }: {
   children: ReactNode;
   delayMs?: number;

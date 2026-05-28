@@ -19,7 +19,6 @@ import useFacilityConfig from "../../facilities/hooks/useFacilityConfig";
 import { usePatientFlowContext } from "../../patients/PatientFlowProvider";
 import { Button, Notice } from "../../../shared/components/ui";
 import WorkspaceShell from "../../../app/components/WorkspaceShell";
-import { useBootReadiness } from "../../../app/BootReadinessContext";
 import { useUserPreferences } from "../../../app/context/UserPreferencesProvider";
 import {
   SCHEDULE_QUICK_ACTION_EVENT,
@@ -51,7 +50,6 @@ export default function SchedulePage() {
     useFacilityConfig();
   const { openPatientSearch, patientFlow, recentPatients } =
     usePatientFlowContext();
-  const { setRouteReady } = useBootReadiness();
   const { preferences, updatePreferences } = useUserPreferences();
   const scheduleResources = resources as ScheduleFacilityOption[];
   const appointmentPhysicians: AppointmentStaff[] = physicians;
@@ -126,7 +124,6 @@ export default function SchedulePage() {
 
   const {
     appointments,
-    loading: appointmentsLoading,
     error: appointmentsError,
     reload: reloadAppointments,
   } = useAppointments({
@@ -135,17 +132,6 @@ export default function SchedulePage() {
     dateTo: lastVisibleDate,
   });
 
-  useEffect(() => {
-    if (!selectedFacilityId || !selectedDate || !queryDate) return;
-    if (appointmentsLoading) return;
-    setRouteReady(true);
-  }, [
-    appointmentsLoading,
-    queryDate,
-    selectedDate,
-    selectedFacilityId,
-    setRouteReady,
-  ]);
   const appointmentFlow = useAppointmentFlowContext();
   const { open: openAppointmentModal } = appointmentFlow.modal;
 

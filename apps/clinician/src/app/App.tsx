@@ -14,20 +14,20 @@ function App() {
   const location = useLocation();
   const [isRoutePreloading, setIsRoutePreloading] = useState(true);
   const [isShellReady, setIsShellReady] = useState(false);
-  const [, setIsRouteReady] = useState(false);
   const hasCompletedInitialPreloadRef = useRef(false);
-  const hasCompletedInitialBootRef = useRef(false);
   const canRenderWorkspace = !!user && !!facility && !!selectedFacilityId;
+  // App-level LoadingScreen only covers the cold-start path: auth,
+  // facility resolution, route chunk preload, and initial shell layout.
+  // Once those resolve, the LoadingScreen is permanently dismissed and
+  // any further loading is handled locally by each panel — the panel
+  // chrome may render immediately, but its body waits for its primary
+  // query so partial/empty fields never flash in.
   const bootLoading =
     authLoading || isRoutePreloading || (canRenderWorkspace && !isShellReady);
   const showBootLoading = useMinimumLoading(bootLoading);
 
   useEffect(() => {
     let isCurrent = true;
-
-    if (!hasCompletedInitialBootRef.current) {
-      setIsRouteReady(false);
-    }
 
     if (hasCompletedInitialPreloadRef.current) {
       preloadRouteForPath(location.pathname);
@@ -49,11 +49,6 @@ function App() {
     };
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (!canRenderWorkspace || showBootLoading) return;
-    hasCompletedInitialBootRef.current = true;
-  }, [canRenderWorkspace, showBootLoading]);
-
   if (!bootLoading) {
     if (!user) {
       return <Navigate to="/login" replace />;
@@ -74,10 +69,17 @@ function App() {
     <div className="relative h-[100dvh] w-[100vw] overflow-hidden bg-cf-page-bg">
       {showBootLoading ? (
         <div className="fixed inset-0 z-[100]">
-          <LoadingScreen
-            title="Restoring session"
-            message="Checking your CareFlow access and active facility."
-          />
+          {authLoading ? (
+            <LoadingScreen
+              title="Restoring session"
+              message="Checking your CareFlow access and active facility."
+            />
+          ) : (
+            <LoadingScreen
+              title="Loading workspace"
+              message="Bringing your dashboard into focus."
+            />
+          )}
         </div>
       ) : null}
 
@@ -88,8 +90,8 @@ function App() {
           }
         >
           <BootReadinessProvider
+            isShellReady={isShellReady}
             setShellReady={setIsShellReady}
-            setRouteReady={setIsRouteReady}
           >
             <Outlet />
           </BootReadinessProvider>

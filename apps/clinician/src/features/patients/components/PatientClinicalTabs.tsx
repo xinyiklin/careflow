@@ -1,4 +1,5 @@
 import {
+  Activity,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
@@ -25,6 +26,7 @@ type ClinicalChartingTabProps = {
   queryState: ClinicalTabQueryState;
   canCreate: boolean;
   onOpenEncounter: (encounter: ClinicalEncounter) => void;
+  onOpenVitals?: (encounter: ClinicalEncounter) => void;
   onStartEncounter: (appointment?: AppointmentLike | null) => void;
   onOpenAppointment?: (appointment: AppointmentLike) => void;
 };
@@ -145,6 +147,7 @@ export function ClinicalChartingTab({
   queryState,
   canCreate,
   onOpenEncounter,
+  onOpenVitals,
   onStartEncounter,
   onOpenAppointment,
 }: ClinicalChartingTabProps) {
@@ -209,14 +212,29 @@ export function ClinicalChartingTab({
                       {getProgressNotePreview(encounter)}
                     </div>
                   </div>
-                  <Button size="sm" onClick={() => onOpenEncounter(encounter)}>
-                    {isSigned ? (
-                      <FileText className="h-3.5 w-3.5" />
-                    ) : (
-                      <Pencil className="h-3.5 w-3.5" />
-                    )}
-                    {isSigned ? "View" : "Open"}
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {onOpenVitals ? (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => onOpenVitals(encounter)}
+                      >
+                        <Activity className="h-3.5 w-3.5" />
+                        Vitals
+                      </Button>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      onClick={() => onOpenEncounter(encounter)}
+                    >
+                      {isSigned ? (
+                        <FileText className="h-3.5 w-3.5" />
+                      ) : (
+                        <Pencil className="h-3.5 w-3.5" />
+                      )}
+                      {isSigned ? "View" : "Open"}
+                    </Button>
+                  </div>
                 </div>
               </div>
             );
