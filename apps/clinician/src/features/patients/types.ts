@@ -107,6 +107,7 @@ export type PatientHubTabKey =
   | "registration"
   | "insurance"
   | "medications"
+  | "refills"
   | "allergies"
   | "documents"
   | "notes"
