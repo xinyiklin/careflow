@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from shared.serializers import StrictPayloadMixin
 
-from .models import Medication
+from .models import Medication, RefillRequest
 
 
 class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
@@ -114,3 +114,64 @@ class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
             )
 
         return attrs
+
+
+class RefillRequestSerializer(serializers.ModelSerializer):
+    """Clinician read shape for a refill request.
+
+    Surfaces the medication and pharmacy snapshots plus clinician audit
+    fields (``clinician_note``, ``resolved_by_name``, ``resolved_at``).
+    Read-only; writes flow through the dedicated ``approve`` / ``deny``
+    detail routes on :class:`RefillRequestViewSet`.
+    """
+
+    patient_id = serializers.IntegerField(source="patient.id", read_only=True)
+    patient_display_name = serializers.SerializerMethodField()
+    medication_id = serializers.IntegerField(source="medication.id", read_only=True)
+    medication_name = serializers.CharField(
+        source="medication.medication_name", read_only=True
+    )
+    dose = serializers.CharField(source="medication.dose", read_only=True)
+    frequency = serializers.CharField(source="medication.frequency", read_only=True)
+    pharmacy_id = serializers.IntegerField(
+        source="pharmacy.id", read_only=True, allow_null=True
+    )
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = RefillRequest
+        fields = [
+            "id",
+            "patient_id",
+            "patient_display_name",
+            "medication_id",
+            "medication_name",
+            "dose",
+            "frequency",
+            "pharmacy_id",
+            "pharmacy_name",
+            "status",
+            "status_label",
+            "patient_note",
+            "clinician_note",
+            "requested_at",
+            "resolved_at",
+            "resolved_by_name",
+        ]
+        read_only_fields = fields
+
+    def get_patient_display_name(self, obj):
+        return f"{obj.patient.last_name}, {obj.patient.first_name}"
+
+
+class RefillRequestActionSerializer(StrictPayloadMixin, serializers.Serializer):
+    """Input body for ``approve`` / ``deny`` detail routes.
+
+    Both actions accept an optional ``clinician_note``; the view layer
+    enforces ``status == pending`` and the resolver stamping.
+    """
+
+    clinician_note = serializers.CharField(required=False, allow_blank=True, default="")
+
+    def validate_clinician_note(self, value):
+        return (value or "").strip()
