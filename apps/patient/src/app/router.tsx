@@ -5,6 +5,7 @@ import { AppointmentsPage } from "../features/appointments/pages/AppointmentsPag
 import { DashboardPage } from "../features/dashboard/pages/DashboardPage";
 import { MedicalSummaryPage } from "../features/medical-summary/pages/MedicalSummaryPage";
 import { MedicationsPage } from "../features/medications/pages/MedicationsPage";
+import { MessagesPage } from "../features/messages/pages/MessagesPage";
 import { ProfilePage } from "../features/profile/pages/ProfilePage";
 import { SchedulePage } from "../features/schedule/pages/SchedulePage";
 
@@ -17,6 +18,7 @@ export function PortalRoutes() {
       <Route path="/schedule" element={<SchedulePage />} />
       <Route path="/records" element={<MedicalSummaryPage />} />
       <Route path="/medications" element={<MedicationsPage />} />
+      <Route path="/messages" element={<MessagesPage />} />
       <Route path="/allergies" element={<AllergiesPage />} />
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
