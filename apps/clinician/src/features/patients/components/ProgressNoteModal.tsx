@@ -171,7 +171,6 @@ export default function ProgressNoteModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      eyebrow="Clinical Charting"
       title={isSigned ? "Signed Progress Note" : "Progress Note"}
       maxWidth="4xl"
       panelClassName="max-h-[min(96dvh,860px)] max-w-7xl"

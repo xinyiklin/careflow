@@ -153,7 +153,6 @@ export default function PatientAllergyModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Allergy"
-      eyebrow="Patient safety"
       maxWidth="2xl"
       bodyClassName="p-0"
       footerClassName="bg-cf-surface !py-3"

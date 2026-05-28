@@ -201,6 +201,68 @@ Apply on the consumer (not on the shared Modal primitive):
 
 Reference fix: `apps/clinician/src/features/appointments/components/AppointmentHistoryModal.tsx`.
 
+### 4. Skip the page fade on transient redirect routes
+
+A route whose only job is to `<Navigate replace />` elsewhere (e.g.
+`/admin` resolves to `/admin/organization` or `/admin/facility` based
+on permissions) must NOT trigger the global page fade animation. Without
+this, the user sees two fades fire in rapid succession — one for the
+transient mount, one for the destination.
+
+Pattern: maintain a small `TRANSIENT_REDIRECT_PATHS` set in the shell
+that owns the fade (e.g. `AppShell.tsx` for the clinician, `Layout.tsx`
+for the patient portal). Skip the `cf-page-fade-in` class when the
+current pathname is in that set. Reference:
+`apps/clinician/src/app/AppShell.tsx`.
+
+## Domain rules
+
+### Statuses that mean "won't attend"
+
+`AppointmentStatus` carries a `code` field (e.g. `scheduled`,
+`confirmed`, `arrived`, `completed`, `cancelled`, `no_show`,
+`rescheduled`). Views that need to filter for "appointments the
+patient is actually going to attend" should skip these terminal /
+non-attendance codes:
+
+- `cancelled`
+- `rescheduled`
+- `no_show`
+- `completed`
+
+Anchored at: `apps/patient/src/features/dashboard/pages/DashboardPage.tsx`
+(`NON_NEXT_APPOINTMENT_STATUSES`). When you need the same filter
+elsewhere (next-visit reminders, upcoming-appointment widgets in the
+clinician dashboard, etc.) reuse the same set or import it.
+
+We don't add a per-status toggle (`is_terminal`, `is_attendable`,
+etc.) for this — the protected-default codes are stable and a
+hardcoded set is clearer than yet another admin checkbox sitting next
+to `is_active` and `is_billable`.
+
+## Modal header copy
+
+Modal headers should answer **"what specific record am I looking at?"**
+not **"what kind of modal is this?"** The user already knows it's an
+appointment modal because they opened it from the schedule.
+
+Banned defaults in modal headers:
+
+- "Scheduler · Edit appointment" / "Scheduler · New appointment" type
+  eyebrows above the actual heading.
+- "Edit XYZ" / "New XYZ" prefixes restating the modal's category.
+- Section-name breadcrumbs ("Patient safety", "Document Center",
+  "Billing", "Clinical Charting") that just label the surface the
+  user came from.
+
+What to keep in headers:
+
+- The record's specific identity (patient name + appointment time,
+  document title, visit date, etc.).
+- Status badges carrying real semantic state ("Locked", "Signed off",
+  "Closed").
+- Sticky CTAs for the modal's primary action ("Sign off", "Submit").
+
 ## Interaction
 
 - Keep keyboard access for changed controls.

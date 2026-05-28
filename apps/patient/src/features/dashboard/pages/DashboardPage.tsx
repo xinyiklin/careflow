@@ -9,6 +9,19 @@ import { MessagesSummaryCard } from "../components/MessagesSummaryCard";
 import { NextAppointmentHero } from "../components/NextAppointmentHero";
 import { WelcomeStrip } from "../components/WelcomeStrip";
 
+// Statuses that mean "the patient won't actually attend this visit."
+// Used to filter the upcoming-appointments query down to a real
+// "next" appointment for the dashboard hero. Cancelled + no-show are
+// terminal; rescheduled means a new appointment exists in its place;
+// completed is past by definition. See backend `AppointmentStatus`
+// protected-default codes — these align with the seeded defaults.
+const NON_NEXT_APPOINTMENT_STATUSES = new Set([
+  "cancelled",
+  "rescheduled",
+  "no_show",
+  "completed",
+]);
+
 export function DashboardPage() {
   const { patient } = useAuth();
   const firstName = patient?.first_name?.trim() || "there";
@@ -33,7 +46,15 @@ export function DashboardPage() {
     isLoadingMedications || isLoadingRefills
   );
 
-  const nextAppointment = upcoming && upcoming.length > 0 ? upcoming[0] : null;
+  // Skip statuses that mean "won't happen" (cancelled, rescheduled,
+  // no-show, completed). The upcoming endpoint may include them for
+  // history-view purposes elsewhere, but the dashboard hero wants the
+  // next appointment the patient is actually going to attend.
+  const nextAppointment = upcoming
+    ? (upcoming.find(
+        (appt) => !NON_NEXT_APPOINTMENT_STATUSES.has(appt.status_code)
+      ) ?? null)
+    : null;
   const activeMedicationsCount = medications
     ? medications.filter((m) => m.status === "active").length
     : 0;

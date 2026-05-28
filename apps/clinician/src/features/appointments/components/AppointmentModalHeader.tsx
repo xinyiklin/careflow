@@ -3,7 +3,6 @@ import type { PointerEventHandler } from "react";
 
 import { Button } from "../../../shared/components/ui";
 import type {
-  AppointmentFormData,
   AppointmentMode,
   AppointmentPatient,
   AppointmentResource,
@@ -17,7 +16,6 @@ type AppointmentModalHeaderProps = {
   patientDisplayName: string;
   selectedPatient?: AppointmentPatient | null;
   mode: AppointmentMode;
-  formData: AppointmentFormData;
   appointmentHeaderDate: string;
   appointmentHeaderTime: string;
   appointmentHeaderEndTime: string;
@@ -44,7 +42,6 @@ export default function AppointmentModalHeader({
   patientDisplayName,
   selectedPatient,
   mode,
-  formData,
   appointmentHeaderDate,
   appointmentHeaderTime,
   appointmentHeaderEndTime,
@@ -79,15 +76,7 @@ export default function AppointmentModalHeader({
           ) : null}
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
-            Scheduler ·{" "}
-            {mode === "edit" ? "Edit appointment" : "New appointment"}
-            <span className="text-cf-border-strong">·</span>
-            <span className="font-mono text-[11px] tracking-tight text-cf-text-muted">
-              {formData.id ? `APT-${formData.id}` : "APT-new"}
-            </span>
-          </div>
-          <div className="mt-0.5 min-w-0">
+          <div className="min-w-0">
             <h2 className="min-w-0 truncate text-xl font-semibold tracking-tight text-cf-text">
               {patientDisplayName || "Appointment"}
             </h2>

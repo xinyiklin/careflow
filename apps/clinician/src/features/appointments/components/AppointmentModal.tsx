@@ -466,7 +466,6 @@ export default function AppointmentModal({
             patientDisplayName={patientDisplayName}
             selectedPatient={displayedSelectedPatient}
             mode={displayedMode}
-            formData={displayedFormData}
             appointmentHeaderDate={appointmentHeaderDate}
             appointmentHeaderTime={appointmentHeaderTime}
             appointmentHeaderEndTime={appointmentHeaderEndTime}

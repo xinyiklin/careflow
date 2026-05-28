@@ -45,6 +45,15 @@ type AppointmentPatientLensProps = {
 const TypedPatientSearchField =
   PatientSearchField as ComponentType<PatientSearchFieldProps>;
 
+function InlineSkeleton({ widthClass = "w-20" }: { widthClass?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`inline-block h-4 ${widthClass} rounded bg-cf-surface-soft animate-pulse align-middle`}
+    />
+  );
+}
+
 export default function AppointmentPatientLens({
   selectedPatient,
   onOpenPatientHub,
@@ -63,10 +72,13 @@ export default function AppointmentPatientLens({
   insurancePoliciesQuery,
   primaryInsurancePolicy,
 }: AppointmentPatientLensProps) {
-  const isPatientLoading = useMinimumLoading(patientDetailsQuery.isLoading);
-  const isInsuranceLoading = useMinimumLoading(
-    insurancePoliciesQuery.isLoading
-  );
+  // Use raw `isLoading` for the value-vs-skeleton decision so we never
+  // render "—" while data is still arriving. `useMinimumLoading` smooths
+  // the meta-text toggle so the DOB/MRN strip does not flicker for sub-
+  // 150 ms loads.
+  const isPatientFetching = patientDetailsQuery.isLoading;
+  const isInsuranceFetching = insurancePoliciesQuery.isLoading;
+  const isPatientLoading = useMinimumLoading(isPatientFetching);
   const dobValue = patientSnapshot.date_of_birth
     ? formatDOB(patientSnapshot.date_of_birth)
     : "";
@@ -117,10 +129,13 @@ export default function AppointmentPatientLens({
               />
             ) : null}
 
-            {selectedPatient || isPatientLoading ? (
+            {selectedPatient || isPatientFetching ? (
               <div className="mt-3">
-                {isPatientLoading ? (
-                  <PatientMetaItem label="Phone" value="—" />
+                {isPatientFetching ? (
+                  <PatientMetaItem
+                    label="Phone"
+                    value={<InlineSkeleton widthClass="w-28" />}
+                  />
                 ) : patientPhones.length ? (
                   patientPhones.map((phone) => (
                     <PatientMetaItem
@@ -135,7 +150,13 @@ export default function AppointmentPatientLens({
                 <PatientMetaItem
                   label="Address"
                   multiline
-                  value={isPatientLoading ? "—" : patientAddress}
+                  value={
+                    isPatientFetching ? (
+                      <InlineSkeleton widthClass="w-40" />
+                    ) : (
+                      patientAddress
+                    )
+                  }
                 />
               </div>
             ) : null}
@@ -161,20 +182,42 @@ export default function AppointmentPatientLens({
             <SummaryItem
               label="Carrier"
               value={
-                isInsuranceLoading ? "—" : primaryInsurancePolicy?.carrier_name
+                isInsuranceFetching ? (
+                  <InlineSkeleton widthClass="w-24" />
+                ) : (
+                  primaryInsurancePolicy?.carrier_name
+                )
               }
             />
             <SummaryItem
               label="Plan"
-              value={primaryInsurancePolicy?.plan_name}
+              value={
+                isInsuranceFetching ? (
+                  <InlineSkeleton widthClass="w-20" />
+                ) : (
+                  primaryInsurancePolicy?.plan_name
+                )
+              }
             />
             <SummaryItem
               label="Member ID"
-              value={primaryInsurancePolicy?.member_id}
+              value={
+                isInsuranceFetching ? (
+                  <InlineSkeleton widthClass="w-24" />
+                ) : (
+                  primaryInsurancePolicy?.member_id
+                )
+              }
             />
             <SummaryItem
               label="Group"
-              value={primaryInsurancePolicy?.group_number}
+              value={
+                isInsuranceFetching ? (
+                  <InlineSkeleton widthClass="w-16" />
+                ) : (
+                  primaryInsurancePolicy?.group_number
+                )
+              }
             />
           </div>
         </section>
@@ -186,12 +229,22 @@ export default function AppointmentPatientLens({
           <div className="mt-2 space-y-2">
             <SummaryItem
               label="PCP"
-              value={isPatientLoading ? "—" : patientSnapshot.pcp_name}
+              value={
+                isPatientFetching ? (
+                  <InlineSkeleton widthClass="w-24" />
+                ) : (
+                  patientSnapshot.pcp_name
+                )
+              }
             />
             <SummaryItem
               label="Referring"
               value={
-                isPatientLoading ? "—" : patientSnapshot.referring_provider_name
+                isPatientFetching ? (
+                  <InlineSkeleton widthClass="w-28" />
+                ) : (
+                  patientSnapshot.referring_provider_name
+                )
               }
             />
           </div>

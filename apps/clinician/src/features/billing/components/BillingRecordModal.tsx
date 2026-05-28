@@ -311,9 +311,9 @@ export default function BillingRecordModal({
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      eyebrow="Billing"
       title={title}
       maxWidth="4xl"
+      panelClassName="h-[min(85dvh,720px)]"
       footerClassName="bg-cf-surface !py-3"
       footer={
         <div className="flex w-full flex-wrap items-center justify-between gap-3">

@@ -384,7 +384,6 @@ export default function DocumentMetadataModal({
       isOpen={isOpen}
       onClose={saving ? undefined : onClose}
       title={isUploadMode ? "Upload Documents" : "Edit Document"}
-      eyebrow="Document Center"
       maxWidth={isUploadMode ? "4xl" : "2xl"}
       bodyClassName="p-0"
       footer={
