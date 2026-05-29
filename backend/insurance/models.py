@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 
 
 class InsuranceCarrier(models.Model):
@@ -184,6 +184,13 @@ class PatientInsurancePolicy(models.Model):
     class Meta:
         ordering = ["patient", "-is_primary", "coverage_order", "carrier__name"]
         unique_together = ("patient", "carrier", "member_id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["patient"],
+                condition=models.Q(is_primary=True),
+                name="unique_primary_insurance_policy_per_patient",
+            )
+        ]
 
     def save(self, *args, **kwargs):
         if self.coverage_order == "primary":
@@ -191,12 +198,17 @@ class PatientInsurancePolicy(models.Model):
         elif self.is_primary:
             self.coverage_order = "primary"
 
-        super().save(*args, **kwargs)
-
-        if self.is_primary:
-            PatientInsurancePolicy.objects.filter(patient=self.patient).exclude(
-                pk=self.pk
-            ).update(is_primary=False, coverage_order="secondary")
+        with transaction.atomic():
+            # Demote any other primary BEFORE persisting this one so the
+            # partial unique constraint never sees two primaries, and so a
+            # concurrent write can't leave the patient with two primaries.
+            if self.is_primary:
+                PatientInsurancePolicy.objects.filter(
+                    patient=self.patient, is_primary=True
+                ).exclude(pk=self.pk).update(
+                    is_primary=False, coverage_order="secondary"
+                )
+            super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.patient} - {self.carrier}"
