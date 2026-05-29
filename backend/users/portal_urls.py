@@ -27,6 +27,7 @@ from .portal_views import (
     PortalLogoutView,
     PortalMeView,
     PortalPreferredPharmacyView,
+    PortalTokenObtainPairView,
     PortalTokenRefreshView,
 )
 
@@ -38,6 +39,11 @@ urlpatterns = [
         name="portal_me_preferred_pharmacy",
     ),
     path("demo-login/", PortalDemoLoginView.as_view(), name="portal_demo_login"),
+    path(
+        "auth/login/",
+        PortalTokenObtainPairView.as_view(),
+        name="portal_token_obtain",
+    ),
     path(
         "auth/refresh/",
         PortalTokenRefreshView.as_view(),

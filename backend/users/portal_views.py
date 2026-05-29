@@ -9,7 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from medications.portal_serializers import PortalPreferredPharmacyUpdateSerializer
 from patients.models import PatientPharmacy, Pharmacy
@@ -20,6 +20,7 @@ from users.portal_access import get_patient_for_user
 from users.portal_serializers import PortalPatientSerializer
 from users.tokens import (
     PORTAL_SURFACE,
+    PortalTokenObtainPairSerializer,
     PortalTokenRefreshSerializer,
     issue_refresh_for_user,
 )
@@ -180,6 +181,25 @@ class PortalDemoLoginView(APIView):
         )
         return set_refresh_cookie(
             response, str(refresh), path=PORTAL_REFRESH_COOKIE_PATH
+        )
+
+
+@method_decorator(csrf_protect, name="dispatch")
+class PortalTokenObtainPairView(TokenObtainPairView):
+    """Username/password login for the patient portal.
+
+    Issues a portal-surface token and writes the refresh cookie at the
+    portal path, so the portal stops borrowing the clinician token
+    endpoint (which set the clinic cookie path and a clinic-surface token).
+    """
+
+    serializer_class = PortalTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        refresh_token = response.data.pop("refresh", None)
+        return set_refresh_cookie(
+            response, refresh_token, path=PORTAL_REFRESH_COOKIE_PATH
         )
 
 

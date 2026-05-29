@@ -77,7 +77,7 @@ export type PortalAuthTokenResponse = {
 };
 
 export function loginPortal(credentials: PortalLoginCredentials) {
-  return apiRequest<PortalAuthTokenResponse>("/users/token/", {
+  return apiRequest<PortalAuthTokenResponse>("/portal/auth/login/", {
     method: "POST",
     body: JSON.stringify(credentials),
   });
