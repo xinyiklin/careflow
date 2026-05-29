@@ -209,6 +209,13 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
         if obj.pk in cache:
             return cache[obj.pk]
 
+        # OrganizationPeopleViewSet prefetches the org-scoped active profiles
+        # into this attr (one query for the whole page); use it when present.
+        prefetched = getattr(obj.user, "active_org_staff_profiles", None)
+        if prefetched is not None:
+            cache[obj.pk] = prefetched
+            return prefetched
+
         profiles = getattr(obj.user, "staff_profiles", None)
         if profiles is None:
             return []

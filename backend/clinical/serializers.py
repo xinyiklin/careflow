@@ -185,11 +185,18 @@ class EncounterSerializer(StrictPayloadMixin, serializers.ModelSerializer):
         }
 
     def get_payer_name(self, obj):
-        primary_policy = (
-            obj.patient.insurance_policies.filter(is_primary=True, is_active=True)
-            .select_related("carrier")
-            .first()
-        )
+        # Prefer the prefetched list set by EncounterViewSet (avoids an N+1
+        # across an encounter list); fall back to a query when this serializer
+        # runs outside that queryset (e.g. a create/update response).
+        prefetched = getattr(obj.patient, "primary_active_insurance_policies", None)
+        if prefetched is not None:
+            primary_policy = prefetched[0] if prefetched else None
+        else:
+            primary_policy = (
+                obj.patient.insurance_policies.filter(is_primary=True, is_active=True)
+                .select_related("carrier")
+                .first()
+            )
         if primary_policy:
             return primary_policy.carrier.name
         return None

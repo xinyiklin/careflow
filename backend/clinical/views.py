@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.db.models import Prefetch
 from django.http import Http404
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 from appointments.models import Appointment
 from audit.services import record_audit_event
 from facilities.security import user_has_facility_permission
+from insurance.models import PatientInsurancePolicy
 from patients.models import Patient
 from shared.scoping import FacilityScopedViewSetMixin
 
@@ -60,6 +62,15 @@ class EncounterViewSet(
                 "created_by",
             )
             .select_related("progress_note", "progress_note__signed_by")
+            .prefetch_related(
+                Prefetch(
+                    "patient__insurance_policies",
+                    queryset=PatientInsurancePolicy.objects.filter(
+                        is_primary=True, is_active=True
+                    ).select_related("carrier"),
+                    to_attr="primary_active_insurance_policies",
+                )
+            )
             .order_by("-started_at", "-created_at")
         )
 
