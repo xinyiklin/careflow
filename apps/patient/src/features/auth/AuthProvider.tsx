@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   logoutUser,
@@ -47,6 +48,7 @@ function getErrorStatus(error: unknown): number | undefined {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [patient, setPatient] = useState<PortalPatient | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logoutUser();
     setPatient(null);
     setStatus("anonymous");
-  }, []);
+    // Drop every cached query so the next patient never sees the prior
+    // patient's medications/messages/profile from this browser session.
+    queryClient.clear();
+  }, [queryClient]);
 
   const loadPatient = useCallback(async () => {
     const data = await fetchPortalMe();
@@ -150,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleAuthLogout = () => {
       setPatient(null);
       setStatus("anonymous");
+      queryClient.clear();
     };
 
     window.addEventListener("auth:logout", handleAuthLogout);
@@ -157,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("auth:logout", handleAuthLogout);
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     bootstrap();

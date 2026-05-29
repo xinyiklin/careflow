@@ -1,4 +1,7 @@
+import type { components } from "@careflow/api-types";
+
 import { apiRequest } from "../../../shared/api/client";
+import type { AssertSchemaKeys } from "../../../shared/api/types";
 
 export type PortalEmergencyContact = {
   name: string;
@@ -49,6 +52,18 @@ export type PortalPatient = {
   facility_timezone: string;
   insurance_policies?: PortalInsurancePolicy[];
 };
+
+/**
+ * Drift guard: every field {@link PortalPatient} reads must still exist in the
+ * backend `PortalPatient` schema. Note `insurance_policies` intentionally
+ * diverges in *value* type — the schema serializes it as a PK list (`number[]`)
+ * while the portal expects expanded objects; key-coverage tolerates that, so
+ * this only fires if a field name is renamed or removed upstream.
+ */
+type _AssertPortalPatientKeys = AssertSchemaKeys<
+  components["schemas"]["PortalPatient"],
+  keyof PortalPatient
+>;
 
 export type PortalLoginCredentials = {
   username: string;

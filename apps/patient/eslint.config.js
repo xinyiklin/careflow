@@ -46,6 +46,7 @@ export default tseslint.config(
           args: "after-used",
           ignoreRestSiblings: true,
           argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
         },
       ],
 
@@ -74,6 +75,7 @@ export default tseslint.config(
           args: "after-used",
           ignoreRestSiblings: true,
           argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
         },
       ],
     },
