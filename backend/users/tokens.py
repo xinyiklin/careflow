@@ -7,6 +7,7 @@ from being replayed against the other surface's refresh endpoint, every token
 carries a ``surface`` claim and the refresh endpoints reject a mismatch.
 """
 
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
@@ -38,6 +39,33 @@ class ClinicTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token[SURFACE_CLAIM] = CLINIC_SURFACE
         return token
+
+
+class PortalTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Username/password login for the patient portal.
+
+    Tags the token with the portal surface and rejects users without an
+    active portal account, so a clinician credential cannot mint a portal
+    session even if it reaches this endpoint.
+    """
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token[SURFACE_CLAIM] = PORTAL_SURFACE
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        from users.portal import PatientPortalAccount
+
+        if not PatientPortalAccount.objects.filter(
+            user=self.user, is_active=True
+        ).exists():
+            raise AuthenticationFailed(
+                "This account doesn't have patient portal access."
+            )
+        return data
 
 
 class _SurfaceTokenRefreshSerializer(TokenRefreshSerializer):
