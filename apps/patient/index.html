@@ -3,6 +3,21 @@
   <head>
     <meta charset="UTF-8" />
 
+    <script>
+      // Apply the stored theme before first paint so an explicit light/dark
+      // choice doesn't flash the OS theme. Mirrors ThemeProvider: only
+      // "light"/"dark" set the attribute; "system" (or unset) leaves it off
+      // so CSS falls back to prefers-color-scheme.
+      (function () {
+        try {
+          var t = localStorage.getItem("careflow_patient_theme");
+          if (t === "light" || t === "dark") {
+            document.documentElement.setAttribute("data-theme", t);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
