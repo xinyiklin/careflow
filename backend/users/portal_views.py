@@ -9,7 +9,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from medications.portal_serializers import PortalPreferredPharmacyUpdateSerializer
@@ -19,9 +18,15 @@ from users.permissions import IsPortalPatient
 from users.portal import PatientPortalAccount
 from users.portal_access import get_patient_for_user
 from users.portal_serializers import PortalPatientSerializer
+from users.tokens import (
+    PORTAL_SURFACE,
+    PortalTokenRefreshSerializer,
+    issue_refresh_for_user,
+)
 from users.views import (
     PORTAL_REFRESH_COOKIE_PATH,
     REFRESH_COOKIE_NAME,
+    blacklist_refresh_cookie,
     clear_refresh_cookie,
     set_refresh_cookie,
 )
@@ -168,7 +173,7 @@ class PortalDemoLoginView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        refresh = RefreshToken.for_user(user)
+        refresh = issue_refresh_for_user(user, PORTAL_SURFACE)
         response = Response(
             {"access": str(refresh.access_token), "is_demo": True},
             status=status.HTTP_200_OK,
@@ -185,7 +190,11 @@ class PortalTokenRefreshView(TokenRefreshView):
     Mirrors :class:`users.views.CookieTokenRefreshView` but reads and writes
     the cookie at :data:`users.views.PORTAL_REFRESH_COOKIE_PATH` so the
     browser keeps clinic and portal sessions isolated even on a shared host.
+    The serializer also rejects a refresh token minted for the clinician
+    surface, so a clinic token can't be replayed here to mint portal access.
     """
+
+    serializer_class = PortalTokenRefreshSerializer
 
     def post(self, request, *args, **kwargs):
         data = (
@@ -210,10 +219,11 @@ class PortalTokenRefreshView(TokenRefreshView):
 
 @method_decorator(csrf_protect, name="dispatch")
 class PortalLogoutView(APIView):
-    """Clear the portal-scoped refresh cookie."""
+    """Revoke and clear the portal-scoped refresh cookie."""
 
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        blacklist_refresh_cookie(request)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return clear_refresh_cookie(response, path=PORTAL_REFRESH_COOKIE_PATH)

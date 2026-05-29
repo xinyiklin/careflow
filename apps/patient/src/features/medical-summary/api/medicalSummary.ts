@@ -1,6 +1,8 @@
+import type { components } from "@careflow/api-types";
 import { useQuery } from "@tanstack/react-query";
 
 import { apiRequest } from "../../../shared/api/client";
+import type { AssertSchemaKeys } from "../../../shared/api/types";
 
 export type PortalSummaryMedication = {
   id: number;
@@ -62,6 +64,18 @@ export type PortalMedicalSummary = {
   active_allergies: PortalSummaryAllergy[];
   visits: PortalSummaryVisit[];
 };
+
+/**
+ * Drift guard: the top-level {@link PortalMedicalSummary} keys must still exist
+ * in the backend schema. Nested medication/allergy/visit shapes are left
+ * hand-written — the portal deliberately widens several fields to nullable and
+ * treats `progress_note`/`vitals` as optional, which a structural check would
+ * reject; this guard fires only if a top-level field is renamed or removed.
+ */
+type _AssertPortalMedicalSummaryKeys = AssertSchemaKeys<
+  components["schemas"]["PortalMedicalSummary"],
+  keyof PortalMedicalSummary
+>;
 
 export function useMedicalSummary() {
   return useQuery<PortalMedicalSummary>({

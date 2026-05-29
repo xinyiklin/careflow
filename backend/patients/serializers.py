@@ -114,13 +114,27 @@ class PatientDocumentSerializer(serializers.ModelSerializer):
     def validate_notes(self, value):
         return (value or "").strip()
 
+    def _category_label_map(self, facility_id):
+        # Memoize {code: name} per facility on the serializer instance so a
+        # document list resolves labels in one query per facility (the same
+        # child serializer instance is reused across rows under many=True)
+        # instead of one query per document.
+        cache = getattr(self, "_category_label_cache", None)
+        if cache is None:
+            cache = {}
+            self._category_label_cache = cache
+        if facility_id not in cache:
+            cache[facility_id] = dict(
+                PatientDocumentCategory.objects.filter(
+                    facility_id=facility_id
+                ).values_list("code", "name")
+            )
+        return cache[facility_id]
+
     def get_category_label(self, obj):
-        category = PatientDocumentCategory.objects.filter(
-            facility_id=obj.patient.facility_id,
-            code=obj.category,
-        ).first()
-        if category:
-            return category.name
+        label = self._category_label_map(obj.patient.facility_id).get(obj.category)
+        if label:
+            return label
 
         return dict(PatientDocument.CATEGORY_CHOICES).get(obj.category, obj.category)
 

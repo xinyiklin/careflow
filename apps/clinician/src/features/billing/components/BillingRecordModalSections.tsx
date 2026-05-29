@@ -6,11 +6,13 @@ import type { Dispatch, SetStateAction } from "react";
 import type { FeeScheduleItem } from "../types";
 
 export type DiagnosisRow = {
+  id: string;
   code: string;
   description: string;
 };
 
 export type ChargeLineRow = {
+  id: string;
   service_code: string;
   description: string;
   modifier_1: string;
@@ -22,22 +24,32 @@ export type ChargeLineRow = {
   diagnosis_pointers: string;
 };
 
-export const blankDiagnosis: DiagnosisRow = {
-  code: "",
-  description: "",
-};
+// Stable per-row id used only as a React key. Rows are added/removed
+// client-side and have no server id until saved; keying on array index made
+// React reuse a removed row's input state for the row that shifted into its
+// place — letting a code attach to the wrong description on a billing claim.
+export function createRowId(): string {
+  return crypto.randomUUID();
+}
 
-export const blankChargeLine: ChargeLineRow = {
-  service_code: "",
-  description: "",
-  modifier_1: "",
-  modifier_2: "",
-  modifier_3: "",
-  modifier_4: "",
-  units: "1.00",
-  charge_amount: "0.00",
-  diagnosis_pointers: "1",
-};
+export function createBlankDiagnosis(): DiagnosisRow {
+  return { id: createRowId(), code: "", description: "" };
+}
+
+export function createBlankChargeLine(): ChargeLineRow {
+  return {
+    id: createRowId(),
+    service_code: "",
+    description: "",
+    modifier_1: "",
+    modifier_2: "",
+    modifier_3: "",
+    modifier_4: "",
+    units: "1.00",
+    charge_amount: "0.00",
+    diagnosis_pointers: "1",
+  };
+}
 
 /* ---------- helpers ---------- */
 
@@ -74,7 +86,7 @@ export function BillingDiagnosisEditor({
           size="sm"
           variant="default"
           onClick={() =>
-            setDiagnoses((current) => [...current, { ...blankDiagnosis }])
+            setDiagnoses((current) => [...current, createBlankDiagnosis()])
           }
           disabled={saving}
         >
@@ -85,7 +97,7 @@ export function BillingDiagnosisEditor({
       <div className="space-y-2">
         {diagnoses.map((diagnosis, index) => (
           <div
-            key={index}
+            key={diagnosis.id}
             className="grid gap-2 border-t border-cf-border pt-3 md:grid-cols-[auto_120px_minmax(0,1fr)_auto]"
           >
             <div className="flex h-9 w-7 items-center justify-center text-xs font-semibold text-cf-text-subtle">
@@ -119,7 +131,7 @@ export function BillingDiagnosisEditor({
                 setDiagnoses((current) =>
                   current.length > 1
                     ? current.filter((_, rowIndex) => rowIndex !== index)
-                    : [{ ...blankDiagnosis }]
+                    : [createBlankDiagnosis()]
                 )
               }
               disabled={saving}
@@ -163,7 +175,7 @@ export function BillingServiceLineEditor({
           size="sm"
           variant="default"
           onClick={() =>
-            setChargeLines((current) => [...current, { ...blankChargeLine }])
+            setChargeLines((current) => [...current, createBlankChargeLine()])
           }
           disabled={saving}
         >
@@ -189,7 +201,7 @@ export function BillingServiceLineEditor({
           const lineTotal = computeLineTotal(line.units, line.charge_amount);
 
           return (
-            <div key={index} className="border-t border-cf-border pt-3">
+            <div key={line.id} className="border-t border-cf-border pt-3">
               {/* Main row: CPT + Description + Units + Charge + Total + Remove */}
               <div className="grid gap-2 md:grid-cols-[110px_minmax(0,1fr)_80px_90px_80px_auto]">
                 <Input
@@ -250,7 +262,7 @@ export function BillingServiceLineEditor({
                     setChargeLines((current) =>
                       current.length > 1
                         ? current.filter((_, rowIndex) => rowIndex !== index)
-                        : [{ ...blankChargeLine }]
+                        : [createBlankChargeLine()]
                     )
                   }
                   disabled={saving}

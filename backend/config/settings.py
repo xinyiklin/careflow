@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "colorfield",
     "drf_spectacular",
@@ -254,6 +256,15 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SIMPLE_JWT = {
+    # Rotate on every refresh and blacklist the consumed token so a captured
+    # refresh token can't be replayed, and logout can revoke a live session.
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    # Match the refresh cookie's 14-day max_age (see users.views.set_refresh_cookie).
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=14),
 }
 
 SPECTACULAR_SETTINGS = {

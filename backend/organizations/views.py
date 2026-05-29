@@ -1,3 +1,4 @@
+from django.db.models import Prefetch
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 
 from audit.services import record_audit_event
 from facilities.access import get_facility_for_user
+from facilities.models import Staff
 from facilities.security import (
     get_effective_staff_permissions,
     user_has_facility_permission,
@@ -222,6 +224,18 @@ class OrganizationPeopleViewSet(
         return (
             OrganizationMembership.objects.filter(organization=membership.organization)
             .select_related("user", "organization")
+            .prefetch_related(
+                Prefetch(
+                    "user__staff_profiles",
+                    queryset=Staff.objects.filter(
+                        is_active=True,
+                        facility__organization=membership.organization,
+                    )
+                    .select_related("facility", "role")
+                    .order_by("facility__name"),
+                    to_attr="active_org_staff_profiles",
+                )
+            )
             .order_by("user__username")
         )
 

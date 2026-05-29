@@ -62,8 +62,9 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          # Mirrors the local dev environment; bump alongside the venv when upgrading.
-          python-version: "3.9"
+          # Match the deployment runtime (backend/Dockerfile: python:3.12-slim)
+          # so tests exercise the same interpreter that runs in production.
+          python-version: "3.12"
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
@@ -84,6 +85,18 @@ jobs:
           SECRET_KEY: "ci-secret-key"
           DEBUG: "True"
         run: python manage.py check
+
+      - name: Check for missing migrations
+        env:
+          DATABASE_URL: postgres://careflow_user:password@localhost:5432/careflow
+          DB_NAME: careflow
+          DB_USER: careflow_user
+          DB_PASSWORD: password
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          SECRET_KEY: "ci-secret-key"
+          DEBUG: "True"
+        run: python manage.py makemigrations --check --dry-run
 
       - name: Run Django tests
         env:

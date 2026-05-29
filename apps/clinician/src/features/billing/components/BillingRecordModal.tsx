@@ -4,8 +4,9 @@ import { FormLabel as Label } from "../../patients/components/PatientFormFields"
 import {
   BillingDiagnosisEditor,
   BillingServiceLineEditor,
-  blankChargeLine,
-  blankDiagnosis,
+  createBlankChargeLine,
+  createBlankDiagnosis,
+  createRowId,
 } from "./BillingRecordModalSections";
 import { POS_CODES } from "./BillingTabSections";
 import {
@@ -48,14 +49,16 @@ function getStatusLabel(status: BillingRecordStatus) {
 
 function toDiagnosisRows(diagnoses?: BillingDiagnosis[]) {
   const rows = (diagnoses || []).map((diagnosis) => ({
+    id: createRowId(),
     code: diagnosis.code || "",
     description: diagnosis.description || "",
   }));
-  return rows.length ? rows : [{ ...blankDiagnosis }];
+  return rows.length ? rows : [createBlankDiagnosis()];
 }
 
 function toChargeLineRows(chargeLines?: BillingChargeLine[]) {
   const rows = (chargeLines || []).map((line) => ({
+    id: createRowId(),
     service_code: line.service_code || "",
     description: line.description || "",
     modifier_1: line.modifier_1 || "",
@@ -66,7 +69,7 @@ function toChargeLineRows(chargeLines?: BillingChargeLine[]) {
     charge_amount: String(line.charge_amount || "0.00"),
     diagnosis_pointers: (line.diagnosis_pointers || []).join(", ") || "1",
   }));
-  return rows.length ? rows : [{ ...blankChargeLine }];
+  return rows.length ? rows : [createBlankChargeLine()];
 }
 
 function parseDiagnosisPointers(value: string) {
@@ -97,11 +100,11 @@ export default function BillingRecordModal({
   const [isManualOverride, setIsManualOverride] = useState(false);
   const [placeOfService, setPlaceOfService] = useState("11");
   const [notes, setNotes] = useState("");
-  const [diagnoses, setDiagnoses] = useState<DiagnosisRow[]>([
-    { ...blankDiagnosis },
+  const [diagnoses, setDiagnoses] = useState<DiagnosisRow[]>(() => [
+    createBlankDiagnosis(),
   ]);
-  const [chargeLines, setChargeLines] = useState<ChargeLineRow[]>([
-    { ...blankChargeLine },
+  const [chargeLines, setChargeLines] = useState<ChargeLineRow[]>(() => [
+    createBlankChargeLine(),
   ]);
   const [localError, setLocalError] = useState("");
   const title = record?.id ? "Edit Superbill" : "Create Superbill";
