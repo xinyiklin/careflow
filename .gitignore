@@ -51,9 +51,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Generated API types (regenerate with `npm run generate`)
-packages/api-types/src/schema.yaml
-packages/api-types/src/generated.ts
+# Generated API types are committed (regenerate with `npm run generate`)
+# so every checkout and CI builds without a generation step.
 
 # Test / coverage reports
 coverage/
