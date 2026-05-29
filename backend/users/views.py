@@ -14,6 +14,12 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .demo_access import ensure_demo_user_full_access
 from .models import UserPreference
 from .serializers import RegisterSerializer, UserPreferenceSerializer, UserSerializer
+from .tokens import (
+    CLINIC_SURFACE,
+    ClinicTokenObtainPairSerializer,
+    ClinicTokenRefreshSerializer,
+    issue_refresh_for_user,
+)
 
 REFRESH_COOKIE_NAME = "careflow_refresh"
 # Clinician app cookies are scoped so the browser only sends them to
@@ -47,6 +53,22 @@ def clear_refresh_cookie(response, *, path):
     return response
 
 
+def blacklist_refresh_cookie(request):
+    """Revoke the refresh token in the request's cookie, if any.
+
+    Best-effort: a missing, expired, or malformed token simply means there is
+    nothing to revoke. Used on logout so a captured refresh token can't keep
+    minting access tokens after the user signs out.
+    """
+    raw_token = request.COOKIES.get(REFRESH_COOKIE_NAME)
+    if not raw_token:
+        return
+    try:
+        RefreshToken(raw_token).blacklist()
+    except TokenError:
+        pass
+
+
 def health_check(request):
     return JsonResponse({"status": "ok"})
 
@@ -58,6 +80,8 @@ def csrf_token(request):
 
 @method_decorator(csrf_protect, name="dispatch")
 class CookieTokenObtainPairView(TokenObtainPairView):
+    serializer_class = ClinicTokenObtainPairSerializer
+
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         refresh_token = response.data.pop("refresh", None)
@@ -68,6 +92,8 @@ class CookieTokenObtainPairView(TokenObtainPairView):
 
 @method_decorator(csrf_protect, name="dispatch")
 class CookieTokenRefreshView(TokenRefreshView):
+    serializer_class = ClinicTokenRefreshSerializer
+
     def post(self, request, *args, **kwargs):
         data = (
             request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
@@ -94,6 +120,7 @@ class LogoutView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        blacklist_refresh_cookie(request)
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return clear_refresh_cookie(response, path=CLINIC_REFRESH_COOKIE_PATH)
 
@@ -161,7 +188,7 @@ class DemoLoginView(APIView):
 
         ensure_demo_user_full_access(user)
 
-        refresh = RefreshToken.for_user(user)
+        refresh = issue_refresh_for_user(user, CLINIC_SURFACE)
 
         response = Response(
             {
