@@ -1,11 +1,8 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.db import transaction
-from django.db.models import Count
-from django.db.models.functions import TruncDate
 from django.utils import timezone
-from rest_framework import permissions, status as drf_status, viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -16,79 +13,21 @@ from facilities.security import user_has_facility_permission
 from patients.models import Patient
 from shared.scoping import FacilityScopedViewSetMixin
 
-from .models import Appointment, AppointmentEditSession
+from .edit_session import AppointmentEditSessionMixin
+from .models import Appointment
 from .serializers import AppointmentSerializer
+from .services import (
+    build_audit_history_item,
+    compute_heatmap_counts,
+    get_changed_field_labels,
+    get_facility_timezone,
+    get_user_display_name,
+)
 
 
-def get_facility_timezone(facility):
-    tz_name = str(getattr(facility, "timezone", "") or "")
-    if not tz_name:
-        raise ValidationError({"facility": "Facility timezone is not configured."})
-
-    try:
-        return ZoneInfo(tz_name)
-    except ZoneInfoNotFoundError:
-        raise ValidationError({"facility": f"Invalid facility timezone: {tz_name}."})
-
-
-def get_user_display_name(user):
-    if not user:
-        return "Unknown user"
-    return user.get_full_name() or user.username or "Unknown user"
-
-
-def get_changed_field_labels(instance, validated_data):
-    field_labels = {
-        "patient": "Patient",
-        "resource": "Resource",
-        "rendering_provider": "Rendering provider",
-        "appointment_time": "Appointment time",
-        "reason": "Reason",
-        "notes": "Notes",
-        "status": "Status",
-        "appointment_type": "Visit type",
-        "facility": "Facility",
-    }
-    changed = []
-
-    for field_name, label in field_labels.items():
-        if field_name not in validated_data:
-            continue
-
-        previous_value = getattr(instance, field_name)
-        next_value = validated_data[field_name]
-
-        if hasattr(previous_value, "pk"):
-            previous_value = previous_value.pk
-        if hasattr(next_value, "pk"):
-            next_value = next_value.pk
-
-        if previous_value != next_value:
-            changed.append(label)
-
-    return changed
-
-
-def build_audit_history_item(event):
-    metadata = event.metadata or {}
-    actor = event.actor
-
-    return {
-        "id": f"audit-{event.id}",
-        "action": event.action,
-        "summary": event.summary,
-        "actor_name": (
-            get_user_display_name(actor)
-            if actor
-            else metadata.get("actor_name", "Unknown user")
-        ),
-        "created_at": event.created_at,
-        "changed_fields": metadata.get("changed_fields", []),
-        "metadata": metadata,
-    }
-
-
-class AppointmentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
+class AppointmentViewSet(
+    AppointmentEditSessionMixin, FacilityScopedViewSetMixin, viewsets.ModelViewSet
+):
     serializer_class = AppointmentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -206,49 +145,7 @@ class AppointmentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
         if not month_str:
             raise ValidationError({"month": "Use YYYY-MM for month."})
 
-        try:
-            month_start_date = datetime.strptime(month_str, "%Y-%m").date()
-        except ValueError:
-            raise ValidationError({"month": "Use YYYY-MM for month."})
-
-        facility_tz = get_facility_timezone(facility)
-        next_month = (
-            month_start_date.replace(year=month_start_date.year + 1, month=1)
-            if month_start_date.month == 12
-            else month_start_date.replace(month=month_start_date.month + 1)
-        )
-
-        local_start = datetime.combine(month_start_date, datetime.min.time())
-        local_end = datetime.combine(next_month, datetime.min.time())
-        utc_start = timezone.make_aware(local_start, facility_tz).astimezone(
-            dt_timezone.utc
-        )
-        utc_end = timezone.make_aware(local_end, facility_tz).astimezone(
-            dt_timezone.utc
-        )
-
-        rows = (
-            Appointment.objects.filter(
-                facility=facility,
-                appointment_time__gte=utc_start,
-                appointment_time__lt=utc_end,
-            )
-            .annotate(local_date=TruncDate("appointment_time", tzinfo=facility_tz))
-            .values("local_date")
-            .annotate(count=Count("id"))
-            .order_by("local_date")
-        )
-
-        return Response(
-            {
-                "month": month_str,
-                "counts": {
-                    row["local_date"].isoformat(): row["count"]
-                    for row in rows
-                    if row["local_date"]
-                },
-            }
-        )
+        return Response(compute_heatmap_counts(facility, month_str))
 
     def _create_audit_event(self, *, appointment, action, summary, metadata=None):
         AuditEvent.objects.create(
@@ -443,144 +340,6 @@ class AppointmentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
             },
         )
         instance.delete()
-
-    def _require_update_permission(self, appointment):
-        if not user_has_facility_permission(
-            self.request.user,
-            appointment.facility_id,
-            "schedule.update",
-        ):
-            raise PermissionDenied("You do not have access to update appointments.")
-
-    def _serialize_edit_session(self, session):
-        if not session:
-            return None
-
-        return {
-            "user_id": session.user_id,
-            "user_name": session.user_display_name or "Unknown user",
-            "started_at": session.started_at,
-            "last_seen_at": session.last_seen_at,
-        }
-
-    def _set_current_edit_session(self, appointment):
-        session, _created = AppointmentEditSession.objects.update_or_create(
-            appointment=appointment,
-            defaults={
-                "user": self.request.user,
-                "user_display_name": get_user_display_name(self.request.user),
-                "last_seen_at": timezone.now(),
-            },
-        )
-        return session
-
-    @action(
-        detail=True,
-        methods=["get", "post", "patch", "delete"],
-        url_path="edit-session",
-    )
-    def edit_session(self, request, pk=None):
-        appointment = self.get_object()
-        self._require_update_permission(appointment)
-
-        with transaction.atomic():
-            locked_appointment = (
-                Appointment.objects.select_for_update()
-                .filter(pk=appointment.pk, facility=appointment.facility)
-                .first()
-            )
-            if not locked_appointment:
-                raise ValidationError({"appointment": "Appointment was not found."})
-
-            session = (
-                AppointmentEditSession.objects.select_for_update()
-                .filter(appointment=locked_appointment)
-                .first()
-            )
-            now = timezone.now()
-            is_active = bool(session and session.is_active(now))
-            is_current_user = bool(session and session.user_id == request.user.id)
-            active_editor = session if is_active else None
-
-            if session and not is_active:
-                session.delete()
-                session = None
-                is_current_user = False
-
-            if request.method == "GET":
-                if active_editor and not is_current_user:
-                    return Response(
-                        {
-                            "status": "occupied",
-                            "can_override": False,
-                            "active_editor": self._serialize_edit_session(
-                                active_editor
-                            ),
-                        }
-                    )
-
-                return Response(
-                    {
-                        "status": "active" if is_current_user else "available",
-                        "can_override": False,
-                        "active_editor": self._serialize_edit_session(session),
-                    }
-                )
-
-            if request.method == "DELETE":
-                if is_current_user and session:
-                    session.delete()
-                return Response({"status": "released"}, status=drf_status.HTTP_200_OK)
-
-            if request.method == "PATCH":
-                if is_current_user and session:
-                    session.last_seen_at = now
-                    session.save(update_fields=["last_seen_at"])
-                    return Response(
-                        {
-                            "status": "active",
-                            "can_override": False,
-                            "active_editor": self._serialize_edit_session(session),
-                        }
-                    )
-
-                if active_editor:
-                    return Response(
-                        {
-                            "status": "occupied",
-                            "can_override": False,
-                            "active_editor": self._serialize_edit_session(
-                                active_editor
-                            ),
-                        }
-                    )
-
-                session = self._set_current_edit_session(locked_appointment)
-                return Response(
-                    {
-                        "status": "active",
-                        "can_override": False,
-                        "active_editor": self._serialize_edit_session(session),
-                    }
-                )
-
-            if active_editor and not is_current_user:
-                return Response(
-                    {
-                        "status": "occupied",
-                        "can_override": False,
-                        "active_editor": self._serialize_edit_session(active_editor),
-                    }
-                )
-
-            session = self._set_current_edit_session(locked_appointment)
-            return Response(
-                {
-                    "status": "active",
-                    "can_override": False,
-                    "active_editor": self._serialize_edit_session(session),
-                }
-            )
 
     @action(detail=True, methods=["get"])
     def history(self, request, pk=None):
