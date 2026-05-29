@@ -454,3 +454,56 @@ class PortalAuthCookieIsolationTests(PortalTestMixin, APITestCase):
         self.assertEqual(response.status_code, 204)
         self.assertIn("careflow_refresh", response.cookies)
         self.assertEqual(response.cookies["careflow_refresh"]["path"], "/v1/portal/")
+
+
+class PortalLoginViewTests(PortalTestMixin, APITestCase):
+    """Username/password login at /v1/portal/auth/login/."""
+
+    def test_portal_user_can_log_in_and_refresh(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+
+        response = self.client.post(
+            "/v1/portal/auth/login/",
+            {"username": "portal_user", "password": "testpass123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("access", response.data)
+        self.assertNotIn("refresh", response.data)
+        self.assertIn("careflow_refresh", response.cookies)
+        self.assertEqual(response.cookies["careflow_refresh"]["path"], "/v1/portal/")
+
+        # The minted token carries the portal surface, so the portal refresh
+        # endpoint (which rejects clinic-surface tokens) accepts it.
+        self.client.cookies["careflow_refresh"] = response.cookies[
+            "careflow_refresh"
+        ].value
+        refresh = self.client.post("/v1/portal/auth/refresh/", {}, format="json")
+        self.assertEqual(refresh.status_code, 200)
+        self.assertIn("access", refresh.data)
+
+    def test_portal_login_rejects_user_without_portal_account(self):
+        self._make_portal_user(username="no_portal", email="no_portal@example.com")
+
+        response = self.client.post(
+            "/v1/portal/auth/login/",
+            {"username": "no_portal", "password": "testpass123"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn("careflow_refresh", response.cookies)
+
+    def test_portal_login_rejects_bad_credentials(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+
+        response = self.client.post(
+            "/v1/portal/auth/login/",
+            {"username": "portal_user", "password": "wrong-password"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 401)
