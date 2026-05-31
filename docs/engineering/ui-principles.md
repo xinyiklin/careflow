@@ -60,10 +60,13 @@ scrolling or clips an animation/surface.
   header height.
 - Do not add helper text when the surrounding workflow already explains the
   state.
-- Do not teach the user how to use the app inline. Avoid writing manuals or
-  explaining basic interactions inside the UI. A simple, obvious hint or
-  placeholder is acceptable, but do not write multi-sentence explanations or
-  essays.
+- Do not teach the user how to use the app inline. CareFlow is a tool for
+  trained staff, not a how-to/tutorial app: no manuals, no explaining basic
+  interactions, and no instructional, example, or "how-to" placeholder or
+  helper copy (e.g. "Annual checkup, follow-up, or similar"; "Enter full SSN").
+  Field labels and obvious affordances carry the meaning — prefer inputs with
+  no placeholder. A bare format mask for a genuinely non-obvious format (e.g.
+  phone) is the only narrow exception.
 - Fix stale or misleading visible copy during the same UI polish pass.
 - Keep modal headers readable and consistent; use the established eyebrow +
   title pattern when it helps match the rest of the app.

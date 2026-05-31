@@ -240,7 +240,7 @@ export default function AppointmentTypesPanel() {
                   (heading, index) => (
                     <th
                       key={`${heading}-${index}`}
-                      className="px-5 py-3 text-left"
+                      className="px-3 py-3 text-left"
                     >
                       {heading}
                     </th>
@@ -259,7 +259,7 @@ export default function AppointmentTypesPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No appointment types found yet. Add one to start shaping
                     your scheduling templates.
@@ -269,7 +269,7 @@ export default function AppointmentTypesPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No appointment types match the selected filter.
                   </td>
@@ -284,7 +284,7 @@ export default function AppointmentTypesPanel() {
                       onAction: () => handleOpenEdit(type),
                     })}
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex items-center gap-3">
                         <span
                           className="grid h-9 w-9 place-items-center rounded-xl text-[11px] font-semibold text-white"
@@ -304,15 +304,15 @@ export default function AppointmentTypesPanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <Badge variant="neutral">{type.code}</Badge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <Badge variant="outline">
                         {type.duration_minutes} min
                       </Badge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="inline-flex items-center gap-2 rounded-full border border-cf-border bg-cf-surface px-3 py-1.5">
                         <span
                           className="h-3.5 w-3.5 rounded-full border border-cf-border"
@@ -323,7 +323,7 @@ export default function AppointmentTypesPanel() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge variant={type.is_active ? "success" : "muted"}>
                           {type.is_active ? "Active" : "Inactive"}

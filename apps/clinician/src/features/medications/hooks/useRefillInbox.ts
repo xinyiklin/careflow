@@ -2,33 +2,47 @@ import {
   useApproveRefillRequest,
   useDenyRefillRequest,
   useRefillRequests,
-} from "../../../medications/api/refillRequests";
+} from "../api/refillRequests";
 
 import type {
   RefillRequest,
+  RefillRequestSource,
   RefillRequestStatus,
-} from "../../../medications/api/refillRequests";
-import type { EntityId } from "../../../../shared/api/types";
+} from "../api/refillRequests";
+import type { ApiParamValue, EntityId } from "../../../shared/api/types";
 
-type UseFacilityRefillRequestsParams = {
+type UseRefillInboxParams = {
   facilityId?: EntityId | null;
   status?: RefillRequestStatus | "";
+  source?: RefillRequestSource | "";
+  prescriberId?: ApiParamValue;
+  mine?: boolean;
+  enabled?: boolean;
 };
 
 /**
- * Facility-scoped wrapper around the underlying refill request query +
- * mutations. Mirrors how other admin hooks shape their return value
- * (loading flags, reload callback, save mutations) so the panel reads
- * like the rest of the admin surface.
+ * Facility-scoped refill inbox: the underlying refill-request query plus
+ * the approve/deny mutations, shaped like the rest of our list surfaces
+ * (loading flags, reload callback, save mutations). The refill workspace
+ * reads from a shared facility queue — any clinician with
+ * ``medications.manage`` can resolve a request; there is no per-provider
+ * routing today.
  */
-export default function useFacilityRefillRequests({
+export default function useRefillInbox({
   facilityId,
   status,
-}: UseFacilityRefillRequestsParams) {
+  source,
+  prescriberId,
+  mine,
+  enabled = true,
+}: UseRefillInboxParams) {
   const refillsQuery = useRefillRequests({
     facilityId,
     status,
-    enabled: !!facilityId,
+    source,
+    prescriberId,
+    mine,
+    enabled: enabled && !!facilityId,
   });
   const approveMutation = useApproveRefillRequest({ facilityId });
   const denyMutation = useDenyRefillRequest({ facilityId });

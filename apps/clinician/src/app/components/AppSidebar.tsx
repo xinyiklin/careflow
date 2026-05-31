@@ -23,15 +23,13 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const {
-    canAccessFacilityAdmin,
-    canAccessOrganizationAdmin,
-    hasAnyAdminAccess,
-  } = useAdminPermissions();
+  const { canAccessFacilityAdmin, canAccessOrganizationAdmin } =
+    useAdminPermissions();
   const { selectedFacilityId, selectedMembership } = useFacility();
   const permissions = selectedMembership?.effective_security_permissions || {};
   const canViewBilling = Boolean(permissions["billing.view"]);
   const canViewMessaging = Boolean(permissions["messaging.view"]);
+  const canViewMedications = Boolean(permissions["medications.view"]);
 
   // Poll open threads so the sidebar badge reflects new patient messages
   // without a hard refresh. Disabled when the user lacks messaging access.
@@ -51,9 +49,9 @@ export default function AppSidebar({
     navigate,
     canAccessFacilityAdmin,
     canAccessOrganizationAdmin,
-    hasAnyAdminAccess,
     canViewBilling,
     canViewMessaging,
+    canViewMedications,
     inboxUnreadCount,
   });
 

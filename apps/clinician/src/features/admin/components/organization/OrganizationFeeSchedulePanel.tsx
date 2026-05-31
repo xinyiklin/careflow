@@ -169,7 +169,7 @@ export default function OrganizationFeeSchedulePanel() {
               <tr>
                 {["Name", "Code", "Fees", "Linked To", "Status"].map(
                   (heading) => (
-                    <th key={heading} className="px-5 py-3 text-left">
+                    <th key={heading} className="px-3 py-3 text-left">
                       {heading}
                     </th>
                   )
@@ -187,7 +187,7 @@ export default function OrganizationFeeSchedulePanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No fee schedule sheets yet.
                   </td>
@@ -196,7 +196,7 @@ export default function OrganizationFeeSchedulePanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No sheets match the selected filter.
                   </td>
@@ -210,7 +210,7 @@ export default function OrganizationFeeSchedulePanel() {
                       onAction: () => openSheetModal(schedule),
                     })}
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex items-center gap-3">
                         <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                           <FileSpreadsheet className="h-4 w-4" />
@@ -227,16 +227,16 @@ export default function OrganizationFeeSchedulePanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 font-mono text-sm text-cf-text-muted">
+                    <td className="px-3 py-4 font-mono text-sm text-cf-text-muted">
                       {schedule.code || "—"}
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       {Number(schedule.item_count ?? 0)}
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted text-xs">
+                    <td className="px-3 py-4 text-cf-text-muted text-xs">
                       {getLinkedLabel(schedule)}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <Badge
                         variant={
                           schedule.is_active === false ? "muted" : "success"

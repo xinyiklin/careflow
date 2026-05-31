@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, X } from "lucide-react";
 
 import { revealPatientSsn } from "../../api/patients";
 import { Input } from "../../../../shared/components/ui";
@@ -12,6 +11,7 @@ import {
   handleFormattedInputDeletion,
   validateSsn,
 } from "../../utils/contactValidation";
+import { FIELD_BOX_CLASS } from "./InlineEditField";
 
 import type { KeyboardEvent } from "react";
 import type { EntityId } from "../../../../shared/api/types";
@@ -57,6 +57,9 @@ export default function SsnSection({
     inputRef.current?.select();
   }, [isEditing]);
 
+  // SSN can't be shown in full at rest, so unlike the other always-editable
+  // fields it stays click-to-reveal: focusing the box loads the stored value
+  // (decrypting on the server when needed) and swaps in an editable input.
   const beginEdit = async () => {
     if (status === "loading" || status === "saving") return;
     setError("");
@@ -137,66 +140,66 @@ export default function SsnSection({
     }
   };
 
+  // Blurring out (e.g. into another field) auto-saves a valid change, and
+  // otherwise closes the field — re-masking the value.
+  const handleBlur = () => {
+    if (status === "saving") return;
+    const unchanged = getDigits(draft) === loadedSsnDigits;
+    if (unchanged || validateSsn(draft)) {
+      cancelEdit();
+      return;
+    }
+    void saveSsn();
+  };
+
   return (
     <div className="min-w-0">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
+      <div className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
         SSN
       </div>
 
       {isEditing ? (
-        <div className="mt-0.5 flex items-start gap-1">
-          <div className="min-w-0 flex-1">
-            <Input
-              ref={inputRef}
-              inputMode="numeric"
-              value={draft}
-              disabled={status === "saving"}
-              onChange={(event) => setDraft(formatSsnInput(event.target.value))}
-              onKeyDown={(event) => {
-                if (
-                  handleFormattedInputDeletion(event, formatSsnInput, setDraft)
-                ) {
-                  return;
-                }
-                handleKeyDown(event);
-              }}
-              placeholder="Enter full SSN"
-              className="h-9 py-0 font-mono tracking-[0.14em]"
-            />
-          </div>
-          <button
-            type="button"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={saveSsn}
-            disabled={status === "saving"}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-muted shadow-sm transition hover:bg-cf-surface-soft hover:text-cf-text"
-            aria-label="Save SSN"
-          >
-            <Check className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={cancelEdit}
-            disabled={status === "saving"}
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-subtle shadow-sm transition hover:bg-cf-surface-soft hover:text-cf-text-muted"
-            aria-label="Cancel SSN edit"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+        <Input
+          ref={inputRef}
+          inputMode="numeric"
+          value={draft}
+          disabled={status === "saving"}
+          onChange={(event) => setDraft(formatSsnInput(event.target.value))}
+          onKeyDown={(event) => {
+            if (handleFormattedInputDeletion(event, formatSsnInput, setDraft)) {
+              return;
+            }
+            handleKeyDown(event);
+          }}
+          onBlur={handleBlur}
+          placeholder="Enter full SSN"
+          aria-label="SSN"
+          aria-invalid={Boolean(error) || undefined}
+          className={[
+            "h-9 font-mono tracking-[0.14em] !py-0",
+            FIELD_BOX_CLASS,
+            error ? "!border-cf-danger-text" : "",
+          ].join(" ")}
+        />
       ) : (
         <button
           type="button"
           onClick={beginEdit}
           disabled={status === "loading"}
-          className="group mt-0.5 -mx-2 flex h-9 w-[calc(100%+1rem)] items-center rounded-lg px-2 text-left font-mono text-sm tracking-[0.18em] text-cf-text transition hover:bg-cf-surface-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cf-accent/25 disabled:cursor-wait disabled:opacity-70"
+          aria-label="Reveal and edit SSN"
+          className="flex h-9 w-full items-center rounded-lg border border-cf-border bg-cf-surface px-2.5 text-left font-mono text-sm tracking-[0.18em] text-cf-text outline-none transition hover:border-cf-border-strong focus:border-cf-accent focus:ring-2 focus:ring-cf-accent/20 disabled:cursor-wait disabled:opacity-70"
         >
-          {status === "loading" ? null : maskedDisplay}
+          {status === "loading" ? (
+            <span className="text-cf-text-subtle">Revealing…</span>
+          ) : (
+            maskedDisplay
+          )}
         </button>
       )}
 
-      <p className="mt-1 h-4 truncate text-xs text-cf-danger-text">{error}</p>
+      {error ? (
+        <p className="mt-1 truncate text-xs text-cf-danger-text">{error}</p>
+      ) : null}
     </div>
   );
 }

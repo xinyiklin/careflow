@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from shared.serializers import StrictPayloadMixin
 
-from .models import Medication, RefillRequest
+from .models import Medication, PrescriberDelegation, RefillRequest
 
 
 class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
@@ -12,6 +12,7 @@ class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
         read_only=True,
     )
     status_label = serializers.CharField(source="get_status_display", read_only=True)
+    prescriber_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Medication
@@ -29,7 +30,9 @@ class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
             "frequency",
             "start_date",
             "end_date",
+            "prescriber",
             "prescriber_name",
+            "prescriber_display",
             "notes",
             "created_by",
             "created_by_name",
@@ -44,6 +47,7 @@ class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
             "patient_chart_number",
             "facility",
             "status_label",
+            "prescriber_display",
             "created_by",
             "created_by_name",
             "updated_by",
@@ -54,6 +58,13 @@ class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
 
     def get_patient_name(self, obj):
         return f"{obj.patient.last_name}, {obj.patient.first_name}"
+
+    def get_prescriber_display(self, obj):
+        if obj.prescriber_id:
+            return (
+                getattr(obj.prescriber, "display_name", "") or obj.prescriber_name or ""
+            )
+        return obj.prescriber_name or ""
 
     def _get_facility(self):
         return self.context.get("facility")
@@ -136,7 +147,12 @@ class RefillRequestSerializer(serializers.ModelSerializer):
     pharmacy_id = serializers.IntegerField(
         source="pharmacy.id", read_only=True, allow_null=True
     )
+    prescriber_id = serializers.IntegerField(
+        source="medication.prescriber_id", read_only=True, allow_null=True
+    )
+    prescriber_display = serializers.SerializerMethodField()
     status_label = serializers.CharField(source="get_status_display", read_only=True)
+    source_label = serializers.CharField(source="get_source_display", read_only=True)
 
     class Meta:
         model = RefillRequest
@@ -150,6 +166,10 @@ class RefillRequestSerializer(serializers.ModelSerializer):
             "frequency",
             "pharmacy_id",
             "pharmacy_name",
+            "prescriber_id",
+            "prescriber_display",
+            "source",
+            "source_label",
             "status",
             "status_label",
             "patient_note",
@@ -163,6 +183,16 @@ class RefillRequestSerializer(serializers.ModelSerializer):
     def get_patient_display_name(self, obj):
         return f"{obj.patient.last_name}, {obj.patient.first_name}"
 
+    def get_prescriber_display(self, obj):
+        medication = obj.medication
+        if medication.prescriber_id:
+            return (
+                getattr(medication.prescriber, "display_name", "")
+                or medication.prescriber_name
+                or ""
+            )
+        return medication.prescriber_name or ""
+
 
 class RefillRequestActionSerializer(StrictPayloadMixin, serializers.Serializer):
     """Input body for ``approve`` / ``deny`` detail routes.
@@ -175,3 +205,45 @@ class RefillRequestActionSerializer(StrictPayloadMixin, serializers.Serializer):
 
     def validate_clinician_note(self, value):
         return (value or "").strip()
+
+
+class PrescriberDelegationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
+    """Admin read/write shape for a prescriber delegation (agent model).
+
+    ``facility`` is assigned by the view; ``prescriber`` (CareProvider) and
+    ``delegate`` (Staff) are client-supplied and validated against the
+    facility. Display fields are denormalized for the admin table.
+    """
+
+    prescriber_display = serializers.SerializerMethodField()
+    delegate_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PrescriberDelegation
+        fields = [
+            "id",
+            "facility",
+            "prescriber",
+            "prescriber_display",
+            "delegate",
+            "delegate_name",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "facility",
+            "prescriber_display",
+            "delegate_name",
+            "created_at",
+        ]
+
+    def get_prescriber_display(self, obj):
+        return getattr(obj.prescriber, "display_name", "") or ""
+
+    def get_delegate_name(self, obj):
+        user = getattr(obj.delegate, "user", None)
+        if not user:
+            return ""
+        full = f"{user.first_name} {user.last_name}".strip()
+        return full or user.get_username()

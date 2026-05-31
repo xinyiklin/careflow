@@ -231,7 +231,7 @@ export default function AppointmentStatusesPanel() {
                 {["Status", "Code", "Color", "State"].map((heading, index) => (
                   <th
                     key={`${heading}-${index}`}
-                    className="px-5 py-3 text-left"
+                    className="px-3 py-3 text-left"
                   >
                     {heading}
                   </th>
@@ -249,7 +249,7 @@ export default function AppointmentStatusesPanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No statuses found yet.
                   </td>
@@ -258,7 +258,7 @@ export default function AppointmentStatusesPanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No statuses match the selected filter.
                   </td>
@@ -273,7 +273,7 @@ export default function AppointmentStatusesPanel() {
                       onAction: () => handleOpenEdit(status),
                     })}
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex items-center gap-3">
                         <span
                           className="grid h-9 w-9 place-items-center rounded-xl text-[11px] font-semibold text-white"
@@ -293,10 +293,10 @@ export default function AppointmentStatusesPanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <Badge variant="neutral">{status.code}</Badge>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="inline-flex items-center gap-2 rounded-full border border-cf-border bg-cf-surface px-3 py-1.5">
                         <span
                           className="h-3.5 w-3.5 rounded-full border border-cf-border"
@@ -307,7 +307,7 @@ export default function AppointmentStatusesPanel() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Badge variant={status.is_active ? "success" : "muted"}>
                           {status.is_active ? "Active" : "Inactive"}

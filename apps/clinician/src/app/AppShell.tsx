@@ -26,6 +26,7 @@ import {
   SCHEDULE_QUICK_ACTION_EVENT,
   SCHEDULE_QUICK_ACTION_STORAGE_KEY,
 } from "../shared/constants/quickActions";
+import { PAGE_GUTTER_X } from "../shared/constants/layout";
 import { useBootReadiness } from "./BootReadinessContext";
 
 import type { Dispatch, SetStateAction } from "react";
@@ -264,7 +265,9 @@ function AppShellLayout({
           onOpenRecentPatient={openRecentPatient}
         />
 
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pt-0 pb-4 sm:px-5 sm:pb-5 lg:px-6 lg:pb-6 xl:px-7 xl:pb-7">
+        <main
+          className={`flex min-h-0 flex-1 flex-col overflow-hidden pt-0 pb-4 sm:pb-5 lg:pb-6 xl:pb-7 ${PAGE_GUTTER_X}`}
+        >
           <div
             key={location.pathname}
             className={`cf-route-frame min-h-0 flex-1 overflow-hidden ${

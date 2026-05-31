@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Medication
+from .models import Medication, PrescriberDelegation
 
 
 @admin.register(Medication)
@@ -29,3 +29,16 @@ class MedicationAdmin(admin.ModelAdmin):
         "created_at",
         "updated_at",
     )
+
+
+@admin.register(PrescriberDelegation)
+class PrescriberDelegationAdmin(admin.ModelAdmin):
+    list_display = ("prescriber", "delegate", "facility", "is_active", "created_at")
+    list_filter = ("facility", "is_active")
+    search_fields = (
+        "prescriber__first_name",
+        "prescriber__last_name",
+        "delegate__user__first_name",
+        "delegate__user__last_name",
+    )
+    readonly_fields = ("created_at",)

@@ -1,6 +1,10 @@
 from rest_framework.routers import DefaultRouter
 
-from .views import MedicationViewSet, RefillRequestViewSet
+from .views import (
+    MedicationViewSet,
+    PrescriberDelegationViewSet,
+    RefillRequestViewSet,
+)
 from .views_catalog import (
     FrequencyCatalogViewSet,
     MedicationCatalogViewSet,
@@ -22,6 +26,11 @@ router.register(
 )
 router.register(
     r"refill-requests", RefillRequestViewSet, basename="medication-refill-request"
+)
+router.register(
+    r"prescriber-delegations",
+    PrescriberDelegationViewSet,
+    basename="prescriber-delegation",
 )
 router.register(r"", MedicationViewSet, basename="medication")
 

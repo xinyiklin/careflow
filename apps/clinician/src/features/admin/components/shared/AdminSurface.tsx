@@ -81,7 +81,7 @@ export function AdminTableCard({
         ? createPortal(toolbarContent, toolbarSlot)
         : null}
       {title || (!useSharedToolbar && (savingLabel || actions)) ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-5 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-3 py-3">
           {title ? (
             <h3 className="text-sm font-semibold tracking-tight text-cf-text">
               {title}
@@ -198,7 +198,7 @@ export function AdminListToolbar({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 bg-cf-surface px-5 py-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 bg-cf-surface px-3 py-3">
       {content}
     </div>
   );
@@ -214,7 +214,7 @@ export function AdminTableFooter({
   label?: string;
 }) {
   return (
-    <div className="border-t border-cf-border bg-cf-surface-soft/40 px-5 py-3 text-xs text-cf-text-muted">
+    <div className="border-t border-cf-border bg-cf-surface-soft/40 px-3 py-3 text-xs text-cf-text-muted">
       Showing {shown} of {total} {label}
     </div>
   );
@@ -232,7 +232,7 @@ export function AdminTableLoadError({
 }) {
   return (
     <tr>
-      <td colSpan={colSpan} className="px-5 py-12 text-center">
+      <td colSpan={colSpan} className="px-3 py-12 text-center">
         <p className="text-sm text-cf-text-muted">{message}</p>
         <Button type="button" size="sm" className="mt-3" onClick={onRetry}>
           Retry
@@ -258,7 +258,7 @@ export function AdminInlineNotice({
   return (
     <div
       className={[
-        "rounded-2xl border px-4 py-3 text-sm mx-5 mt-4",
+        "rounded-2xl border px-4 py-3 text-sm mx-3 mt-4",
         toneClasses[tone] ?? toneClasses.warning,
       ].join(" ")}
     >

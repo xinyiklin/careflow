@@ -3,10 +3,6 @@ import type { ComponentType, ReactNode } from "react";
 import type { EntityId } from "../../../shared/api/types";
 import type { AppointmentPickerOption } from "../types";
 
-type ReadOnlyValueFieldProps = {
-  value?: ReactNode;
-};
-
 type FieldLabelProps = {
   children: ReactNode;
   required?: boolean;
@@ -19,12 +15,6 @@ type FormSectionProps = {
   children: ReactNode;
 };
 
-type SummaryItemProps = {
-  label: string;
-  value?: ReactNode;
-  swatchColor?: string | null;
-};
-
 type ChipPickerProps<TOption extends AppointmentPickerOption> = {
   label: string;
   options: TOption[];
@@ -35,21 +25,6 @@ type ChipPickerProps<TOption extends AppointmentPickerOption> = {
   getMeta?: ((option: TOption) => ReactNode) | null;
   singleRow?: boolean;
 };
-
-type PatientMetaItemProps = {
-  label: string;
-  value?: ReactNode;
-  className?: string;
-  multiline?: boolean;
-};
-
-export function ReadOnlyValueField({ value }: ReadOnlyValueFieldProps) {
-  return (
-    <div className="min-h-10 rounded-xl border border-cf-border bg-cf-surface-muted/60 px-3 py-2.5 text-sm font-medium text-cf-text">
-      {value || "—"}
-    </div>
-  );
-}
 
 export function FieldLabel({ children, required = false }: FieldLabelProps) {
   return (
@@ -82,29 +57,6 @@ export function FormSection({
 
       <div className="mt-3">{children}</div>
     </section>
-  );
-}
-
-export function SummaryItem({
-  label,
-  value,
-  swatchColor = null,
-}: SummaryItemProps) {
-  return (
-    <div className="border-t border-cf-border/80 py-2 first:border-t-0">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-        {label}
-      </div>
-      <div className="mt-0.5 flex min-h-5 items-center gap-2 text-sm font-medium text-cf-text">
-        {swatchColor ? (
-          <span
-            className="h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: swatchColor }}
-          />
-        ) : null}
-        <span className="min-w-0 truncate">{value || "—"}</span>
-      </div>
-    </div>
   );
 }
 
@@ -164,34 +116,6 @@ export function ChipPicker<TOption extends AppointmentPickerOption>({
       {error ? (
         <p className="mt-1 text-sm text-cf-danger-text">{error}</p>
       ) : null}
-    </div>
-  );
-}
-
-export function PatientMetaItem({
-  label,
-  value,
-  className = "",
-  multiline = false,
-}: PatientMetaItemProps) {
-  return (
-    <div
-      className={[
-        "min-w-0 border-t border-cf-border/80 py-2 first:border-t-0",
-        className,
-      ].join(" ")}
-    >
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-        {label}
-      </div>
-      <div
-        className={[
-          "mt-0.5 min-h-5 text-sm font-medium text-cf-text",
-          multiline ? "leading-snug" : "truncate",
-        ].join(" ")}
-      >
-        {value || "—"}
-      </div>
     </div>
   );
 }

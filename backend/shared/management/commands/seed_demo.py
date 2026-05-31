@@ -2239,6 +2239,32 @@ class Command(BaseCommand):
                 f"allergies: +{clinical_allergies_added}"
             )
 
+        # E-prescribing scaffolding: give the demo data something to filter
+        # on. Mark demo physicians e-prescribe enabled (drives the refill
+        # "Me" filter) and assign every prescriber-less medication to an
+        # active physician care-provider in its facility.
+        Staff.objects.filter(is_active=True, role__code="physician").update(
+            eprescribe_enabled=True
+        )
+
+        provider_by_facility = {}
+        for medication in Medication.objects.filter(prescriber__isnull=True):
+            facility_id = medication.facility_id
+            if facility_id not in provider_by_facility:
+                provider_by_facility[facility_id] = (
+                    CareProvider.objects.filter(
+                        facility_id=facility_id,
+                        linked_staff__isnull=False,
+                        is_active=True,
+                    )
+                    .order_by("id")
+                    .first()
+                )
+            provider = provider_by_facility[facility_id]
+            if provider is not None:
+                medication.prescriber = provider
+                medication.save(update_fields=["prescriber", "prescriber_name"])
+
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully!"))
 
         # -----------------------------

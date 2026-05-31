@@ -31,6 +31,7 @@ type AppointmentBlockProps = {
   isPreview?: boolean;
   fullWidth?: boolean;
   equalWidth?: boolean;
+  singleSlot?: boolean;
   displayOptions?: AppointmentBlockDisplay;
   className?: string;
   style?: React.CSSProperties;
@@ -140,6 +141,7 @@ export default function AppointmentBlock({
   isPreview = false,
   fullWidth = false,
   equalWidth = false,
+  singleSlot,
   displayOptions = DEFAULT_APPOINTMENT_BLOCK_DISPLAY,
   className = "",
   style,
@@ -167,8 +169,13 @@ export default function AppointmentBlock({
   const actionLabel = [patientName, appointment.time, appointment.status_name]
     .filter(Boolean)
     .join(", ");
+  // A single-slot block renders one condensed line; multi-slot blocks stack.
+  // Prefer the caller's slot-span signal (interval-aware) over the pixel
+  // height, which misclassifies a one-slot block at coarse intervals (e.g. a
+  // 60-min slot is ~50px) and clips its stacked rows.
   const blockHeight = getNumericStyleHeight(style);
-  const isSingleSlotBlock = blockHeight != null && blockHeight <= 44;
+  const isSingleSlotBlock =
+    singleSlot ?? (blockHeight != null && blockHeight <= 44);
 
   return (
     <div

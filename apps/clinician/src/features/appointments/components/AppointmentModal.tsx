@@ -25,12 +25,7 @@ import { getErrorMessage } from "../../../shared/utils/errors";
 import type { EntityId } from "../../../shared/api/types";
 import type { AppointmentLike } from "../../../shared/types/domain";
 import type { AppointmentEditSessionActiveEditor } from "../api/appointments";
-import {
-  ChipPicker,
-  FieldLabel,
-  FormSection,
-  ReadOnlyValueField,
-} from "./AppointmentModalFields";
+import { ChipPicker, FieldLabel, FormSection } from "./AppointmentModalFields";
 import AppointmentModalHeader from "./AppointmentModalHeader";
 import AppointmentPatientLens from "./AppointmentPatientLens";
 import {
@@ -452,7 +447,7 @@ export default function AppointmentModal({
         onKeyDown={handlePanelKeyDown}
         style={modalStyle}
         className={[
-          "cf-modal-panel fixed flex h-[min(88vh,860px)] w-[min(1180px,96vw)] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]",
+          "cf-modal-panel fixed flex h-[min(92vh,940px)] w-[min(1220px,96vw)] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]",
           isClosing ? "is-closing" : "is-opening",
         ].join(" ")}
         onClick={(e) => e.stopPropagation()}
@@ -494,7 +489,7 @@ export default function AppointmentModal({
               {...register("status", { required: "Status is required." })}
             />
 
-            <div className="grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="grid h-full min-h-0 lg:grid-cols-[minmax(0,1fr)_280px]">
               <AppointmentPatientLens
                 selectedPatient={displayedSelectedPatient}
                 onOpenPatientHub={onOpenPatientHub}
@@ -506,11 +501,9 @@ export default function AppointmentModal({
                 onOpenDetailedSearch={onOpenDetailedSearch}
                 onOpenCreatePatient={onOpenCreatePatient}
                 recentPatients={recentPatients}
-                patientDetailsQuery={patientDetailsQuery}
                 errors={errors}
                 patientPhones={patientPhones}
                 patientAddress={patientAddress}
-                insurancePoliciesQuery={insurancePoliciesQuery}
                 primaryInsurancePolicy={primaryInsurancePolicy}
               />
 
@@ -729,7 +722,7 @@ export default function AppointmentModal({
                 </FormSection>
 
                 <FormSection icon={UserRoundCheck} title="Clinical & Billing">
-                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,0.65fr)]">
+                  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_10rem]">
                     <div>
                       <FieldLabel>Rendering Provider</FieldLabel>
                       <Input as="select" {...register("rendering_provider")}>
@@ -743,56 +736,37 @@ export default function AppointmentModal({
                     </div>
 
                     <div>
-                      <FieldLabel>Billing Route</FieldLabel>
-                      <ReadOnlyValueField
-                        value={
-                          selectedRenderingProvider
-                            ? "Provider ready"
-                            : selectedResource?.linked_staff_name
-                              ? "Linked resource"
-                              : "Needs provider"
-                        }
+                      <FieldLabel>Billing</FieldLabel>
+                      <Controller
+                        name="is_billable"
+                        control={control}
+                        render={({ field }) => (
+                          <Button
+                            type="button"
+                            shape="rounded"
+                            variant={field.value ? "primary" : "default"}
+                            aria-pressed={field.value}
+                            onClick={() => field.onChange(!field.value)}
+                            className="h-10 w-full"
+                          >
+                            {field.value ? "Billable" : "Non-billable"}
+                          </Button>
+                        )}
                       />
                     </div>
                   </div>
-
-                  <Controller
-                    name="is_billable"
-                    control={control}
-                    render={({ field }) => (
-                      <label className="mt-1 flex items-center gap-2 text-sm text-cf-text">
-                        <input
-                          type="checkbox"
-                          checked={field.value}
-                          onChange={field.onChange}
-                          className="h-4 w-4 rounded border-cf-border accent-cf-primary"
-                        />
-                        Billable appointment
-                      </label>
-                    )}
-                  />
                 </FormSection>
 
                 <FormSection icon={ClipboardList} title="Visit Context">
                   <div className="grid gap-3 lg:grid-cols-2">
                     <div>
                       <FieldLabel>Reason</FieldLabel>
-                      <Input
-                        as="textarea"
-                        rows={3}
-                        placeholder="Annual checkup, medication follow-up, intake, or similar"
-                        {...register("reason")}
-                      />
+                      <Input as="textarea" rows={3} {...register("reason")} />
                     </div>
 
                     <div>
                       <FieldLabel>Notes</FieldLabel>
-                      <Input
-                        as="textarea"
-                        rows={3}
-                        placeholder="Anything the team should know before or during the visit"
-                        {...register("notes")}
-                      />
+                      <Input as="textarea" rows={3} {...register("notes")} />
                     </div>
                   </div>
                 </FormSection>

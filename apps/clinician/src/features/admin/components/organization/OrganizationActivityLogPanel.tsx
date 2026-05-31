@@ -362,7 +362,7 @@ export default function OrganizationActivityLogPanel({
         </AdminListToolbar>
 
         {viewMode === "timeline" ? (
-          <div className="border-t border-cf-border bg-cf-surface px-5 py-4">
+          <div className="border-t border-cf-border bg-cf-surface px-3 py-4">
             {loading && events.length === 0 ? null : loadError ? (
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cf-border bg-cf-surface-soft/40 px-4 py-3">
                 <div className="text-sm text-cf-text-muted">
@@ -388,13 +388,13 @@ export default function OrganizationActivityLogPanel({
             <table className="min-w-full text-sm">
               <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
                 <tr>
-                  <th className="px-5 py-3 text-left w-24">Action</th>
-                  <th className="px-5 py-3 text-left">Summary</th>
-                  <th className="px-5 py-3 text-left">Actor</th>
-                  <th className="px-5 py-3 text-left">Facility</th>
-                  <th className="px-5 py-3 text-left">Patient</th>
-                  <th className="px-5 py-3 text-left">Timestamp</th>
-                  <th className="px-5 py-3 text-center w-12">Details</th>
+                  <th className="px-3 py-3 text-left w-24">Action</th>
+                  <th className="px-3 py-3 text-left">Summary</th>
+                  <th className="px-3 py-3 text-left">Actor</th>
+                  <th className="px-3 py-3 text-left">Facility</th>
+                  <th className="px-3 py-3 text-left">Patient</th>
+                  <th className="px-3 py-3 text-left">Timestamp</th>
+                  <th className="px-3 py-3 text-center w-12">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-cf-border text-cf-text">
@@ -408,7 +408,7 @@ export default function OrganizationActivityLogPanel({
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                      className="px-3 py-12 text-center text-sm text-cf-text-muted"
                     >
                       No {scopeLabel} activity logs recorded.
                     </td>
@@ -417,7 +417,7 @@ export default function OrganizationActivityLogPanel({
                   <tr>
                     <td
                       colSpan={7}
-                      className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                      className="px-3 py-12 text-center text-sm text-cf-text-muted"
                     >
                       No logs match the selected filters or search query.
                     </td>
@@ -431,7 +431,7 @@ export default function OrganizationActivityLogPanel({
                     return (
                       <Fragment key={event.id}>
                         <tr className={isExpanded ? "bg-cf-accent/[0.03]" : ""}>
-                          <td className="px-5 py-4 w-24 align-middle">
+                          <td className="px-3 py-4 w-24 align-middle">
                             <Badge
                               variant={badgeVariant}
                               className="uppercase text-[9px] tracking-wider px-2 py-0.5"
@@ -439,22 +439,22 @@ export default function OrganizationActivityLogPanel({
                               {event.action}
                             </Badge>
                           </td>
-                          <td className="px-5 py-4 align-middle font-medium text-cf-text">
+                          <td className="px-3 py-4 align-middle font-medium text-cf-text">
                             {event.summary}
                           </td>
-                          <td className="px-5 py-4 align-middle text-cf-text-muted">
+                          <td className="px-3 py-4 align-middle text-cf-text-muted">
                             {event.actor_name || "System"}
                           </td>
-                          <td className="px-5 py-4 align-middle text-cf-text-muted">
+                          <td className="px-3 py-4 align-middle text-cf-text-muted">
                             {event.facility_name || "—"}
                           </td>
-                          <td className="px-5 py-4 align-middle text-cf-text-muted">
+                          <td className="px-3 py-4 align-middle text-cf-text-muted">
                             {event.patient_name || "—"}
                           </td>
-                          <td className="px-5 py-4 align-middle text-cf-text-muted whitespace-nowrap">
+                          <td className="px-3 py-4 align-middle text-cf-text-muted whitespace-nowrap">
                             {formatTimestamp(event.created_at)}
                           </td>
-                          <td className="px-5 py-4 align-middle text-center">
+                          <td className="px-3 py-4 align-middle text-center">
                             <button
                               type="button"
                               onClick={() => toggleRow(event.id)}
@@ -476,7 +476,7 @@ export default function OrganizationActivityLogPanel({
                         </tr>
                         {isExpanded && (
                           <tr className="bg-cf-surface-soft/20">
-                            <td colSpan={7} className="px-5 py-4">
+                            <td colSpan={7} className="px-3 py-4">
                               <div className="space-y-3">
                                 <div className="flex items-center gap-2 text-xs font-semibold text-cf-text-subtle uppercase tracking-wider">
                                   <FileJson className="h-3.5 w-3.5 text-cf-accent" />
@@ -536,7 +536,7 @@ export default function OrganizationActivityLogPanel({
           </div>
         )}
 
-        <div className="border-t border-cf-border bg-cf-surface-soft/40 px-5 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-cf-text-muted">
+        <div className="border-t border-cf-border bg-cf-surface-soft/40 px-3 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-cf-text-muted">
           <div className="font-medium tabular-nums">
             {visibleEvents.length === 0
               ? `0 of ${events.length} activity records`

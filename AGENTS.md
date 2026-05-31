@@ -104,7 +104,7 @@ Do not:
 - weaken auth, facility scoping, or permission boundaries
 - print secrets, tokens, environment dumps, SSNs, DOBs, or full patient records
 - request user secrets
-- write multi-sentence help blocks or inline guides ('how to' copy) that act as an app manual; keep interface labels and hints short and obvious
+- write "how-to"/tutorial copy anywhere: multi-sentence help blocks, inline guides, or instructional/example placeholder & helper text (e.g. "Enter full SSN", "e.g. …"). CareFlow is for trained staff, not a tutorial — keep labels short and prefer inputs with no placeholder. See `docs/engineering/ui-principles.md` ("Copy And Chrome")
 
 ---
 

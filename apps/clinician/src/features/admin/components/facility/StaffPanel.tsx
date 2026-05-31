@@ -268,7 +268,7 @@ export default function StaffPanel() {
                   (heading, index) => (
                     <th
                       key={`${heading}-${index}`}
-                      className="px-5 py-3 text-left"
+                      className="px-3 py-3 text-left"
                     >
                       {heading}
                     </th>
@@ -287,7 +287,7 @@ export default function StaffPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No staff found yet.
                   </td>
@@ -296,7 +296,7 @@ export default function StaffPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No staff match the selected filter.
                   </td>
@@ -316,7 +316,7 @@ export default function StaffPanel() {
                       onAction: () => handleOpenEdit(r),
                     })}
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex items-center gap-3">
                         <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                           {(r.user
@@ -344,16 +344,16 @@ export default function StaffPanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       <div>{r.user?.email || "—"}</div>
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       {r.role_name || getRoleField(r.role, "name") || "—"}
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       {r.title_name || getTitleName(r.title) || "—"}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <Badge variant={r.is_active ? "success" : "muted"}>
                         {r.is_active ? "Active" : "Inactive"}
                       </Badge>

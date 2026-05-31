@@ -12,7 +12,7 @@ export default function PermissionRowLabel({
   destructivePrefix?: string;
 }) {
   return (
-    <th className="sticky left-0 z-[5] border-r border-b border-cf-border bg-cf-surface px-5 py-3.5 text-left group-hover:bg-cf-surface-soft font-normal">
+    <th className="sticky left-0 z-[5] border-r border-b border-cf-border bg-cf-surface px-3 py-3.5 text-left group-hover:bg-cf-surface-soft font-normal">
       <div className="flex items-center gap-1.5">
         <span className="text-xs font-semibold text-cf-text">
           {permission.label}

@@ -130,7 +130,7 @@ export default function PatientSearchField({
         <div
           className={[
             "flex items-center justify-between gap-3 rounded-2xl border border-cf-border bg-cf-surface-soft px-3",
-            compactSelected ? "h-[42px] py-0" : "py-3",
+            compactSelected ? "h-8 py-0" : "py-3",
           ].join(" ")}
         >
           <div className="flex min-w-0 items-center gap-3">
@@ -173,7 +173,7 @@ export default function PatientSearchField({
                 onFocus={() => {
                   if (results.length > 0) setShowResults(true);
                 }}
-                className={compactSelected ? "h-[42px] pl-10" : "pl-10"}
+                className={compactSelected ? "h-8 pl-10" : "pl-10"}
               />
 
               {showResults && (

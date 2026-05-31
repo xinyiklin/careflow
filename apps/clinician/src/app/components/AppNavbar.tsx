@@ -13,7 +13,7 @@ import useFacility from "../../features/facilities/hooks/useFacility";
 import { formatDOB } from "../../shared/utils/dateTime";
 import { getPatientName } from "../../features/patients/utils/patientDisplay";
 import { Badge, Button, Input } from "../../shared/components/ui";
-import { NAVBAR_HEIGHT } from "../../shared/constants/layout";
+import { NAVBAR_HEIGHT, PAGE_GUTTER_X } from "../../shared/constants/layout";
 
 import type { EntityId } from "../../shared/api/types";
 import type {
@@ -130,7 +130,9 @@ export default function AppNavbar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 bg-transparent px-4 py-1.5 sm:px-5 lg:px-6 xl:px-7 transition-colors duration-150">
+    <header
+      className={`sticky top-0 z-40 bg-transparent py-1.5 transition-colors duration-150 ${PAGE_GUTTER_X}`}
+    >
       <div
         className="flex w-full max-w-none items-center justify-between gap-3 bg-transparent"
         style={{ height: NAVBAR_HEIGHT }}

@@ -241,17 +241,17 @@ export default function FacilityPayersPanel() {
           ) : (
             controls.visibleRecords.map((row) => (
               <tr key={row.id}>
-                <td className="px-5 py-4 font-semibold">{row.name}</td>
-                <td className="px-5 py-4 text-cf-text-muted">
+                <td className="px-3 py-4 font-semibold">{row.name}</td>
+                <td className="px-3 py-4 text-cf-text-muted">
                   {row.payerId || "Not set"}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-3 py-4">
                   <FacilitySourceBadge
                     active={row.active}
                     source={row.sourceLabel}
                   />
                 </td>
-                <td className="px-5 py-4 text-right">
+                <td className="px-3 py-4 text-right">
                   <Button
                     variant="default"
                     size="sm"

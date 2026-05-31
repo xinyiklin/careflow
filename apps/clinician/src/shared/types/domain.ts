@@ -81,6 +81,7 @@ export type UserMembership = ApiRecord & {
   facility: Facility;
   role?: ApiRecord | string | null;
   effective_security_permissions?: SecurityPermissions | null;
+  can_eprescribe?: boolean | null;
 };
 
 export type UserPreferences = {

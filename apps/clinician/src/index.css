@@ -167,7 +167,9 @@
 
   .cf-route-frame {
     border: 1px solid var(--color-cf-border);
-    border-radius: 1.6rem;
+    /* Softened toward the navbar buttons: card radius sits between the
+       control (0.75rem) and shell (1.5rem) steps. */
+    border-radius: var(--radius-cf-card);
     background: var(--color-cf-surface);
     box-shadow: var(--shadow-panel-lg);
   }
@@ -512,13 +514,44 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.02);
   }
 
+  /* Closed days / outside-hours slots. The recessed FILL is per-cell (flat, so
+     it can never seam); the diagonal HATCH is painted as ONE overlay per closed
+     run (.cf-blocked-hatch, rendered by the grids) instead of per cell. A
+     single element can't produce per-cell seams or interval-dependent moiré, so
+     the diagonal stays continuous and identical at every interval. Fill via
+     background-image so it covers the operating-cell fill the bg-* utility
+     would otherwise win in the cascade. */
   .cf-blocked-slot {
+    background-image: linear-gradient(
+      var(--color-cf-surface-soft),
+      var(--color-cf-surface-soft)
+    );
+  }
+
+  .dark .cf-blocked-slot {
+    background-image: linear-gradient(
+      var(--color-cf-surface-muted),
+      var(--color-cf-surface-muted)
+    );
+  }
+
+  /* Soft-edged diagonal hatch — one element spans the whole closed run, so the
+     feathered ~16px bands (32px pitch) read as a single continuous texture. */
+  .cf-blocked-hatch {
     background-image: repeating-linear-gradient(
       -45deg,
-      var(--color-cf-surface-muted),
-      var(--color-cf-surface-muted) 8px,
-      var(--color-cf-surface-soft) 8px,
-      var(--color-cf-surface-soft) 16px
+      transparent 0 4px,
+      color-mix(in srgb, var(--color-cf-text) 6%, transparent) 12px 20px,
+      transparent 28px 32px
+    );
+  }
+
+  .dark .cf-blocked-hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      transparent 0 4px,
+      color-mix(in srgb, var(--color-cf-text) 8%, transparent) 12px 20px,
+      transparent 28px 32px
     );
   }
 
@@ -531,13 +564,6 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image: repeating-linear-gradient(
-      -45deg,
-      rgba(217, 119, 6, 0.05),
-      rgba(217, 119, 6, 0.05) 8px,
-      transparent 8px,
-      transparent 16px
-    );
     border: 1.5px dashed var(--color-cf-warning-text) !important;
     border-radius: inherit;
   }

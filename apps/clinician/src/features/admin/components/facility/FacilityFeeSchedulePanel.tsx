@@ -258,7 +258,7 @@ export default function FacilityFeeSchedulePanel() {
             <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
               <tr>
                 {["Name", "Source", "Fees", "Status"].map((heading) => (
-                  <th key={heading} className="px-5 py-3 text-left">
+                  <th key={heading} className="px-3 py-3 text-left">
                     {heading}
                   </th>
                 ))}
@@ -275,7 +275,7 @@ export default function FacilityFeeSchedulePanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     <div className="space-y-2">
                       <p>No facility fee schedules yet.</p>
@@ -290,7 +290,7 @@ export default function FacilityFeeSchedulePanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No schedules match the selected filter.
                   </td>
@@ -304,7 +304,7 @@ export default function FacilityFeeSchedulePanel() {
                       onAction: () => openSheetModal(schedule),
                     })}
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex items-center gap-3">
                         <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                           <FileSpreadsheet className="h-4 w-4" />
@@ -321,15 +321,15 @@ export default function FacilityFeeSchedulePanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-xs text-cf-text-muted">
+                    <td className="px-3 py-4 text-xs text-cf-text-muted">
                       {schedule.source_schedule_name
                         ? `Copied from ${schedule.source_schedule_name}`
                         : "—"}
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       {Number(schedule.item_count ?? 0)}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <Badge
                         variant={
                           schedule.is_active === false ? "muted" : "success"
