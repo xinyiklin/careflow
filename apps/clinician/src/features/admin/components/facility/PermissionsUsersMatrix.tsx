@@ -152,14 +152,14 @@ export default function PermissionsUsersMatrix({
   staff,
   roles,
   disabled,
-  saving,
+  savingCellKey,
   query,
   onToggleUserOverride,
 }: {
   staff: AdminStaff[];
   roles: AdminStaffRole[];
   disabled: boolean;
-  saving: boolean;
+  savingCellKey: string;
   query: string;
   onToggleUserOverride: (
     staff: AdminStaff,
@@ -224,7 +224,7 @@ export default function PermissionsUsersMatrix({
                 permissionKey={permission.key as SecurityPermissionKey}
                 roles={roles}
                 disabled={disabled}
-                saving={saving}
+                saving={savingCellKey === `${s.id}:${permission.key}`}
                 onToggle={onToggleUserOverride}
               />
             ))}
