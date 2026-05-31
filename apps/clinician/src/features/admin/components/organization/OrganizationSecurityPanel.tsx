@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Search } from "lucide-react";
+import { AlertTriangle, Lock, Search } from "lucide-react";
 
 import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
 import { SegmentedControl } from "../../../../shared/components/ui";
@@ -235,6 +235,22 @@ export default function OrganizationSecurityPanel() {
                     );
                     const cellKey = `${role.key}:${permission.key}`;
                     const isCellSaving = savingCellKey === cellKey;
+                    if (role.key === "owner") {
+                      return (
+                        <td
+                          key={role.key}
+                          className="px-3 py-3.5 text-center align-middle border-l border-cf-border/60"
+                        >
+                          <span
+                            title="The owner role always has full access and is protected from changes."
+                            className="inline-flex min-w-[84px] cursor-not-allowed items-center justify-center gap-1.5 rounded-full border border-cf-success-text/20 bg-cf-success-bg px-2.5 py-1 text-[11px] font-bold text-cf-success-text opacity-80"
+                          >
+                            <Lock className="h-3 w-3" />
+                            {isAllowed ? "Allow" : "Block"}
+                          </span>
+                        </td>
+                      );
+                    }
                     return (
                       <td
                         key={role.key}

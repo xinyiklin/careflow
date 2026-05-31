@@ -11,7 +11,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .demo_access import ensure_demo_user_full_access
+from .demo_access import ensure_demo_user_is_org_owner
 from .models import UserPreference
 from .serializers import RegisterSerializer, UserPreferenceSerializer, UserSerializer
 from .tokens import (
@@ -186,7 +186,7 @@ class DemoLoginView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        ensure_demo_user_full_access(user)
+        ensure_demo_user_is_org_owner(user)
 
         refresh = issue_refresh_for_user(user, CLINIC_SURFACE)
 

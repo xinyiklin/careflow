@@ -3,6 +3,7 @@ import { Search } from "lucide-react";
 
 import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
 import { SegmentedControl } from "../../../../shared/components/ui";
+import { useAuth } from "../../../auth/AuthProvider";
 import useAdminFacility from "../../hooks/shared/useAdminFacility";
 import useAdminFacilityConfig from "../../hooks/facility/useAdminFacilityConfig";
 import {
@@ -51,6 +52,16 @@ const DEFAULT_CONFIRM_DIALOG: AdminConfirmDialogState = {
   variant: "warning",
   onConfirm: null,
 };
+
+// Permissions that, if removed from your own role/profile, would lock you out
+// of administration or the security panel. Editing these for yourself is hard
+// blocked — no bypass — rather than surfaced as a dismissable banner.
+const LOCKOUT_PERMISSIONS: Record<string, string> = {
+  "admin.facility.manage": "facility administration",
+  "admin.security.manage": "the security panel",
+};
+
+const DEFAULT_BLOCKED_DIALOG = { isOpen: false, title: "", message: "" };
 
 function getStaffRoleId(record: AdminStaff) {
   return (
@@ -130,6 +141,41 @@ export default function SecurityPanel() {
 
   const staffCounts = useMemo(() => getStaffCounts(adminStaff), [adminStaff]);
 
+  const { user: currentUser } = useAuth();
+  const currentUserId = currentUser?.id ?? null;
+  const [blockedDialog, setBlockedDialog] = useState(DEFAULT_BLOCKED_DIALOG);
+
+  const ownRoleId = useMemo(() => {
+    if (currentUserId == null) return null;
+    const own = adminStaff.find(
+      (s) => s.user?.id != null && String(s.user.id) === String(currentUserId)
+    );
+    return own ? getStaffRoleId(own) : null;
+  }, [adminStaff, currentUserId]);
+
+  const isSelfStaff = (staff: AdminStaff) =>
+    currentUserId != null &&
+    staff.user?.id != null &&
+    String(staff.user.id) === String(currentUserId);
+
+  const resolveRolePermissions = (staff: AdminStaff) => {
+    const roleId = getStaffRoleId(staff);
+    const match = adminRoles.find((r) => String(r.id) === String(roleId));
+    return normalizeSecurityPermissions(
+      match?.security_permissions || undefined
+    );
+  };
+
+  const blockSelfLockout = (permissionKey: string) => {
+    setBlockedDialog({
+      isOpen: true,
+      title: "You can't remove your own access",
+      message: `This change would remove your own access to ${LOCKOUT_PERMISSIONS[permissionKey]} and lock you out. Grant this permission to another role or user first, or ask another administrator to make the change.`,
+    });
+  };
+
+  const closeBlockedDialog = () => setBlockedDialog(DEFAULT_BLOCKED_DIALOG);
+
   const closeConfirmDialog = () => {
     setConfirmDialogState(DEFAULT_CONFIRM_DIALOG);
   };
@@ -168,21 +214,13 @@ export default function SecurityPanel() {
     permission: PermissionItem,
     isAllowed: boolean
   ) => {
-    if (role.is_system_role) {
-      setConfirmDialogState({
-        isOpen: true,
-        title: `Change ${role.name} permissions?`,
-        message: `This role is a protected system role. Changing "${permission.label}" will affect every ${role.name} assigned to this facility. Confirm only if this is intentional.`,
-        confirmText: isAllowed ? "Allow Permission" : "Block Permission",
-        cancelText: "Keep Current",
-        variant: "warning",
-        onConfirm: () =>
-          applyRoleSecurityChange(
-            role,
-            permission.key as SecurityPermissionKey,
-            isAllowed
-          ),
-      });
+    if (
+      permission.key in LOCKOUT_PERMISSIONS &&
+      !isAllowed &&
+      ownRoleId != null &&
+      String(role.id) === String(ownRoleId)
+    ) {
+      blockSelfLockout(permission.key);
       return;
     }
 
@@ -198,6 +236,16 @@ export default function SecurityPanel() {
     permissionKey: SecurityPermissionKey,
     mode: "inherit" | "grant" | "revoke"
   ) => {
+    if (permissionKey in LOCKOUT_PERMISSIONS && isSelfStaff(staff)) {
+      const wouldLockOut =
+        mode === "revoke" ||
+        (mode === "inherit" && !resolveRolePermissions(staff)[permissionKey]);
+      if (wouldLockOut) {
+        blockSelfLockout(permissionKey);
+        return;
+      }
+    }
+
     const currentOverrides = { ...(staff.security_overrides || {}) };
 
     if (mode === "inherit") {
@@ -357,6 +405,16 @@ export default function SecurityPanel() {
         variant={confirmDialogState.variant}
         onConfirm={handleConfirmDialogConfirm}
         onCancel={closeConfirmDialog}
+      />
+      <ConfirmDialog
+        isOpen={blockedDialog.isOpen}
+        title={blockedDialog.title}
+        message={blockedDialog.message}
+        confirmText="OK"
+        variant="danger"
+        hideCancel
+        onConfirm={closeBlockedDialog}
+        onCancel={closeBlockedDialog}
       />
     </div>
   );

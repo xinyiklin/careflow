@@ -59,7 +59,11 @@ export default function OrganizationRoleTypesView({
             memberLabel="members"
             allowedCount={allowedCount}
             totalPermissions={ORGANIZATION_PERMISSION_KEYS.length}
-            onEdit={onEditRole ? () => onEditRole(role) : undefined}
+            onEdit={
+              onEditRole && role.key !== "owner"
+                ? () => onEditRole(role)
+                : undefined
+            }
           />
         );
       })}

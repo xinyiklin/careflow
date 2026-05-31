@@ -10,6 +10,9 @@ type ConfirmDialogProps = {
   confirmText?: string;
   cancelText?: string;
   variant?: ConfirmDialogVariant;
+  /** Acknowledge-only mode: hide the cancel button so there is no way to
+   * proceed with the blocked action — the single button only dismisses. */
+  hideCancel?: boolean;
   onConfirm?: () => void;
   onCancel?: () => void;
 };
@@ -21,6 +24,7 @@ export default function ConfirmDialog({
   confirmText = "Confirm",
   cancelText = "Cancel",
   variant = "default",
+  hideCancel = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -49,9 +53,11 @@ export default function ConfirmDialog({
       zIndex={80}
       footer={
         <>
-          <Button variant="default" onClick={onCancel}>
-            {cancelText}
-          </Button>
+          {!hideCancel && (
+            <Button variant="default" onClick={onCancel}>
+              {cancelText}
+            </Button>
+          )}
           <Button variant={confirmVariant} onClick={onConfirm}>
             {confirmText}
           </Button>

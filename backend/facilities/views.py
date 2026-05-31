@@ -5,6 +5,7 @@ from audit.models import AuditEvent
 from organizations.permissions import get_user_organization_membership, is_org_admin
 from shared.scoping import OrgAdminFacilityScopedViewSetMixin
 
+from .access import user_can_manage_facility_security
 from .models import (
     AppointmentStatus,
     AppointmentType,
@@ -19,7 +20,7 @@ from .permissions import (
     IsFacilityAdminOrReadOnly,
     IsOrgAdminOrFacilityAdmin,
 )
-from .security import get_role_security_template
+from .security import get_effective_staff_permissions, get_role_security_template
 from .serializers import (
     AppointmentStatusSerializer,
     AppointmentTypeSerializer,
@@ -30,6 +31,10 @@ from .serializers import (
     StaffSerializer,
     StaffTitleSerializer,
 )
+
+# Removing either of these from your own role/profile would lock you out of
+# administration or the security panel, so it is never permitted.
+SELF_MANAGEMENT_PERMISSIONS = ("admin.facility.manage", "admin.security.manage")
 
 
 def create_security_audit_event(
@@ -98,8 +103,31 @@ class StaffViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
         serializer.save(facility=self.get_facility())
 
     def perform_update(self, serializer):
-        if serializer.instance.facility_id != self.get_facility().id:
+        facility = self.get_facility()
+        if serializer.instance.facility_id != facility.id:
             raise PermissionDenied("You do not have access to this staff membership.")
+
+        new_overrides = serializer.validated_data.get("security_overrides")
+        if new_overrides is not None:
+            if not user_can_manage_facility_security(self.request.user, facility.id):
+                raise PermissionDenied(
+                    "You do not have permission to manage security permissions."
+                )
+            if serializer.instance.user_id == self.request.user.id:
+                prospective = Staff(
+                    role=serializer.instance.role,
+                    security_overrides=new_overrides,
+                )
+                effective = get_effective_staff_permissions(prospective)
+                if any(
+                    not effective.get(permission, False)
+                    for permission in SELF_MANAGEMENT_PERMISSIONS
+                ):
+                    raise PermissionDenied(
+                        "You cannot remove your own administrative or security "
+                        "management access. This would lock you out."
+                    )
+
         previous_overrides = serializer.instance.security_overrides or {}
         serializer.save()
         if "security_overrides" in serializer.validated_data:
@@ -254,21 +282,30 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
         )
 
     def perform_update(self, serializer):
-        if serializer.instance.facility_id != self.get_facility().id:
+        facility = self.get_facility()
+        if serializer.instance.facility_id != facility.id:
             raise PermissionDenied("Invalid facility.")
 
         new_perms = serializer.validated_data.get("security_permissions")
-        if new_perms is not None and not new_perms.get("admin.security.manage", False):
+        if new_perms is not None:
+            if not user_can_manage_facility_security(self.request.user, facility.id):
+                raise PermissionDenied(
+                    "You do not have permission to manage security permissions."
+                )
+
             user_has_role = Staff.objects.filter(
                 user=self.request.user,
-                facility=self.get_facility(),
+                facility=facility,
                 role=serializer.instance,
                 is_active=True,
             ).exists()
-            if user_has_role:
+            if user_has_role and any(
+                not new_perms.get(permission, False)
+                for permission in SELF_MANAGEMENT_PERMISSIONS
+            ):
                 raise PermissionDenied(
-                    "Cannot remove security management from your own role. "
-                    "This would lock you out of the security panel."
+                    "You cannot remove administrative or security management "
+                    "from your own role. This would lock you out."
                 )
 
         serializer.save()

@@ -331,6 +331,46 @@ class AppointmentViewSetTests(TestCase):
             "Appointment end time must be after start time.",
         )
 
+    def test_move_later_without_end_time_preserves_duration(self):
+        # Drag-reschedule PUTs a new appointment_time with no end_time. Moving
+        # to a slot later than the current end_time must succeed (regression:
+        # it used to keep the stale end_time and 400 with "end after start"),
+        # and the appointment's duration must be preserved.
+        create = self.client.post(
+            "/v1/appointments/",
+            {
+                "patient": self.patient.id,
+                "appointment_time": "2026-04-22T09:00",
+                "end_time": "2026-04-22T09:30",
+                "reason": "Follow up",
+                "status": self.status.id,
+                "appointment_type": self.appointment_type.id,
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(create.status_code, 201)
+        self.assertEqual(create.data["duration_minutes"], 30)
+        appointment_id = create.data["id"]
+
+        response = self.client.put(
+            f"/v1/appointments/{appointment_id}/",
+            {
+                "patient": self.patient.id,
+                "appointment_time": "2026-04-22T15:00",
+                "reason": "Follow up",
+                "status": self.status.id,
+                "appointment_type": self.appointment_type.id,
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["appointment_time"], "2026-04-22T15:00")
+        self.assertEqual(response.data["end_time"], "2026-04-22T15:30")
+        self.assertEqual(response.data["duration_minutes"], 30)
+
     def test_create_accepts_rendering_provider_for_same_facility(self):
         response = self.client.post(
             "/v1/appointments/",

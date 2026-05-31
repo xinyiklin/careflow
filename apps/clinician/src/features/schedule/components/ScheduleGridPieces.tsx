@@ -54,7 +54,14 @@ export function DayCardHeader({
           showHeaderControls ? "py-2" : "flex h-full items-center",
         ].join(" ")}
       >
-        <div className="flex min-w-0 items-start justify-between gap-2">
+        <div
+          className={[
+            // w-full so justify-between reaches the column's right edge even
+            // when the parent cell is a shrink-to-content flex row (multiday).
+            "flex w-full min-w-0 justify-between gap-2",
+            showHeaderControls ? "items-start" : "items-center",
+          ].join(" ")}
+        >
           <div className="flex min-w-0 items-center gap-2">
             <span className="min-w-0 truncate text-sm font-semibold text-cf-text">
               {formatDateOnlyInTimeZone(date, timeZone, "EEE, MMM d")}

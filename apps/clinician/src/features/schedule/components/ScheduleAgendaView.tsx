@@ -137,7 +137,14 @@ function AgendaColumnHeader({
 
   return (
     <div className="border-b border-cf-border bg-gradient-to-b from-cf-surface-muted to-cf-surface px-3 py-2">
-      <div className="flex min-w-0 items-start justify-between gap-2">
+      <div
+        className={[
+          // Reserve the remove-button height so the header doesn't grow taller
+          // on days that show a close button vs days that don't.
+          "flex min-h-[1.75rem] min-w-0 justify-between gap-2",
+          showResourceSelector ? "items-start" : "items-center",
+        ].join(" ")}
+      >
         <div className="min-w-0 truncate text-sm font-semibold text-cf-text">
           {formatDateOnlyInTimeZone(date, timeZone, "EEE, MMM d")}
         </div>

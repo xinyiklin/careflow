@@ -20,6 +20,7 @@ from .models import (
     OrganizationRole,
 )
 from .permissions import (
+    can_manage_org_security,
     get_user_organization_membership,
     is_org_admin,
     is_org_owner,
@@ -56,6 +57,23 @@ def user_can_manage_organization_pharmacies(user, organization):
         )
         for staff in staff_profiles
     )
+
+
+def require_org_security_manager(user, action="security"):
+    """Return the user's membership if they may manage organization security,
+    otherwise raise ``PermissionDenied``.
+
+    Owners and superusers are break-glass and always qualify; every other role
+    must hold the effective ``org.security.manage`` permission. ``action`` only
+    customizes the denial message (e.g. "security" vs "roles").
+    """
+    membership = can_manage_org_security(user)
+    if not membership:
+        raise PermissionDenied(
+            "Only organization owners or members granted security "
+            f"management can manage {action}."
+        )
+    return membership
 
 
 class FacilityPharmacyPreferenceOverrideViewSet(
@@ -405,21 +423,8 @@ class OrganizationPharmacyPreferenceViewSet(
 class OrganizationSecurityViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
-    def _require_org_admin(self, user):
-        membership = get_user_organization_membership(user)
-        if not membership:
-            raise PermissionDenied("Organization membership required.")
-        if not user.is_superuser and membership.role not in [
-            OrganizationMembership.ROLE_OWNER,
-            OrganizationMembership.ROLE_ADMIN,
-        ]:
-            raise PermissionDenied(
-                "Only organization owners or admins can manage security."
-            )
-        return membership
-
     def list(self, request):
-        membership = self._require_org_admin(request.user)
+        membership = require_org_security_manager(request.user)
         org = membership.organization
 
         org_roles = OrganizationRole.objects.filter(
@@ -453,7 +458,7 @@ class OrganizationSecurityViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["patch"], url_path="update-role")
     def update_role(self, request):
-        membership = self._require_org_admin(request.user)
+        membership = require_org_security_manager(request.user)
         org = membership.organization
 
         serializer = OrganizationSecuritySerializer(data=request.data)
@@ -461,6 +466,12 @@ class OrganizationSecurityViewSet(viewsets.ViewSet):
 
         role = serializer.validated_data["role"]
         security_permissions = serializer.validated_data["security_permissions"]
+
+        if role == OrganizationMembership.ROLE_OWNER:
+            raise PermissionDenied(
+                "The owner role is protected and its permissions cannot be "
+                "modified. Owners always retain full access."
+            )
 
         if role == membership.role and not security_permissions.get(
             "org.security.manage", False
@@ -505,19 +516,6 @@ class OrganizationRoleViewSet(viewsets.ModelViewSet):
     serializer_class = OrganizationRoleSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def _require_org_admin(self, user):
-        membership = get_user_organization_membership(user)
-        if not membership:
-            raise PermissionDenied("Organization membership required.")
-        if not user.is_superuser and membership.role not in [
-            OrganizationMembership.ROLE_OWNER,
-            OrganizationMembership.ROLE_ADMIN,
-        ]:
-            raise PermissionDenied(
-                "Only organization owners or admins can manage roles."
-            )
-        return membership
-
     def get_queryset(self):
         membership = get_user_organization_membership(self.request.user)
         if not membership:
@@ -527,7 +525,7 @@ class OrganizationRoleViewSet(viewsets.ModelViewSet):
         ).order_by("name")
 
     def perform_create(self, serializer):
-        membership = self._require_org_admin(self.request.user)
+        membership = require_org_security_manager(self.request.user, action="roles")
         serializer.save(
             organization=membership.organization,
             security_permissions=get_org_role_security_template("member"),
@@ -536,11 +534,17 @@ class OrganizationRoleViewSet(viewsets.ModelViewSet):
         )
 
     def perform_update(self, serializer):
-        self._require_org_admin(self.request.user)
+        require_org_security_manager(self.request.user, action="roles")
+        if serializer.instance.code == OrganizationMembership.ROLE_OWNER:
+            raise PermissionDenied(
+                "The owner role is protected and cannot be modified."
+            )
         serializer.save()
 
     def perform_destroy(self, instance):
-        self._require_org_admin(self.request.user)
+        require_org_security_manager(self.request.user, action="roles")
+        if instance.code == OrganizationMembership.ROLE_OWNER:
+            raise PermissionDenied("The owner role is protected and cannot be deleted.")
         if not instance.is_deletable:
             instance.is_active = False
             instance.save()

@@ -4,7 +4,12 @@ from rest_framework.test import APIClient
 from facilities.models import Facility, Staff, StaffRole
 from patients.models import Pharmacy
 
-from .models import Organization, OrganizationMembership, OrganizationPharmacyPreference
+from .models import (
+    Organization,
+    OrganizationMembership,
+    OrganizationPharmacyPreference,
+    OrganizationRole,
+)
 
 
 class OrganizationPharmacyPermissionTests(TestCase):
@@ -203,6 +208,100 @@ class OrganizationPharmacyPermissionTests(TestCase):
                 "name": "Updated Org Name By Member",
                 "slug": "updated-org-name-member",
             },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 403)
+
+
+class OrganizationSecurityManagementTests(TestCase):
+    UPDATE_ROLE_URL = "/v1/organizations/security/update-role/"
+
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="CareFlow Health",
+            slug="careflow-health",
+        )
+        self.client = APIClient(HTTP_HOST="localhost:8000")
+
+    def make_user(self, username, role, security_permissions=None):
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(
+            username=username,
+            password="testpass123",
+            email=f"{username}@example.com",
+        )
+        OrganizationMembership.objects.create(
+            user=user,
+            organization=self.organization,
+            role=role,
+            is_active=True,
+            security_permissions=security_permissions or {},
+        )
+        return user
+
+    def patch_role(self, user, role, security_permissions):
+        self.client.force_authenticate(user=user)
+        return self.client.patch(
+            self.UPDATE_ROLE_URL,
+            {"role": role, "security_permissions": security_permissions},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+    def test_owner_can_update_non_owner_role(self):
+        owner = self.make_user("sec_owner", OrganizationMembership.ROLE_OWNER)
+        response = self.patch_role(
+            owner, "member", {"org.profile.view": True, "org.users.manage": True}
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_with_security_manage_can_update_role(self):
+        # Empty stored permissions fall back to the admin template, which grants
+        # org.security.manage by default.
+        admin = self.make_user("sec_admin", OrganizationMembership.ROLE_ADMIN)
+        response = self.patch_role(admin, "member", {"org.profile.view": True})
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_without_security_manage_cannot_update_role(self):
+        admin = self.make_user(
+            "sec_limited_admin",
+            OrganizationMembership.ROLE_ADMIN,
+            security_permissions={"org.security.manage": False},
+        )
+        response = self.patch_role(admin, "member", {"org.profile.view": True})
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_role_is_protected_from_update_role(self):
+        owner = self.make_user("sec_owner_protect", OrganizationMembership.ROLE_OWNER)
+        response = self.patch_role(owner, "owner", {"org.security.manage": True})
+        self.assertEqual(response.status_code, 403)
+
+    def test_member_cannot_update_role(self):
+        member = self.make_user("sec_member", OrganizationMembership.ROLE_MEMBER)
+        response = self.patch_role(member, "member", {"org.profile.view": True})
+        self.assertEqual(response.status_code, 403)
+
+    def test_cannot_remove_security_manage_from_own_role(self):
+        admin = self.make_user("sec_self_lock", OrganizationMembership.ROLE_ADMIN)
+        response = self.patch_role(admin, "admin", {"org.security.manage": False})
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_role_cannot_be_edited_via_roles_endpoint(self):
+        owner = self.make_user("sec_owner_roles", OrganizationMembership.ROLE_OWNER)
+        owner_role = OrganizationRole.objects.create(
+            organization=self.organization,
+            code="owner",
+            name="Owner",
+            is_system_role=True,
+            is_deletable=False,
+            is_active=True,
+        )
+        self.client.force_authenticate(user=owner)
+        response = self.client.patch(
+            f"/v1/organizations/roles/{owner_role.pk}/",
+            {"name": "Renamed Owner"},
             format="json",
             HTTP_HOST="localhost:8000",
         )
