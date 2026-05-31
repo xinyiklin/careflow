@@ -10,6 +10,23 @@ from .models import Facility, Staff
 from .security import user_has_facility_permission
 
 
+def lock_facility_security_staff(facility):
+    """Lock the facility's active staff rows for a security mutation.
+
+    Read-modify-write of the role/override permission maps is otherwise
+    last-write-wins: two admins editing concurrently could each pass the
+    self-management coverage check and together strip the final administrator.
+    Locking the active staff rows serializes those mutations so the coverage
+    check and the save see a consistent, committed view. Must run inside a
+    transaction.
+    """
+    return list(
+        Staff.objects.select_for_update(of=("self",))
+        .filter(facility=facility, is_active=True)
+        .select_related("role")
+    )
+
+
 def get_default_staff_profile(user):
     if not user or not user.is_authenticated:
         return None

@@ -192,6 +192,7 @@ class FacilitySecurityManagementTests(TestCase):
         )
         self.admin_role = StaffRole.objects.get(facility=self.facility, code="admin")
         self.staff_role = StaffRole.objects.get(facility=self.facility, code="staff")
+        self.nurse_role = StaffRole.objects.get(facility=self.facility, code="nurse")
         self.client = APIClient()
 
     def make_admin(self, username, org_role, security_overrides=None):
@@ -216,6 +217,27 @@ class FacilitySecurityManagementTests(TestCase):
         )
         return user
 
+    def make_member(self, username, org_role, role, security_overrides=None):
+        user = User.objects.create_user(
+            username=username,
+            password="testpass123",
+            email=f"{username}@example.com",
+        )
+        OrganizationMembership.objects.create(
+            user=user,
+            organization=self.organization,
+            role=org_role,
+            is_active=True,
+        )
+        Staff.objects.create(
+            user=user,
+            facility=self.facility,
+            role=role,
+            is_active=True,
+            security_overrides=security_overrides or {},
+        )
+        return user
+
     def patch_role_security(self, user, role, permissions):
         self.client.force_authenticate(user)
         return self.client.patch(
@@ -230,6 +252,15 @@ class FacilitySecurityManagementTests(TestCase):
         return self.client.patch(
             f"/v1/facilities/staff/{staff.pk}/?facility_id={self.facility.pk}",
             {"security_overrides": overrides},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+    def patch_staff(self, user, staff, payload):
+        self.client.force_authenticate(user)
+        return self.client.patch(
+            f"/v1/facilities/staff/{staff.pk}/?facility_id={self.facility.pk}",
+            payload,
             format="json",
             HTTP_HOST="localhost:8000",
         )
@@ -288,3 +319,78 @@ class FacilitySecurityManagementTests(TestCase):
             owner, self.staff_role, get_role_security_template("staff")
         )
         self.assertEqual(response.status_code, 200)
+
+    def test_cannot_downgrade_own_role_to_lock_self_out(self):
+        # Changing only role_id (no security_overrides) to a lower-privilege role
+        # would strip self-management access, so it must be blocked.
+        admin = self.make_admin("fac_self_role", OrganizationMembership.ROLE_MEMBER)
+        staff = Staff.objects.get(user=admin, facility=self.facility)
+        response = self.patch_staff(admin, staff, {"role_id": self.staff_role.pk})
+        self.assertEqual(response.status_code, 403)
+        staff.refresh_from_db()
+        self.assertEqual(staff.role_id, self.admin_role.id)
+
+    def test_cannot_downgrade_own_role_even_with_empty_overrides(self):
+        # The combined payload {role_id, security_overrides: {}} must be blocked
+        # the same way a role-only downgrade is.
+        admin = self.make_admin(
+            "fac_self_role_combo", OrganizationMembership.ROLE_MEMBER
+        )
+        staff = Staff.objects.get(user=admin, facility=self.facility)
+        response = self.patch_staff(
+            admin,
+            staff,
+            {"role_id": self.staff_role.pk, "security_overrides": {}},
+        )
+        self.assertEqual(response.status_code, 403)
+        staff.refresh_from_db()
+        self.assertEqual(staff.role_id, self.admin_role.id)
+
+    def test_can_change_another_users_role(self):
+        # The self-lockout guard must not block managing a different user.
+        admin = self.make_admin("fac_actor", OrganizationMembership.ROLE_MEMBER)
+        other = self.make_admin("fac_target", OrganizationMembership.ROLE_MEMBER)
+        other_staff = Staff.objects.get(user=other, facility=self.facility)
+        response = self.patch_staff(admin, other_staff, {"role_id": self.nurse_role.pk})
+        self.assertEqual(response.status_code, 200)
+        other_staff.refresh_from_db()
+        self.assertEqual(other_staff.role_id, self.nurse_role.id)
+
+    def test_cannot_strip_last_admin_by_downgrading_another_staff(self):
+        # Break-glass owner (admin.facility.manage but security.manage revoked)
+        # is not a full admin, so demoting the only full admin would leave the
+        # facility with none — the coverage guard, not the self-lockout guard.
+        owner = self.make_admin(
+            "fac_owner_strip",
+            OrganizationMembership.ROLE_OWNER,
+            security_overrides={"admin.security.manage": False},
+        )
+        last_admin = self.make_admin(
+            "fac_last_admin", OrganizationMembership.ROLE_MEMBER
+        )
+        last_staff = Staff.objects.get(user=last_admin, facility=self.facility)
+        response = self.patch_staff(owner, last_staff, {"role_id": self.staff_role.pk})
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("without an administrator", str(response.data["detail"]))
+        last_staff.refresh_from_db()
+        self.assertEqual(last_staff.role_id, self.admin_role.id)
+
+    def test_cannot_strip_admin_role_perms_leaving_no_admin(self):
+        # Actor holds the role-edit gate (break-glass owner + facility.manage
+        # override) but not the admin role, so the self-lockout guard does not
+        # apply; stripping the admin role would remove the last full admin.
+        owner = self.make_member(
+            "fac_owner_role",
+            OrganizationMembership.ROLE_OWNER,
+            self.staff_role,
+            security_overrides={"admin.facility.manage": True},
+        )
+        self.make_admin("fac_role_last_admin", OrganizationMembership.ROLE_MEMBER)
+        stripped = get_role_security_template("admin")
+        stripped["admin.facility.manage"] = False
+        stripped["admin.security.manage"] = False
+        response = self.patch_role_security(owner, self.admin_role, stripped)
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("without an administrator", str(response.data["detail"]))
+        self.admin_role.refresh_from_db()
+        self.assertTrue(self.admin_role.security_permissions["admin.facility.manage"])
