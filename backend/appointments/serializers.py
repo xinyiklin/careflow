@@ -260,6 +260,23 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if resource and not str(room or "").strip():
             attrs["room"] = getattr(resource, "default_room", "") or ""
 
+        # When the start time changes without an explicit end_time in the
+        # payload (e.g. drag-reschedule sends only appointment_time), shift the
+        # end_time to preserve the appointment's duration. Without this the
+        # stale instance end_time is kept, which fails the "end after start"
+        # check when moving later and yields a wrong duration when moving
+        # earlier.
+        if (
+            "appointment_time" in attrs
+            and raw_end_time is serializers.empty
+            and self.instance is not None
+        ):
+            previous_start = getattr(self.instance, "appointment_time", None)
+            previous_end = getattr(self.instance, "end_time", None)
+            if previous_start and previous_end:
+                attrs["end_time"] = appointment_time + (previous_end - previous_start)
+                end_time = attrs["end_time"]
+
         if appointment_time and not end_time and appointment_type:
             attrs["end_time"] = appointment_time + timedelta(
                 minutes=appointment_type.duration_minutes
