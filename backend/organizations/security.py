@@ -67,3 +67,14 @@ def get_org_role_security_template(role):
     return normalize_org_security_permissions(
         ORG_ROLE_SECURITY_TEMPLATES.get(str(role or "").lower(), {})
     )
+
+
+def get_effective_org_permissions(membership):
+    if not membership:
+        return normalize_org_security_permissions({})
+
+    perms = membership.security_permissions or {}
+    if not perms:
+        perms = get_org_role_security_template(membership.role)
+
+    return normalize_org_security_permissions(perms)

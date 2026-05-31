@@ -1,8 +1,13 @@
 from rest_framework.exceptions import PermissionDenied
 
-from organizations.permissions import get_user_organization_membership, is_org_admin
+from organizations.permissions import (
+    get_user_organization_membership,
+    is_org_admin,
+    is_org_owner,
+)
 
 from .models import Facility, Staff
+from .security import user_has_facility_permission
 
 
 def get_default_staff_profile(user):
@@ -87,6 +92,23 @@ def user_can_admin_facility(user, facility_id):
         return False
 
     return staff_profile.role.code == "admin"
+
+
+def user_can_manage_facility_security(user, facility_id):
+    """Whether the user may edit facility security permissions/overrides.
+
+    Mirrors the organization-level model: the org owner (and superusers) are
+    break-glass and always qualify, so security can never be locked out. Every
+    other role — including facility admins — must hold the effective
+    ``admin.security.manage`` permission rather than merely ``admin.facility.manage``.
+    """
+    if not user or not user.is_authenticated or not facility_id:
+        return False
+
+    if user.is_superuser or is_org_owner(user):
+        return True
+
+    return user_has_facility_permission(user, facility_id, "admin.security.manage")
 
 
 def get_facility_for_user(user, facility_id=None):

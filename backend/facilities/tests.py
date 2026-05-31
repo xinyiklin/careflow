@@ -3,7 +3,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from facilities.models import AppointmentStatus, Facility, Staff, StaffRole
-from facilities.security import user_has_facility_permission
+from facilities.security import get_role_security_template, user_has_facility_permission
 from organizations.models import Organization, OrganizationMembership
 
 User = get_user_model()
@@ -177,3 +177,114 @@ class FacilitySecurityPermissionTests(TestCase):
             HTTP_HOST="localhost:8000",
         )
         self.assertEqual(response.status_code, 403)
+
+
+class FacilitySecurityManagementTests(TestCase):
+    def setUp(self):
+        self.organization = Organization.objects.create(
+            name="CareFlow Health",
+            slug="careflow-health",
+        )
+        self.facility = Facility.objects.create(
+            organization=self.organization,
+            name="Main Clinic",
+            timezone="America/New_York",
+        )
+        self.admin_role = StaffRole.objects.get(facility=self.facility, code="admin")
+        self.staff_role = StaffRole.objects.get(facility=self.facility, code="staff")
+        self.client = APIClient()
+
+    def make_admin(self, username, org_role, security_overrides=None):
+        user = User.objects.create_user(
+            username=username,
+            password="testpass123",
+            email=f"{username}@example.com",
+        )
+        OrganizationMembership.objects.create(
+            user=user,
+            organization=self.organization,
+            role=org_role,
+            is_active=True,
+        )
+        Staff.objects.create(
+            user=user,
+            facility=self.facility,
+            role=self.admin_role,
+            is_active=True,
+            is_default=True,
+            security_overrides=security_overrides or {},
+        )
+        return user
+
+    def patch_role_security(self, user, role, permissions):
+        self.client.force_authenticate(user)
+        return self.client.patch(
+            f"/v1/facilities/staff-roles/{role.pk}/?facility_id={self.facility.pk}",
+            {"security_permissions": permissions},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+    def patch_staff_overrides(self, user, staff, overrides):
+        self.client.force_authenticate(user)
+        return self.client.patch(
+            f"/v1/facilities/staff/{staff.pk}/?facility_id={self.facility.pk}",
+            {"security_overrides": overrides},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+    def test_admin_with_security_manage_can_edit_role_security(self):
+        admin = self.make_admin("fac_sec_admin", OrganizationMembership.ROLE_MEMBER)
+        response = self.patch_role_security(
+            admin, self.staff_role, get_role_security_template("staff")
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_admin_without_security_manage_cannot_edit_role_security(self):
+        # Facility admin keeps admin.facility.manage but is denied
+        # admin.security.manage via override.
+        admin = self.make_admin(
+            "fac_limited_admin",
+            OrganizationMembership.ROLE_MEMBER,
+            security_overrides={"admin.security.manage": False},
+        )
+        response = self.patch_role_security(
+            admin, self.staff_role, get_role_security_template("staff")
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_cannot_remove_security_manage_from_own_role(self):
+        admin = self.make_admin("fac_self_sec", OrganizationMembership.ROLE_MEMBER)
+        perms = get_role_security_template("admin")
+        perms["admin.security.manage"] = False
+        response = self.patch_role_security(admin, self.admin_role, perms)
+        self.assertEqual(response.status_code, 403)
+
+    def test_cannot_remove_facility_manage_from_own_role(self):
+        admin = self.make_admin("fac_self_fac", OrganizationMembership.ROLE_MEMBER)
+        perms = get_role_security_template("admin")
+        perms["admin.facility.manage"] = False
+        response = self.patch_role_security(admin, self.admin_role, perms)
+        self.assertEqual(response.status_code, 403)
+
+    def test_cannot_revoke_own_security_manage_via_override(self):
+        admin = self.make_admin("fac_self_override", OrganizationMembership.ROLE_MEMBER)
+        staff = Staff.objects.get(user=admin, facility=self.facility)
+        response = self.patch_staff_overrides(
+            admin, staff, {"admin.security.manage": False}
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_org_owner_can_manage_security_without_explicit_permission(self):
+        # Owner is break-glass: even with the override revoking security.manage,
+        # the owner can still manage facility security.
+        owner = self.make_admin(
+            "fac_owner",
+            OrganizationMembership.ROLE_OWNER,
+            security_overrides={"admin.security.manage": False},
+        )
+        response = self.patch_role_security(
+            owner, self.staff_role, get_role_security_template("staff")
+        )
+        self.assertEqual(response.status_code, 200)

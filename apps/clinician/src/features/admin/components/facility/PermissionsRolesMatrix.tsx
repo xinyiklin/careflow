@@ -1,5 +1,3 @@
-import { AlertTriangle } from "lucide-react";
-
 import { normalizeSecurityPermissions } from "../../constants/securityPermissions";
 import {
   isDestructivePermission,
@@ -25,13 +23,11 @@ function getRoleStats(role: AdminStaffRole) {
 function PermissionStateButton({
   disabled,
   isAllowed,
-  requiresConfirmation,
   isSaving,
   onToggle,
 }: {
   disabled: boolean;
   isAllowed: boolean;
-  requiresConfirmation: boolean;
   isSaving: boolean;
   onToggle: () => void;
 }) {
@@ -43,11 +39,7 @@ function PermissionStateButton({
       disabled={disabled}
       onClick={onToggle}
       aria-pressed={isAllowed}
-      title={
-        requiresConfirmation
-          ? `Click to ${isAllowed ? "block" : "allow"} after confirmation`
-          : `Click to ${isAllowed ? "block" : "allow"}`
-      }
+      title={`Click to ${isAllowed ? "block" : "allow"}`}
       className={[
         "inline-flex min-w-[84px] items-center justify-center gap-2 rounded-full border px-2.5 py-1 text-[11px] font-bold transition",
         isAllowed
@@ -58,16 +50,12 @@ function PermissionStateButton({
           : "hover:-translate-y-0.5 hover:shadow-[var(--shadow-panel)]",
       ].join(" ")}
     >
-      {requiresConfirmation ? (
-        <AlertTriangle className="h-3 w-3" />
-      ) : (
-        <span
-          className={[
-            "h-2.5 w-2.5 rounded-full",
-            isAllowed ? "bg-cf-success-text" : "bg-cf-border-strong",
-          ].join(" ")}
-        />
-      )}
+      <span
+        className={[
+          "h-2.5 w-2.5 rounded-full",
+          isAllowed ? "bg-cf-success-text" : "bg-cf-border-strong",
+        ].join(" ")}
+      />
       {isSaving ? "Saving" : label}
     </button>
   );
@@ -96,7 +84,7 @@ export default function PermissionsRolesMatrix({
     <PermissionMatrixShell
       groups={groups}
       cornerLabel="Permission"
-      cornerSubtitle="System-role changes require confirmation"
+      cornerSubtitle="Changes apply to all staff with the role"
       columnCount={roles.length}
       columnHeaders={roles.map((role) => {
         const { allowedCount, totalCount } = getRoleStats(role);
@@ -123,7 +111,6 @@ export default function PermissionsRolesMatrix({
               const permissions = normalizeSecurityPermissions(
                 role.security_permissions || undefined
               );
-              const requiresConfirmation = Boolean(role.is_system_role);
               const cellKey = `${role.id}:${permission.key}`;
               const isCellSaving = savingCellKey === cellKey;
               return (
@@ -131,7 +118,7 @@ export default function PermissionsRolesMatrix({
                   key={role.id}
                   className={[
                     "border-b border-cf-border px-3 py-2 text-center",
-                    requiresConfirmation ? "bg-cf-surface-soft/40" : "",
+                    role.is_system_role ? "bg-cf-surface-soft/40" : "",
                   ].join(" ")}
                 >
                   <PermissionStateButton
@@ -139,7 +126,6 @@ export default function PermissionsRolesMatrix({
                     isAllowed={
                       permissions[permission.key as keyof typeof permissions]
                     }
-                    requiresConfirmation={requiresConfirmation}
                     isSaving={isCellSaving}
                     onToggle={() =>
                       onToggle(
