@@ -127,7 +127,11 @@ export default function SegmentedControl<TValue extends string>({
           : isLoose
             ? ""
             : "rounded-xl bg-cf-surface-soft border border-cf-border/80",
-        disabled && "opacity-60 pointer-events-none",
+        // Pills stay at full opacity when disabled (e.g. while a security
+        // matrix cell is saving) so toggling never flashes a dim; they remain
+        // non-interactive via pointer-events. Other variants keep the dim cue.
+        disabled &&
+          (isPill ? "pointer-events-none" : "opacity-60 pointer-events-none"),
         className
       )}
       role="radiogroup"

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 
 import ConfirmDialog from "../../../../shared/components/ConfirmDialog";
@@ -94,7 +94,11 @@ export default function SecurityPanel() {
   const [viewMode, setViewMode] = useState<ViewMode>("roles");
   const [query, setQuery] = useState("");
   const [savingCellKey, setSavingCellKey] = useState("");
-  const [userOverrideSaving, setUserOverrideSaving] = useState(false);
+  const [savingUserCellKey, setSavingUserCellKey] = useState("");
+  // Synchronous mutex for user-override saves. State alone can't serialize two
+  // toggles dispatched in the same tick (neither setState has committed yet);
+  // each save PATCHes the full overrides map, so a missed guard clobbers keys.
+  const userOverrideInFlight = useRef(false);
   const [confirmDialogState, setConfirmDialogState] = useState(
     DEFAULT_CONFIRM_DIALOG
   );
@@ -109,11 +113,9 @@ export default function SecurityPanel() {
   const canManageCurrentFacility = Boolean(adminFacility?.id);
   const { saving, error, updateRoleSecurity, createRole, deleteRole } =
     useStaffRoleSecurity(canManageCurrentFacility ? adminFacility?.id : null);
-  const {
-    saving: staffSaving,
-    error: staffError,
-    saveStaff,
-  } = useStaff(canManageCurrentFacility ? adminFacility?.id : null);
+  const { error: staffError, saveStaff } = useStaff(
+    canManageCurrentFacility ? adminFacility?.id : null
+  );
 
   const activeRoles = useMemo(
     () =>
@@ -236,6 +238,9 @@ export default function SecurityPanel() {
     permissionKey: SecurityPermissionKey,
     mode: "inherit" | "grant" | "revoke"
   ) => {
+    // Serialize: ignore toggles while a save is in flight (see ref comment).
+    if (userOverrideInFlight.current) return;
+
     if (permissionKey in LOCKOUT_PERMISSIONS && isSelfStaff(staff)) {
       const wouldLockOut =
         mode === "revoke" ||
@@ -254,14 +259,19 @@ export default function SecurityPanel() {
       currentOverrides[permissionKey] = mode === "grant";
     }
 
-    setUserOverrideSaving(true);
+    userOverrideInFlight.current = true;
+    setSavingUserCellKey(getCellKey(staff.id, permissionKey));
     try {
       await saveStaff({
         id: staff.id,
         values: { security_overrides: currentOverrides },
       });
+    } catch {
+      // Surfaced via the staffError banner; swallow so the rejected
+      // mutateAsync doesn't bubble as an unhandled promise rejection.
     } finally {
-      setUserOverrideSaving(false);
+      userOverrideInFlight.current = false;
+      setSavingUserCellKey("");
     }
   };
 
@@ -378,10 +388,8 @@ export default function SecurityPanel() {
           <PermissionsUsersMatrix
             staff={activeStaff}
             roles={adminRoles}
-            disabled={
-              staffSaving || userOverrideSaving || !canManageCurrentFacility
-            }
-            saving={userOverrideSaving}
+            disabled={!canManageCurrentFacility}
+            savingCellKey={savingUserCellKey}
             query={query}
             onToggleUserOverride={handleToggleUserOverride}
           />
