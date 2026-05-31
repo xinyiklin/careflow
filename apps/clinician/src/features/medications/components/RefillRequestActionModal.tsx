@@ -160,11 +160,6 @@ export default function RefillRequestActionModal({
               value={note}
               onChange={(event) => setNote(event.target.value)}
               disabled={saving}
-              placeholder={
-                isApprove
-                  ? "Add any instructions or context for this approval."
-                  : "Explain why this refill is being denied."
-              }
             />
           </div>
 

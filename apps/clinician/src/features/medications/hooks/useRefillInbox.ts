@@ -24,9 +24,9 @@ type UseRefillInboxParams = {
  * Facility-scoped refill inbox: the underlying refill-request query plus
  * the approve/deny mutations, shaped like the rest of our list surfaces
  * (loading flags, reload callback, save mutations). The refill workspace
- * reads from a shared facility queue — any clinician with
- * ``medications.manage`` can resolve a request; there is no per-provider
- * routing today.
+ * reads from a shared facility queue. Clinicians resolve through
+ * ``medications.refill.approve`` plus the server-side prescriber/delegation
+ * gate.
  */
 export default function useRefillInbox({
   facilityId,

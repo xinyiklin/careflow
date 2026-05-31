@@ -1,9 +1,11 @@
 from django.db import transaction
 from django.http import Http404
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from audit.services import record_audit_event
@@ -18,6 +20,55 @@ from .serializers import (
     RefillRequestActionSerializer,
     RefillRequestSerializer,
 )
+
+FACILITY_ID_PARAMETER = OpenApiParameter(
+    "facility_id",
+    OpenApiTypes.INT,
+    OpenApiParameter.QUERY,
+    required=False,
+    description="Facility scope. Defaults to the user's active default facility.",
+)
+
+REFILL_REQUEST_LIST_PARAMETERS = [
+    FACILITY_ID_PARAMETER,
+    OpenApiParameter(
+        "patient_id",
+        OpenApiTypes.INT,
+        OpenApiParameter.QUERY,
+        required=False,
+        description="Filter to one patient in the selected facility.",
+    ),
+    OpenApiParameter(
+        "status",
+        OpenApiTypes.STR,
+        OpenApiParameter.QUERY,
+        required=False,
+        enum=[choice[0] for choice in RefillRequest.STATUS_CHOICES],
+        description="Filter by refill request status.",
+    ),
+    OpenApiParameter(
+        "source",
+        OpenApiTypes.STR,
+        OpenApiParameter.QUERY,
+        required=False,
+        enum=[choice[0] for choice in RefillRequest.SOURCE_CHOICES],
+        description="Filter by request source.",
+    ),
+    OpenApiParameter(
+        "prescriber_id",
+        OpenApiTypes.INT,
+        OpenApiParameter.QUERY,
+        required=False,
+        description="Filter by the medication's structured prescriber.",
+    ),
+    OpenApiParameter(
+        "mine",
+        OpenApiTypes.BOOL,
+        OpenApiParameter.QUERY,
+        required=False,
+        description="Filter to the current user's linked prescriber profile.",
+    ),
+]
 
 
 class MedicationViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
@@ -177,6 +228,14 @@ class RefillRequestViewSet(
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "post", "head", "options"]
 
+    @extend_schema(parameters=REFILL_REQUEST_LIST_PARAMETERS)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(parameters=[FACILITY_ID_PARAMETER])
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     def get_queryset(self):
         facility = self._require_permission(
             "medications.view",
@@ -235,6 +294,11 @@ class RefillRequestViewSet(
     # not first-class resources, so we don't expose the existence of a
     # record in another facility via a 403 sentinel.
 
+    @extend_schema(
+        parameters=[FACILITY_ID_PARAMETER],
+        request=RefillRequestActionSerializer,
+        responses=RefillRequestSerializer,
+    )
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         return self._resolve(
@@ -243,6 +307,11 @@ class RefillRequestViewSet(
             audit_summary_prefix="Approved refill request for",
         )
 
+    @extend_schema(
+        parameters=[FACILITY_ID_PARAMETER],
+        request=RefillRequestActionSerializer,
+        responses=RefillRequestSerializer,
+    )
     @action(detail=True, methods=["post"])
     def deny(self, request, pk=None):
         return self._resolve(
@@ -256,22 +325,23 @@ class RefillRequestViewSet(
             "medications.refill.approve",
             "You do not have access to resolve refill requests.",
         )
-        refill = self.get_object()
-        if refill.facility_id != facility.id:
-            raise PermissionDenied("You do not have access to this refill request.")
-
-        self._enforce_prescriber_authority(refill, facility)
 
         body = RefillRequestActionSerializer(data=request.data)
         body.is_valid(raise_exception=True)
         clinician_note = body.validated_data.get("clinician_note", "")
 
-        if refill.status != RefillRequest.STATUS_PENDING:
-            raise ValidationError(
-                {"status": "Only pending refill requests can be resolved."}
-            )
-
         with transaction.atomic():
+            refill = self._get_locked_object()
+            if refill.facility_id != facility.id:
+                raise PermissionDenied("You do not have access to this refill request.")
+
+            self._enforce_prescriber_authority(refill, facility)
+
+            if refill.status != RefillRequest.STATUS_PENDING:
+                raise ValidationError(
+                    {"status": "Only pending refill requests can be resolved."}
+                )
+
             refill.status = new_status
             refill.resolved_at = timezone.now()
             refill.resolved_by = request.user
@@ -294,6 +364,17 @@ class RefillRequestViewSet(
             )
 
         return Response(self.get_serializer(refill).data)
+
+    def _get_locked_object(self):
+        queryset = self.filter_queryset(self.get_queryset()).select_for_update(
+            of=("self",)
+        )
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+        filter_kwargs = {self.lookup_field: lookup_value}
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def _enforce_prescriber_authority(self, refill, facility):
         """Agent-model gate on resolving a refill.
@@ -348,8 +429,9 @@ class PrescriberDelegationViewSet(FacilityScopedViewSetMixin, viewsets.ModelView
     """Facility-scoped CRUD for prescriber delegations (agent model).
 
     Gated on ``admin.security.manage`` — delegations are an access/authority
-    assignment, managed alongside roles and permissions. Capture-only for
-    now: a delegation does not yet relax or enforce refill-approval gating.
+    assignment, managed alongside roles and permissions. Active delegations
+    let non-prescriber refill agents resolve requests for a medication's
+    structured prescriber.
     """
 
     serializer_class = PrescriberDelegationSerializer
@@ -358,6 +440,31 @@ class PrescriberDelegationViewSet(FacilityScopedViewSetMixin, viewsets.ModelView
 
     PERMISSION = "admin.security.manage"
     PERMISSION_MESSAGE = "You do not have access to manage prescriber delegations."
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["facility"] = self.get_facility()
+        return context
+
+    @extend_schema(parameters=[FACILITY_ID_PARAMETER])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(parameters=[FACILITY_ID_PARAMETER])
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(parameters=[FACILITY_ID_PARAMETER])
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(parameters=[FACILITY_ID_PARAMETER])
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @extend_schema(parameters=[FACILITY_ID_PARAMETER])
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         facility = self._require_permission(self.PERMISSION, self.PERMISSION_MESSAGE)
@@ -369,22 +476,6 @@ class PrescriberDelegationViewSet(FacilityScopedViewSetMixin, viewsets.ModelView
 
     def perform_create(self, serializer):
         facility = self._require_permission(self.PERMISSION, self.PERMISSION_MESSAGE)
-        prescriber = serializer.validated_data.get("prescriber")
-        delegate = serializer.validated_data.get("delegate")
-
-        if prescriber and prescriber.facility_id != facility.id:
-            raise PermissionDenied(
-                "Selected prescriber does not belong to this facility."
-            )
-        if delegate and delegate.facility_id != facility.id:
-            raise PermissionDenied(
-                "Selected delegate does not belong to this facility."
-            )
-        if PrescriberDelegation.objects.filter(
-            facility=facility, prescriber=prescriber, delegate=delegate
-        ).exists():
-            raise ValidationError({"delegate": "This delegation already exists."})
-
         serializer.save(facility=facility)
 
     def perform_update(self, serializer):

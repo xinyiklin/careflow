@@ -3,7 +3,7 @@
 Covers ``/v1/medications/refill-requests/`` (list + detail) and the
 ``approve`` / ``deny`` detail actions. All endpoints are gated by
 ``FacilityScopedViewSetMixin`` and the ``medications.view`` /
-``medications.manage`` security permissions. Patient-initiated create
+``medications.refill.approve`` security permissions. Patient-initiated create
 and cancel routes live on the portal viewset and are covered in
 ``tests_refill_portal.py``.
 """
@@ -581,6 +581,31 @@ class StaffEprescribeFlagTests(ClinicianRefillBaseMixin, APITestCase):
         self.assertTrue(StaffMembershipSerializer(staff).data["can_eprescribe"])
 
 
+class MedicationPrescriberSnapshotTests(ClinicianRefillBaseMixin, APITestCase):
+    def test_prescriber_name_tracks_structured_prescriber_changes(self):
+        first_prescriber = CareProvider.objects.create(
+            facility=self.facility,
+            first_name="Elliot",
+            last_name="Reed",
+        )
+        second_prescriber = CareProvider.objects.create(
+            facility=self.facility,
+            first_name="Pat",
+            last_name="Care",
+        )
+
+        self.medication.prescriber = first_prescriber
+        self.medication.save()
+        self.assertEqual(self.medication.prescriber_name, first_prescriber.display_name)
+
+        self.medication.prescriber = second_prescriber
+        self.medication.save()
+        self.assertEqual(
+            self.medication.prescriber_name,
+            second_prescriber.display_name,
+        )
+
+
 class PrescriberDelegationApiTests(ClinicianRefillBaseMixin, APITestCase):
     """Admin CRUD for prescriber delegations, gated on
     ``admin.security.manage`` and facility-scoped."""
@@ -603,6 +628,9 @@ class PrescriberDelegationApiTests(ClinicianRefillBaseMixin, APITestCase):
 
     def _url(self):
         return f"{self.URL}?facility_id={self.facility.id}"
+
+    def _detail_url(self, delegation):
+        return f"{self.URL}{delegation.id}/?facility_id={self.facility.id}"
 
     def test_requires_security_manage(self):
         # Physician has no admin.security.manage permission.
@@ -649,6 +677,77 @@ class PrescriberDelegationApiTests(ClinicianRefillBaseMixin, APITestCase):
             format="json",
         )
         self.assertIn(response.status_code, (400, 403))
+
+    def test_patch_cross_facility_prescriber_rejected(self):
+        other_prescriber = CareProvider.objects.create(
+            facility=self.other_facility,
+            first_name="Other",
+            last_name="Provider",
+        )
+        delegation = PrescriberDelegation.objects.create(
+            facility=self.facility,
+            prescriber=self.prescriber,
+            delegate=self.delegate_staff,
+        )
+
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            self._detail_url(delegation),
+            {"prescriber": other_prescriber.id},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("prescriber", response.data)
+
+        delegation.refresh_from_db()
+        self.assertEqual(delegation.prescriber_id, self.prescriber.id)
+
+    def test_patch_duplicate_delegation_rejected(self):
+        other_prescriber = CareProvider.objects.create(
+            facility=self.facility,
+            first_name="Pat",
+            last_name="Care",
+        )
+        PrescriberDelegation.objects.create(
+            facility=self.facility,
+            prescriber=self.prescriber,
+            delegate=self.delegate_staff,
+        )
+        duplicate_candidate = PrescriberDelegation.objects.create(
+            facility=self.facility,
+            prescriber=other_prescriber,
+            delegate=self.delegate_staff,
+        )
+
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            self._detail_url(duplicate_candidate),
+            {"prescriber": self.prescriber.id},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("delegate", response.data)
+
+        duplicate_candidate.refresh_from_db()
+        self.assertEqual(duplicate_candidate.prescriber_id, other_prescriber.id)
+
+    def test_patch_is_active_allowed(self):
+        delegation = PrescriberDelegation.objects.create(
+            facility=self.facility,
+            prescriber=self.prescriber,
+            delegate=self.delegate_staff,
+        )
+
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            self._detail_url(delegation),
+            {"is_active": False},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+
+        delegation.refresh_from_db()
+        self.assertFalse(delegation.is_active)
 
 
 class RefillDelegationEnforcementTests(ClinicianRefillBaseMixin, APITestCase):

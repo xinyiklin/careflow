@@ -247,3 +247,36 @@ class PrescriberDelegationSerializer(StrictPayloadMixin, serializers.ModelSerial
             return ""
         full = f"{user.first_name} {user.last_name}".strip()
         return full or user.get_username()
+
+    def validate(self, attrs):
+        facility = self.context.get("facility")
+        prescriber = attrs.get("prescriber", getattr(self.instance, "prescriber", None))
+        delegate = attrs.get("delegate", getattr(self.instance, "delegate", None))
+
+        if facility and prescriber and prescriber.facility_id != facility.id:
+            raise serializers.ValidationError(
+                {
+                    "prescriber": [
+                        "Selected prescriber does not belong to this facility."
+                    ]
+                }
+            )
+        if facility and delegate and delegate.facility_id != facility.id:
+            raise serializers.ValidationError(
+                {"delegate": ["Selected delegate does not belong to this facility."]}
+            )
+
+        if facility and prescriber and delegate:
+            duplicate = PrescriberDelegation.objects.filter(
+                facility=facility,
+                prescriber=prescriber,
+                delegate=delegate,
+            )
+            if self.instance:
+                duplicate = duplicate.exclude(pk=self.instance.pk)
+            if duplicate.exists():
+                raise serializers.ValidationError(
+                    {"delegate": ["This delegation already exists."]}
+                )
+
+        return attrs
