@@ -1,3 +1,4 @@
+from django.db import transaction
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
 
@@ -5,7 +6,7 @@ from audit.models import AuditEvent
 from organizations.permissions import get_user_organization_membership, is_org_admin
 from shared.scoping import OrgAdminFacilityScopedViewSetMixin
 
-from .access import user_can_manage_facility_security
+from .access import lock_facility_security_staff, user_can_manage_facility_security
 from .models import (
     AppointmentStatus,
     AppointmentType,
@@ -20,7 +21,11 @@ from .permissions import (
     IsFacilityAdminOrReadOnly,
     IsOrgAdminOrFacilityAdmin,
 )
-from .security import get_effective_staff_permissions, get_role_security_template
+from .security import (
+    SELF_MANAGEMENT_PERMISSIONS,
+    get_role_security_template,
+    holds_all_self_management,
+)
 from .serializers import (
     AppointmentStatusSerializer,
     AppointmentTypeSerializer,
@@ -31,10 +36,6 @@ from .serializers import (
     StaffSerializer,
     StaffTitleSerializer,
 )
-
-# Removing either of these from your own role/profile would lock you out of
-# administration or the security panel, so it is never permitted.
-SELF_MANAGEMENT_PERMISSIONS = ("admin.facility.manage", "admin.security.manage")
 
 
 def create_security_audit_event(
@@ -107,43 +108,99 @@ class StaffViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
         if serializer.instance.facility_id != facility.id:
             raise PermissionDenied("You do not have access to this staff membership.")
 
-        new_overrides = serializer.validated_data.get("security_overrides")
-        if new_overrides is not None:
-            if not user_can_manage_facility_security(self.request.user, facility.id):
-                raise PermissionDenied(
-                    "You do not have permission to manage security permissions."
-                )
+        incoming_role = serializer.validated_data.get("role", serializer.instance.role)
+        role_is_changing = (
+            "role" in serializer.validated_data
+            and incoming_role != serializer.instance.role
+        )
+        overrides_in_payload = "security_overrides" in serializer.validated_data
+
+        # Non-security edits (profile fields only) bypass the security gates.
+        if not (role_is_changing or overrides_in_payload):
+            serializer.save()
+            return
+
+        # Role and per-staff overrides both determine effective permissions, so
+        # changing either is a security-management operation.
+        if not user_can_manage_facility_security(self.request.user, facility.id):
+            raise PermissionDenied(
+                "You do not have permission to manage security permissions."
+            )
+
+        # The overrides that will be in effect after save: the incoming map when
+        # present, otherwise the row's existing overrides.
+        prospective_overrides = (
+            serializer.validated_data["security_overrides"]
+            if overrides_in_payload
+            else serializer.instance.security_overrides
+        )
+        prospective_role_permissions = (
+            incoming_role.security_permissions if incoming_role else {}
+        )
+
+        with transaction.atomic():
+            facility_staff = lock_facility_security_staff(facility)
+
             if serializer.instance.user_id == self.request.user.id:
-                prospective = Staff(
-                    role=serializer.instance.role,
-                    security_overrides=new_overrides,
-                )
-                effective = get_effective_staff_permissions(prospective)
-                if any(
-                    not effective.get(permission, False)
-                    for permission in SELF_MANAGEMENT_PERMISSIONS
+                # Evaluate against the INCOMING role and post-save overrides —
+                # otherwise a self role-downgrade could silently drop access.
+                if not holds_all_self_management(
+                    prospective_role_permissions, prospective_overrides
                 ):
                     raise PermissionDenied(
                         "You cannot remove your own administrative or security "
                         "management access. This would lock you out."
                     )
 
-        previous_overrides = serializer.instance.security_overrides or {}
-        serializer.save()
-        if "security_overrides" in serializer.validated_data:
-            create_security_audit_event(
-                self.request,
-                facility=serializer.instance.facility,
-                model_name="staff",
-                object_pk=serializer.instance.pk,
-                summary=f"Updated security overrides for {serializer.instance.user}",
-                metadata={
-                    "changed_fields": ["Security overrides"],
-                    "previous": previous_overrides,
-                    "next": serializer.instance.security_overrides or {},
-                    "user_id": serializer.instance.user_id,
-                },
+            staying_active = serializer.validated_data.get(
+                "is_active", serializer.instance.is_active
             )
+
+            def holds_admin_after(staff):
+                if staff.id == serializer.instance.id:
+                    if not staying_active:
+                        return False
+                    return holds_all_self_management(
+                        prospective_role_permissions, prospective_overrides
+                    )
+                return holds_all_self_management(
+                    staff.role.security_permissions if staff.role else {},
+                    staff.security_overrides,
+                )
+
+            had_admin = any(
+                holds_all_self_management(
+                    staff.role.security_permissions if staff.role else {},
+                    staff.security_overrides,
+                )
+                for staff in facility_staff
+            )
+            if had_admin and not any(
+                holds_admin_after(staff) for staff in facility_staff
+            ):
+                raise PermissionDenied(
+                    "This change would leave the facility without an "
+                    "administrator. Assign another administrator first."
+                )
+
+            previous_overrides = serializer.instance.security_overrides or {}
+            serializer.save()
+            if "security_overrides" in serializer.validated_data:
+                create_security_audit_event(
+                    self.request,
+                    facility=serializer.instance.facility,
+                    model_name="staff",
+                    object_pk=serializer.instance.pk,
+                    summary=(
+                        f"Updated security overrides for {serializer.instance.user}"
+                    ),
+                    metadata={
+                        "changed_fields": ["Security overrides"],
+                        "previous": previous_overrides,
+                        "next": serializer.instance.security_overrides or {},
+                        "user_id": serializer.instance.user_id,
+                    },
+                )
 
     def perform_destroy(self, instance):
         if instance.facility_id != self.get_facility().id:
@@ -287,18 +344,23 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
             raise PermissionDenied("Invalid facility.")
 
         new_perms = serializer.validated_data.get("security_permissions")
-        if new_perms is not None:
-            if not user_can_manage_facility_security(self.request.user, facility.id):
-                raise PermissionDenied(
-                    "You do not have permission to manage security permissions."
-                )
+        if new_perms is None:
+            serializer.save()
+            return
 
-            user_has_role = Staff.objects.filter(
-                user=self.request.user,
-                facility=facility,
-                role=serializer.instance,
-                is_active=True,
-            ).exists()
+        if not user_can_manage_facility_security(self.request.user, facility.id):
+            raise PermissionDenied(
+                "You do not have permission to manage security permissions."
+            )
+
+        with transaction.atomic():
+            facility_staff = lock_facility_security_staff(facility)
+
+            user_has_role = any(
+                staff.user_id == self.request.user.id
+                and staff.role_id == serializer.instance.id
+                for staff in facility_staff
+            )
             if user_has_role and any(
                 not new_perms.get(permission, False)
                 for permission in SELF_MANAGEMENT_PERMISSIONS
@@ -308,7 +370,32 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
                     "from your own role. This would lock you out."
                 )
 
-        serializer.save()
+            def holds_admin_after(staff):
+                role_permissions = (
+                    new_perms
+                    if staff.role_id == serializer.instance.id
+                    else (staff.role.security_permissions if staff.role else {})
+                )
+                return holds_all_self_management(
+                    role_permissions, staff.security_overrides
+                )
+
+            had_admin = any(
+                holds_all_self_management(
+                    staff.role.security_permissions if staff.role else {},
+                    staff.security_overrides,
+                )
+                for staff in facility_staff
+            )
+            if had_admin and not any(
+                holds_admin_after(staff) for staff in facility_staff
+            ):
+                raise PermissionDenied(
+                    "This change would leave the facility without an "
+                    "administrator. Assign another administrator first."
+                )
+
+            serializer.save()
 
     def perform_destroy(self, instance):
         if instance.facility_id != self.get_facility().id:

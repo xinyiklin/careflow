@@ -34,6 +34,10 @@ SECURITY_PERMISSIONS = [
     "admin.security.manage",
 ]
 
+# Losing either of these removes access to administration or the security
+# panel, so they are treated as the markers of a facility administrator.
+SELF_MANAGEMENT_PERMISSIONS = ("admin.facility.manage", "admin.security.manage")
+
 ROLE_SECURITY_TEMPLATES = {
     "admin": {
         "schedule.view": True,
@@ -238,19 +242,36 @@ def get_role_security_template(role_code):
     )
 
 
-def get_effective_staff_permissions(staff):
-    if not staff or not staff.role:
-        return normalize_security_permissions({})
-
-    role_permissions = staff.role.security_permissions or {}
-    effective_permissions = normalize_security_permissions(role_permissions)
-    overrides = staff.security_overrides or {}
+def resolve_effective_permissions(role_permissions, security_overrides):
+    effective_permissions = normalize_security_permissions(role_permissions or {})
+    overrides = security_overrides or {}
 
     for permission, value in overrides.items():
         if permission in effective_permissions and value is not None:
             effective_permissions[permission] = bool(value)
 
     return effective_permissions
+
+
+def get_effective_staff_permissions(staff):
+    if not staff or not staff.role:
+        return normalize_security_permissions({})
+
+    return resolve_effective_permissions(
+        staff.role.security_permissions, staff.security_overrides
+    )
+
+
+def holds_all_self_management(role_permissions, security_overrides):
+    """Whether a role+override pairing grants every self-management permission.
+
+    Operates on raw permission/override maps so a prospective (not-yet-saved)
+    role or override change can be evaluated without constructing a Staff row.
+    """
+    effective = resolve_effective_permissions(role_permissions, security_overrides)
+    return all(
+        effective.get(permission, False) for permission in SELF_MANAGEMENT_PERMISSIONS
+    )
 
 
 def user_has_facility_permission(user, facility_id, permission):
