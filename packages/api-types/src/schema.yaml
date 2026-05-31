@@ -201,11 +201,7 @@ paths:
   /v1/appointments/:
     get:
       operationId: appointments_list
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       tags:
       - appointments
       security:
@@ -222,11 +218,7 @@ paths:
           description: ''
     post:
       operationId: appointments_create
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       tags:
       - appointments
       requestBody:
@@ -254,11 +246,7 @@ paths:
   /v1/appointments/{id}/:
     get:
       operationId: appointments_retrieve
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -279,11 +267,7 @@ paths:
           description: ''
     put:
       operationId: appointments_update
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -316,11 +300,7 @@ paths:
           description: ''
     patch:
       operationId: appointments_partial_update
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -352,11 +332,7 @@ paths:
           description: ''
     delete:
       operationId: appointments_destroy
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -374,11 +350,7 @@ paths:
   /v1/appointments/{id}/edit-session/:
     get:
       operationId: appointments_edit_session_retrieve
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -399,11 +371,7 @@ paths:
           description: ''
     post:
       operationId: appointments_edit_session_create
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -436,11 +404,7 @@ paths:
           description: ''
     patch:
       operationId: appointments_edit_session_partial_update
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -472,11 +436,7 @@ paths:
           description: ''
     delete:
       operationId: appointments_edit_session_destroy
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -494,11 +454,7 @@ paths:
   /v1/appointments/{id}/history/:
     get:
       operationId: appointments_history_retrieve
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       parameters:
       - in: path
         name: id
@@ -620,11 +576,7 @@ paths:
   /v1/appointments/heatmap/:
     get:
       operationId: appointments_heatmap_retrieve
-      description: |-
-        Resolve a Staff profile (and its facility) for the current request.
-
-        Picks the requested facility via the ``facility_id`` query parameter when
-        present; otherwise falls back to the user's default staff profile.
+      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
       tags:
       - appointments
       security:
@@ -3875,6 +3827,179 @@ paths:
       responses:
         '200':
           description: No response body
+  /v1/medications/prescriber-delegations/:
+    get:
+      operationId: medications_prescriber_delegations_list
+      description: |-
+        Facility-scoped CRUD for prescriber delegations (agent model).
+
+        Gated on ``admin.security.manage`` — delegations are an access/authority
+        assignment, managed alongside roles and permissions. Active delegations
+        let non-prescriber refill agents resolve requests for a medication's
+        structured prescriber.
+      parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
+      tags:
+      - medications
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PrescriberDelegation'
+          description: ''
+    post:
+      operationId: medications_prescriber_delegations_create
+      description: |-
+        Facility-scoped CRUD for prescriber delegations (agent model).
+
+        Gated on ``admin.security.manage`` — delegations are an access/authority
+        assignment, managed alongside roles and permissions. Active delegations
+        let non-prescriber refill agents resolve requests for a medication's
+        structured prescriber.
+      parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
+      tags:
+      - medications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrescriberDelegation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PrescriberDelegation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PrescriberDelegation'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriberDelegation'
+          description: ''
+  /v1/medications/prescriber-delegations/{id}/:
+    get:
+      operationId: medications_prescriber_delegations_retrieve
+      description: |-
+        Facility-scoped CRUD for prescriber delegations (agent model).
+
+        Gated on ``admin.security.manage`` — delegations are an access/authority
+        assignment, managed alongside roles and permissions. Active delegations
+        let non-prescriber refill agents resolve requests for a medication's
+        structured prescriber.
+      parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - medications
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriberDelegation'
+          description: ''
+    patch:
+      operationId: medications_prescriber_delegations_partial_update
+      description: |-
+        Facility-scoped CRUD for prescriber delegations (agent model).
+
+        Gated on ``admin.security.manage`` — delegations are an access/authority
+        assignment, managed alongside roles and permissions. Active delegations
+        let non-prescriber refill agents resolve requests for a medication's
+        structured prescriber.
+      parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - medications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPrescriberDelegation'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPrescriberDelegation'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPrescriberDelegation'
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrescriberDelegation'
+          description: ''
+    delete:
+      operationId: medications_prescriber_delegations_destroy
+      description: |-
+        Facility-scoped CRUD for prescriber delegations (agent model).
+
+        Gated on ``admin.security.manage`` — delegations are an access/authority
+        assignment, managed alongside roles and permissions. Active delegations
+        let non-prescriber refill agents resolve requests for a medication's
+        structured prescriber.
+      parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - medications
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /v1/medications/refill-requests/:
     get:
       operationId: medications_refill_requests_list
@@ -3882,11 +4007,53 @@ paths:
         Clinician-side list/detail/approve/deny for refill requests.
 
         Reads are gated on ``medications.view``; ``approve`` and ``deny``
-        actions require ``medications.manage``. Patient-initiated creates
-        and cancels live on the portal viewset — this surface is
+        actions require ``medications.refill.approve``, and non-prescriber
+        agents additionally need an active ``PrescriberDelegation`` under the
+        medication's prescriber (see ``_enforce_prescriber_authority``).
+        Patient-initiated creates and cancels live on the portal viewset — this
+        surface is
         intentionally read-plus-resolve only. Approving does NOT auto-create
         a new ``Medication`` row; the product treats approval as a soft
         acknowledgment.
+      parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
+      - in: query
+        name: mine
+        schema:
+          type: boolean
+        description: Filter to the current user's linked prescriber profile.
+      - in: query
+        name: patient_id
+        schema:
+          type: integer
+        description: Filter to one patient in the selected facility.
+      - in: query
+        name: prescriber_id
+        schema:
+          type: integer
+        description: Filter by the medication's structured prescriber.
+      - in: query
+        name: source
+        schema:
+          type: string
+          enum:
+          - patient
+          - pharmacy
+        description: Filter by request source.
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - approved
+          - cancelled
+          - denied
+          - pending
+        description: Filter by refill request status.
       tags:
       - medications
       security:
@@ -3908,12 +4075,20 @@ paths:
         Clinician-side list/detail/approve/deny for refill requests.
 
         Reads are gated on ``medications.view``; ``approve`` and ``deny``
-        actions require ``medications.manage``. Patient-initiated creates
-        and cancels live on the portal viewset — this surface is
+        actions require ``medications.refill.approve``, and non-prescriber
+        agents additionally need an active ``PrescriberDelegation`` under the
+        medication's prescriber (see ``_enforce_prescriber_authority``).
+        Patient-initiated creates and cancels live on the portal viewset — this
+        surface is
         intentionally read-plus-resolve only. Approving does NOT auto-create
         a new ``Medication`` row; the product treats approval as a soft
         acknowledgment.
       parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
       - in: path
         name: id
         schema:
@@ -3938,12 +4113,20 @@ paths:
         Clinician-side list/detail/approve/deny for refill requests.
 
         Reads are gated on ``medications.view``; ``approve`` and ``deny``
-        actions require ``medications.manage``. Patient-initiated creates
-        and cancels live on the portal viewset — this surface is
+        actions require ``medications.refill.approve``, and non-prescriber
+        agents additionally need an active ``PrescriberDelegation`` under the
+        medication's prescriber (see ``_enforce_prescriber_authority``).
+        Patient-initiated creates and cancels live on the portal viewset — this
+        surface is
         intentionally read-plus-resolve only. Approving does NOT auto-create
         a new ``Medication`` row; the product treats approval as a soft
         acknowledgment.
       parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
       - in: path
         name: id
         schema:
@@ -3955,13 +4138,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefillRequest'
+              $ref: '#/components/schemas/RefillRequestAction'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RefillRequest'
+              $ref: '#/components/schemas/RefillRequestAction'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RefillRequest'
+              $ref: '#/components/schemas/RefillRequestAction'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -3979,12 +4162,20 @@ paths:
         Clinician-side list/detail/approve/deny for refill requests.
 
         Reads are gated on ``medications.view``; ``approve`` and ``deny``
-        actions require ``medications.manage``. Patient-initiated creates
-        and cancels live on the portal viewset — this surface is
+        actions require ``medications.refill.approve``, and non-prescriber
+        agents additionally need an active ``PrescriberDelegation`` under the
+        medication's prescriber (see ``_enforce_prescriber_authority``).
+        Patient-initiated creates and cancels live on the portal viewset — this
+        surface is
         intentionally read-plus-resolve only. Approving does NOT auto-create
         a new ``Medication`` row; the product treats approval as a soft
         acknowledgment.
       parameters:
+      - in: query
+        name: facility_id
+        schema:
+          type: integer
+        description: Facility scope. Defaults to the user's active default facility.
       - in: path
         name: id
         schema:
@@ -3996,13 +4187,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefillRequest'
+              $ref: '#/components/schemas/RefillRequestAction'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/RefillRequest'
+              $ref: '#/components/schemas/RefillRequestAction'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/RefillRequest'
+              $ref: '#/components/schemas/RefillRequestAction'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -5607,6 +5798,81 @@ paths:
               schema:
                 $ref: '#/components/schemas/PortalAppointmentBookingResponse'
           description: ''
+  /v1/portal/auth/login/:
+    post:
+      operationId: portal_auth_login_create
+      description: |-
+        Username/password login for the patient portal.
+
+        Issues a portal-surface token and writes the refresh cookie at the
+        portal path, so the portal stops borrowing the clinician token
+        endpoint (which set the clinic cookie path and a clinic-surface token).
+      tags:
+      - portal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortalTokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PortalTokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PortalTokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalTokenObtainPair'
+          description: ''
+  /v1/portal/auth/logout/:
+    post:
+      operationId: portal_auth_logout_create
+      description: Revoke and clear the portal-scoped refresh cookie.
+      tags:
+      - portal
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /v1/portal/auth/refresh/:
+    post:
+      operationId: portal_auth_refresh_create
+      description: |-
+        Refresh a portal session token using the portal-path refresh cookie.
+
+        Mirrors :class:`users.views.CookieTokenRefreshView` but reads and writes
+        the cookie at :data:`users.views.PORTAL_REFRESH_COOKIE_PATH` so the
+        browser keeps clinic and portal sessions isolated even on a shared host.
+        The serializer also rejects a refresh token minted for the clinician
+        surface, so a clinic token can't be replayed here to mint portal access.
+      tags:
+      - portal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortalTokenRefresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PortalTokenRefresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PortalTokenRefresh'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalTokenRefresh'
+          description: ''
   /v1/portal/demo-login/:
     post:
       operationId: portal_demo_login_create
@@ -6173,20 +6439,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TokenObtainPair'
+              $ref: '#/components/schemas/ClinicTokenObtainPair'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/TokenObtainPair'
+              $ref: '#/components/schemas/ClinicTokenObtainPair'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/TokenObtainPair'
+              $ref: '#/components/schemas/ClinicTokenObtainPair'
         required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenObtainPair'
+                $ref: '#/components/schemas/ClinicTokenObtainPair'
           description: ''
   /v1/users/token/refresh/:
     post:
@@ -6200,20 +6466,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TokenRefresh'
+              $ref: '#/components/schemas/ClinicTokenRefresh'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/TokenRefresh'
+              $ref: '#/components/schemas/ClinicTokenRefresh'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/TokenRefresh'
+              $ref: '#/components/schemas/ClinicTokenRefresh'
         required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenRefresh'
+                $ref: '#/components/schemas/ClinicTokenRefresh'
           description: ''
 components:
   schemas:
@@ -6627,6 +6893,32 @@ components:
         * `latex` - Latex
         * `contrast` - Contrast
         * `other` - Other
+    ClinicTokenObtainPair:
+      type: object
+      description: Username/password login for the clinician app.
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - username
+    ClinicTokenRefresh:
+      type: object
+      description: Reject a refresh token whose ``surface`` claim doesn't match the
+        view.
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
     CoverageOrderEnum:
       enum:
       - primary
@@ -7424,9 +7716,15 @@ components:
           type: string
           format: date
           nullable: true
+        prescriber:
+          type: integer
+          nullable: true
         prescriber_name:
           type: string
           maxLength: 150
+        prescriber_display:
+          type: string
+          readOnly: true
         notes:
           type: string
         created_by:
@@ -7463,6 +7761,7 @@ components:
       - patient
       - patient_chart_number
       - patient_name
+      - prescriber_display
       - route
       - status_label
       - updated_at
@@ -8771,9 +9070,15 @@ components:
           type: string
           format: date
           nullable: true
+        prescriber:
+          type: integer
+          nullable: true
         prescriber_name:
           type: string
           maxLength: 150
+        prescriber_display:
+          type: string
+          readOnly: true
         notes:
           type: string
         created_by:
@@ -9539,6 +9844,37 @@ components:
         pharmacy_id:
           type: integer
           nullable: true
+    PatchedPrescriberDelegation:
+      type: object
+      description: |-
+        Admin read/write shape for a prescriber delegation (agent model).
+
+        ``facility`` is assigned by the view; ``prescriber`` (CareProvider) and
+        ``delegate`` (Staff) are client-supplied and validated against the
+        facility. Display fields are denormalized for the admin table.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        facility:
+          type: integer
+          readOnly: true
+        prescriber:
+          type: integer
+        prescriber_display:
+          type: string
+          readOnly: true
+        delegate:
+          type: integer
+        delegate_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedProgressNote:
       type: object
       description: |-
@@ -9656,6 +9992,8 @@ components:
           type: string
           format: date
           nullable: true
+        eprescribe_enabled:
+          type: boolean
         specialty:
           type: string
           maxLength: 100
@@ -10360,7 +10698,7 @@ components:
           type: string
           maxLength: 255
         source:
-          $ref: '#/components/schemas/SourceEnum'
+          $ref: '#/components/schemas/PharmacySourceEnum'
         external_id:
           type: string
           maxLength: 100
@@ -10428,6 +10766,16 @@ components:
       - id
       - name
       - updated_at
+    PharmacySourceEnum:
+      enum:
+      - custom
+      - imported
+      - directory
+      type: string
+      description: |-
+        * `custom` - Custom
+        * `imported` - Imported
+        * `directory` - Directory
     PortalAllergy:
       type: object
       description: |-
@@ -11247,6 +11595,37 @@ components:
       - end_time
       - id
       - start_time
+    PortalTokenObtainPair:
+      type: object
+      description: |-
+        Username/password login for the patient portal.
+
+        Tags the token with the portal surface and rejects users without an
+        active portal account, so a clinician credential cannot mint a portal
+        session even if it reaches this endpoint.
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - username
+    PortalTokenRefresh:
+      type: object
+      description: Reject a refresh token whose ``surface`` claim doesn't match the
+        view.
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+      - refresh
     PortalVitals:
       type: object
       properties:
@@ -11311,6 +11690,45 @@ components:
       - spo2_percent
       - temperature_c
       - weight_kg
+    PrescriberDelegation:
+      type: object
+      description: |-
+        Admin read/write shape for a prescriber delegation (agent model).
+
+        ``facility`` is assigned by the view; ``prescriber`` (CareProvider) and
+        ``delegate`` (Staff) are client-supplied and validated against the
+        facility. Display fields are denormalized for the admin table.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        facility:
+          type: integer
+          readOnly: true
+        prescriber:
+          type: integer
+        prescriber_display:
+          type: string
+          readOnly: true
+        delegate:
+          type: integer
+        delegate_name:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - delegate
+      - delegate_name
+      - facility
+      - id
+      - prescriber
+      - prescriber_display
     ProgressNote:
       type: object
       description: |-
@@ -11435,6 +11853,20 @@ components:
         pharmacy_name:
           type: string
           readOnly: true
+        prescriber_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        prescriber_display:
+          type: string
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/RefillRequestSourceEnum'
+          readOnly: true
+        source_label:
+          type: string
+          readOnly: true
         status:
           allOf:
           - $ref: '#/components/schemas/StatusA5bEnum'
@@ -11472,11 +11904,34 @@ components:
       - patient_note
       - pharmacy_id
       - pharmacy_name
+      - prescriber_display
+      - prescriber_id
       - requested_at
       - resolved_at
       - resolved_by_name
+      - source
+      - source_label
       - status
       - status_label
+    RefillRequestAction:
+      type: object
+      description: |-
+        Input body for ``approve`` / ``deny`` detail routes.
+
+        Both actions accept an optional ``clinician_note``; the view layer
+        enforces ``status == pending`` and the resolver stamping.
+      properties:
+        clinician_note:
+          type: string
+          default: ''
+    RefillRequestSourceEnum:
+      enum:
+      - patient
+      - pharmacy
+      type: string
+      description: |-
+        * `patient` - Patient
+        * `pharmacy` - Pharmacy
     RelationshipToSubscriberEnum:
       enum:
       - self
@@ -11545,16 +12000,6 @@ components:
         * `intersex` - Intersex
         * `unknown` - Unknown
         * `undisclosed` - Undisclosed
-    SourceEnum:
-      enum:
-      - custom
-      - imported
-      - directory
-      type: string
-      description: |-
-        * `custom` - Custom
-        * `imported` - Imported
-        * `directory` - Directory
     Staff:
       type: object
       properties:
@@ -11622,6 +12067,8 @@ components:
           type: string
           format: date
           nullable: true
+        eprescribe_enabled:
+          type: boolean
         specialty:
           type: string
           maxLength: 100
@@ -11798,38 +12245,6 @@ components:
         * `inactive` - Inactive
         * `resolved` - Resolved
         * `entered_in_error` - Entered in Error
-    TokenObtainPair:
-      type: object
-      properties:
-        username:
-          type: string
-          writeOnly: true
-        password:
-          type: string
-          writeOnly: true
-        access:
-          type: string
-          readOnly: true
-        refresh:
-          type: string
-          readOnly: true
-      required:
-      - access
-      - password
-      - refresh
-      - username
-    TokenRefresh:
-      type: object
-      properties:
-        access:
-          type: string
-          readOnly: true
-        refresh:
-          type: string
-          writeOnly: true
-      required:
-      - access
-      - refresh
     User:
       type: object
       properties:

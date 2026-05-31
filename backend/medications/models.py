@@ -106,7 +106,7 @@ class Medication(models.Model):
             self.created_by_name = get_user_display_name(self.created_by)
         if self.updated_by:
             self.updated_by_name = get_user_display_name(self.updated_by)
-        if self.prescriber_id and not self.prescriber_name:
+        if self.prescriber_id:
             self.prescriber_name = getattr(self.prescriber, "display_name", "") or ""
         super().save(*args, **kwargs)
 

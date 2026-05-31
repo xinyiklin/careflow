@@ -111,20 +111,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         get: operations["appointments_list"];
         put?: never;
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         post: operations["appointments_create"];
         delete?: never;
         options?: never;
@@ -139,36 +129,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         get: operations["appointments_retrieve"];
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         put: operations["appointments_update"];
         post?: never;
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         delete: operations["appointments_destroy"];
         options?: never;
         head?: never;
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         patch: operations["appointments_partial_update"];
         trace?: never;
     };
@@ -179,36 +149,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         get: operations["appointments_edit_session_retrieve"];
         put?: never;
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         post: operations["appointments_edit_session_create"];
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         delete: operations["appointments_edit_session_destroy"];
         options?: never;
         head?: never;
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         patch: operations["appointments_edit_session_partial_update"];
         trace?: never;
     };
@@ -219,12 +169,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         get: operations["appointments_history_retrieve"];
         put?: never;
         post?: never;
@@ -297,12 +242,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Resolve a Staff profile (and its facility) for the current request.
-         *
-         *     Picks the requested facility via the ``facility_id`` query parameter when
-         *     present; otherwise falls back to the user's default staff profile.
-         */
+        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
         get: operations["appointments_heatmap_retrieve"];
         put?: never;
         post?: never;
@@ -1784,6 +1724,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/medications/prescriber-delegations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Facility-scoped CRUD for prescriber delegations (agent model).
+         *
+         *     Gated on ``admin.security.manage`` — delegations are an access/authority
+         *     assignment, managed alongside roles and permissions. Active delegations
+         *     let non-prescriber refill agents resolve requests for a medication's
+         *     structured prescriber.
+         */
+        get: operations["medications_prescriber_delegations_list"];
+        put?: never;
+        /**
+         * @description Facility-scoped CRUD for prescriber delegations (agent model).
+         *
+         *     Gated on ``admin.security.manage`` — delegations are an access/authority
+         *     assignment, managed alongside roles and permissions. Active delegations
+         *     let non-prescriber refill agents resolve requests for a medication's
+         *     structured prescriber.
+         */
+        post: operations["medications_prescriber_delegations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/medications/prescriber-delegations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Facility-scoped CRUD for prescriber delegations (agent model).
+         *
+         *     Gated on ``admin.security.manage`` — delegations are an access/authority
+         *     assignment, managed alongside roles and permissions. Active delegations
+         *     let non-prescriber refill agents resolve requests for a medication's
+         *     structured prescriber.
+         */
+        get: operations["medications_prescriber_delegations_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description Facility-scoped CRUD for prescriber delegations (agent model).
+         *
+         *     Gated on ``admin.security.manage`` — delegations are an access/authority
+         *     assignment, managed alongside roles and permissions. Active delegations
+         *     let non-prescriber refill agents resolve requests for a medication's
+         *     structured prescriber.
+         */
+        delete: operations["medications_prescriber_delegations_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description Facility-scoped CRUD for prescriber delegations (agent model).
+         *
+         *     Gated on ``admin.security.manage`` — delegations are an access/authority
+         *     assignment, managed alongside roles and permissions. Active delegations
+         *     let non-prescriber refill agents resolve requests for a medication's
+         *     structured prescriber.
+         */
+        patch: operations["medications_prescriber_delegations_partial_update"];
+        trace?: never;
+    };
     "/v1/medications/refill-requests/": {
         parameters: {
             query?: never;
@@ -1795,8 +1807,11 @@ export interface paths {
          * @description Clinician-side list/detail/approve/deny for refill requests.
          *
          *     Reads are gated on ``medications.view``; ``approve`` and ``deny``
-         *     actions require ``medications.manage``. Patient-initiated creates
-         *     and cancels live on the portal viewset — this surface is
+         *     actions require ``medications.refill.approve``, and non-prescriber
+         *     agents additionally need an active ``PrescriberDelegation`` under the
+         *     medication's prescriber (see ``_enforce_prescriber_authority``).
+         *     Patient-initiated creates and cancels live on the portal viewset — this
+         *     surface is
          *     intentionally read-plus-resolve only. Approving does NOT auto-create
          *     a new ``Medication`` row; the product treats approval as a soft
          *     acknowledgment.
@@ -1821,8 +1836,11 @@ export interface paths {
          * @description Clinician-side list/detail/approve/deny for refill requests.
          *
          *     Reads are gated on ``medications.view``; ``approve`` and ``deny``
-         *     actions require ``medications.manage``. Patient-initiated creates
-         *     and cancels live on the portal viewset — this surface is
+         *     actions require ``medications.refill.approve``, and non-prescriber
+         *     agents additionally need an active ``PrescriberDelegation`` under the
+         *     medication's prescriber (see ``_enforce_prescriber_authority``).
+         *     Patient-initiated creates and cancels live on the portal viewset — this
+         *     surface is
          *     intentionally read-plus-resolve only. Approving does NOT auto-create
          *     a new ``Medication`` row; the product treats approval as a soft
          *     acknowledgment.
@@ -1849,8 +1867,11 @@ export interface paths {
          * @description Clinician-side list/detail/approve/deny for refill requests.
          *
          *     Reads are gated on ``medications.view``; ``approve`` and ``deny``
-         *     actions require ``medications.manage``. Patient-initiated creates
-         *     and cancels live on the portal viewset — this surface is
+         *     actions require ``medications.refill.approve``, and non-prescriber
+         *     agents additionally need an active ``PrescriberDelegation`` under the
+         *     medication's prescriber (see ``_enforce_prescriber_authority``).
+         *     Patient-initiated creates and cancels live on the portal viewset — this
+         *     surface is
          *     intentionally read-plus-resolve only. Approving does NOT auto-create
          *     a new ``Medication`` row; the product treats approval as a soft
          *     acknowledgment.
@@ -1875,8 +1896,11 @@ export interface paths {
          * @description Clinician-side list/detail/approve/deny for refill requests.
          *
          *     Reads are gated on ``medications.view``; ``approve`` and ``deny``
-         *     actions require ``medications.manage``. Patient-initiated creates
-         *     and cancels live on the portal viewset — this surface is
+         *     actions require ``medications.refill.approve``, and non-prescriber
+         *     agents additionally need an active ``PrescriberDelegation`` under the
+         *     medication's prescriber (see ``_enforce_prescriber_authority``).
+         *     Patient-initiated creates and cancels live on the portal viewset — this
+         *     surface is
          *     intentionally read-plus-resolve only. Approving does NOT auto-create
          *     a new ``Medication`` row; the product treats approval as a soft
          *     acknowledgment.
@@ -2705,6 +2729,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/portal/auth/login/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Username/password login for the patient portal.
+         *
+         *     Issues a portal-surface token and writes the refresh cookie at the
+         *     portal path, so the portal stops borrowing the clinician token
+         *     endpoint (which set the clinic cookie path and a clinic-surface token).
+         */
+        post: operations["portal_auth_login_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/portal/auth/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Revoke and clear the portal-scoped refresh cookie. */
+        post: operations["portal_auth_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/portal/auth/refresh/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Refresh a portal session token using the portal-path refresh cookie.
+         *
+         *     Mirrors :class:`users.views.CookieTokenRefreshView` but reads and writes
+         *     the cookie at :data:`users.views.PORTAL_REFRESH_COOKIE_PATH` so the
+         *     browser keeps clinic and portal sessions isolated even on a shared host.
+         *     The serializer also rejects a refresh token minted for the clinician
+         *     surface, so a clinic token can't be replayed here to mint portal access.
+         */
+        post: operations["portal_auth_refresh_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/portal/demo-login/": {
         parameters: {
             query?: never;
@@ -3336,6 +3425,16 @@ export interface components {
          * @enum {string}
          */
         CategoryEnum: "medication" | "food" | "environmental" | "latex" | "contrast" | "other";
+        /** @description Username/password login for the clinician app. */
+        ClinicTokenObtainPair: {
+            username: string;
+            password: string;
+        };
+        /** @description Reject a refresh token whose ``surface`` claim doesn't match the view. */
+        ClinicTokenRefresh: {
+            refresh: string;
+            readonly access: string;
+        };
         /**
          * @description * `primary` - Primary
          *     * `secondary` - Secondary
@@ -3654,7 +3753,9 @@ export interface components {
             start_date?: string | null;
             /** Format: date */
             end_date?: string | null;
+            prescriber?: number | null;
             prescriber_name?: string;
+            readonly prescriber_display: string;
             notes?: string;
             readonly created_by: number | null;
             readonly created_by_name: string;
@@ -4181,7 +4282,9 @@ export interface components {
             start_date?: string | null;
             /** Format: date */
             end_date?: string | null;
+            prescriber?: number | null;
             prescriber_name?: string;
+            readonly prescriber_display?: string;
             notes?: string;
             readonly created_by?: number | null;
             readonly created_by_name?: string;
@@ -4504,6 +4607,24 @@ export interface components {
             pharmacy_id?: number | null;
         };
         /**
+         * @description Admin read/write shape for a prescriber delegation (agent model).
+         *
+         *     ``facility`` is assigned by the view; ``prescriber`` (CareProvider) and
+         *     ``delegate`` (Staff) are client-supplied and validated against the
+         *     facility. Display fields are denormalized for the admin table.
+         */
+        PatchedPrescriberDelegation: {
+            readonly id?: number;
+            readonly facility?: number;
+            prescriber?: number;
+            readonly prescriber_display?: string;
+            delegate?: number;
+            readonly delegate_name?: string;
+            is_active?: boolean;
+            /** Format: date-time */
+            readonly created_at?: string;
+        };
+        /**
          * @description Reject unknown and read-only fields on write requests.
          *
          *     Fail-fast guard for catching misnamed payload keys instead of silently
@@ -4550,6 +4671,7 @@ export interface components {
             state_license_expiration?: string | null;
             /** Format: date */
             dea_expiration?: string | null;
+            eprescribe_enabled?: boolean;
             specialty?: string;
             taxonomy_code?: string;
             fee_schedule?: number | null;
@@ -4798,7 +4920,7 @@ export interface components {
             readonly id: number;
             name: string;
             legal_business_name?: string;
-            source?: components["schemas"]["SourceEnum"];
+            source?: components["schemas"]["PharmacySourceEnum"];
             external_id?: string;
             ncpdp_id?: string | null;
             npi?: string | null;
@@ -4824,6 +4946,13 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        /**
+         * @description * `custom` - Custom
+         *     * `imported` - Imported
+         *     * `directory` - Directory
+         * @enum {string}
+         */
+        PharmacySourceEnum: "custom" | "imported" | "directory";
         /**
          * @description Read-only allergy record for the patient portal.
          *
@@ -5131,6 +5260,22 @@ export interface components {
             readonly end_time: string;
             readonly auto_confirms: string;
         };
+        /**
+         * @description Username/password login for the patient portal.
+         *
+         *     Tags the token with the portal surface and rejects users without an
+         *     active portal account, so a clinician credential cannot mint a portal
+         *     session even if it reaches this endpoint.
+         */
+        PortalTokenObtainPair: {
+            username: string;
+            password: string;
+        };
+        /** @description Reject a refresh token whose ``surface`` claim doesn't match the view. */
+        PortalTokenRefresh: {
+            refresh: string;
+            readonly access: string;
+        };
         PortalVitals: {
             /** Format: decimal */
             readonly height_cm: string | null;
@@ -5147,6 +5292,24 @@ export interface components {
             /** Format: date-time */
             readonly measured_at: string;
             readonly bmi: string;
+        };
+        /**
+         * @description Admin read/write shape for a prescriber delegation (agent model).
+         *
+         *     ``facility`` is assigned by the view; ``prescriber`` (CareProvider) and
+         *     ``delegate`` (Staff) are client-supplied and validated against the
+         *     facility. Display fields are denormalized for the admin table.
+         */
+        PrescriberDelegation: {
+            readonly id: number;
+            readonly facility: number;
+            prescriber: number;
+            readonly prescriber_display: string;
+            delegate: number;
+            readonly delegate_name: string;
+            is_active?: boolean;
+            /** Format: date-time */
+            readonly created_at: string;
         };
         /**
          * @description Reject unknown and read-only fields on write requests.
@@ -5207,6 +5370,10 @@ export interface components {
             readonly frequency: string;
             readonly pharmacy_id: number | null;
             readonly pharmacy_name: string;
+            readonly prescriber_id: number | null;
+            readonly prescriber_display: string;
+            readonly source: components["schemas"]["RefillRequestSourceEnum"];
+            readonly source_label: string;
             readonly status: components["schemas"]["StatusA5bEnum"];
             readonly status_label: string;
             readonly patient_note: string;
@@ -5217,6 +5384,22 @@ export interface components {
             readonly resolved_at: string | null;
             readonly resolved_by_name: string;
         };
+        /**
+         * @description Input body for ``approve`` / ``deny`` detail routes.
+         *
+         *     Both actions accept an optional ``clinician_note``; the view layer
+         *     enforces ``status == pending`` and the resolver stamping.
+         */
+        RefillRequestAction: {
+            /** @default  */
+            clinician_note: string;
+        };
+        /**
+         * @description * `patient` - Patient
+         *     * `pharmacy` - Pharmacy
+         * @enum {string}
+         */
+        RefillRequestSourceEnum: "patient" | "pharmacy";
         /**
          * @description * `self` - Self
          *     * `spouse` - Spouse
@@ -5261,13 +5444,6 @@ export interface components {
          * @enum {string}
          */
         SexAtBirthEnum: "female" | "male" | "intersex" | "unknown" | "undisclosed";
-        /**
-         * @description * `custom` - Custom
-         *     * `imported` - Imported
-         *     * `directory` - Directory
-         * @enum {string}
-         */
-        SourceEnum: "custom" | "imported" | "directory";
         Staff: {
             readonly id: number;
             readonly user: components["schemas"]["User"];
@@ -5291,6 +5467,7 @@ export interface components {
             state_license_expiration?: string | null;
             /** Format: date */
             dea_expiration?: string | null;
+            eprescribe_enabled?: boolean;
             specialty?: string;
             taxonomy_code?: string;
             fee_schedule?: number | null;
@@ -5366,16 +5543,6 @@ export interface components {
          * @enum {string}
          */
         StatusDfbEnum: "active" | "inactive" | "resolved" | "entered_in_error";
-        TokenObtainPair: {
-            username: string;
-            password: string;
-            readonly access: string;
-            readonly refresh: string;
-        };
-        TokenRefresh: {
-            readonly access: string;
-            refresh: string;
-        };
         User: {
             readonly id: number;
             /** @description Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only. */
@@ -8626,9 +8793,149 @@ export interface operations {
             };
         };
     };
+    medications_prescriber_delegations_list: {
+        parameters: {
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriberDelegation"][];
+                };
+            };
+        };
+    };
+    medications_prescriber_delegations_create: {
+        parameters: {
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrescriberDelegation"];
+                "application/x-www-form-urlencoded": components["schemas"]["PrescriberDelegation"];
+                "multipart/form-data": components["schemas"]["PrescriberDelegation"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriberDelegation"];
+                };
+            };
+        };
+    };
+    medications_prescriber_delegations_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriberDelegation"];
+                };
+            };
+        };
+    };
+    medications_prescriber_delegations_destroy: {
+        parameters: {
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    medications_prescriber_delegations_partial_update: {
+        parameters: {
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPrescriberDelegation"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPrescriberDelegation"];
+                "multipart/form-data": components["schemas"]["PatchedPrescriberDelegation"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PrescriberDelegation"];
+                };
+            };
+        };
+    };
     medications_refill_requests_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+                /** @description Filter to the current user's linked prescriber profile. */
+                mine?: boolean;
+                /** @description Filter to one patient in the selected facility. */
+                patient_id?: number;
+                /** @description Filter by the medication's structured prescriber. */
+                prescriber_id?: number;
+                /** @description Filter by request source. */
+                source?: "patient" | "pharmacy";
+                /** @description Filter by refill request status. */
+                status?: "approved" | "cancelled" | "denied" | "pending";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -8647,7 +8954,10 @@ export interface operations {
     };
     medications_refill_requests_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
             header?: never;
             path: {
                 id: string;
@@ -8668,7 +8978,10 @@ export interface operations {
     };
     medications_refill_requests_approve_create: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
             header?: never;
             path: {
                 id: string;
@@ -8677,9 +8990,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["RefillRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["RefillRequest"];
-                "multipart/form-data": components["schemas"]["RefillRequest"];
+                "application/json": components["schemas"]["RefillRequestAction"];
+                "application/x-www-form-urlencoded": components["schemas"]["RefillRequestAction"];
+                "multipart/form-data": components["schemas"]["RefillRequestAction"];
             };
         };
         responses: {
@@ -8695,7 +9008,10 @@ export interface operations {
     };
     medications_refill_requests_deny_create: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Facility scope. Defaults to the user's active default facility. */
+                facility_id?: number;
+            };
             header?: never;
             path: {
                 id: string;
@@ -8704,9 +9020,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["RefillRequest"];
-                "application/x-www-form-urlencoded": components["schemas"]["RefillRequest"];
-                "multipart/form-data": components["schemas"]["RefillRequest"];
+                "application/json": components["schemas"]["RefillRequestAction"];
+                "application/x-www-form-urlencoded": components["schemas"]["RefillRequestAction"];
+                "multipart/form-data": components["schemas"]["RefillRequestAction"];
             };
         };
         responses: {
@@ -10098,6 +10414,74 @@ export interface operations {
             };
         };
     };
+    portal_auth_login_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalTokenObtainPair"];
+                "application/x-www-form-urlencoded": components["schemas"]["PortalTokenObtainPair"];
+                "multipart/form-data": components["schemas"]["PortalTokenObtainPair"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalTokenObtainPair"];
+                };
+            };
+        };
+    };
+    portal_auth_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    portal_auth_refresh_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalTokenRefresh"];
+                "application/x-www-form-urlencoded": components["schemas"]["PortalTokenRefresh"];
+                "multipart/form-data": components["schemas"]["PortalTokenRefresh"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalTokenRefresh"];
+                };
+            };
+        };
+    };
     portal_demo_login_create: {
         parameters: {
             query?: never;
@@ -10600,9 +10984,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TokenObtainPair"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenObtainPair"];
-                "multipart/form-data": components["schemas"]["TokenObtainPair"];
+                "application/json": components["schemas"]["ClinicTokenObtainPair"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicTokenObtainPair"];
+                "multipart/form-data": components["schemas"]["ClinicTokenObtainPair"];
             };
         };
         responses: {
@@ -10611,7 +10995,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenObtainPair"];
+                    "application/json": components["schemas"]["ClinicTokenObtainPair"];
                 };
             };
         };
@@ -10625,9 +11009,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TokenRefresh"];
-                "application/x-www-form-urlencoded": components["schemas"]["TokenRefresh"];
-                "multipart/form-data": components["schemas"]["TokenRefresh"];
+                "application/json": components["schemas"]["ClinicTokenRefresh"];
+                "application/x-www-form-urlencoded": components["schemas"]["ClinicTokenRefresh"];
+                "multipart/form-data": components["schemas"]["ClinicTokenRefresh"];
             };
         };
         responses: {
@@ -10636,7 +11020,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TokenRefresh"];
+                    "application/json": components["schemas"]["ClinicTokenRefresh"];
                 };
             };
         };
