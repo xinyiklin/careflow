@@ -36,6 +36,8 @@ export const SECURITY_PERMISSION_GROUPS = [
     permissions: [
       { key: "medications.view", label: "View medications" },
       { key: "medications.manage", label: "Manage medications" },
+      { key: "medications.refill.approve", label: "Approve refill requests" },
+      { key: "medications.prescribe", label: "Prescribe (e-prescribing)" },
     ],
   },
   {

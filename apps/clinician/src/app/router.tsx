@@ -14,6 +14,7 @@ import {
   FacilityAdminPage,
   InboxPage,
   OrganizationAdminPage,
+  RefillInboxPage,
   SchedulePage,
 } from "./routeModules";
 
@@ -207,6 +208,14 @@ const router = createBrowserRouter([
             element: (
               <PageRouteLoader>
                 <InboxPage />
+              </PageRouteLoader>
+            ),
+          },
+          {
+            path: "refills",
+            element: (
+              <PageRouteLoader>
+                <RefillInboxPage />
               </PageRouteLoader>
             ),
           },

@@ -242,7 +242,7 @@ export default function HubRegistrationInline({
   const registrationPhones = (patient.phones || []).filter(isRegistrationPhone);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <IntakeBanner
         patient={patient}
         insurancePolicies={insurancePolicies}
@@ -250,8 +250,8 @@ export default function HubRegistrationInline({
         onJumpTo={handleJumpTo}
       />
 
-      {/* Identity is the largest section — give it the full row and a 3-col
-          internal field grid so it doesn't tower over everything else. */}
+      {/* Identity is the largest section — full row with a 4-col field grid
+          (12 fields → 3 tidy rows) so it doesn't tower over everything else. */}
       <div
         ref={(node) => {
           sectionRefs.current.identity = node;
@@ -266,7 +266,7 @@ export default function HubRegistrationInline({
             </Badge>
           }
         >
-          <dl className="grid grid-cols-1 gap-x-5 gap-y-2 md:grid-cols-2 lg:grid-cols-3">
+          <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             <InlineEditField
               label="First name"
               value={patient.first_name || ""}
@@ -387,14 +387,14 @@ export default function HubRegistrationInline({
       </div>
 
       {/* Contact + Address paired — both medium-height, similar visual weight. */}
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+      <div className="grid gap-3 lg:grid-cols-2 lg:items-start">
         <div
           ref={(node) => {
             sectionRefs.current.contact = node;
           }}
         >
           <RegistrationSectionShell icon={Mail} title="Contact">
-            <div className="space-y-3">
+            <div className="space-y-2">
               <InlineEditField
                 label="Email"
                 type="email"
@@ -424,7 +424,7 @@ export default function HubRegistrationInline({
           }}
         >
           <RegistrationSectionShell icon={Building2} title="Address">
-            <dl className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-x-4 gap-y-1.5 md:grid-cols-2">
               <InlineEditField
                 label="Street address"
                 className="md:col-span-2"
@@ -512,7 +512,7 @@ export default function HubRegistrationInline({
       </div>
 
       {/* Providers + Pharmacy paired — both small, both lookup-driven. */}
-      <div className="grid items-stretch gap-4 lg:grid-cols-2">
+      <div className="grid items-stretch gap-3 lg:grid-cols-2">
         <div
           className="h-full"
           ref={(node) => {
@@ -571,7 +571,7 @@ export default function HubRegistrationInline({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cf-border bg-cf-surface px-4 py-3 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cf-border bg-cf-surface px-4 py-2.5 shadow-sm">
         <div className="flex items-center gap-2 text-[11px] text-cf-text-muted">
           <HeartPulse className="h-3 w-3 text-cf-text-subtle" />
           <span>

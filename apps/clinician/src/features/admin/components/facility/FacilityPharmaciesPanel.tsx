@@ -252,17 +252,17 @@ export default function FacilityPharmaciesPanel() {
           ) : (
             controls.visibleRecords.map((row) => (
               <tr key={row.id}>
-                <td className="px-5 py-4 font-semibold">{row.name}</td>
-                <td className="px-5 py-4 text-cf-text-muted">
+                <td className="px-3 py-4 font-semibold">{row.name}</td>
+                <td className="px-3 py-4 text-cf-text-muted">
                   {row.serviceType || "Retail"}
                 </td>
-                <td className="px-5 py-4">
+                <td className="px-3 py-4">
                   <FacilitySourceBadge
                     active={row.active}
                     source={row.sourceLabel}
                   />
                 </td>
-                <td className="px-5 py-4 text-right">
+                <td className="px-3 py-4 text-right">
                   <Button
                     variant="default"
                     size="sm"

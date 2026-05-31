@@ -377,6 +377,11 @@ export default function DocumentsWorkspace({
     searchTerm.trim().length > 0 || typeFilter !== "all";
   const hasFilteredOutDocuments =
     hasActiveDocumentFilters && categoryDocuments.length > 0;
+  const emptyStateBody = hasFilteredOutDocuments
+    ? "Try a different search or file type."
+    : activeCategory === "all" && canManageDocuments
+      ? "Upload the first document for this patient."
+      : "";
   const visibleDocumentCountLabel = hasActiveDocumentFilters
     ? `${filteredDocuments.length} of ${categoryDocuments.length} ${
         categoryDocuments.length === 1 ? "file" : "files"
@@ -416,24 +421,29 @@ export default function DocumentsWorkspace({
         <section className="flex min-h-0 min-w-0 flex-col border-b border-cf-border bg-cf-page-bg xl:border-r xl:border-b-0">
           {/* Header */}
           {!compact ? (
-            <div className="shrink-0 border-b border-cf-border bg-cf-surface px-5 py-1.5 transition-[background-color,border-color] duration-150">
+            <div className="shrink-0 border-b border-cf-border bg-cf-surface px-3 py-3 transition-[background-color,border-color] duration-150">
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="shrink-0 text-sm font-extrabold tracking-tight text-cf-text leading-none">
-                    {title}
+                <div className="min-w-0">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
+                    Records
                   </div>
-                  {normalizedDocuments.length > 0 && (
-                    <span className="text-[11px] text-cf-text-subtle font-medium leading-none">
-                      {normalizedDocuments.length}{" "}
-                      {normalizedDocuments.length === 1
-                        ? "document"
-                        : "documents"}
-                      {activeCategory !== "all" ? ` in ${activeLabel}` : ""}
-                    </span>
-                  )}
+                  <div className="mt-1 flex min-w-0 items-center gap-3">
+                    <div className="shrink-0 text-base font-extrabold tracking-tight text-cf-text leading-none">
+                      {title}
+                    </div>
+                    {normalizedDocuments.length > 0 && (
+                      <span className="text-[11px] text-cf-text-subtle font-medium leading-none">
+                        {normalizedDocuments.length}{" "}
+                        {normalizedDocuments.length === 1
+                          ? "document"
+                          : "documents"}
+                        {activeCategory !== "all" ? ` in ${activeLabel}` : ""}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {toolbarAccessory ? (
-                  <div className="min-w-[200px] flex-1 md:max-w-[280px]">
+                  <div className="min-w-[180px] flex-1 md:max-w-[240px]">
                     {toolbarAccessory}
                   </div>
                 ) : null}
@@ -442,7 +452,7 @@ export default function DocumentsWorkspace({
           ) : null}
 
           {mutations.errorMessage ? (
-            <div className="shrink-0 px-4 pt-3">
+            <div className="shrink-0 px-3 pt-3">
               <Notice tone="danger">{mutations.errorMessage}</Notice>
             </div>
           ) : null}
@@ -667,13 +677,11 @@ export default function DocumentsWorkspace({
                           ? "No matching documents"
                           : "No documents yet"}
                       </p>
-                      <p className="mt-1 text-xs leading-relaxed text-cf-text-muted">
-                        {hasFilteredOutDocuments
-                          ? "Try a different search or file type."
-                          : activeCategory === "all" && canManageDocuments
-                            ? "Upload the first document for this patient."
-                            : `No files in ${activeLabel} yet.`}
-                      </p>
+                      {emptyStateBody ? (
+                        <p className="mt-1 text-xs leading-relaxed text-cf-text-muted">
+                          {emptyStateBody}
+                        </p>
+                      ) : null}
                       {hasFilteredOutDocuments ? (
                         <Button
                           type="button"

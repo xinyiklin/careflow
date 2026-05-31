@@ -12,7 +12,7 @@ import FacilityOverviewPanel from "../components/facility/FacilityOverviewPanel"
 import FacilityFeeSchedulePanel from "../components/facility/FacilityFeeSchedulePanel";
 import FacilityPayersPanel from "../components/facility/FacilityPayersPanel";
 import FacilityPharmaciesPanel from "../components/facility/FacilityPharmaciesPanel";
-import FacilityRefillInboxPanel from "../components/facility/FacilityRefillInboxPanel";
+import FacilityDelegationsPanel from "../components/facility/FacilityDelegationsPanel";
 import SecurityPanel from "../components/facility/SecurityPanel";
 import AdminFacilitySwitcher from "../components/facility/AdminFacilitySwitcher";
 import { AdminWorkspaceShell } from "../components/shared/AdminSurface";
@@ -25,11 +25,11 @@ const FACILITY_SECTIONS = [
   { key: "resources", label: "Resources", group: "Scheduling" },
   { key: "statuses", label: "Statuses", group: "Scheduling" },
   { key: "types", label: "Types", group: "Scheduling" },
-  { key: "refills", label: "Refill Inbox", group: "Workflow" },
   { key: "pharmacies", label: "Pharmacies", group: "Network" },
   { key: "payers", label: "Payers", group: "Billing" },
   { key: "fee-schedule", label: "Fee Schedule", group: "Billing" },
   { key: "security", label: "Security", group: "Security & Audit" },
+  { key: "delegations", label: "Delegations", group: "Security & Audit" },
   { key: "activity-log", label: "Activity Log", group: "Security & Audit" },
 ];
 
@@ -55,12 +55,12 @@ export default function FacilityAdminPage() {
         return <FacilityPayersPanel />;
       case "pharmacies":
         return <FacilityPharmaciesPanel />;
-      case "refills":
-        return <FacilityRefillInboxPanel />;
       case "fee-schedule":
         return <FacilityFeeSchedulePanel />;
       case "security":
         return <SecurityPanel />;
+      case "delegations":
+        return <FacilityDelegationsPanel />;
       case "statuses":
         return <AppointmentStatusesPanel />;
       case "types":

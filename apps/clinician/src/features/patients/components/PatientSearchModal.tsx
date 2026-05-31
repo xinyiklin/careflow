@@ -3,9 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { searchPatients } from "../api/patients";
 import { parsePatientQuery } from "../utils/parsePatientQuery";
 import {
-  MatchQueueHeader,
   PatientSearchHeader,
-  PatientSearchInputPanel,
   ResultsPagination,
 } from "./PatientSearchModalChrome";
 import {
@@ -14,6 +12,7 @@ import {
   PatientResultSkeleton,
   SelectedPatientPanel,
 } from "./PatientSearchModalParts";
+import { Notice } from "../../../shared/components/ui";
 import useDraggableModal from "../../../shared/hooks/useDraggableModal";
 import useModalFocusTrap from "../../../shared/hooks/useModalFocusTrap";
 import { useModalPresence } from "../../../shared/hooks/useModalPresence";
@@ -57,6 +56,7 @@ export default function PatientSearchModal({
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const searchRequestIdRef = useRef(0);
 
   const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
@@ -66,15 +66,6 @@ export default function PatientSearchModal({
   );
   const smartSearchValue = smartQuery.trim();
   const canSearch = smartSearchValue.length >= 2;
-  const resultLabel =
-    results.length === 1 ? "1 match" : `${results.length} matches`;
-  const searchStatusLabel = results.length
-    ? resultLabel
-    : canSearch
-      ? loading
-        ? "Searching"
-        : "No match"
-      : "Ready";
   const paginatedResults = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return results.slice(start, start + PAGE_SIZE);
@@ -209,86 +200,85 @@ export default function PatientSearchModal({
         tabIndex={-1}
         onKeyDown={handlePanelKeyDown}
         style={modalStyle}
-        className={`cf-modal-panel fixed flex max-h-[min(94dvh,840px)] w-full max-w-[76rem] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ${
+        className={`cf-modal-panel fixed flex h-[min(94dvh,920px)] w-full max-w-[76rem] flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)] ${
           isClosing ? "is-closing" : "is-opening"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         <PatientSearchHeader
           dragHandleProps={dragHandleProps}
+          smartQuery={smartQuery}
+          railCollapsed={railCollapsed}
+          onSmartQueryChange={setSmartQuery}
+          onToggleRail={() => setRailCollapsed((prev) => !prev)}
           onClose={onClose}
           onOpenCreatePatient={onOpenCreatePatient}
         />
 
-        <PatientSearchInputPanel
-          error={error}
-          page={page}
-          searchStatusLabel={searchStatusLabel}
-          smartQuery={smartQuery}
-          totalPages={totalPages}
-          onSmartQueryChange={setSmartQuery}
-        />
+        {error ? (
+          <div className="shrink-0 bg-cf-surface px-4 pt-3">
+            <Notice tone="danger" title="Patient search failed">
+              {error}
+            </Notice>
+          </div>
+        ) : null}
 
-        <div className="relative z-10 grid min-h-[28rem] flex-1 gap-0 border-y border-cf-border bg-cf-surface lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-h-0 overflow-hidden bg-cf-surface">
-            <MatchQueueHeader
-              canSearch={canSearch}
-              loading={loading}
-              resultLabel={resultLabel}
-              selected={!!selectedPatient}
-            />
+        <div
+          className={[
+            "relative z-10 grid min-h-[28rem] flex-1 gap-0 bg-cf-surface",
+            railCollapsed ? "" : "lg:grid-cols-[minmax(0,1fr)_320px]",
+          ].join(" ")}
+        >
+          <div className="min-h-0 overflow-auto bg-cf-surface">
+            {loading
+              ? Array.from({ length: 4 }).map((_, index) => (
+                  <PatientResultSkeleton key={index} />
+                ))
+              : null}
 
-            <div className="min-h-0 max-h-full overflow-auto">
-              {loading
-                ? Array.from({ length: 4 }).map((_, index) => (
-                    <PatientResultSkeleton key={index} />
-                  ))
-                : null}
+            {!loading && paginatedResults.length === 0 ? (
+              <PatientSearchEmptyState
+                canSearch={canSearch}
+                onOpenCreatePatient={onOpenCreatePatient}
+              />
+            ) : null}
 
-              {!loading && paginatedResults.length === 0 ? (
-                <PatientSearchEmptyState
-                  canSearch={canSearch}
-                  onOpenCreatePatient={onOpenCreatePatient}
-                />
-              ) : null}
+            {!loading && paginatedResults.length > 0
+              ? paginatedResults.map((patient) => (
+                  <PatientResultRow
+                    key={
+                      patient.id ??
+                      patient.chart_number ??
+                      patient.date_of_birth
+                    }
+                    patient={patient}
+                    isSelected={patient.id === selectedPatientId}
+                    allowSelect={allowSelect}
+                    onSelect={() => setSelectedPatientId(patient.id ?? null)}
+                    onUsePatient={handleUsePatient}
+                    onOpenPatientProfile={onOpenPatientProfile}
+                  />
+                ))
+              : null}
 
-              {!loading && paginatedResults.length > 0
-                ? paginatedResults.map((patient) => (
-                    <PatientResultRow
-                      key={
-                        patient.id ??
-                        patient.chart_number ??
-                        patient.date_of_birth
-                      }
-                      patient={patient}
-                      isSelected={patient.id === selectedPatientId}
-                      allowSelect={allowSelect}
-                      onSelect={() => setSelectedPatientId(patient.id ?? null)}
-                      onUsePatient={handleUsePatient}
-                      onOpenPatientProfile={onOpenPatientProfile}
-                    />
-                  ))
-                : null}
-
-              {!loading && results.length > PAGE_SIZE ? (
-                <ResultsPagination
-                  page={page}
-                  totalPages={totalPages}
-                  onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
-                  onNext={() =>
-                    setPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                />
-              ) : null}
-            </div>
+            {!loading && results.length > PAGE_SIZE ? (
+              <ResultsPagination
+                page={page}
+                totalPages={totalPages}
+                onPrevious={() => setPage((prev) => Math.max(1, prev - 1))}
+                onNext={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              />
+            ) : null}
           </div>
 
-          <SelectedPatientPanel
-            patient={selectedPatient}
-            allowSelect={allowSelect}
-            onUsePatient={handleUsePatient}
-            onOpenPatientProfile={onOpenPatientProfile}
-          />
+          {!railCollapsed ? (
+            <SelectedPatientPanel
+              patient={selectedPatient}
+              allowSelect={allowSelect}
+              onUsePatient={handleUsePatient}
+              onOpenPatientProfile={onOpenPatientProfile}
+            />
+          ) : null}
         </div>
       </div>
     </div>

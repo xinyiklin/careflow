@@ -472,6 +472,11 @@ class Staff(models.Model):
     state_license_state = models.CharField(max_length=2, blank=True)
     state_license_expiration = models.DateField(null=True, blank=True)
     dea_expiration = models.DateField(null=True, blank=True)
+    # Placeholder for e-prescribing eligibility. Real e-prescribing/EPCS is
+    # not implemented yet; this flag (alongside dea_number) gates the
+    # provider-facing "Me" affordances and is the switch admins flip when a
+    # provider is credentialed to prescribe.
+    eprescribe_enabled = models.BooleanField(default=False)
     specialty = models.CharField(max_length=100, blank=True)
     taxonomy_code = models.CharField(max_length=20, blank=True)
     fee_schedule = models.ForeignKey(

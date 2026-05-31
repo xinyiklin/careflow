@@ -111,7 +111,7 @@ export default function PhonesSection({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 md:grid-cols-2">
       {PHONE_LABELS.map(({ label, title }) => {
         const phone = getPhoneByLabel(phones, label);
         const isPrimary = primaryLabel === label;

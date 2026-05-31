@@ -67,7 +67,7 @@ function ThreadRow({
         type="button"
         onClick={onSelect}
         aria-current={isActive ? "true" : undefined}
-        className={`flex w-full items-start gap-2.5 border-b border-cf-border px-4 py-3 text-left transition-colors last:border-b-0 ${
+        className={`flex w-full items-start gap-2.5 border-b border-cf-border px-3 py-3 text-left transition-colors last:border-b-0 ${
           isActive
             ? "bg-cf-surface-soft"
             : "bg-cf-surface hover:bg-cf-surface-soft/60"
@@ -149,15 +149,22 @@ export default function ThreadListPanel({
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col border-cf-border bg-cf-surface md:border-r">
-      <div className="border-b border-cf-border bg-cf-surface px-4 py-3">
+      <div className="border-b border-cf-border bg-cf-surface px-3 py-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-sm font-semibold text-cf-text">Inbox</h2>
-            {unreadCount > 0 ? (
-              <Badge variant="warning" size="sm">
-                {unreadCount} new
-              </Badge>
-            ) : null}
+          <div className="min-w-0">
+            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
+              Messaging
+            </div>
+            <div className="mt-1 flex items-baseline gap-2">
+              <h2 className="text-base font-extrabold tracking-tight text-cf-text leading-none">
+                Inbox
+              </h2>
+              {unreadCount > 0 ? (
+                <Badge variant="warning" size="sm">
+                  {unreadCount} new
+                </Badge>
+              ) : null}
+            </div>
           </div>
           <Button
             type="button"
@@ -203,9 +210,9 @@ export default function ThreadListPanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {showThreadsLoading ? (
-          <p className="px-4 py-6 text-sm text-cf-text-muted">Loading…</p>
+          <p className="px-3 py-6 text-sm text-cf-text-muted">Loading…</p>
         ) : isLoading ? null : isError ? (
-          <div className="px-4 py-6 text-sm text-cf-text-muted">
+          <div className="px-3 py-6 text-sm text-cf-text-muted">
             <p>Could not load conversations.</p>
             <Button
               type="button"
@@ -217,7 +224,7 @@ export default function ThreadListPanel({
             </Button>
           </div>
         ) : threads.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-cf-text-muted">
+          <p className="px-3 py-6 text-sm text-cf-text-muted">
             {debouncedSearch
               ? "No conversations match this search."
               : statusFilter === "closed"

@@ -238,7 +238,7 @@ export default function OrganizationSecurityPanel() {
                     return (
                       <td
                         key={role.key}
-                        className="px-5 py-3.5 text-center align-middle border-l border-cf-border/60"
+                        className="px-3 py-3.5 text-center align-middle border-l border-cf-border/60"
                       >
                         <button
                           type="button"

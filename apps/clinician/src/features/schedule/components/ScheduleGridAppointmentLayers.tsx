@@ -75,6 +75,7 @@ export function AppointmentLayer({
       }
       fullWidth={appointment.laneCount <= 1}
       equalWidth={appointment.laneCount > 1}
+      singleSlot={getRenderedSpan(appointment.span, visibleDayCount) <= 1}
       className={[
         "absolute inset-y-[6px] min-w-0",
         isBlocked ? "cf-appointment-override" : "",
@@ -118,6 +119,7 @@ export function PreviewLayer({
       isPreview={previewBlock.isPreview}
       fullWidth={previewBlock.laneCount <= 1}
       equalWidth={previewBlock.laneCount > 1}
+      singleSlot={getRenderedSpan(previewBlock.span, visibleDayCount) <= 1}
       className="absolute inset-y-[6px] min-w-0"
       style={getBlockLayoutStyle(
         previewBlock,

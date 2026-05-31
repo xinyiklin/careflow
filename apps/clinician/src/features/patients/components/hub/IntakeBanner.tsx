@@ -112,9 +112,9 @@ export default function IntakeBanner({
 
   return (
     <section className="overflow-hidden rounded-2xl border border-cf-warning-text/35 bg-cf-warning-bg shadow-[var(--shadow-panel)]">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cf-surface/60 ring-1 ring-cf-warning-text/30">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-cf-surface/60 ring-1 ring-cf-warning-text/30">
             <AlertTriangle className="h-4 w-4 text-cf-warning-text" />
           </div>
           <div>

@@ -88,6 +88,7 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     title = serializers.SerializerMethodField()
     effective_security_permissions = serializers.SerializerMethodField()
+    can_eprescribe = serializers.SerializerMethodField()
 
     class Meta:
         model = Staff
@@ -99,6 +100,7 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
             "is_active",
             "is_default",
             "effective_security_permissions",
+            "can_eprescribe",
         ]
 
     def get_facility(self, obj):
@@ -135,6 +137,12 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
 
     def get_effective_security_permissions(self, obj):
         return obj.effective_security_permissions
+
+    def get_can_eprescribe(self, obj):
+        # Placeholder e-prescribing eligibility — drives provider-only
+        # affordances like the refill "Me" filter. Real prescribing/EPCS
+        # is not implemented yet.
+        return bool(obj.eprescribe_enabled)
 
 
 class UserSerializer(serializers.ModelSerializer):

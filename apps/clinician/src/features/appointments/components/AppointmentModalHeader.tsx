@@ -62,11 +62,11 @@ export default function AppointmentModalHeader({
   return (
     <div
       {...dragHandleProps}
-      className="flex cursor-move flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-5 py-4 select-none"
+      className="flex cursor-move flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-5 py-2.5 select-none"
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
         <div className="relative">
-          <div className="grid h-11 w-11 place-items-center rounded-xl border border-cf-border bg-cf-surface-muted text-sm font-semibold text-cf-text">
+          <div className="grid h-9 w-9 place-items-center rounded-xl border border-cf-border bg-cf-surface-muted text-xs font-semibold text-cf-text">
             {getAppointmentInitials(patientDisplayName)}
           </div>
           {selectedPatient ? (
@@ -77,10 +77,10 @@ export default function AppointmentModalHeader({
         </div>
         <div className="min-w-0">
           <div className="min-w-0">
-            <h2 className="min-w-0 truncate text-xl font-semibold tracking-tight text-cf-text">
+            <h2 className="min-w-0 truncate text-base font-semibold tracking-tight text-cf-text">
               {patientDisplayName || "Appointment"}
             </h2>
-            <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-cf-text-muted">
+            <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-cf-text-muted">
               <span>
                 {appointmentHeaderDate} · {appointmentHeaderTime}
                 {appointmentHeaderEndTime

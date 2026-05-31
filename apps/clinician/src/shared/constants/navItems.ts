@@ -1,9 +1,11 @@
 import {
+  Building2,
   CalendarDays,
   CreditCard,
   FileText,
+  Hospital,
   Inbox,
-  ShieldCheck,
+  Pill,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -24,9 +26,9 @@ type SidebarNavOptions = {
   navigate: NavigateFunction;
   canAccessFacilityAdmin: boolean;
   canAccessOrganizationAdmin: boolean;
-  hasAnyAdminAccess: boolean;
   canViewBilling?: boolean;
   canViewMessaging?: boolean;
+  canViewMedications?: boolean;
   inboxUnreadCount?: number;
 };
 
@@ -35,22 +37,27 @@ export function getSidebarNavItems({
   navigate,
   canAccessFacilityAdmin,
   canAccessOrganizationAdmin,
-  hasAnyAdminAccess,
   canViewBilling = false,
   canViewMessaging = false,
+  canViewMedications = false,
   inboxUnreadCount = 0,
 }: SidebarNavOptions): SidebarNavItem[] {
   const adminItems = [
     {
-      key: "admin",
-      label: "Admin",
-      icon: ShieldCheck,
-      isActive: location.pathname.startsWith("/admin"),
-      onClick: () => navigate("/admin"),
-      isVisible:
-        hasAnyAdminAccess ||
-        canAccessFacilityAdmin ||
-        canAccessOrganizationAdmin,
+      key: "facility-admin",
+      label: "Facility Admin",
+      icon: Hospital,
+      isActive: location.pathname.startsWith("/admin/facility"),
+      onClick: () => navigate("/admin/facility"),
+      isVisible: canAccessFacilityAdmin,
+    },
+    {
+      key: "organization-admin",
+      label: "Org Admin",
+      icon: Building2,
+      isActive: location.pathname.startsWith("/admin/organization"),
+      onClick: () => navigate("/admin/organization"),
+      isVisible: canAccessOrganizationAdmin,
     },
   ] satisfies SidebarNavItem[];
 
@@ -87,6 +94,14 @@ export function getSidebarNavItems({
       onClick: () => navigate("/inbox"),
       isVisible: canViewMessaging,
       badgeCount: inboxUnreadCount,
+    },
+    {
+      key: "refills",
+      label: "Refills",
+      icon: Pill,
+      isActive: location.pathname.startsWith("/refills"),
+      onClick: () => navigate("/refills"),
+      isVisible: canViewMedications,
     },
     ...adminItems,
   ];

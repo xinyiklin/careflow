@@ -37,6 +37,9 @@ export const BillingPage = preloadableLazy(
 export const InboxPage = preloadableLazy(
   () => import("../features/messaging/pages/InboxPage")
 );
+export const RefillInboxPage = preloadableLazy(
+  () => import("../features/medications/pages/RefillInboxPage")
+);
 export const AdminRedirect = preloadableLazy(
   () => import("../features/admin/pages/AdminRedirect")
 );
@@ -65,6 +68,10 @@ export function preloadRouteForPath(pathname: string) {
 
   if (pathname.startsWith("/inbox")) {
     return InboxPage.preload();
+  }
+
+  if (pathname.startsWith("/refills")) {
+    return RefillInboxPage.preload();
   }
 
   if (pathname.startsWith("/admin/organization")) {

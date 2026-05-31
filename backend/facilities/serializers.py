@@ -118,6 +118,7 @@ class StaffSerializer(serializers.ModelSerializer):
             "state_license_state",
             "state_license_expiration",
             "dea_expiration",
+            "eprescribe_enabled",
             "specialty",
             "taxonomy_code",
             "fee_schedule",

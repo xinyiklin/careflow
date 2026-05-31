@@ -10,6 +10,8 @@ export type RefillRequestStatus =
   | "denied"
   | "cancelled";
 
+export type RefillRequestSource = "patient" | "pharmacy";
+
 export type RefillRequest = {
   id: number;
   patient_id: number;
@@ -20,6 +22,10 @@ export type RefillRequest = {
   frequency: string | null;
   pharmacy_id: number | null;
   pharmacy_name: string;
+  prescriber_id: number | null;
+  prescriber_display: string;
+  source: RefillRequestSource;
+  source_label: string;
   status: RefillRequestStatus;
   status_label: string;
   patient_note: string;
@@ -36,6 +42,9 @@ export type RefillRequestActionPayload = {
 type UseRefillRequestsParams = {
   facilityId?: EntityId | null;
   status?: RefillRequestStatus | "";
+  source?: RefillRequestSource | "";
+  prescriberId?: ApiParamValue;
+  mine?: boolean;
   patientId?: ApiParamValue;
   enabled?: boolean;
 };
@@ -43,10 +52,16 @@ type UseRefillRequestsParams = {
 export function getRefillRequestsQueryKey({
   facilityId,
   status,
+  source,
+  prescriberId,
+  mine,
   patientId,
 }: {
   facilityId?: EntityId | null;
   status?: RefillRequestStatus | "";
+  source?: RefillRequestSource | "";
+  prescriberId?: ApiParamValue;
+  mine?: boolean;
   patientId?: ApiParamValue;
 }) {
   return [
@@ -55,6 +70,9 @@ export function getRefillRequestsQueryKey({
     {
       facilityId: facilityId || null,
       status: status || null,
+      source: source || null,
+      prescriberId: prescriberId ?? null,
+      mine: mine ? true : null,
       patientId: patientId ?? null,
     },
   ] as const;
@@ -67,16 +85,29 @@ export function getRefillRequestQueryKey(refillId: EntityId) {
 export function useRefillRequests({
   facilityId,
   status,
+  source,
+  prescriberId,
+  mine,
   patientId,
   enabled = true,
 }: UseRefillRequestsParams) {
   return useQuery<RefillRequest[]>({
-    queryKey: getRefillRequestsQueryKey({ facilityId, status, patientId }),
+    queryKey: getRefillRequestsQueryKey({
+      facilityId,
+      status,
+      source,
+      prescriberId,
+      mine,
+      patientId,
+    }),
     queryFn: async () =>
       (await apiRequest<RefillRequest[]>("/medications/refill-requests/", {
         params: {
           facility_id: facilityId,
           status: status || null,
+          source: source || null,
+          prescriber_id: prescriberId ?? null,
+          mine: mine ? "true" : null,
           patient_id: patientId ?? null,
         },
       })) ?? [],

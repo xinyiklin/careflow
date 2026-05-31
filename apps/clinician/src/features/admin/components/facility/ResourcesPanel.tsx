@@ -223,7 +223,7 @@ export default function ResourcesPanel() {
               <tr>
                 {["Resource", "Linked staff", "Room", "Hours", "Status"].map(
                   (heading) => (
-                    <th key={heading} className="px-5 py-3 text-left">
+                    <th key={heading} className="px-3 py-3 text-left">
                       {heading}
                     </th>
                   )
@@ -241,7 +241,7 @@ export default function ResourcesPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No resources found yet. Add one to start organizing your
                     schedule lanes.
@@ -251,7 +251,7 @@ export default function ResourcesPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No resources match the selected filter.
                   </td>
@@ -279,7 +279,7 @@ export default function ResourcesPanel() {
                           : "",
                       })}
                     >
-                      <td className="px-5 py-4">
+                      <td className="px-3 py-4">
                         <div className="flex items-center gap-3">
                           <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                             {resource.name
@@ -309,7 +309,7 @@ export default function ResourcesPanel() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-cf-text-muted">
+                      <td className="px-3 py-4 text-cf-text-muted">
                         {resource.linked_staff_name ? (
                           <span className="inline-flex items-center gap-2">
                             <span className="grid h-6 w-6 place-items-center rounded-full bg-cf-accent/12 text-[10px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
@@ -328,13 +328,13 @@ export default function ResourcesPanel() {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-4 text-cf-text-muted">
+                      <td className="px-3 py-4 text-cf-text-muted">
                         {getResourceRoomLabel(resource)}
                       </td>
-                      <td className="px-5 py-4 text-cf-text-muted">
+                      <td className="px-3 py-4 text-cf-text-muted">
                         {getResourceHoursLabel(resource, adminFacility)}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-3 py-4">
                         <Badge
                           variant={
                             resource.is_active !== false ? "success" : "muted"

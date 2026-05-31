@@ -73,7 +73,7 @@ export default function SharedTimeRailGrid({
               >
                 <div
                   className={[
-                    "select-none bg-cf-surface-muted/80 px-1.5 py-2 text-right font-mono text-[11px] font-semibold tabular-nums text-cf-text-subtle",
+                    "min-h-0 select-none overflow-hidden bg-cf-surface-muted/80 px-1.5 py-2 text-right font-mono text-[11px] font-semibold leading-none tabular-nums text-cf-text-subtle",
                     showSlotDividers ? "border-r border-cf-border" : "",
                   ].join(" ")}
                 >
@@ -95,6 +95,31 @@ export default function SharedTimeRailGrid({
                       : null;
                   const cellIsBlocked =
                     !entry.isOperatingDay || slot.isOutsideHours;
+                  const prevSlot =
+                    slotIndex > 0 ? sharedTimeSlots[slotIndex - 1] : null;
+                  const isBlockedRunStart =
+                    cellIsBlocked &&
+                    (!prevSlot ||
+                      !(!entry.isOperatingDay || prevSlot.isOutsideHours));
+                  // Hatch is drawn once per closed run (on the run-start cell),
+                  // spanning every slot in the run, so the diagonal is one
+                  // continuous texture regardless of interval.
+                  let blockedRunLength = 0;
+                  if (isBlockedRunStart) {
+                    for (
+                      let i = slotIndex;
+                      i < sharedTimeSlots.length;
+                      i += 1
+                    ) {
+                      if (
+                        entry.isOperatingDay &&
+                        !sharedTimeSlots[i].isOutsideHours
+                      ) {
+                        break;
+                      }
+                      blockedRunLength += 1;
+                    }
+                  }
 
                   return (
                     <div
@@ -120,6 +145,21 @@ export default function SharedTimeRailGrid({
                         )
                       }
                     >
+                      {isBlockedRunStart ? (
+                        <>
+                          <div
+                            aria-hidden="true"
+                            className="cf-blocked-hatch pointer-events-none absolute inset-x-0 top-0 z-[1]"
+                            style={{
+                              height: blockedRunLength * sharedSlotRowHeight,
+                            }}
+                          />
+                          <span className="pointer-events-none absolute left-2 top-1 z-[2] select-none text-[9px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle/70">
+                            Closed
+                          </span>
+                        </>
+                      ) : null}
+
                       {slotAppointments.map((appointment) => (
                         <AppointmentLayer
                           key={appointment.id}

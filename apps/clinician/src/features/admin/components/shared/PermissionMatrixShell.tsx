@@ -31,7 +31,7 @@ export default function PermissionMatrixShell({
           <table className="w-full min-w-[780px] border-collapse text-sm">
             <thead className="sticky top-0 z-10 bg-cf-surface">
               <tr>
-                <th className="sticky left-0 z-20 w-[250px] border-r border-b border-cf-border bg-cf-surface px-5 py-4 text-left align-top">
+                <th className="sticky left-0 z-20 w-[250px] border-r border-b border-cf-border bg-cf-surface px-3 py-4 text-left align-top">
                   <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
                     {cornerLabel}
                   </div>

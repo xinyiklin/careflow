@@ -66,10 +66,10 @@ export function BillingWorkspaceHeader({
     summary.missingPosCount;
 
   return (
-    <div className="mb-0 shrink-0 border-b border-cf-border bg-cf-surface px-5 py-2.5 transition-[background-color,border-color] duration-150">
+    <div className="mb-0 shrink-0 border-b border-cf-border bg-cf-surface px-3 py-3 transition-[background-color,border-color] duration-150">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
+          <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
             Billing Center
           </div>
           <div className="mt-1 text-base font-extrabold tracking-tight text-cf-text leading-none">

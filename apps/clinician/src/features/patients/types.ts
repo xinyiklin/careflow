@@ -220,6 +220,8 @@ export type PatientHubSidebarFactProps = {
   icon?: LucideIcon | null;
   prefix?: string | null;
   value?: ReactNode;
+  /** Raw text copied to the clipboard; defaults to the rendered value. */
+  copyValue?: string | null;
 };
 
 export type PatientHubSidebarSectionProps = {

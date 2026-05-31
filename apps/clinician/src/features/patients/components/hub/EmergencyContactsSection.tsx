@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Siren, Star, Trash2 } from "lucide-react";
+import { Check, Plus, Siren, Trash2, X } from "lucide-react";
 
 import { Badge, Button, Input } from "../../../../shared/components/ui";
 import {
@@ -10,7 +10,7 @@ import {
   PHONE_INPUT_PLACEHOLDER,
   validatePhoneNumber,
 } from "../../utils/contactValidation";
-import InlineEditField from "./InlineEditField";
+import InlineEditField, { FIELD_BOX_CLASS } from "./InlineEditField";
 import { RegistrationSectionShell } from "./RegistrationSectionShell";
 
 import type { ChangeEvent, KeyboardEvent } from "react";
@@ -28,15 +28,12 @@ type EmergencyContactsSectionProps = {
 
 type ContactRowProps = {
   contact: EmergencyContactFormValues;
-  index: number;
   saving: boolean;
   onPatch: (patch: EmergencyContactPatch) => Promise<void> | void;
   onRemove: () => Promise<void> | void;
-  onSetPrimary: () => Promise<void> | void;
 };
 
 type AddContactRowProps = {
-  index: number;
   saving: boolean;
   onSave: (contact: EmergencyContactFormValues) => Promise<void> | void;
   onCancel: () => void;
@@ -50,7 +47,7 @@ const EMPTY_CONTACT: EmergencyContactFormValues = {
   is_primary: false,
 };
 
-const MAX_CONTACTS = 3;
+const MAX_CONTACTS = 5;
 
 function normalizeContact(
   contact: Partial<EmergencyContactFormValues> = {},
@@ -87,74 +84,27 @@ function normalizeContacts(
   }));
 }
 
-function ContactRow({
-  contact,
-  index,
-  saving,
-  onPatch,
-  onRemove,
-  onSetPrimary,
-}: ContactRowProps) {
-  const isPrimary = Boolean(contact.is_primary);
-
+function ContactRow({ contact, saving, onPatch, onRemove }: ContactRowProps) {
   return (
-    <div className="rounded-2xl border border-cf-border bg-cf-surface-soft/55 p-3 shadow-sm">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-cf-border bg-cf-surface text-cf-text-subtle">
-            <Siren className="h-3.5 w-3.5" />
-          </span>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-            Contact {index + 1}
-          </div>
-          {isPrimary ? (
-            <Badge variant="success">
-              <Star className="mr-1 h-3 w-3 fill-current" />
-              Primary
-            </Badge>
-          ) : null}
-        </div>
-        <div className="flex items-center gap-1">
-          {!isPrimary ? (
-            <Button
-              size="sm"
-              variant="default"
-              onClick={onSetPrimary}
-              disabled={saving}
-            >
-              <Star className="h-3.5 w-3.5" />
-              Make primary
-            </Button>
-          ) : null}
-          <Button
-            size="sm"
-            variant="default"
-            onClick={onRemove}
-            disabled={saving}
-            className="text-cf-danger-text hover:bg-cf-danger-bg"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-0 md:grid-cols-3">
+    <div className="flex items-center gap-2">
+      <div className="min-w-0 flex-1">
         <InlineEditField
-          label="Name"
           value={contact.name}
           placeholder="Full name"
           onSave={(next) => onPatch({ name: String(next ?? "").trim() })}
         />
+      </div>
+      <div className="min-w-0 flex-1">
         <InlineEditField
-          label="Relationship"
           value={contact.relationship}
-          placeholder="Spouse, parent, friend…"
+          placeholder="Relationship"
           onSave={(next) =>
             onPatch({ relationship: String(next ?? "").trim() })
           }
         />
+      </div>
+      <div className="min-w-0 flex-1">
         <InlineEditField
-          label="Phone"
           value={contact.phone_number}
           displayValue={
             contact.phone_number ? formatPhoneDisplay(contact.phone_number) : ""
@@ -178,25 +128,33 @@ function ContactRow({
           }}
         />
       </div>
+      <div className="min-w-0 flex-1">
+        <InlineEditField
+          value={contact.notes}
+          placeholder="Notes"
+          onSave={(next) => onPatch({ notes: String(next ?? "").trim() })}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={saving}
+        aria-label="Remove contact"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-cf-border text-cf-text-subtle transition hover:border-cf-danger-text/40 hover:bg-cf-danger-bg hover:text-cf-danger-text"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }
 
-function AddContactRow({
-  index,
-  saving,
-  onSave,
-  onCancel,
-}: AddContactRowProps) {
-  const [draft, setDraft] = useState({
-    ...EMPTY_CONTACT,
-    is_primary: index === 0,
-  });
+function AddContactRow({ saving, onSave, onCancel }: AddContactRowProps) {
+  const [draft, setDraft] = useState({ ...EMPTY_CONTACT });
   const [error, setError] = useState("");
 
   const updateDraft = (
     key: keyof EmergencyContactFormValues,
-    value: string | boolean
+    value: string
   ) => {
     setError("");
     setDraft((current) => ({ ...current, [key]: value }));
@@ -216,85 +174,78 @@ function AddContactRow({
   };
 
   return (
-    <div className="rounded-2xl border-2 border-dashed border-cf-border-strong bg-cf-surface-muted/45 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-          New contact
-        </div>
-        <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-cf-text-muted">
-          <input
-            type="checkbox"
-            checked={draft.is_primary}
+    <div className="rounded-lg border border-dashed border-cf-border-strong bg-cf-surface-muted/45 p-2">
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <Input
+            value={draft.name}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
-              updateDraft("is_primary", event.target.checked)
+              updateDraft("name", event.target.value)
             }
-            className="h-3.5 w-3.5 rounded border-cf-border-strong"
+            placeholder="Full name"
+            className={["h-9 py-0", FIELD_BOX_CLASS].join(" ")}
           />
-          Primary contact
-        </label>
-      </div>
-
-      <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
-        <Input
-          value={draft.name}
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            updateDraft("name", event.target.value)
-          }
-          placeholder="Full name"
-          className="h-9 py-0"
-        />
-        <Input
-          value={draft.relationship}
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            updateDraft("relationship", event.target.value)
-          }
-          placeholder="Spouse, parent, friend…"
-          className="h-9 py-0"
-        />
-        <Input
-          value={draft.phone_number}
-          onChange={(event: ChangeEvent<HTMLInputElement>) =>
-            updateDraft("phone_number", formatPhoneInput(event.target.value))
-          }
-          onKeyDown={(event: KeyboardEvent<HTMLInputElement>) =>
-            handleFormattedInputDeletion(event, formatPhoneInput, (nextValue) =>
-              updateDraft("phone_number", nextValue)
-            )
-          }
-          placeholder={PHONE_INPUT_PLACEHOLDER}
-          inputMode="numeric"
-          className="h-9 py-0"
-        />
-      </div>
-
-      <div className="mt-3 flex items-center justify-between gap-2">
-        {error ? (
-          <p className="text-xs text-cf-danger-text">{error}</p>
-        ) : (
-          <p className="text-[11px] text-cf-text-subtle">
-            Required before next visit. Phone enables outreach if reached during
-            an emergency.
-          </p>
-        )}
-        <div className="flex items-center gap-1.5">
-          <Button
-            size="sm"
-            variant="default"
-            onClick={onCancel}
-            disabled={saving}
-          >
-            Cancel
-          </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            onClick={handleSave}
-            disabled={saving}
-          >
-            Save contact
-          </Button>
         </div>
+        <div className="min-w-0 flex-1">
+          <Input
+            value={draft.relationship}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              updateDraft("relationship", event.target.value)
+            }
+            placeholder="Relationship"
+            className={["h-9 py-0", FIELD_BOX_CLASS].join(" ")}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <Input
+            value={draft.phone_number}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              updateDraft("phone_number", formatPhoneInput(event.target.value))
+            }
+            onKeyDown={(event: KeyboardEvent<HTMLInputElement>) =>
+              handleFormattedInputDeletion(
+                event,
+                formatPhoneInput,
+                (nextValue) => updateDraft("phone_number", nextValue)
+              )
+            }
+            placeholder={PHONE_INPUT_PLACEHOLDER}
+            inputMode="numeric"
+            className={["h-9 py-0", FIELD_BOX_CLASS].join(" ")}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
+          <Input
+            value={draft.notes}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              updateDraft("notes", event.target.value)
+            }
+            placeholder="Notes"
+            className={["h-9 py-0", FIELD_BOX_CLASS].join(" ")}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          aria-label="Save contact"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-cf-border text-cf-text-muted transition hover:border-cf-success-text/40 hover:bg-cf-success-bg hover:text-cf-success-text"
+        >
+          <Check className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          aria-label="Cancel"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-cf-border text-cf-text-subtle transition hover:bg-cf-surface-soft hover:text-cf-text"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
+      {error ? (
+        <p className="mt-1.5 px-0.5 text-[11px] text-cf-danger-text">{error}</p>
+      ) : null}
     </div>
   );
 }
@@ -339,14 +290,6 @@ export default function EmergencyContactsSection({
       normalizedContacts.filter((_, index) => index !== targetIndex)
     );
 
-  const setPrimary = (targetIndex: number) =>
-    commitContacts(
-      normalizedContacts.map((contact, index) => ({
-        ...contact,
-        is_primary: index === targetIndex,
-      }))
-    );
-
   const canAdd = normalizedContacts.length < MAX_CONTACTS;
   const isMissing = normalizedContacts.length === 0;
 
@@ -354,13 +297,7 @@ export default function EmergencyContactsSection({
     <RegistrationSectionShell
       icon={Siren}
       title="Emergency contacts"
-      badge={
-        <Badge variant={isMissing ? "warning" : "neutral"}>
-          {isMissing
-            ? "Required"
-            : `${normalizedContacts.length} on file · max ${MAX_CONTACTS}`}
-        </Badge>
-      }
+      badge={isMissing ? <Badge variant="warning">Required</Badge> : null}
     >
       {isMissing && !showAdd ? (
         <div className="rounded-2xl border border-dashed border-cf-warning-text/35 bg-cf-warning-bg px-4 py-4">
@@ -384,21 +321,27 @@ export default function EmergencyContactsSection({
         </div>
       ) : (
         <div className="space-y-2">
+          {normalizedContacts.length > 0 ? (
+            <div className="flex items-center gap-2 px-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
+              <div className="min-w-0 flex-1">Name</div>
+              <div className="min-w-0 flex-1">Relationship</div>
+              <div className="min-w-0 flex-1">Phone</div>
+              <div className="min-w-0 flex-1">Notes</div>
+              <div className="w-9 shrink-0" />
+            </div>
+          ) : null}
           {normalizedContacts.map((contact, index) => (
             <ContactRow
               key={`${contact.name}-${contact.phone_number}-${index}`}
               contact={contact}
-              index={index}
               saving={saving}
               onPatch={(patch) => updateContact(index, patch)}
               onRemove={() => removeContact(index)}
-              onSetPrimary={() => setPrimary(index)}
             />
           ))}
 
           {showAdd ? (
             <AddContactRow
-              index={normalizedContacts.length}
               saving={saving}
               onSave={addContact}
               onCancel={() => setShowAdd(false)}
@@ -413,11 +356,7 @@ export default function EmergencyContactsSection({
               <Plus className="h-3.5 w-3.5" />
               Add another contact
             </button>
-          ) : (
-            <p className="text-center text-[11px] text-cf-text-subtle">
-              Maximum of {MAX_CONTACTS} emergency contacts reached.
-            </p>
-          )}
+          ) : null}
         </div>
       )}
     </RegistrationSectionShell>

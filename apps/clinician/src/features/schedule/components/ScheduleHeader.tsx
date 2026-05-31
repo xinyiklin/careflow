@@ -50,10 +50,10 @@ export default function ScheduleHeader({
   return (
     <div className="mb-4">
       <div className="min-w-0">
-        <div className="text-[10px] font-bold uppercase tracking-[0.18em] leading-none text-cf-text-subtle">
+        <div className="text-[9px] font-bold uppercase tracking-[0.18em] leading-none text-cf-text-subtle">
           Schedule
         </div>
-        <div className="mt-1 truncate text-lg font-extrabold leading-none tracking-tight text-cf-text">
+        <div className="mt-1 truncate text-base font-extrabold leading-none tracking-tight text-cf-text">
           {facility?.name || "Schedule"}
         </div>
       </div>

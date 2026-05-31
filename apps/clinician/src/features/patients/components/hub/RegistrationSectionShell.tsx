@@ -26,18 +26,20 @@ export function RegistrationSectionShell({
   return (
     <article
       className={[
-        "flex h-full flex-col overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-sm",
+        // No overflow-hidden here: it would clip an opened <select> dropdown at
+        // the card edge. The header rounds its own top corners instead.
+        "flex h-full flex-col rounded-2xl border border-cf-border bg-cf-surface shadow-sm",
         className,
       ].join(" ")}
     >
-      <div className="flex items-center justify-between border-b border-cf-border bg-cf-surface-muted/55 px-4 py-2.5">
+      <div className="flex items-center justify-between rounded-t-2xl border-b border-cf-border bg-cf-surface-muted/55 px-4 py-2">
         <div className="flex items-center gap-2">
           {Icon ? <Icon className="h-3.5 w-3.5 text-cf-text-subtle" /> : null}
           <h4 className="text-sm font-semibold tracking-tight">{title}</h4>
           {badge}
         </div>
       </div>
-      <div className={["flex-1 px-4 py-3", bodyClassName].join(" ")}>
+      <div className={["flex-1 px-4 py-2.5", bodyClassName].join(" ")}>
         {children}
       </div>
     </article>

@@ -39,7 +39,7 @@ export function FacilityListTable({
         <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
           <tr>
             {columns.map((heading) => (
-              <th key={heading || "actions"} className="px-5 py-3 text-left">
+              <th key={heading || "actions"} className="px-3 py-3 text-left">
                 {heading}
               </th>
             ))}
@@ -64,7 +64,7 @@ export function EmptyRow({
     <tr>
       <td
         colSpan={colSpan}
-        className="px-5 py-8 text-center text-sm text-cf-text-muted"
+        className="px-3 py-8 text-center text-sm text-cf-text-muted"
       >
         {label}
       </td>

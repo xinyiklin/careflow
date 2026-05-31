@@ -147,6 +147,22 @@ export function ScheduleDayColumns({
                       dayPreviewBlock.hoverTime24 === slot.time24
                         ? dayPreviewBlock
                         : null;
+                    const isBlockedRunStart =
+                      slot.isBlocked &&
+                      (slotIndex === 0 || !timeSlots[slotIndex - 1]?.isBlocked);
+                    // Hatch drawn once per closed run (run-start cell), spanning
+                    // every slot in the run, so the diagonal is one continuous
+                    // texture regardless of interval.
+                    let blockedRunLength = 0;
+                    if (isBlockedRunStart) {
+                      for (
+                        let i = slotIndex;
+                        i < timeSlots.length && timeSlots[i]?.isBlocked;
+                        i += 1
+                      ) {
+                        blockedRunLength += 1;
+                      }
+                    }
 
                     return (
                       <div
@@ -161,7 +177,7 @@ export function ScheduleDayColumns({
                       >
                         <div
                           className={[
-                            "w-[56px] shrink-0 select-none bg-cf-surface-muted px-1.5 py-2 text-right font-mono text-[11px] font-semibold tabular-nums text-cf-text-subtle",
+                            "w-[56px] min-h-0 shrink-0 select-none overflow-hidden bg-cf-surface-muted px-1.5 py-2 text-right font-mono text-[11px] font-semibold leading-none tabular-nums text-cf-text-subtle",
                             showSlotDividers ? "border-r border-cf-border" : "",
                           ].join(" ")}
                         >
@@ -187,6 +203,21 @@ export function ScheduleDayColumns({
                             )
                           }
                         >
+                          {isBlockedRunStart ? (
+                            <>
+                              <div
+                                aria-hidden="true"
+                                className="cf-blocked-hatch pointer-events-none absolute inset-x-0 top-0 z-[1]"
+                                style={{
+                                  height: blockedRunLength * slotRowHeight,
+                                }}
+                              />
+                              <span className="pointer-events-none absolute left-2 top-1 z-[2] select-none text-[9px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle/70">
+                                Closed
+                              </span>
+                            </>
+                          ) : null}
+
                           {slotAppointments.map((appointment) => (
                             <AppointmentLayer
                               key={appointment.id}

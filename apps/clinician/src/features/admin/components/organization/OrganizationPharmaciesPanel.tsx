@@ -262,7 +262,7 @@ export default function OrganizationPharmaciesPanel() {
                 ].map((heading, index) => (
                   <th
                     key={`${heading}-${index}`}
-                    className="px-5 py-3 text-left"
+                    className="px-3 py-3 text-left"
                   >
                     {heading}
                   </th>
@@ -280,7 +280,7 @@ export default function OrganizationPharmaciesPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No organization pharmacies yet. Add common pharmacies to
                     make them available during patient intake and pharmacy
@@ -291,7 +291,7 @@ export default function OrganizationPharmaciesPanel() {
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No pharmacies match the selected filter.
                   </td>
@@ -311,7 +311,7 @@ export default function OrganizationPharmaciesPanel() {
                         },
                       })}
                     >
-                      <td className="px-5 py-4">
+                      <td className="px-3 py-4">
                         <div className="flex items-center gap-3">
                           <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                             {pharmacy?.name
@@ -334,13 +334,13 @@ export default function OrganizationPharmaciesPanel() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-cf-text-muted">
+                      <td className="px-3 py-4 text-cf-text-muted">
                         <div>NCPDP: {pharmacy?.ncpdp_id || "—"}</div>
                         <div className="mt-1 text-xs text-cf-text-subtle">
                           NPI: {pharmacy?.npi || "—"}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-cf-text-muted">
+                      <td className="px-3 py-4 text-cf-text-muted">
                         <div>{pharmacy?.phone_number || "No phone"}</div>
                         <div className="mt-1 text-xs text-cf-text-subtle">
                           {pharmacy?.fax_number
@@ -348,10 +348,10 @@ export default function OrganizationPharmaciesPanel() {
                             : "No fax"}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-cf-text-muted">
+                      <td className="px-3 py-4 text-cf-text-muted">
                         {formatAddress(pharmacy?.address)}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-3 py-4">
                         <div className="flex flex-wrap gap-2">
                           <Badge variant="muted">
                             {formatDirectoryStatus(pharmacy)}

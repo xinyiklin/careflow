@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 
 type SegmentedOption<TValue extends string> = {
@@ -17,6 +17,22 @@ type SegmentedControlProps<TValue extends string> = {
   className?: string;
 };
 
+type ThumbStyle = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  ready: boolean;
+};
+
+const HIDDEN_THUMB: ThumbStyle = {
+  left: 0,
+  top: 0,
+  width: 0,
+  height: 0,
+  ready: false,
+};
+
 function joinClasses(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
@@ -31,6 +47,8 @@ export default function SegmentedControl<TValue extends string>({
   className,
 }: SegmentedControlProps<TValue>) {
   const groupRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const [thumb, setThumb] = useState<ThumbStyle>(HIDDEN_THUMB);
 
   const sizeStyles = {
     xs: { height: "min-h-7", text: "text-[10px]", px: "px-2" },
@@ -40,6 +58,40 @@ export default function SegmentedControl<TValue extends string>({
 
   const isPill = variant === "pill";
   const isLoose = variant === "loose";
+  // The sliding thumb only applies to the contiguous, equal-width variants.
+  // `loose` renders detached pills, so each keeps its own background.
+  const hasThumb = !isLoose;
+
+  const activeIndex = options.findIndex((o) => o.value === value);
+
+  useLayoutEffect(() => {
+    if (!hasThumb) return;
+
+    const measure = () => {
+      const node = buttonRefs.current[activeIndex];
+      if (!node) {
+        setThumb((current) =>
+          current.ready ? { ...current, ready: false } : current
+        );
+        return;
+      }
+      setThumb({
+        left: node.offsetLeft,
+        top: node.offsetTop,
+        width: node.offsetWidth,
+        height: node.offsetHeight,
+        ready: true,
+      });
+    };
+
+    measure();
+
+    const group = groupRef.current;
+    if (!group || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(group);
+    return () => observer.disconnect();
+  }, [activeIndex, options.length, hasThumb, size, variant]);
 
   function handleKeyDown(event: KeyboardEvent) {
     const idx = options.findIndex((o) => o.value === value);
@@ -68,7 +120,7 @@ export default function SegmentedControl<TValue extends string>({
     <div
       ref={groupRef}
       className={joinClasses(
-        "flex",
+        "relative flex",
         isLoose ? "gap-1.5" : "overflow-hidden",
         isPill
           ? "rounded-full bg-cf-page-bg border border-cf-border p-0.5 gap-0.5"
@@ -81,12 +133,30 @@ export default function SegmentedControl<TValue extends string>({
       role="radiogroup"
       onKeyDown={handleKeyDown}
     >
-      {options.map(({ label, value: optionValue, icon }) => {
+      {hasThumb && thumb.ready ? (
+        <span
+          aria-hidden="true"
+          className={joinClasses(
+            "pointer-events-none absolute left-0 top-0 z-0 transition-[transform,width] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            isPill ? "rounded-full bg-cf-text shadow-sm" : "bg-cf-surface"
+          )}
+          style={{
+            transform: `translate3d(${thumb.left}px, ${thumb.top}px, 0)`,
+            width: thumb.width,
+            height: thumb.height,
+          }}
+        />
+      ) : null}
+
+      {options.map(({ label, value: optionValue, icon }, index) => {
         const isActive = value === optionValue;
 
         return (
           <button
             key={optionValue}
+            ref={(node) => {
+              buttonRefs.current[index] = node;
+            }}
             type="button"
             role="radio"
             aria-checked={isActive}
@@ -94,7 +164,7 @@ export default function SegmentedControl<TValue extends string>({
             disabled={disabled}
             onClick={() => onChange(optionValue)}
             className={joinClasses(
-              "flex items-center justify-center gap-1.5 whitespace-nowrap font-bold transition-all duration-150",
+              "relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap font-bold transition-colors duration-150",
               !isLoose && "flex-1",
               sizeStyles.height,
               sizeStyles.text,
@@ -104,12 +174,12 @@ export default function SegmentedControl<TValue extends string>({
                 ? isLoose
                   ? "bg-cf-accent text-cf-page-bg shadow-sm"
                   : isPill
-                    ? "bg-cf-text text-cf-page-bg shadow-sm"
-                    : "bg-cf-surface text-cf-text font-extrabold"
+                    ? "text-cf-page-bg"
+                    : "text-cf-text font-extrabold"
                 : isLoose
                   ? "text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text"
                   : isPill
-                    ? "text-cf-text-muted hover:text-cf-text hover:bg-cf-surface"
+                    ? "text-cf-text-muted hover:text-cf-text hover:bg-cf-surface/60"
                     : "text-cf-text-subtle hover:text-cf-text hover:bg-cf-surface-muted/35"
             )}
           >

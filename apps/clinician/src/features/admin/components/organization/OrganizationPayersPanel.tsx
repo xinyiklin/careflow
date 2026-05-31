@@ -250,7 +250,7 @@ export default function OrganizationPayersPanel() {
             <thead className="border-b border-cf-border bg-cf-surface-soft/50 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
               <tr>
                 {["Payer", "Payer ID", "Contact", "Status"].map((heading) => (
-                  <th key={heading} className="px-5 py-3 text-left">
+                  <th key={heading} className="px-3 py-3 text-left">
                     {heading}
                   </th>
                 ))}
@@ -267,7 +267,7 @@ export default function OrganizationPayersPanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No organization payers yet.
                   </td>
@@ -276,7 +276,7 @@ export default function OrganizationPayersPanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No payers match the selected filter.
                   </td>
@@ -290,16 +290,16 @@ export default function OrganizationPayersPanel() {
                       onAction: () => openModal(preference),
                     })}
                   >
-                    <td className="px-5 py-4 font-semibold">
+                    <td className="px-3 py-4 font-semibold">
                       {preference.carrier?.name || "Payer"}
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       {preference.carrier?.payer_id || "Not set"}
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       {preference.carrier?.phone_number || "No phone"}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <StatusBadge preference={preference} />
                     </td>
                   </tr>

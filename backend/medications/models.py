@@ -43,6 +43,13 @@ class Medication(models.Model):
     frequency = models.CharField(max_length=120)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+    prescriber = models.ForeignKey(
+        "patients.CareProvider",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="prescribed_medications",
+    )
     prescriber_name = models.CharField(max_length=150, blank=True)
     notes = models.TextField(blank=True)
     created_by = models.ForeignKey(
@@ -77,6 +84,11 @@ class Medication(models.Model):
                 {"patient": "Medication facility must match patient facility."}
             )
 
+        if self.prescriber and self.prescriber.facility_id != self.facility_id:
+            raise ValidationError(
+                {"prescriber": "Prescriber must belong to the medication facility."}
+            )
+
         if self.end_date and self.start_date and self.end_date < self.start_date:
             raise ValidationError({"end_date": "End date cannot be before start date."})
 
@@ -94,6 +106,8 @@ class Medication(models.Model):
             self.created_by_name = get_user_display_name(self.created_by)
         if self.updated_by:
             self.updated_by_name = get_user_display_name(self.updated_by)
+        if self.prescriber_id and not self.prescriber_name:
+            self.prescriber_name = getattr(self.prescriber, "display_name", "") or ""
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -104,6 +118,9 @@ STATUS_PENDING = "pending"
 STATUS_APPROVED = "approved"
 STATUS_DENIED = "denied"
 STATUS_CANCELLED = "cancelled"
+
+SOURCE_PATIENT = "patient"
+SOURCE_PHARMACY = "pharmacy"
 
 
 class RefillRequest(models.Model):
@@ -117,6 +134,17 @@ class RefillRequest(models.Model):
         (STATUS_APPROVED, "Approved"),
         (STATUS_DENIED, "Denied"),
         (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    SOURCE_PATIENT = SOURCE_PATIENT
+    SOURCE_PHARMACY = SOURCE_PHARMACY
+
+    # Who originated the request. All requests today are patient-initiated
+    # via the portal; ``pharmacy`` is reserved for a future pharmacy-facing
+    # intake path and has no producer yet.
+    SOURCE_CHOICES = [
+        (SOURCE_PATIENT, "Patient"),
+        (SOURCE_PHARMACY, "Pharmacy"),
     ]
 
     medication = models.ForeignKey(
@@ -142,6 +170,11 @@ class RefillRequest(models.Model):
         related_name="refill_requests",
     )
     pharmacy_name = models.CharField(max_length=150, blank=True)
+    source = models.CharField(
+        max_length=20,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_PATIENT,
+    )
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
@@ -202,3 +235,57 @@ class RefillRequest(models.Model):
 
     def __str__(self):
         return f"Refill request for {self.medication.medication_name} ({self.status})"
+
+
+class PrescriberDelegation(models.Model):
+    """Authorizes a staff member to act as a prescriber's agent for
+    non-controlled refill/prescription work (the "agent" model).
+
+    Placeholder scaffolding: it is captured and editable via Django admin
+    but is NOT yet enforced in request handling. Controlled-substance
+    signing is never delegable and stays out of scope until EPCS is built.
+    """
+
+    facility = models.ForeignKey(
+        "facilities.Facility",
+        on_delete=models.CASCADE,
+        related_name="prescriber_delegations",
+    )
+    prescriber = models.ForeignKey(
+        "patients.CareProvider",
+        on_delete=models.CASCADE,
+        related_name="delegations",
+    )
+    delegate = models.ForeignKey(
+        "facilities.Staff",
+        on_delete=models.CASCADE,
+        related_name="prescriber_delegations",
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            UniqueConstraint(
+                fields=["facility", "prescriber", "delegate"],
+                name="unique_prescriber_delegation",
+            ),
+        ]
+
+    def clean(self):
+        if self.prescriber and self.prescriber.facility_id != self.facility_id:
+            raise ValidationError(
+                {"prescriber": "Prescriber must belong to the delegation facility."}
+            )
+        if self.delegate and self.delegate.facility_id != self.facility_id:
+            raise ValidationError(
+                {"delegate": "Delegate must belong to the delegation facility."}
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.delegate} acts for {self.prescriber}"

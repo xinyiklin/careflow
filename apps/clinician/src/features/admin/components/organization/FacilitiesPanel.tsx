@@ -167,7 +167,7 @@ export default function FacilitiesPanel() {
                   (heading, index) => (
                     <th
                       key={`${heading}-${index}`}
-                      className="px-5 py-3 text-left"
+                      className="px-3 py-3 text-left"
                     >
                       {heading}
                     </th>
@@ -186,7 +186,7 @@ export default function FacilitiesPanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No facilities found yet. Add one to start configuring the
                     organization footprint.
@@ -196,7 +196,7 @@ export default function FacilitiesPanel() {
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-5 py-12 text-center text-sm text-cf-text-muted"
+                    className="px-3 py-12 text-center text-sm text-cf-text-muted"
                   >
                     No facilities match the selected filter.
                   </td>
@@ -210,7 +210,7 @@ export default function FacilitiesPanel() {
                       onAction: () => handleOpenEdit(facility),
                     })}
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <div className="flex items-center gap-3">
                         <span className="grid h-9 w-9 place-items-center rounded-xl bg-cf-accent/12 text-[11px] font-semibold text-cf-accent ring-1 ring-cf-accent/20">
                           {facility.name
@@ -232,7 +232,7 @@ export default function FacilitiesPanel() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       <div>{facility.phone_number || "—"}</div>
                       <div className="mt-1 text-xs text-cf-text-subtle">
                         {facility.fax_number
@@ -240,13 +240,13 @@ export default function FacilitiesPanel() {
                           : "No fax"}
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-cf-text-muted">
+                    <td className="px-3 py-4 text-cf-text-muted">
                       <div>{facility.timezone || "—"}</div>
                       <div className="mt-1 text-xs text-cf-text-subtle">
                         {facility.email || "No email yet"}
                       </div>
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3 py-4">
                       <Badge
                         variant={
                           facility.is_active !== false ? "success" : "muted"

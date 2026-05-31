@@ -15,7 +15,7 @@ export default function PermissionGroupHeader({
     <tr>
       <td
         colSpan={colSpan}
-        className="border-b border-cf-border bg-cf-surface-soft/60 px-5 py-2.5"
+        className="border-b border-cf-border bg-cf-surface-soft/60 px-3 py-2.5"
       >
         <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
           <span className="inline-flex items-center gap-2">

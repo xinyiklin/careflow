@@ -13,6 +13,7 @@ import {
   formatDateOnlyInTimeZone,
   formatTimeInTimeZone,
 } from "../../../shared/utils/dateTime";
+import { useCopyToClipboard } from "../../../shared/hooks/useCopyToClipboard";
 import type { AppointmentLike } from "../../../shared/types/domain";
 
 const MENU_WIDTH = 224;
@@ -68,7 +69,7 @@ function MenuItem({
       type="button"
       onClick={onClick}
       className={[
-        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition",
+        "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition",
         isDanger
           ? "text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-300 dark:hover:bg-red-950/35 dark:hover:text-red-200"
           : "text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text",
@@ -97,6 +98,8 @@ export default function AppointmentContextMenu({
   onOpenHistory,
   onDeleteAppointment,
 }: AppointmentContextMenuProps) {
+  const { copy } = useCopyToClipboard();
+
   if (!isOpen || !appointment) return null;
 
   const position = getMenuPosition(x, y);
@@ -137,13 +140,9 @@ export default function AppointmentContextMenu({
   };
 
   const handleCopyPatient = async () => {
-    try {
-      await navigator.clipboard.writeText(appointment.patient_name || "");
-    } catch {
-      return;
+    if (await copy(appointment.patient_name)) {
+      onClose?.();
     }
-
-    onClose?.();
   };
 
   const handleCopyDetails = async () => {
@@ -159,13 +158,9 @@ export default function AppointmentContextMenu({
       .filter(Boolean)
       .join("\n");
 
-    try {
-      await navigator.clipboard.writeText(details);
-    } catch {
-      return;
+    if (await copy(details)) {
+      onClose?.();
     }
-
-    onClose?.();
   };
 
   return (
