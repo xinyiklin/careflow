@@ -1,9 +1,10 @@
 # CareFlow Backend
 
 Django REST backend for CareFlow, an EHR-style clinic workflow demo covering
-scheduling, patient registration, clinical charting, medications, allergies,
-documents, insurance, billing, facility administration, organization
-administration, permissions, and audit-style activity records.
+scheduling, patient registration, clinical charting, vitals, medications,
+allergies, refill requests, secure messaging, documents, insurance, billing,
+facility administration, organization administration, permissions, audit-style
+activity records, and a patient portal API.
 
 The backend is built around facility-scoped access control. APIs should preserve
 facility boundaries, role checks, and masked/safe handling of sensitive patient
@@ -25,18 +26,21 @@ fields.
   activity, and appointment history.
 - `audit` - audit-style event records and helpers.
 - `billing` - encounter-linked superbills, fee schedules, and CPT catalog.
-- `clinical` - encounters and progress note charting.
+- `clinical` - encounters, progress note charting, and vitals.
 - `facilities` - facilities, staff, resources, roles, security permissions,
   appointment config, operating hours, and seeded defaults.
 - `insurance` - insurance carriers and patient insurance policies.
-- `medications` - patient medication records.
+- `medications` - patient medication records, refill requests, and prescriber
+  delegation scaffolding.
+- `messaging` - secure clinician–patient message threads and messages with
+  audit hooks.
 - `organizations` - organization profile, memberships, facilities,
   organization-level preferences, and pharmacy/payer administration.
 - `patients` - demographics, search, phones, emergency contacts, care team,
   pharmacies, document metadata, document previews/downloads, and categories.
 - `shared` - cross-domain models, serializers, and management commands.
-- `users` - custom user model, auth endpoints, memberships, and user
-  preferences.
+- `users` - custom user model, auth endpoints, memberships, portal accounts,
+  the `/v1/portal/` namespace, and user preferences.
 
 APIs are versioned under `/v1/`.
 
@@ -49,10 +53,15 @@ APIs are versioned under `/v1/`.
   history.
 - Patient registration, search, inline demographics editing, masked SSN flow,
   phone validation, emergency contacts, insurance, care team, and pharmacy data.
-- Clinical encounters and SOAP progress notes with draft, signed, and unsigned
-  workflows.
+- Clinical encounters, SOAP progress notes, and vitals with draft, signed, and
+  unsigned workflows.
 - Patient medications and allergies with active/historical state and audit
   history.
+- Medication refill requests: patient-initiated creation and cancellation
+  through the portal, plus a clinician viewset for review and approve/deny
+  resolution.
+- Secure messaging: clinician and portal viewsets over `MessageThread` and
+  `Message`, with audit events recorded on send, reply, and resolution.
 - Patient document upload, preview, download, category management, and bundled
   PDF export.
 - Encounter-linked billing records, organization/facility fee schedules,
@@ -62,9 +71,15 @@ APIs are versioned under `/v1/`.
 - Organization/facility admin APIs for staff, roles, permissions, resources,
   operating hours, appointment config, fee schedules, payer/pharmacy
   preferences, document categories, and read-only activity logs.
+- Patient portal API under `/v1/portal/`, gated by `IsPortalPatient` and a
+  `PatientPortalAccount` join model: profile, appointments with online
+  self-scheduling (providers, appointment types, open slots, book) and
+  cancellation, medications, refill requests, preferred-pharmacy updates,
+  allergies, a medical summary, and secure messaging threads.
 - Synthetic demo seeding for Clinic A, Clinic B, Clinic C, users, patients,
-  appointments, clinical records, medications, allergies, billing workflows,
-  admin config, and sample documents.
+  appointments, clinical records, vitals, medications, allergies, refill
+  requests, message threads, billing workflows, admin config, and sample
+  documents.
 
 ## Local Setup
 
