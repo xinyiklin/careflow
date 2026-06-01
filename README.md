@@ -21,7 +21,7 @@ CareFlow uses synthetic demo data only. It is not production medical software,
 not a real EHR, and has not been formally audited or certified for HIPAA
 compliance.
 
-![Patient search to Patient Hub Timeline](./docs/screenshots/demo.gif)
+![CareFlow clinician workflow tour](./docs/screenshots/demo.gif)
 
 ## Highlights
 
@@ -31,11 +31,16 @@ compliance.
 - **Patient Hub** with smart search, Quick Start registration, inline
   demographics editing, masked SSN with auditable reveal, emergency contacts,
   care-team details, pharmacy preferences, and security-aware tabs.
-- **Clinical charting** with encounters and SOAP progress notes per
-  appointment, draft and signed states, sign/unsign workflow, and
-  encounter-linked billing handoff.
+- **Clinical charting** with encounters, SOAP progress notes, and a vitals
+  intake flow per appointment; draft and signed states, sign/unsign workflow,
+  and encounter-linked billing handoff.
 - **Medications and allergies** tracked per patient with active/historical
-  status, severity, reaction, prescriber, and audit history.
+  status, severity, reaction, prescriber, and audit history. Patient-initiated
+  refill requests flow into a clinician Refills inbox and a per-patient tab for
+  approve/deny resolution.
+- **Secure messaging** between clinicians and patients with threaded
+  conversations, unread tracking, and audit events written to the clinical
+  timeline on send, reply, and resolution.
 - **Billing** with encounter-linked superbills, organization fee schedules,
   facility-level overrides, and a predefined CPT catalog for bulk-populating
   schedules.
@@ -49,14 +54,27 @@ compliance.
   Fernet, audit events for sensitive mutations, and lockout-safe security
   administration that stops admins from stripping their own — or the facility's
   last — administrative access (org owners keep break-glass recovery).
-- **Patient portal** (v1): separate React app at `apps/patient/` for
-  patient-facing read-only views (profile, appointments, medications,
-  allergies). Shares the Django backend through a dedicated `/v1/portal/`
-  namespace gated by a `PatientPortalAccount` join model. See
-  [docs/engineering/architecture.md](docs/engineering/architecture.md) for
-  the monorepo layout, subdomain plan, and mobile-wrap considerations.
+- **Patient portal**: separate React + TypeScript app at `apps/patient/` giving
+  patients a self-service workspace — dashboard, profile, appointments with
+  online self-scheduling and cancellation, medications with refill requests and
+  preferred-pharmacy updates, allergies, a medical summary with vitals, and
+  secure two-way messaging with their care team. Ships light/dark theming and a
+  multi-language UI (English, Spanish, and Chinese — Simplified and Traditional).
+  Shares the Django backend through a dedicated `/v1/portal/` namespace gated by
+  a `PatientPortalAccount` join model, with a cookie-isolated session on the
+  portal subdomain. See
+  [docs/engineering/architecture.md](docs/engineering/architecture.md) for the
+  monorepo layout, subdomain plan, and mobile-wrap considerations.
 
 ## Screenshots
+
+### Schedule
+
+Facility-local scheduling with configurable resources, visit types, operating
+hours, closed-slot blocks, heatmap density, and appointment status chips in one
+compact workspace.
+
+![Schedule workspace](./docs/screenshots/schedule.png)
 
 ### Patient Hub
 
@@ -75,6 +93,14 @@ surfaces.
 
 ![Patient Timeline tab](./docs/screenshots/timeline.png)
 
+### Refill Inbox
+
+Patient-initiated refill requests flow into a clinician workspace with source,
+status, prescriber, pharmacy, and approve/deny actions kept visible for quick
+queue work.
+
+![Clinician refill inbox](./docs/screenshots/refills.png)
+
 ### Facility Security &amp; Permissions
 
 Role-based permission matrix at facility scope, with sensitive actions flagged
@@ -87,7 +113,7 @@ audit log live under the same admin shell.
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React 19, Vite, React Router, React Query, Tailwind CSS v4 tokens, Material UI date pickers |
+| Frontend | React 19 + TypeScript, Vite, React Router, TanStack Query, Tailwind CSS v4 tokens, Material UI date pickers (clinician), i18next (patient portal) |
 | Backend | Django, Django REST Framework, Simple JWT, Whitenoise |
 | Database | PostgreSQL |
 | Documents | Local filesystem for development; Cloudflare R2/S3-compatible storage optional |
@@ -104,20 +130,29 @@ backend/
   clinical/         Encounters and progress note charting
   facilities/       Facilities, staff, resources, roles, and configuration
   insurance/        Insurance carriers and patient policies
-  medications/      Patient medication records
+  medications/      Patient medications, refill requests, prescriber delegation
+  messaging/        Secure clinician–patient message threads with audit hooks
   organizations/    Organization profile and membership APIs
   patients/         Patients, search, demographics, documents, pharmacies
   shared/           Cross-domain models, serializers, and seed utilities
-  users/            Auth, memberships, and user preferences
+  users/            Auth, memberships, portal accounts, and user preferences
 
 apps/clinician/src/
   app/              App shell, routing, providers, and error boundary
-  features/         Admin, appointments, auth, billing, documents,
-                    facilities, patients, schedule
+  features/         Admin, appointments, auth, billing, documents, facilities,
+                    medications (refills), messaging, patients, schedule
   shared/           API client, UI primitives, constants, hooks, tokens
+
+apps/patient/src/
+  app/              App shell, routing, and providers
+  features/         Dashboard, profile, appointments (booking/cancel),
+                    medications + refills, allergies, medical summary, messages
+  i18n/             Locale resources (en, es, zh-CN, zh-TW)
+  shared/           API client, UI primitives, theme, hooks, config
 
 packages/
   api-types/        Generated OpenAPI types shared across frontend apps
+  ui-icons/         Shared CareFlow icon and brand components
 ```
 
 ## Local Setup
@@ -166,8 +201,8 @@ npm install
 ```
 
 Run from the repo root — npm workspaces install dependencies for every app
-(`apps/clinician`, future patient portal) and the `packages/api-types/`
-shared types package in one pass.
+(`apps/clinician`, `apps/patient`) and the shared `packages/` (`api-types`,
+`ui-icons`) in one pass.
 
 Create `apps/clinician/.env.local` if the API is not using the default local URL:
 
@@ -185,11 +220,17 @@ npm run dev:clinician
 
 Or from inside `apps/clinician/`, `npm run dev`.
 
-The frontend dev server is expected to use `http://localhost:5173`. Vite is
+The clinician dev server is expected to use `http://localhost:5173`. Vite is
 configured with `strictPort`, so do not switch to another port for normal
 CareFlow QA. If `5173` is occupied, first check whether the CareFlow frontend is
 already running there and use it if it is; otherwise stop the stale process and
 restart with `npm run dev`.
+
+The patient portal runs separately on `http://localhost:5174`:
+
+```bash
+npm run dev:patient
+```
 
 ## Demo Credentials
 
@@ -222,12 +263,20 @@ cd backend
 ./venv/bin/python manage.py test
 ```
 
-Frontend:
+Frontend (clinician):
 
 ```bash
 npm -w @careflow/clinician run lint
 npm -w @careflow/clinician run typecheck
 npm -w @careflow/clinician run build
+```
+
+Frontend (patient portal):
+
+```bash
+npm run lint:patient
+npm run typecheck:patient
+npm run build:patient
 ```
 
 For major UI changes, run the app locally and visually inspect the changed flow
