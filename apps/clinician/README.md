@@ -121,7 +121,7 @@ npm run build
 
 ## API And Auth
 
-- The frontend calls the Django backend through `src/shared/api/client.js`.
+- The frontend calls the Django backend through `src/shared/api/client.ts`.
 - API routes are automatically prefixed with `/v1`.
 - Access tokens are kept in memory only.
 - Refresh tokens are expected to live in an HTTP-only cookie set by the backend.

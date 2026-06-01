@@ -180,16 +180,21 @@ primary check.
 
 ```bash
 # Frontend
-cd frontend
-npm run lint
-npm run typecheck
-npm run build
+npm -w @careflow/clinician run lint
+npm -w @careflow/clinician run typecheck
+npm -w @careflow/clinician run build
+npm -w @careflow/patient run lint
+npm -w @careflow/patient run typecheck
+npm -w @careflow/patient run build
 
 # Backend
 cd backend
 ./venv/bin/python manage.py check
 ./venv/bin/python manage.py test
 ```
+
+Run only the affected frontend app(s) or backend subsets for scoped changes,
+but say what was skipped.
 
 ### Self-review
 

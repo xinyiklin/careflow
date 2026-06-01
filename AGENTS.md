@@ -2,18 +2,16 @@
 
 Operational rules for coding agents working in the CareFlow repository.
 
-CareFlow is a full-stack EHR-style scheduling and patient workflow app:
-React + Vite frontend, Django + DRF backend, PostgreSQL, Vercel + Render.
-API routes are versioned under `/v1/`. The repo is an npm workspaces monorepo:
-clinician frontend at `apps/clinician/`, shared OpenAPI types at
-`packages/api-types/`, Django backend at `backend/`. Framework and dependency
-versions live in `apps/clinician/package.json` and `backend/requirements.txt`;
-check those files instead of copying version numbers here.
+CareFlow is a full-stack EHR-style clinic workflow demo: React + Vite
+frontends, Django + DRF backend, PostgreSQL, Vercel + Render. API routes are
+versioned under `/v1/`. The repo is an npm workspaces monorepo with clinician
+and patient frontends in `apps/`, generated OpenAPI types in
+`packages/api-types/`, shared icon assets in `packages/ui-icons/`, and the
+Django backend in `backend/`.
 
-Product register context lives in `PRODUCT.md`; design tokens and component
-vocabulary live in `DESIGN.md`. UI, backend, testing, and workflow philosophy
-live in `docs/engineering/`. This root guide is for agent behavior, safety,
-continuity, and execution.
+This guide owns agent behavior, safety, continuity, and routing. Product intent
+lives in `PRODUCT.md`; token and component vocabulary lives in `DESIGN.md`;
+engineering details live in `docs/engineering/`.
 
 ---
 
@@ -37,231 +35,151 @@ stylistic consistency.
 
 ---
 
-## Core Non-Negotiables
+## Source Of Truth
 
-- Read `CONTINUITY.md` before acting.
-- Do not read or rely on prior chat context unless the durable fact is recorded
-  in `CONTINUITY.md`.
-- Do not overwrite unrelated work.
-- Preserve auth, facility scoping, and permission boundaries.
-- Do not broaden scope without justification.
-- Do not invent speculative abstractions.
-- Verify important changes before finalizing.
-- Keep patches reviewable and reversible.
-- Do not print secrets, tokens, private keys, broad environment dumps, or real
-  patient data.
-- Do not ask the user to paste secrets.
+- `CONTINUITY.md`: current workspace state, handoff notes, active risks, durable
+  decisions, and next steps.
+- `PRODUCT.md`: product register, users, workflows, tone, boundaries, and
+  roadmap.
+- `DESIGN.md`: design tokens, density, component vocabulary, and screen
+  standards.
+- `docs/engineering/ui-principles.md`: UI behavior rules, copy/chrome
+  constraints, loading/error states, and visual QA expectations.
+- `docs/engineering/backend-guidelines.md`: API, auth, facility scoping, errors,
+  logging, audit, migrations, storage, and deployment expectations.
+- `docs/engineering/testing.md`: verification strategy and pass criteria.
+- `docs/engineering/git-workflow.md`: branch, commit, PR, review, and merge
+  workflow.
+- `docs/engineering/architecture.md`: repo layout, app boundaries, shared
+  packages, and deployment shape.
+- App and backend README files: local setup and commands for that surface.
+
+Do not merge these files together. If there is overlap, make the root guide a
+router and keep detailed rules in the narrowest relevant document.
 
 ---
 
-## Quick Reference
+## Core Rules
 
-Before any code:
+Before acting:
 
-1. Read `CONTINUITY.md`.
-2. Confirm scope; ask only if ambiguity blocks progress.
-3. Inspect the files you will touch.
-4. Read the relevant engineering docs:
-   - UI/design work: `PRODUCT.md`, `DESIGN.md`, and
-     `docs/engineering/ui-principles.md`
-   - Backend/API work: `docs/engineering/backend-guidelines.md`
-   - Test planning: `docs/engineering/testing.md`
-5. For non-trivial work, sketch a verification plan.
+- Read `CONTINUITY.md`.
+- Do not rely on prior chat context unless the durable fact is recorded in
+  `CONTINUITY.md`.
+- Confirm scope only when ambiguity blocks progress.
+- Inspect the files you will touch.
+- Read the relevant source-of-truth docs for the task.
+- For non-trivial work, choose a verification plan before editing.
 
-While coding:
+While working:
 
-- Every changed line traces to the request, required cleanup, or verification.
-- Match local patterns; do not introduce new ones when existing ones work.
-- State assumptions and surface meaningful tradeoffs.
-- Iterate against verification, not vibes.
+- Every changed line must trace to the request, required cleanup, or
+  verification.
+- Preserve auth, facility scoping, permission boundaries, and patient privacy.
+- Do not overwrite unrelated work.
+- Do not broaden scope without justification.
+- Do not invent speculative abstractions or new global UX systems.
+- Match existing architecture and product conventions.
+- Keep patches reviewable and reversible.
+- Do not print secrets, tokens, private keys, broad environment dumps, SSNs,
+  DOBs, or full patient records.
+- Do not ask the user to paste secrets.
 
 Before finishing:
 
 - Run the verification checklist for the change type.
 - Update `CONTINUITY.md` if state changed meaningfully.
-- Call out residual risks and skipped checks.
+- Call out skipped checks, residual risks, and follow-ups.
 - Start the final reply with a brief ledger snapshot: Goal, Now, Next, and Open
   Questions.
 
-When in doubt, pause and ask, especially before auth changes, schema redesigns,
-destructive git operations, workflow-critical UI changes, global UX systems, or
-new paid/vendor dependencies.
-
 ---
 
-## Anti-Patterns
+## Continuity
 
-Do not:
+`CONTINUITY.md` is the canonical workspace memory. Keep it factual, compact,
+and high-signal so future agents do not relitigate prior decisions.
 
-- overwrite unrelated work or broaden scope without justification
-- invent speculative abstractions or premature configurability
-- silently swallow errors or hide failures with fallback behavior
-- build fake loading states or mock systems
-- introduce formatting churn unrelated to the task
-- introduce new patterns when existing ones work
-- introduce new global UX systems unnecessarily, such as banner systems, toast
-  systems, or loading frameworks
-- weaken auth, facility scoping, or permission boundaries
-- print secrets, tokens, environment dumps, SSNs, DOBs, or full patient records
-- request user secrets
-- write "how-to"/tutorial copy anywhere: multi-sentence help blocks, inline guides, or instructional/example placeholder & helper text (e.g. "Enter full SSN", "e.g. …"). CareFlow is for trained staff, not a tutorial — keep labels short and prefer inputs with no placeholder. See `docs/engineering/ui-principles.md` ("Copy And Chrome")
-
----
-
-## Refactor Rules
-
-Refactor only when:
-
-- the current task requires it
-- the existing structure blocks correctness
-- the refactor reduces future complexity
-- the refactor can be verified safely
-
-Prefer local improvement over architectural rewrites. Drive-by refactors during
-feature work are not allowed.
-
----
-
-## Continuity Rules
-
-`CONTINUITY.md` is the canonical workspace memory. The riskiest moment in
-multi-agent work is handoff; the ledger exists so future agents do not
-relitigate prior decisions.
-
-### Required Behavior
-
-- Read `CONTINUITY.md` before acting.
-- Update it only for meaningful state changes.
-- Keep entries factual, compact, and high-signal.
 - Tag entries with `[USER]`, `[CODE]`, `[TOOL]`, or `[ASSUMPTION]`.
 - Use `UNCONFIRMED` instead of guessing.
 - Capture active risks, durable decisions, current state, and next steps.
+- Keep the snapshot to about 25 lines, recent done items to about 7 bullets,
+  working set to about 12 paths, and receipts to recent relevant entries.
+- Compress noisy history into milestone bullets with a commit, PR, doc path, or
+  log path pointer.
 
-### Bounds
-
-- Snapshot: max 25 lines.
-- Done (recent): max 7 bullets.
-- Working Set: max 12 paths.
-- Receipts: keep only recent relevant entries.
-
-If sections grow noisy, compress older entries into milestone bullets with a
-pointer to the relevant commit, PR, doc path, or log path.
-
-### Durable Decisions
-
-Use lightweight ADR-style entries:
+Use lightweight ADR-style entries for durable decisions:
 `D001 ACTIVE: use shared modal composition for patient workflows.`
 
-Entries should be specific and verifiable — include what changed, what was
-verified, and whether a migration was required. Avoid vague summaries.
+---
+
+## Scope And Refactors
+
+Refactor only when the current task requires it, the existing structure blocks
+correctness, or the change clearly reduces future complexity and can be
+verified safely.
+
+Prefer local improvements over architectural rewrites. Drive-by refactors
+during feature work are not allowed.
+
+Hand-written files around 300 LOC are easier to review. When a touched file
+crosses about 400 LOC, either justify the cohesion or propose a split if the
+task already needs that area. Do not split files purely to hit a number.
 
 ---
 
-## Multi-Agent Workflow
+## Frontend Work
 
-Multiple coding assistants may work on CareFlow. All follow these rules
-regardless of provider. Route work by task shape (UI iteration, long backend,
-schema/migration, cross-cutting refactor), not by model brand. The agent with
-verified access to the relevant tooling wins.
+Before changing authenticated UI, read `PRODUCT.md`, `DESIGN.md`, and
+`docs/engineering/ui-principles.md`.
 
----
-
-## Frontend Discipline
-
-Before changing authenticated UI:
-
-- Read `PRODUCT.md` and `DESIGN.md`.
-- Read `docs/engineering/ui-principles.md`.
-- Reuse existing tokens/components.
+- Reuse existing tokens, components, and density patterns.
 - Preserve workflow density and visual restraint.
 - Prefer composition over giant page components.
-- Verify major UI changes visually in Chrome when feasible.
-
-Use Google Chrome for CareFlow visual inspection/QA unless the user explicitly
-asks for another browser surface.
+- Avoid tutorial-style copy, multi-sentence help blocks, example placeholders,
+  and instructional helper text. CareFlow is for trained staff.
+- Verify major UI changes visually in Chrome when feasible, unless the user asks
+  for another browser surface.
 
 ---
 
-## Backend Discipline
+## Backend Work
 
-Before changing backend behavior:
+Before changing backend behavior, read
+`docs/engineering/backend-guidelines.md`.
 
-- Read `docs/engineering/backend-guidelines.md`.
-- Keep APIs facility-scoped and role-aware.
+- Keep APIs facility-scoped, role-aware, and auditable where patient-adjacent.
 - Preserve auth and permission boundaries.
-- Add migrations when models change; never edit existing migrations unless the
-  user explicitly asks and the migration has not been shared.
+- Add migrations when models change.
+- Never edit existing migrations unless the user explicitly asks and the
+  migration has not been shared.
 - Keep storage abstractions compatible with future object storage backends.
-
-Mutations to patient-adjacent models should be auditable. If a model lacks
-audit hooks and your task touches it, flag this in `CONTINUITY.md` rather than
-adding ad-hoc logging.
-
----
-
-## Modularity
-
-Split growing workflows into components, hooks, serializers, services, and
-utilities. Keep public interfaces stable; isolate volatile logic behind smaller
-helpers.
-
-### File Size
-
-Soft target: about 300 LOC for hand-written files. This is a smell, not a hard
-rule.
-
-When a hand-written file crosses about 400 LOC, either:
-
-- justify why splitting would harm cohesion, or
-- propose a split as part of the current task, only if the task already touches
-  that file.
-
-Do not split files purely to hit the target during unrelated work.
-
----
-
-## Git Rules
-
-Default to local-only work unless the user explicitly asks to stage, commit,
-push, or open a PR.
-
-Never:
-
-- overwrite unrelated changes
-- use destructive git operations without explicit instruction
-- rebase, amend, force-push, reset, or delete branches unless requested
-- stage unrelated files
-
-Always:
-
-- keep patches reviewable and scoped
-- check `git status --short` before staging
-- use non-interactive git commands
-- avoid formatting churn unrelated to the task
-
-Branch, commit, and PR naming conventions belong in project workflow docs. When
-asked to name a branch, commit work, push, or draft PR copy, read
-`docs/engineering/git-workflow.md` first. When drafting PR copy, also follow
-`.github/pull_request_template.md`.
-
----
-
-## Escalation Rules
-
-Pause and ask before:
-
-- destructive operations
-- schema redesigns
-- authentication behavior changes
-- deleting large code sections
-- introducing infrastructure or platform changes
-- introducing paid or vendor dependencies
-- changing workflow-critical UI patterns
-- introducing new global UX systems
-- making production or remote API writes
+- If a patient-adjacent model lacks audit hooks and your task touches it, flag
+  the gap in `CONTINUITY.md` instead of adding ad-hoc logging.
 
 Never run commands against a shared or production database without explicit
 instruction.
+
+---
+
+## Git And Escalation
+
+Default to local-only work unless the user explicitly asks to stage, commit,
+push, open a PR, merge, or delete a branch.
+
+- Check `git status --short` before staging.
+- Stage only files related to the requested work.
+- Use non-interactive git commands.
+- Do not rebase, amend, force-push, reset, delete branches, or run destructive
+  operations unless explicitly requested.
+- Before branch naming, committing, pushing, or drafting PR copy, read
+  `docs/engineering/git-workflow.md`.
+- For PR copy, also follow `.github/pull_request_template.md`.
+
+Pause and ask before destructive operations, schema redesigns, auth behavior
+changes, deleting large code sections, infrastructure/platform changes, new
+paid or vendor dependencies, workflow-critical UI pattern changes, new global
+UX systems, or production/remote API writes.
 
 ---
 
@@ -269,54 +187,56 @@ instruction.
 
 Read `docs/engineering/testing.md` for full pass criteria.
 
-- **UI**: no console errors, matches density/spacing tokens, no layout shift.
-  Major changes: `npm run dev` + Chrome visual QA. Minor: use judgment, note if
-  skipped.
-- **Backend**: `manage.py check` + relevant tests pass. Facility-scoped
-  endpoints reject cross-facility. Migrations apply cleanly.
-- **Refactors**: existing tests pass, `npm run build` succeeds, grep confirms
-  old symbols removed.
+- UI: no console errors, density/spacing match tokens, no layout shift. Major
+  changes need `npm run dev:*` plus visual QA when feasible.
+- Frontend packages: run affected `lint`, `typecheck`, and `build` scripts.
+- Backend: run `manage.py check` and relevant tests. Facility-scoped endpoints
+  must reject cross-facility access.
+- Refactors: existing tests pass, builds succeed, and grep confirms old symbols
+  or stale paths were removed.
+- Docs-only changes: run `git diff --check` and targeted grep for stale terms.
 
-If checks are skipped, explain why.
+Explain skipped checks.
 
 ---
 
-## Commands
+## Communication
 
-Run from the relevant directory. The frontend lives in an npm workspaces
-monorepo — workspace commands work from the repo root.
+Keep reasoning private. Report actions, blockers, verification, skipped checks,
+residual risks, and final outputs; avoid preambles unless they help the user
+act.
 
-- **Frontend**: `npm -w @careflow/clinician run build|lint|typecheck|dev`
-  from the repo root, or the same script names from inside `apps/clinician/`.
-- **Generated API types**: `npm run generate` from the repo root (requires the
-  backend Python venv). Writes `packages/api-types/src/{schema.yaml,generated.ts}`.
-- **Backend safe** (run unprompted): `./venv/bin/python manage.py check`,
-  `./venv/bin/python manage.py test` (from `backend/`).
-- **Backend state-changing** (need task justification):
-  `manage.py migrate`, `makemigrations`, `loaddata <fixture>`.
+---
+
+## Common Commands
+
+Run workspace commands from the repo root unless a README says otherwise.
+
+- Clinician frontend:
+  `npm -w @careflow/clinician run lint|typecheck|build`
+- Patient frontend:
+  `npm -w @careflow/patient run lint|typecheck|build`
+- Local dev:
+  `npm run dev:clinician` and `npm run dev:patient`
+- Generated API types:
+  `npm run generate`
+- Backend safe checks from `backend/`:
+  `./venv/bin/python manage.py check`
+  `./venv/bin/python manage.py test`
+- Backend state-changing commands need task justification:
+  `./venv/bin/python manage.py migrate`
+  `./venv/bin/python manage.py makemigrations`
+  `./venv/bin/python manage.py loaddata <fixture>`
 
 Never run database reset/flush, destructive seeds, production migrations, or
 shared-database writes without explicit instruction.
 
 ---
 
-## Communication Style
-
-- Think privately (e.g. in `<thought>` tags or internal thinking spaces).
-- Do not print reasoning in the final response to the user.
-- Skip preambles and explanations unless necessary.
-- Only report actions, blockers, and final outputs.
-
----
-
 ## Definition Of Done
 
-A task is complete when:
-
-- requested behavior works or the requested question is answered
-- diff is appropriately scoped
-- relevant verification was performed
-- skipped checks are explained
-- migrations are included if required
-- `CONTINUITY.md` is updated for meaningful state changes
-- residual risks or follow-ups are called out clearly
+A task is complete when the requested behavior works or the requested question
+is answered, the diff is scoped, relevant verification was performed, skipped
+checks are explained, migrations are included when required, `CONTINUITY.md` is
+updated for meaningful state changes, and residual risks or follow-ups are
+called out clearly.

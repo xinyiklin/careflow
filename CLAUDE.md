@@ -7,7 +7,7 @@ this file wins.
 ## Tool Use
 
 - `Read` before `Edit`/`Write`. Never `Write` without reading first.
-- Prefer `Grep` over shell grep for codebase searches.
+- Prefer `Grep` over shell grep for codebase searches; otherwise use `rg`.
 - Frontend lives in an npm workspaces monorepo. Run workspace commands from
   the repo root (`npm -w @careflow/clinician run ...`) or from
   `apps/clinician/` directly. Backend commands run from `backend/` with
@@ -15,8 +15,10 @@ this file wins.
 
 ## Visual QA
 
-Use `mcp__Claude_in_Chrome` when available: `navigate` → `get_page_text` or
-`computer` (screenshot) after `npm run dev`. Note the gap if unavailable.
+Use `mcp__Claude_in_Chrome` when available for Chrome visual QA required by
+`AGENTS.md` or UI docs: `navigate` → `get_page_text` or `computer`
+(screenshot) after the relevant `npm run dev:*` command. Note the gap if
+unavailable.
 
 ## Communication
 

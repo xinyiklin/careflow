@@ -12,22 +12,27 @@ Use the current backend layout:
 - `appointments/`: scheduling, appointment behavior, edit sessions, activity.
 - `audit/`: audit-style event records.
 - `billing/`: encounter-linked superbills, fee schedules, and CPT catalog.
-- `clinical/`: encounters and progress note charting.
+- `clinical/`: encounters, progress note charting, and vitals.
 - `facilities/`: facilities, staff, resources, roles, permissions, operating
   hours, and appointment configuration.
 - `insurance/`: insurance carriers and patient policies.
-- `medications/`: patient medication records.
+- `medications/`: patient medication records, refill requests, pharmacy
+  preferences, and prescriber delegation scaffolding.
+- `messaging/`: secure clinician-patient message threads and messages.
 - `organizations/`: organization profile, memberships, facilities, and
   organization-level preferences.
 - `patients/`: demographics, search, Patient Hub data, phones, emergency
   contacts, care team, pharmacies, and documents.
 - `shared/`: cross-domain models, serializers, and management utilities.
-- `users/`: auth, memberships, current-user behavior, and preferences.
+- `users/`: auth, memberships, portal accounts, current-user behavior, and
+  preferences.
 
 Patient-scoped apps (`allergies`, `clinical`, `insurance`, `medications`) each
-own their own models, serializers, and views for clean domain isolation. On the
-frontend these features live under `features/patients/` because their UI is
-accessed within the Patient Hub context.
+own their own models, serializers, and views for clean domain isolation. Many
+patient-scoped clinician workflows live under `features/patients/`.
+Workflow-specific surfaces may live in their own feature folders when the
+domain warrants it, such as medications/refills or messaging. Avoid scattering
+patient logic into unrelated folders.
 
 When a workflow grows, split it into serializers, viewsets, services, storage
 helpers, or utilities instead of packing business logic into one large view.

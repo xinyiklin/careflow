@@ -29,8 +29,9 @@ before — the rename touches dozens of doc/script references for no gain.
 ### `apps/clinician`
 
 Staff-facing EHR-style workspace: scheduling, patient registration, clinical
-charting, documents, billing, admin. Dense, desktop-first, keyboard-friendly.
-Hits the clinician-side `/v1/*` endpoints (facility-scoped, role-aware).
+charting, documents, billing, refills, messaging, admin. Dense,
+desktop-first, keyboard-friendly. Hits the clinician-side `/v1/*` endpoints
+(facility-scoped, role-aware).
 
 Auth: same Django `User` model, but the user must have `OrganizationMembership`
 + `Staff` profile to access the clinician surface. Per-facility permissions
@@ -38,9 +39,11 @@ gate every viewset via `FacilityScopedViewSetMixin`.
 
 ### `apps/patient`
 
-Patient-facing portal: view profile, upcoming/past appointments, medications,
-allergies. Calm, mobile-first, read-only in v1. Hits the patient-side
-`/v1/portal/*` endpoints (single-patient-scoped via portal account link).
+Patient-facing portal: dashboard/profile, appointments, medications/refills,
+preferred pharmacy, allergies, medical summary, vitals, messaging,
+localization, and theme preferences. Calm, mobile-first, self-service. Hits the
+patient-side `/v1/portal/*` endpoints (single-patient-scoped via portal account
+link).
 
 Auth: a `User` with an active `PatientPortalAccount` linking to one
 `patients.Patient` row. `PatientPortalAccount.clean()` rejects any user that
@@ -63,12 +66,12 @@ Why a join model instead of a `User.role` flag or `Patient.user` FK:
 
 ### `packages/api-types`
 
-Generated from `drf-spectacular` (Django) → OpenAPI 3 schema → `openapi-typescript`
-→ `generated.ts`. Both `schema.yaml` and `generated.ts` are gitignored;
-developers regenerate with `npm run generate` from the repo root. Regenerate
-after backend serializer changes. The CI guard runs `npm run generate` and
-fails the build if `generated.ts` diverges from what HEAD expects (added
-in a future PR — see Follow-ups).
+Generated from `drf-spectacular` (Django) → OpenAPI 3 schema →
+`openapi-typescript` → `generated.ts`. `schema.yaml` and `generated.ts` are
+committed so frontend consumers have a stable contract. Regenerate with
+`npm run generate` from the repo root after backend API or serializer schema
+changes. Add a dedicated schema-drift CI guard if this becomes a frequent
+review risk.
 
 ### Why no other shared packages yet
 
@@ -93,19 +96,19 @@ When to extract:
 ## Subdomain plan
 
 ```text
-app.careflow.xinyiklin.com      → apps/clinician build (Vercel project A)
+careflow.xinyiklin.com          → apps/clinician build (Vercel project A)
 portal.careflow.xinyiklin.com   → apps/patient build (Vercel project B)
 api.careflow.xinyiklin.com      → backend (Render)
 ```
 
 Cookie domain in production is `.careflow.xinyiklin.com`
 (`backend/config/settings.py`). The refresh cookie issued by `/v1/users/token/`
-is therefore valid across all three subdomains — no separate auth flow per
-app is needed.
+is therefore valid across CareFlow subdomains. The portal still has a separate
+portal-account role boundary under `/v1/portal/`.
 
-When the patient subdomain goes live, add `https://portal.careflow.xinyiklin.com`
-to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` in the backend's
-production environment (same vars that today list `app.careflow...`).
+Keep both frontend origins in `CORS_ALLOWED_ORIGINS` and
+`CSRF_TRUSTED_ORIGINS` in the backend's production environment. CSRF may also
+need the API domain depending on deployment shape.
 
 ## Vercel configuration (per project)
 
@@ -117,7 +120,7 @@ Project: careflow-clinician
   Install Command: npm install --workspaces --include-workspace-root
   Build Command: npm run build
   Output Directory: dist
-  Domains: app.careflow.xinyiklin.com
+  Domains: careflow.xinyiklin.com
 
 Project: careflow-patient
   Root Directory: apps/patient
@@ -148,8 +151,8 @@ Three options, in order of effort:
    business logic via shared packages. Heaviest, best UX. Only worth it if the
    portal becomes engagement-heavy (long sessions, gestures, offline-first).
 
-For a read-mostly portal (forms, lists, messages), Capacitor is the natural
-landing zone after PWA proves out. Don't pre-build the pipeline.
+For a form, list, and message-heavy portal, Capacitor is the natural landing
+zone after PWA proves out. Don't pre-build the pipeline.
 
 ## When to add Turborepo
 
@@ -171,8 +174,9 @@ typecheck` invocation.
 ## Follow-ups (tracked here, not built)
 
 - **Schema-drift CI guard**: `npm run generate && git diff --exit-code
-  packages/api-types/src/generated.ts`. Catches the case where a serializer
-  change lands without a regenerated `generated.ts`.
+  packages/api-types/src/generated.ts packages/api-types/src/schema.yaml`.
+  Catches the case where a serializer change lands without regenerated API
+  artifacts.
 - **Patient self-registration**: out of scope in v1. When added, route through
   a clinician-issued one-time token rather than a public signup endpoint.
 - **2FA / SSO**: lives on `User`, not `PatientPortalAccount`. Benefits both
