@@ -65,18 +65,22 @@ Good frontend verification covers:
 - components use shared tokens/primitives instead of one-off styles
 - responsive behavior is checked when the touched surface depends on breakpoints
 
-Useful commands:
+Useful commands from the repo root:
 
 ```bash
-cd frontend
-npx eslint <changed-files>
-npm run build
-npm run dev
+npm -w @careflow/clinician run lint
+npm -w @careflow/clinician run typecheck
+npm -w @careflow/clinician run build
+npm -w @careflow/patient run lint
+npm -w @careflow/patient run typecheck
+npm -w @careflow/patient run build
+npm run dev:clinician
+npm run dev:patient
 ```
 
-Prefer targeted lint for changed frontend files while iterating. Run
-`npm run build` when frontend source changes before finalizing unless the user
-explicitly asks for a faster partial pass.
+Prefer targeted lint for changed frontend files while iterating when available.
+Run the affected app's `build` script when frontend source changes before
+finalizing unless the user explicitly asks for a faster partial pass.
 
 ## Chrome Visual QA
 
@@ -99,7 +103,7 @@ For tiny copy or class-only edits, visual QA may be skipped with a short reason.
 Good refactor verification proves behavior parity:
 
 - existing tests covering the behavior still pass
-- `npm run build` succeeds if frontend source changed
+- the affected frontend app's `build` script succeeds if frontend source changed
 - grep for old symbol names returns no meaningful hits after renames
 - no new imports of deprecated paths
 - affected call sites still use the intended public interface
