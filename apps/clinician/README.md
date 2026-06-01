@@ -2,8 +2,9 @@
 
 React frontend for CareFlow clinicians and admin staff, an EHR-style clinic
 workflow demo covering
-scheduling, patient registration, clinical charting, medications, allergies,
-documents, billing, facility administration, and organization administration.
+scheduling, patient registration, clinical charting, vitals, medications,
+allergies, refill management, secure patient messaging, documents, billing,
+facility administration, and organization administration.
 
 The app is built to feel like a compact clinical workspace: facility-scoped,
 permission-aware, keyboard-friendly where practical, and organized around
@@ -12,6 +13,7 @@ front-desk and clinical workflows rather than raw database tables.
 ## Tech Stack
 
 - React 19
+- TypeScript
 - Vite
 - React Router
 - TanStack React Query
@@ -27,9 +29,13 @@ front-desk and clinical workflows rather than raw database tables.
 - Patient workflows with Quick Start registration, smart search, inline Patient
   Hub registration editing, phone/SSN formatting, insurance, pharmacy, care
   team, emergency contacts, and a unified Timeline.
-- Clinical charting with encounters and SOAP progress notes, including draft,
-  signed, and unsigned states.
+- Clinical charting with encounters, SOAP progress notes, and a vitals intake
+  modal, including draft, signed, and unsigned states.
 - Medications and allergies tracked in Patient Hub with active/historical state.
+- Refill request inbox plus a per-patient refills tab for reviewing and
+  resolving patient-initiated medication refill requests.
+- Secure messaging Inbox with threaded clinician–patient conversations, unread
+  badges, and reply/resolve actions.
 - Document Center with patient-scoped document lists, uploads, in-app PDF
   preview, download, category management, and bundled PDF export.
 - Billing workspace with encounter-linked records and fee-schedule handoff.
@@ -51,6 +57,8 @@ src/
     billing/        Billing workspace and encounter billing records
     documents/      Document Center and shared patient document workspace
     facilities/     Active facility context and facility config hooks
+    medications/    Refill inbox, refill request actions, and hooks
+    messaging/      Secure messaging Inbox, threads, and reply composer
     patients/       Patient search, Patient Hub, clinical, insurance
     schedule/       Schedule page, grid/agenda/resource views, utilities
   shared/
