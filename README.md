@@ -46,7 +46,9 @@ compliance.
   preferences, fee schedules, and a read-only activity log.
 - **Hardening**: facility-scoped APIs, short-lived JWT access plus HTTP-only
   refresh cookies, CSRF on cookie-backed routes, SSN encrypted at rest with
-  Fernet, and audit events for sensitive mutations.
+  Fernet, audit events for sensitive mutations, and lockout-safe security
+  administration that stops admins from stripping their own — or the facility's
+  last — administrative access (org owners keep break-glass recovery).
 - **Patient portal** (v1): separate React app at `apps/patient/` for
   patient-facing read-only views (profile, appointments, medications,
   allergies). Shares the Django backend through a dedicated `/v1/portal/`
