@@ -3,7 +3,6 @@
 [![CI](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml/badge.svg)](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml)
 [![Clinician app](https://img.shields.io/badge/Clinician%20app-careflow.xinyiklin.com-1F3A60?style=flat&logo=vercel&logoColor=white)](https://careflow.xinyiklin.com)
 [![Patient portal](https://img.shields.io/badge/Patient%20portal-portal.careflow.xinyiklin.com-2A6F77?style=flat&logo=vercel&logoColor=white)](https://portal.careflow.xinyiklin.com)
-[![Backend API](https://img.shields.io/badge/Backend%20API-api.careflow.xinyiklin.com-46E3B7?style=flat&logo=render&logoColor=white)](https://api.careflow.xinyiklin.com)
 [![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](./LICENSE)
 
 CareFlow is a full-stack EHR-style clinic workflow demo for scheduling,
