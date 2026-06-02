@@ -1,7 +1,8 @@
 # CareFlow
 
 [![CI](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml/badge.svg)](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-careflow.xinyiklin.com-1F3A60?style=flat&logo=vercel&logoColor=white)](https://careflow.xinyiklin.com)
+[![Clinician app](https://img.shields.io/badge/Clinician%20app-careflow.xinyiklin.com-1F3A60?style=flat&logo=vercel&logoColor=white)](https://careflow.xinyiklin.com)
+[![Patient portal](https://img.shields.io/badge/Patient%20portal-portal.careflow.xinyiklin.com-2A6F77?style=flat&logo=vercel&logoColor=white)](https://portal.careflow.xinyiklin.com)
 [![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](./LICENSE)
 
 CareFlow is a full-stack EHR-style clinic workflow demo for scheduling,
@@ -15,7 +16,9 @@ closer to a real clinic workspace.
 
 ## Live Demo
 
-https://careflow.xinyiklin.com
+- Clinician app: https://careflow.xinyiklin.com
+- Patient portal: https://portal.careflow.xinyiklin.com
+- Backend API: https://api.careflow.xinyiklin.com
 
 CareFlow uses synthetic demo data only. It is not production medical software,
 not a real EHR, and has not been formally audited or certified for HIPAA
