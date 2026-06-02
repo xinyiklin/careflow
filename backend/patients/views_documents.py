@@ -262,10 +262,10 @@ class PatientDocumentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
         if not user_has_facility_permission(
             self.request.user,
             facility.id,
-            "documents.manage",
+            "documents.delete",
         ):
             raise PermissionDenied(
-                "You do not have access to update patient documents."
+                "You do not have access to remove patient documents."
             )
 
         instance.is_active = False

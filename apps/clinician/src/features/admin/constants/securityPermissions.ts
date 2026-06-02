@@ -41,6 +41,14 @@ export const SECURITY_PERMISSION_GROUPS = [
     ],
   },
   {
+    key: "messaging",
+    label: "Messaging",
+    permissions: [
+      { key: "messaging.view", label: "View messages" },
+      { key: "messaging.respond", label: "Reply to messages" },
+    ],
+  },
+  {
     key: "allergies",
     label: "Allergies",
     permissions: [
@@ -74,6 +82,7 @@ export const SECURITY_PERMISSION_GROUPS = [
     permissions: [
       { key: "documents.view", label: "View documents" },
       { key: "documents.manage", label: "Upload and edit documents" },
+      { key: "documents.delete", label: "Delete documents" },
       {
         key: "documents.categories.manage",
         label: "Manage document categories",
@@ -101,6 +110,11 @@ export const SECURITY_PERMISSION_GROUPS = [
       { key: "admin.facility.manage", label: "Manage facility settings" },
       { key: "admin.security.manage", label: "Manage security permissions" },
     ],
+  },
+  {
+    key: "audit",
+    label: "Audit & Compliance",
+    permissions: [{ key: "audit.view", label: "View activity log" }],
   },
 ] as const;
 
