@@ -34,7 +34,7 @@ export default function SecurityColumnHeader({
   return (
     <th
       className={[
-        "min-w-[180px] border-b border-cf-border bg-cf-surface px-3 py-3 text-left align-top",
+        "min-w-[180px] border-b border-cf-border bg-transparent px-3 py-3 text-left align-top",
         className,
       ]
         .filter(Boolean)

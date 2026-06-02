@@ -2,7 +2,6 @@ from django.db.models import Q
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
 
-from facilities.access import user_can_admin_facility
 from facilities.security import user_has_facility_permission
 from organizations.permissions import get_user_organization_membership, is_org_admin
 
@@ -43,13 +42,10 @@ class AuditEventViewSet(viewsets.ReadOnlyModelViewSet):
                 raise PermissionDenied(
                     "Facility-scoped audit events require a facility."
                 )
-            if not (
-                user_can_admin_facility(self.request.user, facility_id)
-                and user_has_facility_permission(
-                    self.request.user,
-                    facility_id,
-                    "admin.facility.manage",
-                )
+            if not user_has_facility_permission(
+                self.request.user,
+                facility_id,
+                "audit.view",
             ):
                 raise PermissionDenied(
                     "You do not have access to this facility activity log."

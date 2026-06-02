@@ -15,10 +15,10 @@ export default function PermissionGroupHeader({
     <tr>
       <td
         colSpan={colSpan}
-        className="border-b border-cf-border bg-cf-surface-soft/60 px-3 py-2.5"
+        className="border-b border-cf-border bg-cf-surface-soft/70 px-3 py-2.5 backdrop-blur-md"
       >
         <div className="flex items-center justify-between gap-3 text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
-          <span className="inline-flex items-center gap-2">
+          <span className="sticky left-3 z-[6] inline-flex items-center gap-2">
             <ShieldCheck
               className={["h-3.5 w-3.5", iconClassName]
                 .filter(Boolean)
@@ -26,7 +26,7 @@ export default function PermissionGroupHeader({
             />
             {group.label}
           </span>
-          <span className="font-mono normal-case tracking-normal">
+          <span className="sticky right-3 z-[6] font-mono normal-case tracking-normal">
             {group.permissions.length} permissions
           </span>
         </div>

@@ -29,9 +29,9 @@ export default function PermissionMatrixShell({
       <div className="min-w-0">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[780px] border-collapse text-sm">
-            <thead className="sticky top-0 z-10 bg-cf-surface">
+            <thead className="sticky top-0 z-10 bg-cf-surface/80 backdrop-blur-md">
               <tr>
-                <th className="sticky left-0 z-20 w-[250px] border-r border-b border-cf-border bg-cf-surface px-3 py-4 text-left align-top">
+                <th className="sticky left-0 z-20 w-[250px] border-r border-b border-cf-border bg-cf-surface/80 px-3 py-4 text-left align-top backdrop-blur-md">
                   <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
                     {cornerLabel}
                   </div>
