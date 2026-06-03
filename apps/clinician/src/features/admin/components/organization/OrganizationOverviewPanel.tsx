@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Pencil, RefreshCw } from "lucide-react";
 
 import useOrganizationOverview from "../../hooks/organization/useOrganizationOverview";
 import useOrganizationFacilities from "../../hooks/organization/useOrganizationFacilities";
@@ -95,7 +95,8 @@ export default function OrganizationOverviewPanel() {
               onClick={() => setIsModalOpen(true)}
               disabled={loading || saving || !org}
             >
-              Edit Details
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
             </Button>
           </>
         }

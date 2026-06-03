@@ -165,7 +165,7 @@ export default function ScheduleSidebar({
   const displayMonthIndex = Number((displayMonth || "").split("-")[1]) - 1;
 
   return (
-    <aside className="hidden min-h-0 overflow-y-auto bg-cf-surface-muted/70 px-3 py-3 lg:block">
+    <aside className="hidden min-h-0 overflow-y-auto border-r border-cf-border bg-cf-surface-muted/70 px-3 py-3 lg:block">
       <ScheduleHeader
         facility={facility}
         scheduleMode={scheduleMode}

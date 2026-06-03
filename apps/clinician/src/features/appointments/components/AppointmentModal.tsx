@@ -656,12 +656,6 @@ export default function AppointmentModal({
                     <div>
                       <FieldLabel>Room</FieldLabel>
                       <Input {...register("room")} />
-                      {selectedResource?.default_room ? (
-                        <p className="mt-1 text-xs text-cf-text-subtle">
-                          Defaults to {selectedResource.default_room} for this
-                          resource.
-                        </p>
-                      ) : null}
                     </div>
                   </div>
 
@@ -774,7 +768,7 @@ export default function AppointmentModal({
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-3 border-t border-cf-border bg-cf-surface px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-cf-border bg-cf-surface px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-center gap-2">
               {displayedMode === "edit" ? (
                 <Button type="button" onClick={onDelete} variant="danger">
