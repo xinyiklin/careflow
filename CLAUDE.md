@@ -18,12 +18,18 @@ Claude-specific behavior; when it conflicts with `AGENTS.md`, this file wins.
 
 ## Visual QA
 
-Use `mcp__Claude_in_Chrome` when available for Chrome visual QA required by
-`AGENTS.md` or UI docs: `navigate` → `get_page_text` or `computer`
-(screenshot) after the relevant `npm run dev:*` command. Note the gap if
-unavailable.
+Verify major UI changes in a browser when feasible (`AGENTS.md` default).
+Pick the tool by what you're verifying:
 
-## Communication
+- **Layout / responsive / visual fidelity** → **Claude in Chrome**
+  (`mcp__Claude_in_Chrome`): real window, accurate at any width
+  (`resize_window`, e.g. 1440 / 768 / 375), faithful screenshots.
+- **Content / computed styles / tokens / console** → **Claude Preview**
+  (`mcp__Claude_Preview`): `preview_snapshot` / `preview_inspect` are
+  deterministic (no pixel-guessing); `preview_screenshot` for a glance, fall
+  back to snapshot/inspect if blank.
+- If the chosen tool's bridge isn't connected, use the other and note the gap.
 
-Think privately. Report actions, blockers, and outputs only. Skip preambles
-and reasoning unless asked.
+Default here: **Chrome** — dense clinician UI, width fidelity matters.
+`navigate` to `http://localhost:5173` after `npm run dev:clinician`, then
+`get_page_text` / `read_page` / `computer`.

@@ -90,8 +90,8 @@ Before finishing:
 - Run the verification checklist for the change type.
 - Update `CONTINUITY.md` if state changed meaningfully.
 - Call out skipped checks, residual risks, and follow-ups.
-- Start the final reply with a brief ledger snapshot: Goal, Now, Next, and Open
-  Questions.
+- For non-trivial tasks, start the final reply with a brief ledger snapshot:
+  Goal, Now, Next, and Open Questions. Trivial Q&A may skip it.
 
 ---
 
@@ -124,7 +124,9 @@ during feature work are not allowed.
 
 Hand-written files around 300 LOC are easier to review. When a touched file
 crosses about 400 LOC, either justify the cohesion or propose a split if the
-task already needs that area. Do not split files purely to hit a number.
+task already needs that area. Do not split files purely to hit a number. This
+~300/400 LOC target is per file; the separate per-PR size budget lives in
+`docs/engineering/git-workflow.md`.
 
 ---
 
@@ -138,8 +140,6 @@ Before changing authenticated UI, read `PRODUCT.md`, `DESIGN.md`, and
 - Prefer composition over giant page components.
 - Avoid tutorial-style copy, multi-sentence help blocks, example placeholders,
   and instructional helper text. CareFlow is for trained staff.
-- Verify major UI changes visually in Chrome when feasible, unless the user asks
-  for another browser surface.
 
 ---
 
@@ -157,8 +157,8 @@ Before changing backend behavior, read
 - If a patient-adjacent model lacks audit hooks and your task touches it, flag
   the gap in `CONTINUITY.md` instead of adding ad-hoc logging.
 
-Never run commands against a shared or production database without explicit
-instruction.
+Destructive and shared/production-DB command rules live under Common Commands
+and `docs/engineering/backend-guidelines.md`.
 
 ---
 
@@ -171,7 +171,11 @@ push, open a PR, merge, or delete a branch.
 - Stage only files related to the requested work.
 - Use non-interactive git commands.
 - Do not rebase, amend, force-push, reset, delete branches, or run destructive
-  operations unless explicitly requested.
+  operations unless explicitly requested. Feature-branch history rewrites and
+  the `--force-with-lease` exception are governed by
+  `docs/engineering/git-workflow.md`; never force-push `main`.
+- Never bypass pre-commit hooks (`--no-verify`, `--no-gpg-sign`); if a hook
+  fails, fix the cause (detail in `docs/engineering/git-workflow.md`).
 - Before branch naming, committing, pushing, or drafting PR copy, read
   `docs/engineering/git-workflow.md`.
 - For PR copy, also follow `.github/pull_request_template.md`.
@@ -227,6 +231,13 @@ Run workspace commands from the repo root unless a README says otherwise.
   `./venv/bin/python manage.py migrate`
   `./venv/bin/python manage.py makemigrations`
   `./venv/bin/python manage.py loaddata <fixture>`
+
+Port reservations: CareFlow owns `5173-5180`. The clinician app is fixed to
+`5173` and the patient app to `5174` (both `strictPort`; see each app's
+`README` for per-surface detail). If a reserved port is bound, the app is
+already running — connect to it instead of starting a second dev server or
+switching ports. Sibling projects: role-fit-ai `5181-5183`, portfolio
+`5184-5185`.
 
 Never run database reset/flush, destructive seeds, production migrations, or
 shared-database writes without explicit instruction.
