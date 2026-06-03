@@ -1,8 +1,11 @@
 # CareFlow — Claude Overrides
 
-`AGENTS.md` is the canonical guide. Read it and `CONTINUITY.md` before acting.
-This file adds Claude-specific behavior; when it conflicts with `AGENTS.md`,
-this file wins.
+`AGENTS.md` is the canonical guide. It is imported below, so its rules load
+into context every session — no separate read step. `CONTINUITY.md` is **not**
+imported (it changes constantly); read it fresh before acting. This file adds
+Claude-specific behavior; when it conflicts with `AGENTS.md`, this file wins.
+
+@AGENTS.md
 
 ## Tool Use
 
