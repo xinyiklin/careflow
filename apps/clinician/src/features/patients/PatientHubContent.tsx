@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import useFacility from "../facilities/hooks/useFacility";
@@ -14,7 +14,8 @@ import { useVitalsIntakeModal } from "./hooks/useVitalsIntakeModal";
 import PatientIdentitySidebar from "./components/PatientHubSidebar";
 import PatientHubTabContent from "./components/PatientHubTabContent";
 import PatientHubModals from "./components/PatientHubModals";
-import { HUB_TABS, TabButton } from "./components/PatientHubSections";
+import { HUB_TABS } from "./components/PatientHubSections";
+import { Tabs, getTabId, getTabPanelId } from "../../shared/components/ui";
 import { getPatientChartName } from "./utils/patientDisplay";
 import { getSafeInitialTab } from "./PatientHubContent.helpers";
 import type { EntityId } from "../../shared/api/types";
@@ -34,6 +35,13 @@ import type {
   PatientRecord,
   PharmacyRecord,
 } from "./types";
+
+// HUB_TABS carries an icon per section for other surfaces; the tab strip is
+// label-only, so map down to the Tabs option shape (value/label) once.
+const HUB_TAB_OPTIONS = HUB_TABS.map(({ key, label }) => ({
+  value: key,
+  label,
+}));
 
 export function PatientHubContent({
   patientId,
@@ -72,6 +80,7 @@ export function PatientHubContent({
   const [activeTab, setActiveTab] = useState(() =>
     getSafeInitialTab(initialTab)
   );
+  const tabsId = useId();
   const securityPermissions =
     selectedMembership?.effective_security_permissions || {};
   const canViewClinical = Boolean(securityPermissions["clinical.view"]);
@@ -264,16 +273,13 @@ export function PatientHubContent({
         <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex flex-none items-center bg-cf-surface px-4">
             <div className="min-w-0 flex-1">
-              <div className="flex items-end gap-0">
-                {HUB_TABS.map((tab) => (
-                  <TabButton
-                    key={tab.key}
-                    tab={tab}
-                    isActive={activeTab === tab.key}
-                    onClick={setActiveTab}
-                  />
-                ))}
-              </div>
+              <Tabs
+                options={HUB_TAB_OPTIONS}
+                value={activeTab}
+                onChange={setActiveTab}
+                ariaLabel="Patient hub sections"
+                idBase={tabsId}
+              />
             </div>
             <button
               type="button"
@@ -286,6 +292,9 @@ export function PatientHubContent({
           </div>
 
           <div
+            role="tabpanel"
+            id={getTabPanelId(tabsId)}
+            aria-labelledby={getTabId(tabsId, activeTab)}
             className={[
               "min-h-0 flex-1 bg-cf-page-bg",
               activeTab === "documents"

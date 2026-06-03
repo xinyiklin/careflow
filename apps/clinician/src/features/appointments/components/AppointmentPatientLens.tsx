@@ -107,8 +107,11 @@ function DetailRow({
           title={copied ? "Copied" : `Copy ${label.toLowerCase()}`}
           className="inline-flex min-w-0 cursor-pointer items-baseline justify-end gap-1.5 text-right text-xs font-medium text-cf-text transition-colors hover:text-cf-accent"
         >
-          <span className={valueClassName}>{value}</span>
+          {/* Icon precedes the value so the value stays flush-right, aligned
+              with non-copyable rows; the icon lives in the reserved gap to its
+              left and only fades in on hover (no layout shift). */}
           <CopyIndicator copied={copied} />
+          <span className={valueClassName}>{value}</span>
         </button>
       ) : (
         <span

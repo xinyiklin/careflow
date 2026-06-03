@@ -24,6 +24,7 @@ import {
   Layers,
   Printer,
   CalendarDays,
+  Pencil,
   RefreshCw,
 } from "lucide-react";
 
@@ -156,7 +157,8 @@ export default function FacilityOverviewPanel() {
               onClick={() => setIsModalOpen(true)}
               disabled={loading || saving}
             >
-              Edit Overview
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
             </Button>
           </>
         }

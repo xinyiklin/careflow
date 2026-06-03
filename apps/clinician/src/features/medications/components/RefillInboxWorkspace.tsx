@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { ChevronDown, RefreshCw } from "lucide-react";
 
 import {
@@ -6,6 +6,9 @@ import {
   Button,
   EmptyState,
   SegmentedControl,
+  Tabs,
+  getTabId,
+  getTabPanelId,
 } from "../../../shared/components/ui";
 import WorkspaceShell from "../../../app/components/WorkspaceShell";
 import RefillRequestActionModal from "./RefillRequestActionModal";
@@ -175,6 +178,7 @@ export default function RefillInboxWorkspace({
   currentUserName,
 }: RefillInboxWorkspaceProps) {
   const [source, setSource] = useState<RefillRequestSource>("patient");
+  const tabsId = useId();
   const [statusFilter, setStatusFilter] = useState<StatusFilterKey>("pending");
   const [sortKey, setSortKey] = useState<SortKey>("requested-desc");
   // "all" | "mine" | "<prescriber id>"
@@ -236,10 +240,11 @@ export default function RefillInboxWorkspace({
   return (
     <WorkspaceShell>
       {/* Header: workspace identity on the left, the primary source switch
-          on the right. The source switch and the status filter below both
-          use the shared pill SegmentedControl for a consistent toggle. */}
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-3 py-3">
-        <div className="min-w-0">
+          on the right. The source switch reads as underline tabs (the queue
+          you're viewing), while the status filter below stays a pill
+          SegmentedControl (a filter within that queue). */}
+      <header className="flex shrink-0 items-stretch justify-between gap-3 border-b border-cf-border bg-cf-surface px-3">
+        <div className="flex min-w-0 flex-col justify-center py-3">
           <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
             Workflow
           </div>
@@ -247,12 +252,12 @@ export default function RefillInboxWorkspace({
             Refills
           </h1>
         </div>
-        <SegmentedControl
+        <Tabs
           options={SOURCE_OPTIONS}
           value={source}
           onChange={setSource}
-          size="xs"
-          variant="pill"
+          ariaLabel="Refill request source"
+          idBase={tabsId}
           className="shrink-0"
         />
       </header>
@@ -337,7 +342,12 @@ export default function RefillInboxWorkspace({
       ) : null}
 
       {/* Body — edge-to-edge on the frame surface, no inner card */}
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-cf-surface">
+      <div
+        role="tabpanel"
+        id={getTabPanelId(tabsId)}
+        aria-labelledby={getTabId(tabsId, source)}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-cf-surface"
+      >
         {isPharmacy ? (
           <div className="flex h-full items-center justify-center p-6">
             <EmptyState

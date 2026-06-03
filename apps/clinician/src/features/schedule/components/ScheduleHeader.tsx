@@ -48,7 +48,7 @@ export default function ScheduleHeader({
   }, [isIntervalExpanded]);
 
   return (
-    <div className="mb-4">
+    <div className="mb-2">
       <div className="min-w-0">
         <div className="text-[9px] font-bold uppercase tracking-[0.18em] leading-none text-cf-text-subtle">
           Schedule

@@ -62,11 +62,11 @@ export default function AppointmentModalHeader({
   return (
     <div
       {...dragHandleProps}
-      className="flex cursor-move flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-5 py-2.5 select-none"
+      className="flex cursor-move flex-wrap items-center justify-between gap-3 border-b border-cf-border bg-cf-surface px-4 py-2 select-none"
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <div className="relative">
-          <div className="grid h-9 w-9 place-items-center rounded-xl border border-cf-border bg-cf-surface-muted text-xs font-semibold text-cf-text">
+          <div className="grid h-8 w-8 place-items-center rounded-xl border border-cf-border bg-cf-surface-muted text-xs font-semibold text-cf-text">
             {getAppointmentInitials(patientDisplayName)}
           </div>
           {selectedPatient ? (
@@ -132,10 +132,10 @@ export default function AppointmentModalHeader({
           type="button"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={onClose}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-cf-text-subtle transition hover:bg-cf-surface-muted hover:text-cf-text"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-cf-text-subtle transition hover:bg-cf-surface-muted hover:text-cf-text"
           aria-label="Close"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>

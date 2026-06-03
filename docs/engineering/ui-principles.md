@@ -119,17 +119,55 @@ Never show:
 
 ## Selector Controls
 
-When the user picks one option from a fixed set (view mode, scope, category),
-use a shared selector component so behavior and layout are consistent:
+When the user picks one option from a fixed set, the _kind_ of choice picks the
+control. Two questions decide it:
 
-- **SegmentedControl** (`shared/components/ui/SegmentedControl`) for horizontal
-  toggles between 2–N options. Each option fills an equal share of the track —
-  the selected state takes up the whole section, not a floating pill.
-- **CategoryRail / CategoryRailItem** (`shared/components/ui/CategoryRail`) for
-  vertical sidebar navigation between workspace sections.
+1. Does choosing an option **swap the whole content body**? That is
+   **navigation** → use **tabs**.
+2. Does choosing an option **reshape or filter what stays on screen, or set a
+   field's value**? That is a **control** → use **SegmentedControl**.
 
-Do not hand-roll new inline segmented toggles or tab-strip selectors. Use the
-shared components and extend them if a new variant is genuinely needed.
+Vertical navigation between workspace sections is a third case → use
+**CategoryRail / CategoryRailItem** (`shared/components/ui/CategoryRail`).
+
+### Tabs — navigation between content panels
+
+Use the shared **Tabs** primitive (`shared/components/ui/Tabs`). It renders an
+underline tab strip (`-mb-px border-b-2`, accent underline on the active tab,
+sitting on a content-edge rail) and owns the roving-tabindex keyboard model
+(←/→, Home/End). Tabs switch between sibling panels that each replace the main
+body — the surface you are looking at changes wholesale. Canonical: Patient Hub
+sections; the Refill inbox source switch (Pharmacy queue vs Patient queue). Tabs
+read as page structure, not a floating control, so they anchor to the top or
+edge of the surface they govern.
+
+For full APG semantics, pass `idBase` (a per-instance `useId()`) and tag the
+panel container with `role="tabpanel"`, `id={getTabPanelId(idBase)}`, and
+`aria-labelledby={getTabId(idBase, activeValue)}` — Tabs then emits matching
+`aria-controls` on each tab.
+
+### SegmentedControl — a control on one surface
+
+`shared/components/ui/SegmentedControl` renders 2–N equal-width options on one
+track; the selected state fills its whole section (no floating pill). Use it for
+view modes, scopes, density, status/override filters, and enum fields in forms
+and modals — the body stays put while the control changes how it is shown or
+which subset appears. Pick the variant by where the control lives:
+
+- **`default`** (contiguous track, control radius, light sliding thumb) — the
+  structural toggle for a surface or an enum field inside a form/modal: schedule
+  Resource/Multi-day, security Roles/Users, preference toggles, compact section
+  switchers. Reach for this unless a reason points elsewhere.
+- **`pill`** (rounded-full track, dark sliding thumb) — a _filter_ in a toolbar
+  or list header that narrows a list in place: refill/message status, permission
+  overrides, activity-log scope. Pills read lighter, so they sit comfortably in
+  a filter row next to selects.
+- **`loose`** (detached accent pills, no track) — a soft, low-density filter
+  where a boxed track would feel heavy and the options are few (Patient Timeline
+  filter). Use sparingly.
+
+Do not hand-roll new inline segmented toggles or tab strips. Use these controls
+and add a variant only if a genuinely new shape is needed.
 
 ## Loading States & Layout Stability
 
