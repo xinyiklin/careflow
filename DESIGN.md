@@ -188,9 +188,15 @@ violations.
 Shared primitives live in `apps/clinician/src/shared/components/ui/`. Audit
 and critique passes should prefer these over hand-rolled variants.
 
-- **SegmentedControl** — horizontal pill toggles, 2–N options, each option
-  fills an equal share of the track (no floating pill). Canonical for view
-  modes, scopes, filters.
+- **SegmentedControl** — 2–N equal-width options on one track (no floating
+  pill). Variants: `default` (control-radius track — structural toggles and
+  form enums), `pill` (rounded-full — toolbar/list filters), `loose` (detached
+  accent pills — soft filters). For _navigation_ between content panels use
+  **Tabs** instead. Decision rule: `ui-principles.md § Selector Controls`.
+- **Tabs** — underline tab strip for navigating between sibling content panels
+  that each replace the main body (Patient Hub sections, Refill inbox source).
+  Accent underline on the active tab, anchored to a content-edge rail; roving
+  tabindex + arrow-key keyboard model. Not a filter — that is SegmentedControl.
 - **CategoryRail / CategoryRailItem** — vertical sidebar navigation between
   workspace sections.
 - **TimelineFeed / TimelineEvent** — dot + line + timestamp + badge pattern.
