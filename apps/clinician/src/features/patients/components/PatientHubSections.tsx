@@ -26,7 +26,6 @@ import type {
   InsurancePolicyFormValues,
   PatientHubInsurancePolicy,
   PatientHubTab,
-  PatientHubTabKey,
   PatientPharmacyPreference,
   PatientRecord,
 } from "../types";
@@ -445,31 +444,6 @@ export function PharmacyPreferenceCard({
         </div>
       ) : null}
     </div>
-  );
-}
-
-export function TabButton({
-  tab,
-  isActive,
-  onClick,
-}: {
-  tab: PatientHubTab;
-  isActive: boolean;
-  onClick: (key: PatientHubTabKey) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(tab.key)}
-      className={[
-        "-mb-px border-b-2 px-3 py-3 text-xs font-medium whitespace-nowrap transition",
-        isActive
-          ? "border-cf-accent text-cf-text"
-          : "border-transparent text-cf-text-muted hover:text-cf-text",
-      ].join(" ")}
-    >
-      {tab.label}
-    </button>
   );
 }
 
