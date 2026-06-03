@@ -28,9 +28,11 @@ Use the current backend layout:
   preferences.
 
 Patient-scoped apps (`allergies`, `clinical`, `insurance`, `medications`) each
-own their own models, serializers, and views for clean domain isolation. Many
-patient-scoped clinician workflows live under `features/patients/`.
-Workflow-specific surfaces may live in their own feature folders when the
+own their own models, serializers, and views for clean domain isolation. On the
+backend, patient data stays split across the `patients`, `clinical`, and
+related apps; the clinician *frontend* consolidates patient workflows under
+`apps/clinician/src/features/patients/`, which is a frontend path, not a Django
+app. Workflow-specific surfaces may live in their own feature folders when the
 domain warrants it, such as medications/refills or messaging. Avoid scattering
 patient logic into unrelated folders.
 
@@ -63,6 +65,9 @@ helpers, or utilities instead of packing business logic into one large view.
 - Let missing required configuration fail loudly enough to fix the real cause.
 - Mask sensitive patient fields by default when appropriate. Full SSN display
   must be intentional and user-triggered.
+- Store SSN and equivalently-sensitive identifiers with
+  `shared.fields.EncryptedCharField` (Fernet, encrypted at rest), not a plain
+  `CharField`. Any reveal/decrypt must be intentional and auditable.
 
 ## Permissions And Facility Scope
 
@@ -74,6 +79,9 @@ helpers, or utilities instead of packing business logic into one large view.
 - Do not loosen permission classes to make tests or UI wiring easier.
 - If a workflow spans organization and facility data, make the boundary explicit
   in the serializer and viewset.
+- New facility-scoped viewsets must extend `FacilityScopedViewSetMixin` (see
+  `shared/scoping.py`) rather than hand-rolling queryset filtering — it owns the
+  403-on-cross-facility / 401-on-unauthenticated contract.
 
 ## Error Handling
 

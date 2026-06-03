@@ -90,23 +90,22 @@ BREAKING CHANGE: document uploads now reject requests without facility scope.
 
 ## PR Titles
 
-PR titles default to human-readable sentence case:
+Because CareFlow squash-merges by default (the PR title becomes the squash
+commit subject), match the Conventional Commit subject form:
+
+```text
+fix: correct CORS header on auth refresh
+```
+
+Use plain human-readable sentence case only for PRs that will NOT be
+squash-merged:
 
 - Uppercase first letter.
 - Verb first.
 - No punctuation.
 
-Example PR title:
-
 ```text
 Refine sidebar collapse behavior
-```
-
-If the merge strategy uses the PR title as the squash-merge commit subject,
-match the commit convention instead so the merged history stays consistent:
-
-```text
-fix: correct CORS header on auth refresh
 ```
 
 ## PR Workflow
@@ -175,26 +174,12 @@ as their own PR before the feature PR.
 
 ### Verification before opening a PR
 
-Run the minimum gate locally before opening a PR. CI is a backstop, not the
-primary check.
+CI is a backstop, not the primary check.
 
-```bash
-# Frontend
-npm -w @careflow/clinician run lint
-npm -w @careflow/clinician run typecheck
-npm -w @careflow/clinician run build
-npm -w @careflow/patient run lint
-npm -w @careflow/patient run typecheck
-npm -w @careflow/patient run build
-
-# Backend
-cd backend
-./venv/bin/python manage.py check
-./venv/bin/python manage.py test
-```
-
-Run only the affected frontend app(s) or backend subsets for scoped changes,
-but say what was skipped.
+Run the minimum gate locally before opening a PR — the full command list lives
+in `docs/engineering/testing.md`: affected frontend `lint`/`typecheck`/`build`,
+and backend `manage.py check` + `test`. Run only the affected app(s)/subset for
+scoped changes, and say what was skipped.
 
 ### Self-review
 

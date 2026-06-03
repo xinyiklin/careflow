@@ -325,13 +325,6 @@ What to keep in headers:
 
 ## Visual QA
 
-For meaningful UI changes:
-
-1. Run the app locally.
-2. Open the affected authenticated route in Chrome.
-3. Check light and dark mode if the surface uses theme tokens.
-4. Confirm no console errors, overlap, unexpected layout shift, or broken
-   keyboard path.
-5. Capture a screenshot or describe the visual QA in the final response.
-
-For tiny copy/class changes, use judgment. If Chrome QA is skipped, say why.
+Visual QA expectations (run locally, Chrome, both themes, no console errors /
+layout shift, screenshot) live in `docs/engineering/testing.md` → Chrome Visual
+QA.

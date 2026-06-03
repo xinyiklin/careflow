@@ -12,6 +12,8 @@ careflow/
   packages/
     api-types/          @careflow/api-types — OpenAPI-generated TS types,
                         single source of truth shared by both frontends
+    ui-icons/           @careflow/ui-icons — shared icon assets, consumed
+                        by both frontends
   apps/
     clinician/          @careflow/clinician — staff/admin/clinical app
     patient/            @careflow/patient — patient portal app
@@ -73,15 +75,23 @@ committed so frontend consumers have a stable contract. Regenerate with
 changes. Add a dedicated schema-drift CI guard if this becomes a frequent
 review risk.
 
+### `packages/ui-icons`
+
+`@careflow/ui-icons` — shared icon assets consumed by both the clinician and
+patient frontends, keeping a single source of truth for iconography across
+surfaces.
+
 ### Why no other shared packages yet
 
 `packages/api-client/` (lift the duplicated `client.ts`) and
-`packages/ui-tokens/` (lift the duplicated `cf-*` Tailwind tokens) are obvious
-candidates but **deliberately deferred**. Today both apps have verbatim copies
-of these files (~400 LOC + ~80 LOC each). The cost of extracting is real
-(workspace config, build orchestration, refactor in both apps); the benefit
-only materializes once a third surface needs them or the two copies drift
-meaningfully. Premature extraction usually guesses the wrong API.
+`packages/ui-tokens/` (a unified token layer) are obvious candidates but
+**deliberately deferred**. Today both apps carry verbatim copies of `client.ts`
+(~400 LOC each). The token systems are not yet shareable: the clinician app uses
+`--color-cf-*` tokens while the patient portal runs its own unprefixed palette,
+so there is nothing verbatim to lift until they converge. The cost of extracting
+is real (workspace config, build orchestration, refactor in both apps); the
+benefit only materializes once a third surface needs them or the copies
+converge/drift meaningfully. Premature extraction usually guesses the wrong API.
 
 When to extract:
 
