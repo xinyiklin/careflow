@@ -196,6 +196,22 @@ class PatientViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
         ):
             raise PermissionDenied("You do not have access to update patients.")
 
+        # Toggling is_active soft-deletes (or restores) the patient and is the
+        # same operation as the audited delete endpoint, so it must require
+        # patients.delete rather than slipping through the update gate.
+        active_is_changing = (
+            "is_active" in serializer.validated_data
+            and serializer.validated_data["is_active"] != serializer.instance.is_active
+        )
+        if active_is_changing and not user_has_facility_permission(
+            self.request.user,
+            facility.id,
+            "patients.delete",
+        ):
+            raise PermissionDenied(
+                "You do not have access to change patient active status."
+            )
+
         gender = serializer.validated_data.get("gender", serializer.instance.gender)
         pcp = serializer.validated_data.get("pcp", serializer.instance.pcp)
         referring_provider = serializer.validated_data.get(
@@ -236,6 +252,7 @@ class PatientViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
             serializer.instance,
             serializer.validated_data,
         )
+        previous_active = serializer.instance.is_active
         patient = serializer.save()
         if changed_fields:
             record_audit_event(
@@ -248,6 +265,25 @@ class PatientViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
                 object_pk=patient.pk,
                 summary=f"Updated patient {get_patient_display_name(patient)}",
                 metadata={"changed_fields": changed_fields},
+            )
+        if active_is_changing:
+            record_audit_event(
+                actor=self.request.user,
+                facility=facility,
+                patient=patient,
+                action="update",
+                app_label="patients",
+                model_name="patient",
+                object_pk=patient.pk,
+                summary=(
+                    f"{'Reactivated' if patient.is_active else 'Deactivated'} "
+                    f"patient {get_patient_display_name(patient)}"
+                ),
+                metadata={
+                    "changed_fields": ["Active status"],
+                    "previous": {"is_active": previous_active},
+                    "next": {"is_active": patient.is_active},
+                },
             )
 
     def perform_destroy(self, instance):

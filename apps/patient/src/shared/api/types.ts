@@ -28,7 +28,6 @@ export type ApiHeaders = Record<string, string>;
 export type ApiRequestOptions = Omit<RequestInit, "headers"> & {
   params?: ApiParams;
   headers?: ApiHeaders;
-  includeFacilityId?: boolean;
 };
 
 export type ApiErrorData = Record<string, unknown> | null;

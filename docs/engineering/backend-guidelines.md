@@ -82,6 +82,9 @@ helpers, or utilities instead of packing business logic into one large view.
 - New facility-scoped viewsets must extend `FacilityScopedViewSetMixin` (see
   `shared/scoping.py`) rather than hand-rolling queryset filtering — it owns the
   403-on-cross-facility / 401-on-unauthenticated contract.
+- Staff role, security override, and active-status changes are
+  security-impacting. Preserve the self-lockout and last-admin coverage guards
+  when editing staff administration paths.
 
 ## Error Handling
 

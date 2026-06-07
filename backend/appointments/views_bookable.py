@@ -85,6 +85,11 @@ class BookableSlotViewSet(
         provider = serializer.validated_data.get("provider")
         if not provider or provider.facility_id != facility.id:
             raise PermissionDenied("Provider must belong to the active facility.")
+        appointment_type = serializer.validated_data.get("appointment_type")
+        if appointment_type and appointment_type.facility_id != facility.id:
+            raise PermissionDenied(
+                "Appointment type must belong to the active facility."
+            )
         serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):

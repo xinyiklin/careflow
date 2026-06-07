@@ -1,4 +1,4 @@
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 
 from clinical.models import Encounter
@@ -298,13 +298,21 @@ class EncounterBillingRecordSerializer(
         encounter = validated_data["encounter"]
 
         with transaction.atomic():
-            billing_record = EncounterBillingRecord.objects.create(
-                facility=encounter.facility,
-                patient=encounter.patient,
-                created_by=getattr(request, "user", None),
-                updated_by=getattr(request, "user", None),
-                **validated_data,
-            )
+            # validate_encounter()'s .exists() check is TOCTOU under concurrency;
+            # the encounter OneToOne constraint is the real guard. Convert the
+            # loser's IntegrityError into a clean 400 instead of a 500.
+            try:
+                billing_record = EncounterBillingRecord.objects.create(
+                    facility=encounter.facility,
+                    patient=encounter.patient,
+                    created_by=getattr(request, "user", None),
+                    updated_by=getattr(request, "user", None),
+                    **validated_data,
+                )
+            except IntegrityError as exc:
+                raise serializers.ValidationError(
+                    {"encounter": "This encounter already has a billing record."}
+                ) from exc
             self._replace_diagnoses(billing_record, diagnoses_data)
             self._replace_charge_lines(billing_record, charge_lines_data)
         return billing_record

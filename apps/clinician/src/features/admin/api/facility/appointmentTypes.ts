@@ -6,7 +6,6 @@ import type { AdminAppointmentType } from "../../types";
 
 export function fetchAppointmentTypes(facilityId: EntityId | null | undefined) {
   return apiRequest<AdminAppointmentType[]>("/facilities/appointment-types/", {
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
   });
 }
@@ -17,7 +16,6 @@ export function createAppointmentType(
 ) {
   return apiRequest<AdminAppointmentType>("/facilities/appointment-types/", {
     method: "POST",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
     body: JSON.stringify(data),
   });
@@ -32,7 +30,6 @@ export function updateAppointmentType(
     `/facilities/appointment-types/${id}/`,
     {
       method: "PATCH",
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
       body: JSON.stringify(data),
     }
@@ -47,7 +44,6 @@ export function deleteAppointmentType(
     `/facilities/appointment-types/${id}/`,
     {
       method: "DELETE",
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
     }
   );

@@ -675,7 +675,6 @@ export function FacilityNotesCard({
           onChange={onChange}
           disabled={saving}
           rows={3}
-          placeholder="Add internal notes, instructions, or specific operational details for staff..."
           className="w-full rounded-xl border border-cf-border bg-cf-surface px-3 py-2 text-sm text-cf-text shadow-[var(--shadow-input)] transition focus:border-cf-accent focus:ring-1 focus:ring-cf-accent focus:outline-none"
         />
       </label>

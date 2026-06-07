@@ -14,7 +14,6 @@ export function fetchStaff(
   extraParams: ApiParams = {}
 ) {
   return apiRequest<AdminStaff[]>("/facilities/staff/", {
-    includeFacilityId: !facilityId,
     params: {
       ...facilityParams(facilityId),
       ...extraParams,
@@ -28,7 +27,6 @@ export function createStaff(
 ) {
   return apiRequest<AdminStaff>("/facilities/staff/", {
     method: "POST",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
     body: JSON.stringify(data),
   });
@@ -41,7 +39,6 @@ export function updateStaff(
 ) {
   return apiRequest<AdminStaff>(`/facilities/staff/${id}/`, {
     method: "PATCH",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
     body: JSON.stringify(data),
   });
@@ -54,7 +51,6 @@ export function updateStaffRole(
 ) {
   return apiRequest<AdminStaffRole>(`/facilities/staff-roles/${id}/`, {
     method: "PATCH",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
     body: JSON.stringify(data),
   });
@@ -66,7 +62,6 @@ export function deactivateStaff(
 ) {
   return apiRequest<ApiRecord>(`/facilities/staff/${id}/`, {
     method: "DELETE",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
   });
 }
@@ -77,7 +72,6 @@ export function createStaffRole(
 ) {
   return apiRequest<AdminStaffRole>("/facilities/staff-roles/", {
     method: "POST",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
     body: JSON.stringify(data),
   });
@@ -89,7 +83,6 @@ export function deleteStaffRole(
 ) {
   return apiRequest<ApiRecord>(`/facilities/staff-roles/${id}/`, {
     method: "DELETE",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
   });
 }

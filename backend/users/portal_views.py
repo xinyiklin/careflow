@@ -146,6 +146,7 @@ class PortalDemoLoginView(APIView):
     """
 
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "demo"
 
     @extend_schema(
         responses={200: None, 403: None, 500: None},
@@ -194,6 +195,7 @@ class PortalTokenObtainPairView(TokenObtainPairView):
     """
 
     serializer_class = PortalTokenObtainPairSerializer
+    throttle_scope = "login"
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -215,6 +217,7 @@ class PortalTokenRefreshView(TokenRefreshView):
     """
 
     serializer_class = PortalTokenRefreshSerializer
+    throttle_scope = "refresh"
 
     def post(self, request, *args, **kwargs):
         data = (

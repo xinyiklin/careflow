@@ -48,8 +48,22 @@ export default function usePatientBilling({
     enabled: enabled && !!facilityId && !!patientId,
   });
 
-  const invalidateBillingRecords = () =>
+  const invalidateBillingRecords = () => {
     queryClient.invalidateQueries({ queryKey });
+    // A new/updated billing record changes the facility billing workspace and
+    // removes the encounter from its pending-coding queue.
+    queryClient.invalidateQueries({
+      queryKey: ["billing", "records", facilityId || null],
+    });
+    queryClient.invalidateQueries({
+      queryKey: [
+        "clinical",
+        "encounters",
+        "billing-pending",
+        facilityId || null,
+      ],
+    });
+  };
 
   const createBillingRecordMutation = useMutation({
     mutationFn: (values: EncounterBillingRecordPayload) =>

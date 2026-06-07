@@ -18,7 +18,6 @@ import { useAuth } from "../features/auth/AuthProvider";
 
 import { useUserPreferences } from "./context/UserPreferencesProvider";
 import { useTheme } from "../shared/context/ThemeProvider";
-import { updateUserPreferences } from "../features/auth/api/users";
 import {
   buildQuickActions,
   getMatchingQuickActionSlot,
@@ -41,6 +40,7 @@ function getPersonalNotesKey(user: UserProfile | null) {
 }
 
 type AppNavbarContainerProps = {
+  onLogout: () => void;
   onOpenPatientSearch: (source: string) => void;
   onOpenQuickActions: () => void;
   onOpenNotes: () => void;
@@ -57,6 +57,7 @@ type AppNavbarContainerProps = {
 const TRANSIENT_REDIRECT_PATHS = new Set(["/admin"]);
 
 function AppNavbarContainer({
+  onLogout,
   onOpenPatientSearch,
   onOpenQuickActions,
   onOpenNotes,
@@ -64,11 +65,11 @@ function AppNavbarContainer({
   recentPatients,
   onOpenRecentPatient,
 }: AppNavbarContainerProps) {
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
 
   return (
     <AppNavbar
-      onLogout={logout}
+      onLogout={onLogout}
       user={user}
       onOpenQuickActions={onOpenQuickActions}
       onOpenNotes={onOpenNotes}
@@ -99,10 +100,11 @@ function AppShellLayout({
     canAccessOrganizationAdmin,
     hasAnyAdminAccess,
   } = useAdminPermissions();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { preferences, updatePreferences } = useUserPreferences();
+  const { preferences, updatePreferences, clearPersonalNotesForLogout } =
+    useUserPreferences();
   const { theme, setTheme } = useTheme();
   const personalNotesKey = useMemo(() => getPersonalNotesKey(user), [user]);
   const personalNote = preferences.personalNotes || "";
@@ -127,6 +129,22 @@ function AppShellLayout({
     setTheme(nextTheme);
     updatePreferences({ theme: nextTheme });
   }, [setTheme, theme, updatePreferences]);
+
+  const handleLogout = useCallback(() => {
+    if (preferences.clearPersonalNotesOnLogout && personalNotesKey) {
+      localStorage.removeItem(personalNotesKey);
+    }
+    void clearPersonalNotesForLogout()
+      .catch((error) => {
+        console.error("Failed to clear personal notes on logout.", error);
+      })
+      .finally(() => logout());
+  }, [
+    clearPersonalNotesForLogout,
+    logout,
+    personalNotesKey,
+    preferences.clearPersonalNotesOnLogout,
+  ]);
 
   const quickActions = useMemo(
     () =>
@@ -185,22 +203,17 @@ function AppShellLayout({
   useEffect(() => {
     if (!personalNotesKey) return undefined;
 
-    const handleLogout = () => {
+    // Involuntary logout (e.g. token expiry) dispatches auth:logout after the
+    // session is torn down, so only local cleanup is possible here. Explicit
+    // logout clears the server copy via handleLogout beforehand.
+    const handleAuthLogout = () => {
       if (!preferences.clearPersonalNotesOnLogout) return;
       localStorage.removeItem(personalNotesKey);
-      const nextPreferences = {
-        ...preferences,
-        personalNotes: "",
-      };
-      updatePreferences(nextPreferences);
-      updateUserPreferences(nextPreferences).catch((error) => {
-        console.error("Failed to clear personal notes on logout.", error);
-      });
     };
 
-    window.addEventListener("auth:logout", handleLogout);
-    return () => window.removeEventListener("auth:logout", handleLogout);
-  }, [personalNotesKey, preferences, updatePreferences]);
+    window.addEventListener("auth:logout", handleAuthLogout);
+    return () => window.removeEventListener("auth:logout", handleAuthLogout);
+  }, [personalNotesKey, preferences.clearPersonalNotesOnLogout]);
 
   useEffect(() => {
     const isTypingTarget = (target: EventTarget | null) => {
@@ -257,6 +270,7 @@ function AppShellLayout({
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AppNavbarContainer
+          onLogout={handleLogout}
           onOpenPatientSearch={openPatientSearch}
           onOpenQuickActions={() => setIsQuickActionsOpen(true)}
           onOpenNotes={() => setIsNotesOpen(true)}

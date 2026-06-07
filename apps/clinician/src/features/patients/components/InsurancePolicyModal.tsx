@@ -404,7 +404,6 @@ export default function InsurancePolicyModal({
                   as="textarea"
                   rows={2}
                   className="min-h-20 resize-none"
-                  placeholder="Authorization requirements, verification notes, or billing instructions"
                   {...register("notes")}
                 />
               </FieldSection>

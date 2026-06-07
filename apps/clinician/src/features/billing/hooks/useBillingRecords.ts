@@ -72,6 +72,14 @@ export default function useBillingRecords({
     queryClient.invalidateQueries({
       queryKey: ["billing", "fee-schedule", facilityId || null],
     });
+    // Keep an open patient hub (per-patient key prefix) in sync with
+    // facility-level billing/coding changes.
+    queryClient.invalidateQueries({
+      queryKey: ["patientHub", "billingRecords", facilityId || null],
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["patientHub", "clinicalEncounters", facilityId || null],
+    });
   };
 
   const createBillingRecordMutation = useMutation({

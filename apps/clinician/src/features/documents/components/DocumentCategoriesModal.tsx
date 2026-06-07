@@ -181,7 +181,6 @@ function EditorPanel({
           <Input
             ref={nameRef}
             value={form.name}
-            placeholder="e.g. Pre-Op Clearance"
             onChange={(e) => onNameChange(e.target.value)}
             disabled={saving}
           />
