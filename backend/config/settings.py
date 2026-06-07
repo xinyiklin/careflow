@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -18,6 +19,9 @@ def get_csv_setting(name, default):
 
 # --- ENV FLAGS ---
 DEMO_MODE = os.environ.get("DEMO_MODE", "False").lower() == "true"
+# True while running the test suite. Used to disable request throttling so the
+# per-process throttle cache doesn't bleed counters across test cases.
+TESTING = "test" in sys.argv
 DEMO_USERNAME = os.environ.get("DEMO_USERNAME", "demo")
 PORTAL_DEMO_USERNAME = os.environ.get("PORTAL_DEMO_USERNAME", "patient_demo")
 ALLOW_PUBLIC_REGISTRATION = (
@@ -255,6 +259,34 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
+    # Fail closed: a view that forgets to declare permission_classes requires
+    # authentication rather than defaulting to AllowAny. Public endpoints
+    # (login, refresh, logout, register, demo-login) set AllowAny explicitly.
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+    # DRF reads the client IP as the Nth-from-last X-Forwarded-For entry, where
+    # N = trusted proxy hops in front of the app (a single Render router = 1).
+    # This MUST match production's real hop count: too low keys every client on
+    # one shared proxy IP (mass 429s — loud, but breaks logins), too high trusts
+    # a client-spoofable entry (silent throttle bypass). Tune per deployment via
+    # the NUM_PROXIES env var (e.g. 2 if a CDN like Cloudflare fronts Render);
+    # verify against a real production request before relying on per-client limits.
+    "NUM_PROXIES": int(os.environ.get("NUM_PROXIES", "1")),
+    # ScopedRateThrottle is a no-op on views without a `throttle_scope`, so this
+    # only throttles the sensitive auth endpoints that opt in. Rates are None
+    # under tests to keep the per-process throttle cache from bleeding counters
+    # across cases. NOTE: counters live in the default LocMemCache, so limits
+    # are enforced per worker — a shared cache (e.g. Redis) is required for hard
+    # limits across multiple Render workers.
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "login": None if TESTING else "10/min",
+        "refresh": None if TESTING else "60/min",
+        "demo": None if TESTING else "10/min",
+    },
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 

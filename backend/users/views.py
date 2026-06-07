@@ -81,6 +81,7 @@ def csrf_token(request):
 @method_decorator(csrf_protect, name="dispatch")
 class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = ClinicTokenObtainPairSerializer
+    throttle_scope = "login"
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
@@ -93,6 +94,7 @@ class CookieTokenObtainPairView(TokenObtainPairView):
 @method_decorator(csrf_protect, name="dispatch")
 class CookieTokenRefreshView(TokenRefreshView):
     serializer_class = ClinicTokenRefreshSerializer
+    throttle_scope = "refresh"
 
     def post(self, request, *args, **kwargs):
         data = (
@@ -168,6 +170,7 @@ class UserPreferenceView(APIView):
 @method_decorator(csrf_protect, name="dispatch")
 class DemoLoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "demo"
 
     def post(self, request):
         if not getattr(settings, "DEMO_MODE", False):

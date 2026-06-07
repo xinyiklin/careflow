@@ -52,8 +52,19 @@ export default function usePatientClinical({
     enabled: enabled && !!facilityId && !!patientId,
   });
 
-  const invalidateClinicalEncounters = () =>
+  const invalidateClinicalEncounters = () => {
     queryClient.invalidateQueries({ queryKey });
+    // Creating/signing an encounter moves it in or out of the facility-wide
+    // billing "pending coding" queue, which reads a different key prefix.
+    queryClient.invalidateQueries({
+      queryKey: [
+        "clinical",
+        "encounters",
+        "billing-pending",
+        facilityId || null,
+      ],
+    });
+  };
 
   const createEncounterMutation = useMutation({
     mutationFn: (values: ClinicalEncounterPayload) =>

@@ -178,7 +178,6 @@ export default function OrgRoleModal({
             value={formData.description}
             onChange={handleChange}
             disabled={isSystem}
-            placeholder="Brief description of this role"
           />
         </label>
 

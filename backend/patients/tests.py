@@ -761,3 +761,40 @@ class PatientViewSetTests(TestCase):
                 model_name="patient",
             ).exists()
         )
+
+    def test_patch_is_active_requires_delete_permission(self):
+        # patients.update alone must not be able to soft-delete via is_active.
+        self.staff.security_overrides = {"patients.delete": False}
+        self.staff.save()
+
+        response = self.client.patch(
+            f"/v1/patients/{self.patient.id}/",
+            {"is_active": False},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.patient.refresh_from_db()
+        self.assertTrue(self.patient.is_active)
+
+    def test_patch_is_active_with_delete_permission_deactivates_and_audits(self):
+        response = self.client.patch(
+            f"/v1/patients/{self.patient.id}/",
+            {"is_active": False},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.patient.refresh_from_db()
+        self.assertFalse(self.patient.is_active)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                actor=self.user,
+                patient=self.patient,
+                action="update",
+                model_name="patient",
+                summary__startswith="Deactivated patient",
+            ).exists()
+        )

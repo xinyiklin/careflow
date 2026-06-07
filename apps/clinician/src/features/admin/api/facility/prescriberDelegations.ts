@@ -20,7 +20,6 @@ export function fetchPrescriberDelegations(
   return apiRequest<PrescriberDelegation[]>(
     "/medications/prescriber-delegations/",
     {
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
     }
   );
@@ -34,7 +33,6 @@ export function createPrescriberDelegation(
     "/medications/prescriber-delegations/",
     {
       method: "POST",
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
       body: JSON.stringify(data),
     }
@@ -47,7 +45,6 @@ export function deletePrescriberDelegation(
 ) {
   return apiRequest<void>(`/medications/prescriber-delegations/${id}/`, {
     method: "DELETE",
-    includeFacilityId: !facilityId,
     params: facilityParams(facilityId),
   });
 }

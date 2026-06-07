@@ -596,7 +596,6 @@ export default function DocumentMetadataModal({
                   <Input
                     as="textarea"
                     rows={5}
-                    placeholder="Clinical context, ordering provider, follow-up actions..."
                     value={values.notes}
                     onChange={(e) => updateValue("notes", e.target.value)}
                     disabled={saving}
@@ -631,7 +630,6 @@ export default function DocumentMetadataModal({
               <Input
                 as="textarea"
                 rows={3}
-                placeholder="Clinical context, ordering provider, follow-up actions..."
                 value={values.notes}
                 onChange={(e) => updateValue("notes", e.target.value)}
                 disabled={saving}

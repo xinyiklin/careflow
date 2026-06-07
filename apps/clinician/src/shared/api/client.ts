@@ -259,12 +259,7 @@ export async function apiRequest<T = unknown>(
   options: ApiRequestOptions = {},
   retry = true
 ): Promise<T | null> {
-  const {
-    params,
-    headers: customHeaders = {},
-    includeFacilityId: _includeFacilityId,
-    ...restOptions
-  } = options;
+  const { params, headers: customHeaders = {}, ...restOptions } = options;
 
   const url = buildUrl(path, params);
   const accessToken = getStoredAccessToken();
@@ -336,12 +331,7 @@ export async function apiBlobRequest(
   options: ApiRequestOptions = {},
   retry = true
 ): Promise<ApiBlobResponse> {
-  const {
-    params,
-    headers: customHeaders = {},
-    includeFacilityId: _includeFacilityId,
-    ...restOptions
-  } = options;
+  const { params, headers: customHeaders = {}, ...restOptions } = options;
   const url = buildUrl(path, params);
   const accessToken = getStoredAccessToken();
   const method = restOptions.method || "GET";

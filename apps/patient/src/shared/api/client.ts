@@ -19,6 +19,7 @@ export const API_PREFIX = "/v1";
 let inMemoryAccessToken: string | null = null;
 let inMemoryCsrfToken: string | null = null;
 let csrfTokenRequest: Promise<string> | null = null;
+let accessTokenRefreshRequest: Promise<string> | null = null;
 
 type AuthTokens = {
   access?: string | null;
@@ -177,7 +178,7 @@ async function buildCsrfHeaders(
   return { "X-CSRFToken": await ensureCsrfToken() };
 }
 
-async function requestNewAccessToken(): Promise<string> {
+async function performTokenRefresh(): Promise<string> {
   const csrfHeaders = await buildCsrfHeaders("POST");
   const response = await fetch(
     `${API_BASE}${API_PREFIX}/portal/auth/refresh/`,
@@ -202,6 +203,20 @@ async function requestNewAccessToken(): Promise<string> {
   setStoredTokens({ access });
 
   return access;
+}
+
+// De-duplicate concurrent refreshes: when several requests 401 at once we must
+// only POST to /portal/auth/refresh/ once. With rotating refresh tokens,
+// parallel refreshes race and all but the first fail on the now-blacklisted
+// token, which would wrongly log the patient out mid-session.
+async function requestNewAccessToken(): Promise<string> {
+  if (!accessTokenRefreshRequest) {
+    accessTokenRefreshRequest = performTokenRefresh().finally(() => {
+      accessTokenRefreshRequest = null;
+    });
+  }
+
+  return accessTokenRefreshRequest;
 }
 
 export async function restoreAuthSession() {
@@ -244,12 +259,7 @@ export async function apiRequest<T = unknown>(
   options: ApiRequestOptions = {},
   retry = true
 ): Promise<T | null> {
-  const {
-    params,
-    headers: customHeaders = {},
-    includeFacilityId: _includeFacilityId,
-    ...restOptions
-  } = options;
+  const { params, headers: customHeaders = {}, ...restOptions } = options;
 
   const url = buildUrl(path, params);
   const accessToken = getStoredAccessToken();
@@ -321,12 +331,7 @@ export async function apiBlobRequest(
   options: ApiRequestOptions = {},
   retry = true
 ): Promise<ApiBlobResponse> {
-  const {
-    params,
-    headers: customHeaders = {},
-    includeFacilityId: _includeFacilityId,
-    ...restOptions
-  } = options;
+  const { params, headers: customHeaders = {}, ...restOptions } = options;
   const url = buildUrl(path, params);
   const accessToken = getStoredAccessToken();
   const method = restOptions.method || "GET";

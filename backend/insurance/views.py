@@ -305,6 +305,12 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
 
         self._ensure_policy_belongs_to_facility(instance)
         instance.is_active = False
+        if instance.is_primary:
+            # Release the primary slot on soft-delete so the partial unique
+            # constraint frees up; coverage_order must also move off "primary"
+            # or save() re-promotes is_primary back to True.
+            instance.is_primary = False
+            instance.coverage_order = "secondary"
         instance.save()
         record_audit_event(
             actor=self.request.user,

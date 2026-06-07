@@ -169,6 +169,9 @@ push, open a PR, merge, or delete a branch.
 
 - Check `git status --short` before staging.
 - Stage only files related to the requested work.
+- Stage and commit `AGENTS.md` and `CLAUDE.md` like any other tracked file when
+  they're part of the change; do not single them out to exclude. `CONTINUITY.md`
+  and `.claude/` are gitignored, so they never appear as staging candidates.
 - Use non-interactive git commands.
 - Do not rebase, amend, force-push, reset, delete branches, or run destructive
   operations unless explicitly requested. Feature-branch history rewrites and

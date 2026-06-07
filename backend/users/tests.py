@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
+from rest_framework.throttling import ScopedRateThrottle
 
 from facilities.models import Facility, Staff, StaffRole
 from organizations.models import Organization, OrganizationMembership
@@ -327,3 +329,36 @@ class UserPreferenceViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+
+# Throttling is disabled in the default test run (rates are None) so per-test
+# cache counters don't bleed; this case re-enables a low rate to prove the
+# ScopedRateThrottle wiring actually fires. The rate must be patched on the
+# throttle class itself — SimpleRateThrottle.THROTTLE_RATES is bound at import,
+# so @override_settings(REST_FRAMEWORK=...) does not reach it.
+@override_settings(DEMO_MODE=True, DEMO_USERNAME="demo")
+class AuthThrottleTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        cache.clear()
+        self._orig_rates = ScopedRateThrottle.THROTTLE_RATES
+        ScopedRateThrottle.THROTTLE_RATES = {**self._orig_rates, "demo": "2/min"}
+        User.objects.create_user(
+            username="demo",
+            password="testpass123",
+            email="demo@example.com",
+        )
+
+    def tearDown(self):
+        ScopedRateThrottle.THROTTLE_RATES = self._orig_rates
+        cache.clear()
+
+    def test_demo_login_throttled_after_rate_limit(self):
+        first = self.client.post("/v1/users/demo-login/")
+        second = self.client.post("/v1/users/demo-login/")
+        third = self.client.post("/v1/users/demo-login/")
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(third.status_code, 429)
+        self.assertIn("Retry-After", third.headers)

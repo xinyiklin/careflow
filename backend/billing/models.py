@@ -277,21 +277,21 @@ class OrganizationFeeSchedule(models.Model):
 
     @classmethod
     def get_default_for_organization(cls, organization, user=None):
-        schedule = cls.objects.filter(
+        # get_or_create is race-safe: a concurrent first-write loses the unique
+        # constraint, is caught internally, and re-reads the winner's row
+        # instead of surfacing an IntegrityError as a 500.
+        schedule, _ = cls.objects.get_or_create(
             organization=organization,
-            facility__isnull=True,
+            facility=None,
             is_default=True,
-        ).first()
-        if schedule:
-            return schedule
-        return cls.objects.create(
-            organization=organization,
-            name="Standard Fee Schedule",
-            code="standard",
-            is_default=True,
-            created_by=user,
-            updated_by=user,
+            defaults={
+                "name": "Standard Fee Schedule",
+                "code": "standard",
+                "created_by": user,
+                "updated_by": user,
+            },
         )
+        return schedule
 
     @property
     def is_facility_schedule(self):

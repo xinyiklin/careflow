@@ -31,6 +31,7 @@ type UserPreferencesContextValue = {
       | Partial<UserPreferences>
       | ((current: UserPreferences) => Partial<UserPreferences>)
   ) => void;
+  clearPersonalNotesForLogout: () => Promise<void>;
   resetPreferences: () => void;
 };
 
@@ -249,6 +250,44 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       : ""
   );
   const saveRequestIdRef = useRef(0);
+  const pendingSaveTimeoutRef = useRef<number | null>(null);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+
+  const persistPreferences = useCallback(
+    async (
+      preferencesToSave: UserPreferences,
+      requestId: number,
+      userIdForSave: UserProfile["id"]
+    ) => {
+      const runSave = async () => {
+        const data = await updateUserPreferences(preferencesToSave);
+        if (saveRequestIdRef.current !== requestId) return;
+
+        const savedPreferences = sanitizePreferences(data?.preferences);
+        lastSavedPreferencesRef.current = JSON.stringify(savedPreferences);
+        setUser((currentUser) => {
+          if (!currentUser || currentUser.id !== userIdForSave) {
+            return currentUser;
+          }
+          return {
+            ...currentUser,
+            preferences: savedPreferences,
+          };
+        });
+      };
+
+      const savePromise = saveQueueRef.current
+        .catch(() => undefined)
+        .then(runSave);
+      saveQueueRef.current = savePromise.then(
+        () => undefined,
+        () => undefined
+      );
+
+      return savePromise;
+    },
+    [setUser]
+  );
 
   useEffect(() => {
     if (!userId) {
@@ -291,26 +330,24 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     saveRequestIdRef.current = requestId;
 
     const timeoutId = window.setTimeout(async () => {
+      if (pendingSaveTimeoutRef.current === timeoutId) {
+        pendingSaveTimeoutRef.current = null;
+      }
       try {
-        const data = await updateUserPreferences(preferences);
-        if (saveRequestIdRef.current !== requestId) return;
-
-        const savedPreferences = sanitizePreferences(data?.preferences);
-        lastSavedPreferencesRef.current = JSON.stringify(savedPreferences);
-        setUser((currentUser) => {
-          if (!currentUser || currentUser.id !== user.id) return currentUser;
-          return {
-            ...currentUser,
-            preferences: savedPreferences,
-          };
-        });
+        await persistPreferences(preferences, requestId, user.id);
       } catch (error) {
         console.error("Failed to save user preferences.", error);
       }
     }, 400);
+    pendingSaveTimeoutRef.current = timeoutId;
 
-    return () => window.clearTimeout(timeoutId);
-  }, [preferences, setUser, user]);
+    return () => {
+      if (pendingSaveTimeoutRef.current === timeoutId) {
+        window.clearTimeout(timeoutId);
+        pendingSaveTimeoutRef.current = null;
+      }
+    };
+  }, [persistPreferences, preferences, user]);
 
   const updatePreferences = useCallback(
     (
@@ -334,6 +371,37 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const clearPersonalNotesForLogout = useCallback(async () => {
+    if (
+      !user ||
+      !hasHydratedRef.current ||
+      !preferences.clearPersonalNotesOnLogout
+    ) {
+      return;
+    }
+
+    const nextPreferences = normalizeLastFacilityForUser(
+      sanitizePreferences({
+        ...preferences,
+        personalNotes: "",
+      }),
+      user
+    );
+
+    const serializedPreferences = JSON.stringify(nextPreferences);
+    if (pendingSaveTimeoutRef.current !== null) {
+      window.clearTimeout(pendingSaveTimeoutRef.current);
+      pendingSaveTimeoutRef.current = null;
+    }
+
+    const requestId = saveRequestIdRef.current + 1;
+    saveRequestIdRef.current = requestId;
+    lastSavedPreferencesRef.current = serializedPreferences;
+    setPreferences(nextPreferences);
+
+    await persistPreferences(nextPreferences, requestId, user.id);
+  }, [persistPreferences, preferences, user]);
+
   const resetPreferences = useCallback(() => {
     setPreferences(
       normalizeLastFacilityForUser(DEFAULT_USER_PREFERENCES, user)
@@ -345,9 +413,16 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       preferences,
       isHydrated,
       updatePreferences,
+      clearPersonalNotesForLogout,
       resetPreferences,
     }),
-    [isHydrated, preferences, resetPreferences, updatePreferences]
+    [
+      clearPersonalNotesForLogout,
+      isHydrated,
+      preferences,
+      resetPreferences,
+      updatePreferences,
+    ]
   );
 
   return (

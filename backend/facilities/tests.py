@@ -265,6 +265,13 @@ class FacilitySecurityManagementTests(TestCase):
             HTTP_HOST="localhost:8000",
         )
 
+    def delete_staff(self, user, staff):
+        self.client.force_authenticate(user)
+        return self.client.delete(
+            f"/v1/facilities/staff/{staff.pk}/?facility_id={self.facility.pk}",
+            HTTP_HOST="localhost:8000",
+        )
+
     def test_admin_with_security_manage_can_edit_role_security(self):
         admin = self.make_admin("fac_sec_admin", OrganizationMembership.ROLE_MEMBER)
         response = self.patch_role_security(
@@ -394,3 +401,72 @@ class FacilitySecurityManagementTests(TestCase):
         self.assertIn("without an administrator", str(response.data["detail"]))
         self.admin_role.refresh_from_db()
         self.assertTrue(self.admin_role.security_permissions["admin.facility.manage"])
+
+    def test_cannot_deactivate_self_via_staff_patch(self):
+        admin = self.make_admin("fac_self_inactive", OrganizationMembership.ROLE_MEMBER)
+        staff = Staff.objects.get(user=admin, facility=self.facility)
+        response = self.patch_staff(admin, staff, {"is_active": False})
+        self.assertEqual(response.status_code, 403)
+        staff.refresh_from_db()
+        self.assertTrue(staff.is_active)
+
+    def test_cannot_deactivate_last_admin_via_staff_patch(self):
+        owner = self.make_member(
+            "fac_owner_deactivate",
+            OrganizationMembership.ROLE_OWNER,
+            self.staff_role,
+            security_overrides={"admin.facility.manage": True},
+        )
+        last_admin = self.make_admin(
+            "fac_last_active_admin", OrganizationMembership.ROLE_MEMBER
+        )
+        last_staff = Staff.objects.get(user=last_admin, facility=self.facility)
+
+        response = self.patch_staff(owner, last_staff, {"is_active": False})
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("without an administrator", str(response.data["detail"]))
+        last_staff.refresh_from_db()
+        self.assertTrue(last_staff.is_active)
+
+    def test_cannot_delete_self_staff_membership(self):
+        admin = self.make_admin("fac_self_delete", OrganizationMembership.ROLE_MEMBER)
+        staff = Staff.objects.get(user=admin, facility=self.facility)
+        response = self.delete_staff(admin, staff)
+        self.assertEqual(response.status_code, 403)
+        staff.refresh_from_db()
+        self.assertTrue(staff.is_active)
+
+    def test_cannot_delete_last_admin_staff_membership(self):
+        owner = self.make_member(
+            "fac_owner_delete",
+            OrganizationMembership.ROLE_OWNER,
+            self.staff_role,
+            security_overrides={"admin.facility.manage": True},
+        )
+        last_admin = self.make_admin(
+            "fac_last_delete_admin", OrganizationMembership.ROLE_MEMBER
+        )
+        last_staff = Staff.objects.get(user=last_admin, facility=self.facility)
+
+        response = self.delete_staff(owner, last_staff)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("without an administrator", str(response.data["detail"]))
+        last_staff.refresh_from_db()
+        self.assertTrue(last_staff.is_active)
+
+    def test_can_deactivate_admin_when_another_admin_remains(self):
+        actor = self.make_admin(
+            "fac_actor_deactivate", OrganizationMembership.ROLE_MEMBER
+        )
+        target = self.make_admin(
+            "fac_target_deactivate", OrganizationMembership.ROLE_MEMBER
+        )
+        target_staff = Staff.objects.get(user=target, facility=self.facility)
+
+        response = self.patch_staff(actor, target_staff, {"is_active": False})
+
+        self.assertEqual(response.status_code, 200)
+        target_staff.refresh_from_db()
+        self.assertFalse(target_staff.is_active)

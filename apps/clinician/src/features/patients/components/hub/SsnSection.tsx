@@ -172,7 +172,6 @@ export default function SsnSection({
             handleKeyDown(event);
           }}
           onBlur={handleBlur}
-          placeholder="Enter full SSN"
           aria-label="SSN"
           aria-invalid={Boolean(error) || undefined}
           className={[

@@ -10,7 +10,6 @@ export function fetchAppointmentStatuses(
   return apiRequest<AdminAppointmentStatus[]>(
     "/facilities/appointment-statuses/",
     {
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
     }
   );
@@ -24,7 +23,6 @@ export function createAppointmentStatus(
     "/facilities/appointment-statuses/",
     {
       method: "POST",
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
       body: JSON.stringify(data),
     }
@@ -40,7 +38,6 @@ export function updateAppointmentStatus(
     `/facilities/appointment-statuses/${id}/`,
     {
       method: "PATCH",
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
       body: JSON.stringify(data),
     }
@@ -55,7 +52,6 @@ export function deleteAppointmentStatus(
     `/facilities/appointment-statuses/${id}/`,
     {
       method: "DELETE",
-      includeFacilityId: !facilityId,
       params: facilityParams(facilityId),
     }
   );

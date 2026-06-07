@@ -182,7 +182,6 @@ export default function MedicationForm({
             onChange={(event) =>
               updateValue("medication_name", event.target.value)
             }
-            placeholder="Lisinopril"
             disabled={saving}
           />
         </div>
@@ -192,7 +191,6 @@ export default function MedicationForm({
           <Input
             value={values.dose}
             onChange={(event) => updateValue("dose", event.target.value)}
-            placeholder="10 mg"
             disabled={saving}
           />
         </div>
@@ -202,7 +200,6 @@ export default function MedicationForm({
           <Input
             value={values.route}
             onChange={(event) => updateValue("route", event.target.value)}
-            placeholder="PO"
             disabled={saving}
           />
         </div>
@@ -212,7 +209,6 @@ export default function MedicationForm({
           <Input
             value={values.frequency}
             onChange={(event) => updateValue("frequency", event.target.value)}
-            placeholder="Daily"
             disabled={saving}
           />
         </div>
@@ -262,7 +258,6 @@ export default function MedicationForm({
             onChange={(event) =>
               updateValue("prescriber_name", event.target.value)
             }
-            placeholder="Dr. Chen"
             disabled={saving}
           />
         </div>
