@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DRAG_START_THRESHOLD } from "../utils/scheduleConstants";
 import {
@@ -14,10 +14,10 @@ import useScheduleGridColumns from "../hooks/useScheduleGridColumns";
 import {
   ScheduleDatePicker,
   ScheduleDayColumns,
-  ScheduleDragGhost,
   ScheduleGridToolbar,
   SharedTimeRailGrid,
 } from "./ScheduleGridRenderers";
+import AppointmentBlock from "../../appointments/components/AppointmentBlock";
 
 import type {
   ScheduleAppointment,
@@ -27,6 +27,7 @@ import type {
   ScheduleViewProps,
 } from "../types";
 import type { AppointmentLike } from "../../../shared/types/domain";
+import type { AppointmentBlockDisplay } from "../../../shared/constants/appointmentBlockDisplay";
 
 export default function ScheduleGridView({
   appointments,
@@ -64,6 +65,9 @@ export default function ScheduleGridView({
   const horizontalScrollRef = useRef<HTMLDivElement | null>(null);
   const dayScrollRefs = useRef(new Map<string, HTMLDivElement>());
   const applyingSharedScrollRef = useRef(false);
+  // Live pointer coordinates are kept off React state so pointermove does not
+  // reconcile the whole grid; the drag ghost reads them via requestAnimationFrame.
+  const pointerRef = useRef({ x: 0, y: 0 });
   const [dragState, setDragState] = useState<ScheduleDragState>(null);
   const [settleState, setSettleState] = useState<SchedulePreviewBlock | null>(
     null
@@ -295,6 +299,7 @@ export default function ScheduleGridView({
     hoverDayKey: string,
     hoverResourceKey: string
   ) => {
+    pointerRef.current = { x: event.clientX, y: event.clientY };
     setDragState({
       appointment,
       activated: false,
@@ -321,6 +326,9 @@ export default function ScheduleGridView({
     }
 
     const handlePointerMove = (event: PointerEvent) => {
+      // Live coordinates feed the ghost via rAF, not React state.
+      pointerRef.current = { x: event.clientX, y: event.clientY };
+
       setDragState((prev) => {
         if (!prev) return prev;
 
@@ -378,6 +386,19 @@ export default function ScheduleGridView({
           } else if (event.clientX > rect.right - horizontalThreshold) {
             horizontalContainer.scrollLeft += 48;
           }
+        }
+
+        // Only re-render the grid on discrete target changes (activation or a
+        // new hover slot/column/date/resource); raw pointer motion is handled
+        // by the ghost's rAF loop reading pointerRef.
+        if (
+          prev.activated &&
+          nextHoverDate === prev.hoverDate &&
+          nextHoverDayKey === prev.hoverDayKey &&
+          nextHoverResourceKey === prev.hoverResourceKey &&
+          nextHoverTime24 === prev.hoverTime24
+        ) {
+          return prev;
         }
 
         return {
@@ -578,9 +599,11 @@ export default function ScheduleGridView({
         )}
       </div>
 
-      <ScheduleDragGhost
+      <ScheduleDragGhostLayer
         appointmentBlockDisplay={appointmentBlockDisplay}
-        dragState={dragState}
+        activated={Boolean(dragState?.activated)}
+        appointment={dragState?.activated ? dragState.appointment : null}
+        pointerRef={pointerRef}
       />
 
       <ScheduleDatePicker
@@ -595,3 +618,60 @@ export default function ScheduleGridView({
     </div>
   );
 }
+
+// Leaf ghost that follows the pointer via requestAnimationFrame, reading live
+// coordinates from a ref so cursor motion never re-renders the schedule grid.
+// Markup mirrors the prior ScheduleDragGhost exactly.
+const ScheduleDragGhostLayer = memo(function ScheduleDragGhostLayer({
+  appointmentBlockDisplay,
+  activated,
+  appointment,
+  pointerRef,
+}: {
+  appointmentBlockDisplay: AppointmentBlockDisplay;
+  activated: boolean;
+  appointment: AppointmentLike | null;
+  pointerRef: React.MutableRefObject<{ x: number; y: number }>;
+}) {
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!activated) return undefined;
+
+    let frameId = 0;
+    const applyPosition = () => {
+      const node = ghostRef.current;
+      if (node) {
+        const { x, y } = pointerRef.current;
+        node.style.transform = `translate(${x + 18}px, ${y - 18}px)`;
+      }
+      frameId = window.requestAnimationFrame(applyPosition);
+    };
+
+    applyPosition();
+    return () => window.cancelAnimationFrame(frameId);
+  }, [activated, pointerRef]);
+
+  if (!activated || !appointment) return null;
+
+  return (
+    <div
+      ref={ghostRef}
+      className="pointer-events-none fixed left-0 top-0 z-50 hidden md:block"
+      style={{
+        transform: `translate(${pointerRef.current.x + 18}px, ${
+          pointerRef.current.y - 18
+        }px)`,
+      }}
+    >
+      <div style={{ width: 260, height: 74 }}>
+        <AppointmentBlock
+          appointment={appointment}
+          displayOptions={appointmentBlockDisplay}
+          fullWidth
+          isPreview
+        />
+      </div>
+    </div>
+  );
+});

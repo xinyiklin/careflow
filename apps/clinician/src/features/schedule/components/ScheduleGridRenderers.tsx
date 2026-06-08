@@ -12,7 +12,6 @@ import type { Dispatch, SetStateAction } from "react";
 import type { ScheduleDragState } from "../types";
 
 export { ScheduleDayColumns } from "./ScheduleGridColumns";
-export { ScheduleDragGhost } from "./ScheduleGridAppointmentLayers";
 export { default as SharedTimeRailGrid } from "./SharedTimeRailGrid";
 
 export function ScheduleGridToolbar({

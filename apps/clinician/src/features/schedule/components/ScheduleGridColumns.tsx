@@ -8,6 +8,7 @@ import {
 import { DayCardHeader } from "./ScheduleGridPieces";
 
 import type {
+  ScheduleAppointment,
   ScheduleGridCommonProps,
   ScheduleTimeSlot,
   SharedScrollRef,
@@ -83,6 +84,19 @@ export function ScheduleDayColumns({
     >
       {visibleDayEntries.map((entry, index) => {
         const timeSlots = timeSlotsByColumn.get(entry.key) || [];
+        // Bucket this column's appointments by their start slot once, so each
+        // row does a single Map lookup instead of re-filtering the full array.
+        // Insertion order is preserved, so per-slot rendering is unchanged.
+        const columnAppointments = appointmentsByColumn.get(entry.key) || [];
+        const appointmentsBySlot = new Map<number, ScheduleAppointment[]>();
+        columnAppointments.forEach((appointment) => {
+          const bucket = appointmentsBySlot.get(appointment.startSlot);
+          if (bucket) {
+            bucket.push(appointment);
+          } else {
+            appointmentsBySlot.set(appointment.startSlot, [appointment]);
+          }
+        });
         const dayPreviewBlock =
           previewBlock &&
           previewBlock.hoverDayKey === entry.key &&
@@ -135,11 +149,8 @@ export function ScheduleDayColumns({
             >
               {timeSlots.length
                 ? timeSlots.map((slot, slotIndex) => {
-                    const slotAppointments = (
-                      appointmentsByColumn.get(entry.key) || []
-                    ).filter(
-                      (appointment) => appointment.startSlot === slotIndex
-                    );
+                    const slotAppointments =
+                      appointmentsBySlot.get(slotIndex) || [];
                     const slotRowHeight =
                       slotRowHeightByColumn.get(entry.key) || 42;
                     const slotPreviewBlock =

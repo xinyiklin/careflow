@@ -71,7 +71,7 @@ function MenuItem({
       className={[
         "flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition",
         isDanger
-          ? "text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-300 dark:hover:bg-red-950/35 dark:hover:text-red-200"
+          ? "text-cf-danger-text hover:bg-cf-danger-bg"
           : "text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text",
       ].join(" ")}
     >

@@ -168,7 +168,7 @@ export default function SegmentedControl<TValue extends string>({
             disabled={disabled}
             onClick={() => onChange(optionValue)}
             className={joinClasses(
-              "relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap font-bold transition-colors duration-150",
+              "relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors duration-150",
               !isLoose && "flex-1",
               sizeStyles.height,
               sizeStyles.text,
@@ -179,7 +179,7 @@ export default function SegmentedControl<TValue extends string>({
                   ? "bg-cf-accent text-cf-page-bg shadow-sm"
                   : isPill
                     ? "text-cf-page-bg"
-                    : "text-cf-text font-extrabold"
+                    : "text-cf-text font-semibold"
                 : isLoose
                   ? "text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text"
                   : isPill

@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import type { ComponentType, ReactNode } from "react";
 
 import type { EntityId } from "../../../shared/api/types";
@@ -6,6 +8,8 @@ import type { AppointmentPickerOption } from "../types";
 type FieldLabelProps = {
   children: ReactNode;
   required?: boolean;
+  /** Associates the label with its control via `htmlFor`/`id`. */
+  htmlFor?: string;
 };
 
 type FormSectionProps = {
@@ -26,12 +30,50 @@ type ChipPickerProps<TOption extends AppointmentPickerOption> = {
   singleRow?: boolean;
 };
 
-export function FieldLabel({ children, required = false }: FieldLabelProps) {
+export function FieldLabel({
+  children,
+  required = false,
+  htmlFor,
+}: FieldLabelProps) {
   return (
-    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-cf-text-subtle">
+    <label
+      htmlFor={htmlFor}
+      className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-cf-text-subtle"
+    >
       {children}
       {required ? <span className="ml-1 text-cf-danger-text">*</span> : null}
     </label>
+  );
+}
+
+type LabeledFieldProps = {
+  label: ReactNode;
+  required?: boolean;
+  error?: string;
+  className?: string;
+  /** Receives a stable id to pass to the control so the label's `htmlFor`
+   * forms a real programmatic association. */
+  children: (fieldId: string) => ReactNode;
+};
+
+export function LabeledField({
+  label,
+  required = false,
+  error = "",
+  className,
+  children,
+}: LabeledFieldProps) {
+  const fieldId = useId();
+  return (
+    <div className={className}>
+      <FieldLabel required={required} htmlFor={fieldId}>
+        {label}
+      </FieldLabel>
+      {children(fieldId)}
+      {error ? (
+        <p className="mt-1 text-sm text-cf-danger-text">{error}</p>
+      ) : null}
+    </div>
   );
 }
 

@@ -178,7 +178,7 @@ export function FacilityIdentityCard({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Facility Name
           </span>
           <Input
@@ -192,7 +192,7 @@ export function FacilityIdentityCard({
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Facility Code
           </span>
           <Input
@@ -205,7 +205,7 @@ export function FacilityIdentityCard({
         </label>
 
         <label className="block sm:col-span-2">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Timezone
           </span>
           <Input
@@ -249,7 +249,7 @@ export function FacilityContactCard({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="block">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Phone Number
           </span>
           <PhoneInput
@@ -262,7 +262,7 @@ export function FacilityContactCard({
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Fax Number
           </span>
           <PhoneInput
@@ -275,7 +275,7 @@ export function FacilityContactCard({
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Email Address
           </span>
           <Input
@@ -310,7 +310,7 @@ export function FacilityAddressCard({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block sm:col-span-2">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Street Address Line 1
           </span>
           <Input
@@ -323,7 +323,7 @@ export function FacilityAddressCard({
         </label>
 
         <label className="block sm:col-span-2">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             Line 2 / Suite
           </span>
           <Input
@@ -336,7 +336,7 @@ export function FacilityAddressCard({
         </label>
 
         <label className="block">
-          <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+          <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
             City
           </span>
           <Input
@@ -350,7 +350,7 @@ export function FacilityAddressCard({
 
         <div className="grid gap-4 grid-cols-2">
           <label className="block">
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+            <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
               State
             </span>
             <Input
@@ -369,7 +369,7 @@ export function FacilityAddressCard({
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+            <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
               ZIP Code
             </span>
             <Input
@@ -448,7 +448,7 @@ export function FacilityHoursCard({
         <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                 Opening Time
               </span>
               <Input
@@ -461,7 +461,7 @@ export function FacilityHoursCard({
             </label>
 
             <label className="block">
-              <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+              <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                 Closing Time
               </span>
               <Input
@@ -475,7 +475,7 @@ export function FacilityHoursCard({
           </div>
 
           <div>
-            <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+            <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
               Active Operating Days
             </span>
             <div className="flex flex-wrap gap-1.5">
@@ -548,7 +548,7 @@ export function FacilityHoursCard({
                     <button
                       type="button"
                       onClick={deleteGroup}
-                      className="text-[10px] font-bold text-red-500 hover:text-red-600 uppercase tracking-wider flex items-center gap-1"
+                      className="text-[10px] font-semibold text-cf-danger-text uppercase tracking-wider flex items-center gap-1 transition hover:opacity-80"
                     >
                       <Trash2 className="h-3 w-3" />
                       Remove Group
@@ -558,7 +558,7 @@ export function FacilityHoursCard({
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block">
-                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+                    <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                       Opening Time
                     </span>
                     <Input
@@ -572,7 +572,7 @@ export function FacilityHoursCard({
                   </label>
 
                   <label className="block">
-                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+                    <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                       Closing Time
                     </span>
                     <Input
@@ -587,7 +587,7 @@ export function FacilityHoursCard({
                 </div>
 
                 <div>
-                  <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+                  <span className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
                     Assigned Days
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -666,7 +666,7 @@ export function FacilityNotesCard({
       </h3>
 
       <label className="block">
-        <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+        <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
           Overview Notes / Comments
         </span>
         <textarea
@@ -793,7 +793,7 @@ export function FacilityOnlineSchedulingCard({
   return (
     <div className="space-y-3">
       <div>
-        <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
           Online scheduling
         </div>
         <div className="text-[11px] text-cf-text-muted mt-1">
@@ -842,7 +842,7 @@ export function FacilityOnlineSchedulingCard({
       </label>
 
       <label className="block">
-        <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle">
+        <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-cf-text-subtle">
           Cancellation cutoff (hours before appointment)
         </span>
         <input

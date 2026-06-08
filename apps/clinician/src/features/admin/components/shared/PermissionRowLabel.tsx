@@ -18,13 +18,13 @@ export default function PermissionRowLabel({
           {permission.label}
         </span>
         {isDestructive && (
-          <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
+          <AlertTriangle className="h-3.5 w-3.5 text-cf-danger-text" />
         )}
       </div>
       <div
         className={[
           "mt-0.5 font-mono text-[9px]",
-          isDestructive ? "text-rose-700" : "text-cf-text-subtle",
+          isDestructive ? "text-cf-danger-text" : "text-cf-text-subtle",
         ].join(" ")}
       >
         {isDestructive ? destructivePrefix : ""}
