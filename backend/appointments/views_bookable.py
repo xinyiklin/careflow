@@ -1,7 +1,7 @@
 """Clinician admin viewset for managing online-bookable slots.
 
-Slots are facility-scoped via their provider. Admins with the
-``appointments.manage`` permission on the active facility can list,
+Slots are facility-scoped via their provider. Staff with the
+``schedule.update`` permission on the active facility can list,
 create, and delete slots; updates are not exposed (admin deletes and
 re-creates if the time changes).
 """
@@ -58,7 +58,7 @@ class BookableSlotViewSet(
     def get_queryset(self):
         facility = self.get_facility()
         if not user_has_facility_permission(
-            self.request.user, facility.id, "appointments.manage"
+            self.request.user, facility.id, "schedule.update"
         ):
             raise PermissionDenied(
                 "You do not have permission to manage bookable slots."
@@ -77,7 +77,7 @@ class BookableSlotViewSet(
     def perform_create(self, serializer):
         facility = self.get_facility()
         if not user_has_facility_permission(
-            self.request.user, facility.id, "appointments.manage"
+            self.request.user, facility.id, "schedule.update"
         ):
             raise PermissionDenied(
                 "You do not have permission to manage bookable slots."
