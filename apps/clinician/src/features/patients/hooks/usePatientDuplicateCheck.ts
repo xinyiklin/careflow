@@ -69,7 +69,9 @@ export default function usePatientDuplicateCheck({
   const hasUsefulName =
     debouncedKey.firstName.length >= 2 || debouncedKey.lastName.length >= 2;
   const hasUsefulDob = isDateOfBirthLikelyValid(debouncedKey.dateOfBirth);
-  const enabled = Boolean(facilityId) && (hasUsefulName || hasUsefulDob);
+  const hasUsefulPhone = debouncedKey.phone.length >= 4;
+  const enabled =
+    Boolean(facilityId) && (hasUsefulName || hasUsefulDob || hasUsefulPhone);
 
   const searchTerm = buildSearchTerm(debouncedKey);
 
@@ -80,12 +82,14 @@ export default function usePatientDuplicateCheck({
       facilityId || null,
       searchTerm,
       debouncedKey.dateOfBirth,
+      debouncedKey.phone,
     ],
     queryFn: () =>
       searchPatients({
         facilityId,
         search: searchTerm || undefined,
         date_of_birth: debouncedKey.dateOfBirth || undefined,
+        phone: debouncedKey.phone || undefined,
       }),
     enabled,
     staleTime: 15_000,

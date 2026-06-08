@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, useId } from "react";
 
 import type { ComponentPropsWithoutRef, ForwardedRef, ReactNode } from "react";
 
@@ -38,6 +38,10 @@ function inputClassName({
 
 const Input = forwardRef<InputElement, InputProps>(function Input(props, ref) {
   const { as: Tag = "input", className = "", children, ...restProps } = props;
+  // Always carry a stable id so a paired FieldLabel can target it via
+  // `htmlFor`; callers that pass their own id keep it.
+  const generatedId = useId();
+  const id = (restProps as { id?: string }).id ?? generatedId;
 
   if (Tag === "textarea") {
     return (
@@ -45,6 +49,7 @@ const Input = forwardRef<InputElement, InputProps>(function Input(props, ref) {
         ref={ref as ForwardedRef<HTMLTextAreaElement>}
         className={inputClassName({ className, isTextarea: true })}
         {...(restProps as ComponentPropsWithoutRef<"textarea">)}
+        id={id}
       >
         {children}
       </textarea>
@@ -57,6 +62,7 @@ const Input = forwardRef<InputElement, InputProps>(function Input(props, ref) {
         ref={ref as ForwardedRef<HTMLSelectElement>}
         className={inputClassName({ className })}
         {...(restProps as ComponentPropsWithoutRef<"select">)}
+        id={id}
       >
         {children}
       </select>
@@ -73,6 +79,7 @@ const Input = forwardRef<InputElement, InputProps>(function Input(props, ref) {
       ref={ref as ForwardedRef<HTMLInputElement>}
       className={inputClassName({ className, isDateLikeInput })}
       {...inputProps}
+      id={id}
     />
   );
 });

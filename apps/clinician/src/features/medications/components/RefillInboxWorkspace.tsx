@@ -209,7 +209,7 @@ export default function RefillInboxWorkspace({
   } = useRefillInbox({ facilityId, status, source, prescriberId, mine });
 
   const sortedRefills = useMemo(
-    () => sortRefills(refills as RefillRequest[], sortKey),
+    () => sortRefills(refills, sortKey),
     [refills, sortKey]
   );
 

@@ -130,33 +130,3 @@ export function PreviewLayer({
     />
   );
 }
-
-export function ScheduleDragGhost({
-  appointmentBlockDisplay,
-  dragState,
-}: {
-  appointmentBlockDisplay: AppointmentBlockDisplay;
-  dragState: ScheduleDragState;
-}) {
-  if (!dragState?.activated) return null;
-
-  return (
-    <div
-      className="pointer-events-none fixed left-0 top-0 z-50 hidden md:block"
-      style={{
-        transform: `translate(${dragState.pointerX + 18}px, ${
-          dragState.pointerY - 18
-        }px)`,
-      }}
-    >
-      <div style={{ width: 260, height: 74 }}>
-        <AppointmentBlock
-          appointment={dragState.appointment}
-          displayOptions={appointmentBlockDisplay}
-          fullWidth
-          isPreview
-        />
-      </div>
-    </div>
-  );
-}

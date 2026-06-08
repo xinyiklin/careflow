@@ -25,7 +25,12 @@ import { getErrorMessage } from "../../../shared/utils/errors";
 import type { EntityId } from "../../../shared/api/types";
 import type { AppointmentLike } from "../../../shared/types/domain";
 import type { AppointmentEditSessionActiveEditor } from "../api/appointments";
-import { ChipPicker, FieldLabel, FormSection } from "./AppointmentModalFields";
+import {
+  ChipPicker,
+  FieldLabel,
+  FormSection,
+  LabeledField,
+} from "./AppointmentModalFields";
 import AppointmentModalHeader from "./AppointmentModalHeader";
 import AppointmentPatientLens from "./AppointmentPatientLens";
 import {
@@ -611,52 +616,57 @@ export default function AppointmentModal({
                       />
                     </div>
 
-                    <div>
-                      <FieldLabel required>Resource</FieldLabel>
-                      <Input
-                        as="select"
-                        {...register("resource", {
-                          required: "Resource is required.",
-                          onChange: (event) => {
-                            const nextResource =
-                              resources.find(
-                                (resource) =>
-                                  String(resource.id) === event.target.value
-                              ) || null;
-                            if (!watch("room") && nextResource?.default_room) {
-                              setValue("room", nextResource.default_room, {
-                                shouldDirty: true,
-                              });
-                            }
-                          },
-                        })}
-                      >
-                        <option
-                          value=""
-                          disabled={resources.length > 0}
-                          hidden={resources.length > 0}
+                    <LabeledField
+                      label="Resource"
+                      required
+                      error={errors.resource?.message}
+                    >
+                      {(fieldId) => (
+                        <Input
+                          id={fieldId}
+                          as="select"
+                          {...register("resource", {
+                            required: "Resource is required.",
+                            onChange: (event) => {
+                              const nextResource =
+                                resources.find(
+                                  (resource) =>
+                                    String(resource.id) === event.target.value
+                                ) || null;
+                              if (
+                                !watch("room") &&
+                                nextResource?.default_room
+                              ) {
+                                setValue("room", nextResource.default_room, {
+                                  shouldDirty: true,
+                                });
+                              }
+                            },
+                          })}
                         >
-                          {resources.length
-                            ? "Select a resource"
-                            : "No active resources"}
-                        </option>
-                        {resources.map((resource) => (
-                          <option key={resource.id} value={resource.id}>
-                            {resource.name}
+                          <option
+                            value=""
+                            disabled={resources.length > 0}
+                            hidden={resources.length > 0}
+                          >
+                            {resources.length
+                              ? "Select a resource"
+                              : "No active resources"}
                           </option>
-                        ))}
-                      </Input>
-                      {errors.resource ? (
-                        <p className="mt-1 text-sm text-cf-danger-text">
-                          {errors.resource.message}
-                        </p>
-                      ) : null}
-                    </div>
+                          {resources.map((resource) => (
+                            <option key={resource.id} value={resource.id}>
+                              {resource.name}
+                            </option>
+                          ))}
+                        </Input>
+                      )}
+                    </LabeledField>
 
-                    <div>
-                      <FieldLabel>Room</FieldLabel>
-                      <Input {...register("room")} />
-                    </div>
+                    <LabeledField label="Room">
+                      {(fieldId) => (
+                        <Input id={fieldId} {...register("room")} />
+                      )}
+                    </LabeledField>
                   </div>
 
                   <div className="mt-5">
@@ -717,17 +727,24 @@ export default function AppointmentModal({
 
                 <FormSection icon={UserRoundCheck} title="Clinical & Billing">
                   <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_10rem]">
-                    <div>
-                      <FieldLabel>Rendering Provider</FieldLabel>
-                      <Input as="select" {...register("rendering_provider")}>
-                        <option value="">No rendering provider selected</option>
-                        {renderingProviderOptions.map((provider) => (
-                          <option key={provider.id} value={provider.id}>
-                            {getPhysicianLabel(provider)}
+                    <LabeledField label="Rendering Provider">
+                      {(fieldId) => (
+                        <Input
+                          id={fieldId}
+                          as="select"
+                          {...register("rendering_provider")}
+                        >
+                          <option value="">
+                            No rendering provider selected
                           </option>
-                        ))}
-                      </Input>
-                    </div>
+                          {renderingProviderOptions.map((provider) => (
+                            <option key={provider.id} value={provider.id}>
+                              {getPhysicianLabel(provider)}
+                            </option>
+                          ))}
+                        </Input>
+                      )}
+                    </LabeledField>
 
                     <div>
                       <FieldLabel>Billing</FieldLabel>
@@ -753,15 +770,27 @@ export default function AppointmentModal({
 
                 <FormSection icon={ClipboardList} title="Visit Context">
                   <div className="grid gap-3 lg:grid-cols-2">
-                    <div>
-                      <FieldLabel>Reason</FieldLabel>
-                      <Input as="textarea" rows={3} {...register("reason")} />
-                    </div>
+                    <LabeledField label="Reason">
+                      {(fieldId) => (
+                        <Input
+                          id={fieldId}
+                          as="textarea"
+                          rows={3}
+                          {...register("reason")}
+                        />
+                      )}
+                    </LabeledField>
 
-                    <div>
-                      <FieldLabel>Notes</FieldLabel>
-                      <Input as="textarea" rows={3} {...register("notes")} />
-                    </div>
+                    <LabeledField label="Notes">
+                      {(fieldId) => (
+                        <Input
+                          id={fieldId}
+                          as="textarea"
+                          rows={3}
+                          {...register("notes")}
+                        />
+                      )}
+                    </LabeledField>
                   </div>
                 </FormSection>
               </div>

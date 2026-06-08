@@ -5,6 +5,8 @@ import {
   deleteStaffRole,
   updateStaffRole,
 } from "../../api/facility/staff";
+import { useAuth } from "../../../auth/AuthProvider";
+import { fetchUserProfile } from "../../../auth/api/users";
 
 import type { ApiPayload, EntityId } from "../../../../shared/api/types";
 
@@ -28,6 +30,7 @@ export default function useStaffRoleSecurity(
   facilityId: EntityId | null | undefined
 ) {
   const queryClient = useQueryClient();
+  const { setUser } = useAuth();
 
   const invalidateRoles = () => {
     queryClient.invalidateQueries({
@@ -36,6 +39,14 @@ export default function useStaffRoleSecurity(
     queryClient.invalidateQueries({
       queryKey: getStaffQueryKey(facilityId),
     });
+    // Role changes alter the signed-in user's own permission gates, which are
+    // driven by user.memberships. Refresh the profile so gates update without
+    // a reload. (Pattern mirrors FacilityOverviewPanel.handleSave.) The refresh
+    // is best-effort: a transient /users/me failure shouldn't surface as an
+    // unhandled rejection (a 401 already triggers logout upstream).
+    fetchUserProfile()
+      .then(setUser)
+      .catch(() => {});
   };
 
   const roleSecurityMutation = useMutation({

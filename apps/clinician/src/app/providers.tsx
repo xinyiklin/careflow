@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -28,6 +29,21 @@ const queryClient = new QueryClient({
 });
 
 export default function AppProviders({ children }: { children: ReactNode }) {
+  // Drop all cached data on logout so a second user on a shared workstation
+  // never sees the previous user's patient/message/billing data. logoutUser()
+  // and the API client's session-expiry path both dispatch auth:logout.
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      queryClient.clear();
+    };
+
+    window.addEventListener("auth:logout", handleAuthLogout);
+
+    return () => {
+      window.removeEventListener("auth:logout", handleAuthLogout);
+    };
+  }, []);
+
   return (
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>

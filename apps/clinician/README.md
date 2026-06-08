@@ -138,7 +138,7 @@ Current auth endpoints include:
 /v1/users/token/refresh/
 /v1/users/logout/
 /v1/users/me/
-/v1/users/preferences/
+/v1/users/me/preferences/
 ```
 
 ## UI Notes
