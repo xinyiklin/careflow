@@ -4561,7 +4561,8 @@ export interface components {
             termination_date?: string | null;
             coverage_order?: components["schemas"]["CoverageOrderEnum"];
             is_primary?: boolean;
-            is_active?: boolean;
+            /** @default true */
+            is_active: boolean;
             notes?: string;
             /** Format: date-time */
             readonly created_at?: string;
@@ -4891,7 +4892,8 @@ export interface components {
             termination_date?: string | null;
             coverage_order?: components["schemas"]["CoverageOrderEnum"];
             is_primary?: boolean;
-            is_active?: boolean;
+            /** @default true */
+            is_active: boolean;
             notes?: string;
             /** Format: date-time */
             readonly created_at: string;

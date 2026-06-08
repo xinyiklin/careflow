@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from billing.models import OrganizationFeeSchedule
 
+from .carrier_access import get_effective_carrier_ids
 from .models import (
     FacilityInsuranceCarrierOverride,
     InsuranceCarrier,
@@ -275,6 +276,14 @@ class PatientInsurancePolicySerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["created_at", "updated_at", "carrier_name", "patient_name"]
+
+    def validate_carrier(self, value):
+        facility = self.context.get("facility")
+        if facility and value.id not in get_effective_carrier_ids(facility):
+            raise serializers.ValidationError(
+                "Carrier is not available for this facility."
+            )
+        return value
 
     def get_patient_name(self, obj):
         return f"{obj.patient.last_name}, {obj.patient.first_name}"
