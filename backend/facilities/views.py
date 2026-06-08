@@ -39,12 +39,12 @@ from .serializers import (
 
 
 def create_security_audit_event(
-    request, *, facility, model_name, object_pk, summary, metadata
+    request, *, facility, model_name, object_pk, summary, metadata, action="update"
 ):
     AuditEvent.objects.create(
         actor=request.user,
         facility=facility,
-        action="update",
+        action=action,
         app_label="facilities",
         model_name=model_name,
         object_pk=str(object_pk),
@@ -101,7 +101,52 @@ class StaffViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        serializer.save(facility=self.get_facility())
+        facility = self.get_facility()
+
+        # security_overrides is writable, and a role can itself grant security
+        # self-management, so creating a membership with either is a
+        # security-management operation gated exactly like perform_update.
+        overrides_in_payload = "security_overrides" in serializer.validated_data
+        incoming_role = serializer.validated_data.get("role")
+        role_self_manages_security = bool(
+            incoming_role
+            and holds_all_self_management(incoming_role.security_permissions, None)
+        )
+        can_manage_security = user_can_manage_facility_security(
+            self.request.user, facility.id
+        )
+
+        if (overrides_in_payload or role_self_manages_security) and (
+            not can_manage_security
+        ):
+            if role_self_manages_security:
+                raise PermissionDenied(
+                    "You do not have permission to manage security permissions."
+                )
+            # Actor may create the membership but not the security overrides;
+            # strip them rather than persisting an unauthorized escalation.
+            staff = serializer.save(facility=facility, security_overrides={})
+        else:
+            staff = serializer.save(facility=facility)
+
+        create_security_audit_event(
+            self.request,
+            facility=staff.facility,
+            model_name="staff",
+            object_pk=staff.pk,
+            action="create",
+            summary=f"Created staff membership for {staff.user}",
+            metadata={
+                "changed_fields": ["Created"],
+                "previous": {},
+                "next": {
+                    "role_id": staff.role_id,
+                    "is_active": staff.is_active,
+                    "security_overrides": staff.security_overrides or {},
+                },
+                "user_id": staff.user_id,
+            },
+        )
 
     def perform_update(self, serializer):
         facility = self.get_facility()
@@ -198,7 +243,32 @@ class StaffViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
 
             previous_overrides = serializer.instance.security_overrides or {}
             previous_active = serializer.instance.is_active
+            previous_role = serializer.instance.role
             serializer.save()
+            if role_is_changing:
+                create_security_audit_event(
+                    self.request,
+                    facility=serializer.instance.facility,
+                    model_name="staff",
+                    object_pk=serializer.instance.pk,
+                    summary=(f"Updated staff role for {serializer.instance.user}"),
+                    metadata={
+                        "changed_fields": ["Role"],
+                        "previous": {
+                            "role_id": previous_role.id if previous_role else None,
+                            "role": previous_role.name if previous_role else None,
+                        },
+                        "next": {
+                            "role_id": serializer.instance.role_id,
+                            "role": (
+                                serializer.instance.role.name
+                                if serializer.instance.role
+                                else None
+                            ),
+                        },
+                        "user_id": serializer.instance.user_id,
+                    },
+                )
             if "security_overrides" in serializer.validated_data:
                 create_security_audit_event(
                     self.request,
@@ -413,12 +483,42 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
         return StaffRole.objects.filter(facility=self.get_facility()).order_by("name")
 
     def perform_create(self, serializer):
+        facility = self.get_facility()
         role_code = serializer.validated_data.get("code")
-        serializer.save(
-            facility=self.get_facility(),
-            security_permissions=get_role_security_template(role_code),
+        security_permissions = get_role_security_template(role_code)
+
+        # A role template can grant the self-management permissions that define
+        # a facility administrator, so creating such a role is a
+        # security-management operation gated exactly like the update path.
+        grants_self_management = any(
+            security_permissions.get(permission, False)
+            for permission in SELF_MANAGEMENT_PERMISSIONS
+        )
+        if grants_self_management and not user_can_manage_facility_security(
+            self.request.user, facility.id
+        ):
+            raise PermissionDenied(
+                "You do not have permission to manage security permissions."
+            )
+
+        role = serializer.save(
+            facility=facility,
+            security_permissions=security_permissions,
             is_system_role=False,
             is_deletable=True,
+        )
+        create_security_audit_event(
+            self.request,
+            facility=facility,
+            model_name="staffrole",
+            object_pk=role.pk,
+            action="create",
+            summary=f"Created role {role.name}",
+            metadata={
+                "changed_fields": ["Created"],
+                "previous": {},
+                "next": security_permissions,
+            },
         )
 
     def perform_update(self, serializer):
@@ -478,7 +578,27 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
                     "administrator. Assign another administrator first."
                 )
 
+            previous_permissions = serializer.instance.security_permissions or {}
+            members_affected = sum(
+                1 for staff in facility_staff if staff.role_id == serializer.instance.id
+            )
             serializer.save()
+            create_security_audit_event(
+                self.request,
+                facility=serializer.instance.facility,
+                model_name="staffrole",
+                object_pk=serializer.instance.pk,
+                summary=(
+                    f"Updated security permissions for role "
+                    f"{serializer.instance.name}"
+                ),
+                metadata={
+                    "changed_fields": ["Security permissions"],
+                    "previous": previous_permissions,
+                    "next": serializer.instance.security_permissions or {},
+                    "members_affected": members_affected,
+                },
+            )
 
     def perform_destroy(self, instance):
         if instance.facility_id != self.get_facility().id:

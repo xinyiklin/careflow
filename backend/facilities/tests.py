@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from audit.models import AuditEvent
 from facilities.models import AppointmentStatus, Facility, Staff, StaffRole
 from facilities.security import get_role_security_template, user_has_facility_permission
 from organizations.models import Organization, OrganizationMembership
@@ -272,6 +273,15 @@ class FacilitySecurityManagementTests(TestCase):
             HTTP_HOST="localhost:8000",
         )
 
+    def create_role(self, user, payload):
+        self.client.force_authenticate(user)
+        return self.client.post(
+            f"/v1/facilities/staff-roles/?facility_id={self.facility.pk}",
+            payload,
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
     def test_admin_with_security_manage_can_edit_role_security(self):
         admin = self.make_admin("fac_sec_admin", OrganizationMembership.ROLE_MEMBER)
         response = self.patch_role_security(
@@ -291,6 +301,42 @@ class FacilitySecurityManagementTests(TestCase):
             admin, self.staff_role, get_role_security_template("staff")
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_admin_with_security_manage_can_create_security_bearing_role(self):
+        admin = self.make_admin("role_creator", OrganizationMembership.ROLE_MEMBER)
+        # "Admin" resolves to the admin self-management template (code is
+        # lower-cased for the lookup) while dodging the case-sensitive
+        # (facility, code) uniqueness of the seeded "admin" role.
+        response = self.create_role(admin, {"code": "Admin", "name": "Backup Admins"})
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                actor=admin, model_name="staffrole", action="create"
+            ).exists()
+        )
+
+    def test_limited_admin_cannot_create_security_bearing_role(self):
+        admin = self.make_admin(
+            "limited_role_creator",
+            OrganizationMembership.ROLE_MEMBER,
+            security_overrides={"admin.security.manage": False},
+        )
+        response = self.create_role(admin, {"code": "Admin", "name": "Sneaky Admins"})
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            StaffRole.objects.filter(
+                facility=self.facility, name="Sneaky Admins"
+            ).exists()
+        )
+
+    def test_limited_admin_can_create_non_security_role(self):
+        admin = self.make_admin(
+            "limited_role_creator_ok",
+            OrganizationMembership.ROLE_MEMBER,
+            security_overrides={"admin.security.manage": False},
+        )
+        response = self.create_role(admin, {"code": "custom", "name": "Custom Role"})
+        self.assertEqual(response.status_code, 201)
 
     def test_cannot_remove_security_manage_from_own_role(self):
         admin = self.make_admin("fac_self_sec", OrganizationMembership.ROLE_MEMBER)
