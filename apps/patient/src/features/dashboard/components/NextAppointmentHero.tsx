@@ -110,11 +110,9 @@ export function NextAppointmentHero({
           </p>
           {(provider || type) && (
             <p className="mt-2 text-sm font-medium text-text">
-              {type ? <span>{type}</span> : null}
-              {type && provider ? (
-                <span className="mx-1.5 text-text-subtle">with</span>
-              ) : null}
-              {provider ? <span>{provider}</span> : null}
+              {type && provider
+                ? t("dashboard.appointmentTypeWithProvider", { type, provider })
+                : type || provider}
             </p>
           )}
         </header>
@@ -195,11 +193,13 @@ export function NextAppointmentHero({
         }
       >
         <p className="text-sm text-text-muted">
-          {type ? <span className="font-medium text-text">{type}</span> : null}
-          {type && provider ? (
-            <span className="mx-1.5 text-text-subtle">with</span>
-          ) : null}
-          {provider ? <span>{provider}</span> : null}
+          {(type || provider) && (
+            <span className="font-medium text-text">
+              {type && provider
+                ? t("dashboard.appointmentTypeWithProvider", { type, provider })
+                : type || provider}
+            </span>
+          )}
           {(type || provider) && <br />}
           <span>{when}</span>
         </p>

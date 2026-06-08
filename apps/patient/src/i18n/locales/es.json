@@ -45,12 +45,14 @@
     "records": "Historial",
     "medications": "Medicamentos",
     "messages": "Mensajes",
+    "unreadMessages": "Mensajes — sin leer",
     "profile": "Perfil"
   },
   "dashboard": {
     "welcomeBack": "Bienvenido de nuevo, {{name}}",
     "greeting": "Esto es lo que tienes hoy.",
     "nextAppointmentHeading": "Tu próxima cita",
+    "appointmentTypeWithProvider": "{{type}} con {{provider}}",
     "noUpcomingAppointment": "No tienes citas próximas.",
     "bookAppointment": "Reservar una cita",
     "rescheduleAppointment": "Reprogramar",

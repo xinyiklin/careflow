@@ -45,12 +45,14 @@
     "records": "Records",
     "medications": "Medications",
     "messages": "Messages",
+    "unreadMessages": "Messages — unread",
     "profile": "Profile"
   },
   "dashboard": {
     "welcomeBack": "Welcome back, {{name}}",
     "greeting": "Here's where things stand today.",
     "nextAppointmentHeading": "Your next appointment",
+    "appointmentTypeWithProvider": "{{type}} with {{provider}}",
     "noUpcomingAppointment": "You have no upcoming appointments.",
     "bookAppointment": "Book an appointment",
     "rescheduleAppointment": "Reschedule",
