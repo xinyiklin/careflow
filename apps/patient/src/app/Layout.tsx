@@ -298,7 +298,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   <Icon size={16} aria-hidden="true" />
                   {showUnread && hasUnreadMessages ? (
                     <span
-                      aria-label={t("nav.messages")}
+                      aria-label={t("nav.unreadMessages")}
                       className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-accent ring-2 ring-surface"
                     />
                   ) : null}
@@ -359,7 +359,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <Icon size={20} aria-hidden="true" />
               {showUnread && hasUnreadMessages ? (
                 <span
-                  aria-label={t("nav.messages")}
+                  aria-label={t("nav.unreadMessages")}
                   className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-surface"
                 />
               ) : null}

@@ -45,12 +45,14 @@
     "records": "病歷",
     "medications": "用藥",
     "messages": "訊息",
+    "unreadMessages": "訊息 — 有未讀",
     "profile": "個人資料"
   },
   "dashboard": {
     "welcomeBack": "歡迎回來，{{name}}",
     "greeting": "這是您今天的概況。",
     "nextAppointmentHeading": "您的下一次預約",
+    "appointmentTypeWithProvider": "{{type}} · {{provider}}",
     "noUpcomingAppointment": "您目前沒有預約。",
     "bookAppointment": "預約看診",
     "rescheduleAppointment": "改期",
