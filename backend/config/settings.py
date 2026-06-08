@@ -129,7 +129,15 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 if DATABASE_URL:
-    DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
+    # Force TLS for the managed database in production; dj_database_url only
+    # enables it from the URL's sslmode otherwise. Gate behind DB_SSL_REQUIRE
+    # (default True when DEBUG is False) for non-TLS local DATABASE_URL setups.
+    DB_SSL_REQUIRE = os.environ.get("DB_SSL_REQUIRE", str(not DEBUG)).lower() == "true"
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL, conn_max_age=600, ssl_require=DB_SSL_REQUIRE
+        )
+    }
 else:
     DATABASES = {
         "default": {

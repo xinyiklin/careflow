@@ -13,6 +13,7 @@ from patients.models import Patient, PatientEmergencyContact, PatientPhone
 from users.permissions import IsPortalPatient
 from users.portal import PatientPortalAccount
 from users.portal_access import get_patient_for_user
+from users.tokens import CLINIC_SURFACE, PORTAL_SURFACE, issue_refresh_for_user
 
 User = get_user_model()
 
@@ -507,3 +508,37 @@ class PortalLoginViewTests(PortalTestMixin, APITestCase):
         )
 
         self.assertEqual(response.status_code, 401)
+
+
+PORTAL_REFRESH_URL = "/v1/portal/auth/refresh/"
+CLINIC_REFRESH_URL = "/v1/users/token/refresh/"
+
+
+class CrossSurfaceRefreshTokenTests(PortalTestMixin, APITestCase):
+    """A refresh token minted for one auth surface must not be replayable
+    against the other surface's refresh endpoint.
+
+    The surface claim is set by :func:`users.tokens.issue_refresh_for_user`
+    and enforced by ``_SurfaceTokenRefreshSerializer``; a mismatch raises
+    ``InvalidToken`` (HTTP 401) before any new access token is minted."""
+
+    def test_clinic_token_rejected_at_portal_refresh_endpoint(self):
+        clinician = self._make_clinician_user()
+        refresh = issue_refresh_for_user(clinician, CLINIC_SURFACE)
+
+        self.client.cookies["careflow_refresh"] = str(refresh)
+        response = self.client.post(PORTAL_REFRESH_URL, {}, format="json")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn("access", response.data)
+
+    def test_portal_token_rejected_at_clinic_refresh_endpoint(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        refresh = issue_refresh_for_user(user, PORTAL_SURFACE)
+
+        self.client.cookies["careflow_refresh"] = str(refresh)
+        response = self.client.post(CLINIC_REFRESH_URL, {}, format="json")
+
+        self.assertEqual(response.status_code, 401)
+        self.assertNotIn("access", response.data)

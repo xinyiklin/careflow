@@ -307,6 +307,16 @@ class ProgressNoteViewSet(
                 "can unsign a progress note."
             )
 
+        # A signed encounter with a billing record cannot revert to in_progress
+        # without orphaning that record at a state the billing model rejects.
+        # Local import avoids a circular dependency: billing imports clinical.
+        from billing.models import EncounterBillingRecord
+
+        if EncounterBillingRecord.objects.filter(encounter=note.encounter).exists():
+            raise ValidationError(
+                {"encounter": ["Cannot unsign an encounter that has a billing record."]}
+            )
+
         original_signer = note.signed_by_name or "Unknown"
 
         with transaction.atomic():
@@ -385,11 +395,40 @@ class VitalsViewSet(
             raise ValidationError(
                 {"encounter": ["Cannot record vitals on a signed encounter."]}
             )
-        serializer.save(recorded_by=self.request.user)
+        with transaction.atomic():
+            vitals = serializer.save(recorded_by=self.request.user)
+            record_audit_event(
+                actor=self.request.user,
+                facility=facility,
+                patient=encounter.patient,
+                action="create",
+                app_label="clinical",
+                model_name="vitals",
+                object_pk=vitals.pk,
+                summary="Recorded encounter vitals",
+                metadata={"encounter_id": encounter.pk},
+            )
 
     def perform_update(self, serializer):
         facility = self.require_clinical_permission("clinical.update")
         encounter = serializer.instance.encounter
         if encounter.facility_id != facility.id:
             raise PermissionDenied("You do not have access to this encounter.")
-        serializer.save(recorded_by=self.request.user)
+        new_encounter = serializer.validated_data.get("encounter")
+        if new_encounter and new_encounter.id != encounter.id:
+            raise ValidationError(
+                {"encounter": ["Vitals encounter cannot be changed."]}
+            )
+        with transaction.atomic():
+            vitals = serializer.save(recorded_by=self.request.user)
+            record_audit_event(
+                actor=self.request.user,
+                facility=facility,
+                patient=encounter.patient,
+                action="update",
+                app_label="clinical",
+                model_name="vitals",
+                object_pk=vitals.pk,
+                summary="Updated encounter vitals",
+                metadata={"encounter_id": encounter.pk},
+            )

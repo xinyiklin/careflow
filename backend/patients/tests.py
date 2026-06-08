@@ -558,6 +558,59 @@ class PatientViewSetTests(TestCase):
             ).exists()
         )
 
+    def test_reveal_ssn_without_patients_view_returns_403_and_writes_no_audit(self):
+        self.staff.security_overrides = {"patients.view": False}
+        self.staff.save()
+
+        response = self.client.get(
+            f"/v1/patients/{self.patient.id}/reveal-ssn/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            AuditEvent.objects.filter(summary="Revealed patient SSN").exists()
+        )
+
+    def test_reveal_ssn_for_other_facility_patient_returns_404_and_writes_no_audit(
+        self,
+    ):
+        other_facility = Facility.objects.create(
+            organization=self.organization,
+            name="East Clinic",
+            timezone="America/New_York",
+        )
+        other_user = User.objects.create_user(
+            username="frontdesk_east",
+            password="testpass123",
+            email="frontdesk_east@example.com",
+        )
+        OrganizationMembership.objects.create(
+            user=other_user,
+            organization=self.organization,
+            role=OrganizationMembership.ROLE_MEMBER,
+            is_active=True,
+        )
+        Staff.objects.create(
+            user=other_user,
+            facility=other_facility,
+            role=StaffRole.objects.get(facility=other_facility, code="admin"),
+            is_active=True,
+            is_default=True,
+        )
+
+        other_client = APIClient()
+        other_client.force_authenticate(other_user)
+        response = other_client.get(
+            f"/v1/patients/{self.patient.id}/reveal-ssn/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(
+            AuditEvent.objects.filter(summary="Revealed patient SSN").exists()
+        )
+
     def test_update_without_ssn_keeps_existing_ssn(self):
         response = self.client.put(
             f"/v1/patients/{self.patient.id}/",

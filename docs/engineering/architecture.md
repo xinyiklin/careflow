@@ -113,8 +113,11 @@ api.careflow.xinyiklin.com      → backend (Render)
 
 Cookie domain in production is `.careflow.xinyiklin.com`
 (`backend/config/settings.py`). The refresh cookie issued by `/v1/users/token/`
-is therefore valid across CareFlow subdomains. The portal still has a separate
-portal-account role boundary under `/v1/portal/`.
+is therefore valid across CareFlow subdomains. It is also `Path`-scoped per
+surface — the clinician cookie is pinned to `/v1/users/` and the portal cookie
+to `/v1/portal/` (`backend/users/views.py`) — so the browser never sends one
+surface's refresh cookie to the other, keeping the two sessions disjoint. The
+portal still has a separate portal-account role boundary under `/v1/portal/`.
 
 Keep both frontend origins in `CORS_ALLOWED_ORIGINS` and
 `CSRF_TRUSTED_ORIGINS` in the backend's production environment. CSRF may also
