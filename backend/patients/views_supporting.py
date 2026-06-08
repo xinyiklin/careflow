@@ -1,6 +1,7 @@
 from rest_framework import permissions, viewsets
 from rest_framework.exceptions import PermissionDenied
 
+from audit.services import record_audit_event
 from facilities.permissions import IsFacilityAdminOrReadOnly
 from shared.scoping import FacilityScopedViewSetMixin
 
@@ -40,15 +41,45 @@ class CareProviderViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
         )
 
     def perform_create(self, serializer):
-        serializer.save(facility=self.get_facility())
+        facility = self.get_facility()
+        provider = serializer.save(facility=facility)
+        record_audit_event(
+            actor=self.request.user,
+            facility=facility,
+            action="create",
+            app_label="patients",
+            model_name="careprovider",
+            object_pk=provider.pk,
+            summary=f"Created care provider {provider.display_name}",
+        )
 
     def perform_update(self, serializer):
-        if serializer.instance.facility_id != self.get_facility().id:
+        facility = self.get_facility()
+        if serializer.instance.facility_id != facility.id:
             raise PermissionDenied("You do not have access to this provider.")
-        serializer.save()
+        provider = serializer.save()
+        record_audit_event(
+            actor=self.request.user,
+            facility=facility,
+            action="update",
+            app_label="patients",
+            model_name="careprovider",
+            object_pk=provider.pk,
+            summary=f"Updated care provider {provider.display_name}",
+        )
 
     def perform_destroy(self, instance):
-        if instance.facility_id != self.get_facility().id:
+        facility = self.get_facility()
+        if instance.facility_id != facility.id:
             raise PermissionDenied("You do not have access to this provider.")
         instance.is_active = False
         instance.save()
+        record_audit_event(
+            actor=self.request.user,
+            facility=facility,
+            action="delete",
+            app_label="patients",
+            model_name="careprovider",
+            object_pk=instance.pk,
+            summary=f"Deactivated care provider {instance.display_name}",
+        )

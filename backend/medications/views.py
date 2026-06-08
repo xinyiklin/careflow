@@ -476,19 +476,38 @@ class PrescriberDelegationViewSet(FacilityScopedViewSetMixin, viewsets.ModelView
 
     def perform_create(self, serializer):
         facility = self._require_permission(self.PERMISSION, self.PERMISSION_MESSAGE)
-        serializer.save(facility=facility)
+        delegation = serializer.save(facility=facility)
+        self._record_delegation_event(delegation, "create", "Granted refill delegation")
 
     def perform_update(self, serializer):
         facility = self._require_permission(self.PERMISSION, self.PERMISSION_MESSAGE)
         if serializer.instance.facility_id != facility.id:
             raise PermissionDenied("You do not have access to this delegation.")
-        serializer.save()
+        delegation = serializer.save()
+        self._record_delegation_event(delegation, "update", "Updated refill delegation")
 
     def perform_destroy(self, instance):
         facility = self._require_permission(self.PERMISSION, self.PERMISSION_MESSAGE)
         if instance.facility_id != facility.id:
             raise PermissionDenied("You do not have access to this delegation.")
+        self._record_delegation_event(instance, "delete", "Revoked refill delegation")
         instance.delete()
+
+    def _record_delegation_event(self, delegation, action, summary):
+        record_audit_event(
+            actor=self.request.user,
+            facility=delegation.facility,
+            action=action,
+            app_label="medications",
+            model_name="prescriberdelegation",
+            object_pk=delegation.pk,
+            summary=f"{summary}: {delegation}",
+            metadata={
+                "prescriber_id": delegation.prescriber_id,
+                "delegate_id": delegation.delegate_id,
+                "is_active": delegation.is_active,
+            },
+        )
 
     def _require_permission(self, permission, message):
         facility = self.get_facility()

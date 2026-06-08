@@ -258,6 +258,14 @@ class ProgressNote(models.Model):
         if self.status != self.STATUS_SIGNED:
             return
 
+        # Local import avoids a circular dependency: billing imports clinical.
+        from billing.models import EncounterBillingRecord
+
+        if EncounterBillingRecord.objects.filter(encounter=self.encounter).exists():
+            raise ValidationError(
+                {"encounter": ("Cannot unsign an encounter that has a billing record.")}
+            )
+
         Encounter.objects.filter(pk=self.encounter_id).update(
             status=Encounter.STATUS_IN_PROGRESS,
         )
