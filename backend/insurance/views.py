@@ -1,5 +1,6 @@
+from django.db import IntegrityError
 from rest_framework import mixins, permissions, viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from audit.services import record_audit_event
 from facilities.access import get_facility_for_user
@@ -211,6 +212,11 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
     serializer_class = PatientInsurancePolicySerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["facility"] = self.get_facility()
+        return context
+
     def get_queryset(self):
         facility = self.get_facility()
         if not user_has_facility_permission(
@@ -237,6 +243,19 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
         if policy.patient.facility_id != self.get_facility().id:
             raise PermissionDenied("You do not have access to this insurance policy.")
 
+    def _policy_integrity_error(self, exc):
+        # Two partial-unique constraints can fire on save: the active
+        # (patient, carrier, member_id) uniqueness and the one-primary-per-patient
+        # rule. Map each to its own field so the 400 is accurate.
+        if "unique_active_insurance_policy_per_member" in str(exc):
+            return {
+                "member_id": (
+                    "An active policy with this carrier and member ID already "
+                    "exists for this patient."
+                )
+            }
+        return {"is_primary": "This patient already has a primary insurance policy."}
+
     def perform_create(self, serializer):
         facility = self.get_facility()
         if not user_has_facility_permission(
@@ -251,7 +270,12 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
         patient = serializer.validated_data["patient"]
         if patient.facility_id != facility.id:
             raise PermissionDenied("Selected patient does not belong to this facility.")
-        policy = serializer.save()
+        try:
+            policy = serializer.save()
+        except IntegrityError as exc:
+            # A partial unique constraint rejected the write (duplicate active
+            # member id, or a primary-policy race); surface the right 400.
+            raise ValidationError(self._policy_integrity_error(exc)) from exc
         record_audit_event(
             actor=self.request.user,
             facility=facility,
@@ -279,7 +303,12 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
         patient = serializer.validated_data.get("patient", serializer.instance.patient)
         if patient.facility_id != facility.id:
             raise PermissionDenied("Selected patient does not belong to this facility.")
-        policy = serializer.save()
+        try:
+            policy = serializer.save()
+        except IntegrityError as exc:
+            # A partial unique constraint rejected the write (duplicate active
+            # member id, or a primary-policy race); surface the right 400.
+            raise ValidationError(self._policy_integrity_error(exc)) from exc
         record_audit_event(
             actor=self.request.user,
             facility=facility,

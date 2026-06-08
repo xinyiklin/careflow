@@ -183,13 +183,17 @@ class PatientInsurancePolicy(models.Model):
 
     class Meta:
         ordering = ["patient", "-is_primary", "coverage_order", "carrier__name"]
-        unique_together = ("patient", "carrier", "member_id")
         constraints = [
+            models.UniqueConstraint(
+                fields=["patient", "carrier", "member_id"],
+                condition=models.Q(is_active=True),
+                name="unique_active_insurance_policy_per_member",
+            ),
             models.UniqueConstraint(
                 fields=["patient"],
                 condition=models.Q(is_primary=True),
                 name="unique_primary_insurance_policy_per_patient",
-            )
+            ),
         ]
 
     def save(self, *args, **kwargs):

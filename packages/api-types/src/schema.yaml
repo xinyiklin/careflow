@@ -9752,6 +9752,7 @@ components:
           type: boolean
         is_active:
           type: boolean
+          default: true
         notes:
           type: string
         created_at:
@@ -10617,6 +10618,7 @@ components:
           type: boolean
         is_active:
           type: boolean
+          default: true
         notes:
           type: string
         created_at:
