@@ -13,6 +13,7 @@ export default function SchedulePageOverlays({
   contextMenuState,
   editBlockedDialogState,
   facility,
+  handleChangeStatusFromMenu,
   handleCloseAppointmentHistory,
   handleCloseAppointmentModal,
   handleConfirmDialogConfirm,
@@ -81,11 +82,13 @@ export default function SchedulePageOverlays({
         x={contextMenuState.x}
         y={contextMenuState.y}
         timeZone={facility?.timezone}
+        statusOptions={statusOptions}
         onClose={onCloseAppointmentContextMenu}
         onOpenAppointment={handleOpenEdit}
         onOpenPatientHub={handleOpenPatientHub}
         onDuplicateAppointment={handleOpenDuplicate}
         onOpenHistory={handleOpenAppointmentHistory}
+        onChangeStatus={handleChangeStatusFromMenu}
         onDeleteAppointment={handleDeleteAppointmentFromMenu}
       />
 

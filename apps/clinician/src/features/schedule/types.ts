@@ -319,6 +319,10 @@ export type SchedulePageOverlaysProps = {
   contextMenuState: ScheduleContextMenuState;
   editBlockedDialogState: ScheduleEditBlockedDialogState;
   facility?: FacilityLike | null;
+  handleChangeStatusFromMenu: (
+    appointment: AppointmentLike,
+    statusId: EntityId
+  ) => void | Promise<void>;
   handleCloseAppointmentHistory: () => void;
   handleCloseAppointmentModal: () => void;
   handleConfirmDialogConfirm: () => void | Promise<void>;
