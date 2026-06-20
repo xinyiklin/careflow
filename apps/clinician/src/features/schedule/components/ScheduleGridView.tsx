@@ -631,7 +631,7 @@ const ScheduleDragGhostLayer = memo(function ScheduleDragGhostLayer({
   appointmentBlockDisplay: AppointmentBlockDisplay;
   activated: boolean;
   appointment: AppointmentLike | null;
-  pointerRef: React.MutableRefObject<{ x: number; y: number }>;
+  pointerRef: React.RefObject<{ x: number; y: number }>;
 }) {
   const ghostRef = useRef<HTMLDivElement | null>(null);
 
