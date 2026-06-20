@@ -1,4 +1,4 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import type { Dispatch, RefObject, SetStateAction } from "react";
 
 import type { ApiPayload, EntityId } from "../../shared/api/types";
 import type { AppointmentBlockDisplay } from "../../shared/constants/appointmentBlockDisplay";
@@ -163,7 +163,7 @@ export type ScheduleGridCommonProps = {
   visibleDayEntries: ScheduleDayEntry[];
 };
 
-export type SharedScrollRef = MutableRefObject<boolean>;
+export type SharedScrollRef = RefObject<boolean>;
 
 export type ResourceLoadSummary = ResourceDefinition & {
   count: number;
@@ -210,6 +210,7 @@ export type ScheduleContextMenuState = {
 export type ScheduleEditBlockedDialogState = {
   isOpen: boolean;
   activeEditor: AppointmentEditSessionActiveEditor;
+  appointmentId: EntityId | null;
 };
 
 export type ScheduleAppointmentFlow = {
@@ -340,6 +341,7 @@ export type SchedulePageOverlaysProps = {
   onEditSessionBlocked: (
     activeEditor: AppointmentEditSessionActiveEditor
   ) => void;
+  onTakeOverEdit: (appointmentId: EntityId) => void;
   onOpenPatientSearch: ScheduleOpenPatientSearch;
   patientFlow: SchedulePatientFlow;
   physicians: AppointmentStaff[];

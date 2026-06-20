@@ -3,6 +3,7 @@ import type { MouseEvent } from "react";
 
 import ScheduleWorkspaceLayout from "../components/ScheduleWorkspaceLayout";
 import SchedulePageOverlays from "./SchedulePageOverlays";
+import SlotBeingBookedDialog from "../../appointments/components/SlotBeingBookedDialog";
 
 import formatAppointments from "../../appointments/utils/formatAppointments";
 
@@ -10,9 +11,12 @@ import useAppointments from "../../appointments/hooks/useAppointments";
 import useAppointmentMutations from "../../appointments/hooks/useAppointmentMutations";
 import { useAppointmentFlowContext } from "../../appointments/AppointmentFlowProvider";
 import {
+  acquireSlotHold,
   beginAppointmentEditSession,
   releaseAppointmentEditSession,
 } from "../../appointments/api/appointments";
+import type { SlotHoldKey } from "../../appointments/api/appointments";
+import useAppointmentSlotHold from "../../appointments/hooks/useAppointmentSlotHold";
 import useSchedulePageColumns from "../hooks/useSchedulePageColumns";
 import useFacility from "../../facilities/hooks/useFacility";
 import useFacilityConfig from "../../facilities/hooks/useFacilityConfig";
@@ -120,7 +124,24 @@ export default function SchedulePage() {
     useState<ScheduleEditBlockedDialogState>({
       isOpen: false,
       activeEditor: null,
+      appointmentId: null,
     });
+  // The empty slot currently held open by this user's create modal, kept alive
+  // by useAppointmentSlotHold and released when the modal closes.
+  const [activeSlotKey, setActiveSlotKey] = useState<SlotHoldKey | null>(null);
+  const [slotBooking, setSlotBooking] = useState<{
+    isOpen: boolean;
+    name: string;
+    slotKey: SlotHoldKey | null;
+    slot: { date: string; time24: string; resourceId: EntityId | "" } | null;
+    isOverriding: boolean;
+  }>({
+    isOpen: false,
+    name: "",
+    slotKey: null,
+    slot: null,
+    isOverriding: false,
+  });
 
   const {
     appointments,
@@ -134,6 +155,20 @@ export default function SchedulePage() {
 
   const appointmentFlow = useAppointmentFlowContext();
   const { open: openAppointmentModal } = appointmentFlow.modal;
+
+  useAppointmentSlotHold({
+    facilityId: selectedFacilityId,
+    slotKey: activeSlotKey,
+  });
+
+  // Release the slot hold whenever the create modal closes (save, cancel, or
+  // escape) — the hold only represents an in-progress booking.
+  const isAppointmentModalOpen = appointmentFlow.modal.isOpen;
+  useEffect(() => {
+    if (!isAppointmentModalOpen && activeSlotKey) {
+      setActiveSlotKey(null);
+    }
+  }, [activeSlotKey, isAppointmentModalOpen]);
 
   const handleScheduleQuickAction = useCallback(
     (type: string | null | undefined) => {
@@ -371,17 +406,42 @@ export default function SchedulePage() {
     setEditBlockedDialogState({
       isOpen: false,
       activeEditor: null,
+      appointmentId: null,
     });
   }, []);
 
   const showEditBlockedDialog = useCallback(
-    (activeEditor: ScheduleEditBlockedDialogState["activeEditor"]) => {
+    (
+      activeEditor: ScheduleEditBlockedDialogState["activeEditor"],
+      appointmentId: EntityId | null
+    ) => {
       setEditBlockedDialogState({
         isOpen: true,
         activeEditor,
+        appointmentId,
       });
     },
     []
+  );
+
+  const handleModalEditBlocked = useCallback(
+    (activeEditor: ScheduleEditBlockedDialogState["activeEditor"]) => {
+      showEditBlockedDialog(activeEditor, appointmentFlow.modal.editingId);
+    },
+    [appointmentFlow.modal.editingId, showEditBlockedDialog]
+  );
+
+  const handleTakeOverEdit = useCallback(
+    (appointmentId: EntityId) => {
+      closeEditBlockedDialog();
+      const appointment = appointments.find(
+        (candidate) => String(candidate.id) === String(appointmentId)
+      );
+      if (appointment) {
+        openAppointmentModal({ mode: "edit", appointment });
+      }
+    },
+    [appointments, closeEditBlockedDialog, openAppointmentModal]
   );
 
   const beginDropEditSession = useCallback(
@@ -393,7 +453,7 @@ export default function SchedulePage() {
         );
 
         if (result?.status === "occupied") {
-          showEditBlockedDialog(result.active_editor || null);
+          showEditBlockedDialog(result.active_editor || null, appointmentId);
           return null;
         }
 
@@ -569,7 +629,10 @@ export default function SchedulePage() {
         );
 
         if (result?.status === "occupied") {
-          showEditBlockedDialog(result.active_editor || null);
+          showEditBlockedDialog(
+            result.active_editor || null,
+            appointment.id ?? null
+          );
           return;
         }
 
@@ -600,11 +663,60 @@ export default function SchedulePage() {
     [patientFlow.hub]
   );
 
-  const handleOpenFromSlot = useCallback(
-    (date: string, time24: string, resourceId: EntityId | "" = "") =>
-      appointmentFlow.modal.openFromSlot(date, time24, resourceId),
-    [appointmentFlow.modal]
-  );
+  const handleOpenFromSlot = async (
+    date: string,
+    time24: string,
+    resourceId: EntityId | "" = ""
+  ) => {
+    const slotKey: SlotHoldKey = {
+      startTime: `${date}T${time24}`,
+      resource: resourceId === "" ? null : resourceId,
+    };
+
+    try {
+      const result = await acquireSlotHold(selectedFacilityId, slotKey);
+      if (result?.status === "occupied") {
+        setSlotBooking({
+          isOpen: true,
+          name: result.active_user?.user_name || "Another user",
+          slotKey,
+          slot: { date, time24, resourceId },
+          isOverriding: false,
+        });
+        return;
+      }
+    } catch {
+      // Presence is advisory; fall through and open the modal anyway.
+    }
+
+    setActiveSlotKey(slotKey);
+    appointmentFlow.modal.openFromSlot(date, time24, resourceId);
+  };
+
+  const closeSlotBooking = () =>
+    setSlotBooking({
+      isOpen: false,
+      name: "",
+      slotKey: null,
+      slot: null,
+      isOverriding: false,
+    });
+
+  const handleSlotBookingOverride = async () => {
+    const { slotKey, slot } = slotBooking;
+    if (!slotKey || !slot) return;
+
+    setSlotBooking((current) => ({ ...current, isOverriding: true }));
+    try {
+      await acquireSlotHold(selectedFacilityId, slotKey, { override: true });
+    } catch {
+      // Advisory — proceed regardless.
+    }
+
+    setActiveSlotKey(slotKey);
+    appointmentFlow.modal.openFromSlot(slot.date, slot.time24, slot.resourceId);
+    closeSlotBooking();
+  };
 
   const formattedAppointments = useMemo(
     () => formatAppointments(appointments, handleOpenEdit, facility?.timezone),
@@ -612,102 +724,112 @@ export default function SchedulePage() {
   );
 
   return (
-    <WorkspaceShell
-      beforePanel={
-        <>
-          {appError && !appointmentFlow.modal.isOpen ? (
-            <Notice tone="danger" className="mb-4 shrink-0">
-              {appError}
-            </Notice>
-          ) : null}
+    <>
+      <WorkspaceShell
+        beforePanel={
+          <>
+            {appError && !appointmentFlow.modal.isOpen ? (
+              <Notice tone="danger" className="mb-4 shrink-0">
+                {appError}
+              </Notice>
+            ) : null}
 
-          {appointmentsError ? (
-            <Notice
-              tone="danger"
-              title="Couldn't load appointments"
-              className="mb-4 shrink-0"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>
-                  The schedule may be out of date. Check your connection and try
-                  again.
-                </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={() => void reloadAppointments()}
-                >
-                  Retry
-                </Button>
-              </div>
-            </Notice>
-          ) : null}
-        </>
-      }
-      afterPanel={
-        <SchedulePageOverlays
-          appError={appError}
-          appointmentFlow={appointmentFlow}
-          confirmDialogState={confirmDialogState}
-          contextMenuState={contextMenuState}
-          editBlockedDialogState={editBlockedDialogState}
+            {appointmentsError ? (
+              <Notice
+                tone="danger"
+                title="Couldn't load appointments"
+                className="mb-4 shrink-0"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span>
+                    The schedule may be out of date. Check your connection and
+                    try again.
+                  </span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => void reloadAppointments()}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </Notice>
+            ) : null}
+          </>
+        }
+        afterPanel={
+          <SchedulePageOverlays
+            appError={appError}
+            appointmentFlow={appointmentFlow}
+            confirmDialogState={confirmDialogState}
+            contextMenuState={contextMenuState}
+            editBlockedDialogState={editBlockedDialogState}
+            facility={facility}
+            handleCloseAppointmentHistory={handleCloseAppointmentHistory}
+            handleCloseAppointmentModal={handleCloseAppointmentModal}
+            handleChangeStatusFromMenu={handleChangeStatusFromMenu}
+            handleConfirmDialogConfirm={handleConfirmDialogConfirm}
+            handleDeleteAppointment={handleDeleteAppointment}
+            handleDeleteAppointmentFromMenu={handleDeleteAppointmentFromMenu}
+            handleOpenAppointmentHistory={handleOpenAppointmentHistory}
+            handleOpenDuplicate={handleOpenDuplicate}
+            handleOpenEdit={handleOpenEdit}
+            handleOpenPatientHub={handleOpenPatientHub}
+            handleSubmitAppointment={handleSubmitAppointment}
+            historyModalState={historyModalState}
+            onCloseAppointmentContextMenu={closeAppointmentContextMenu}
+            onCloseConfirmDialog={closeConfirmDialog}
+            onCloseEditBlockedDialog={closeEditBlockedDialog}
+            onEditSessionBlocked={handleModalEditBlocked}
+            onTakeOverEdit={handleTakeOverEdit}
+            onOpenPatientSearch={openPatientSearch}
+            patientFlow={patientFlow}
+            physicians={appointmentPhysicians}
+            recentPatients={appointmentRecentPatients}
+            resources={appointmentResources}
+            selectedFacilityId={selectedFacilityId}
+            staffs={appointmentStaffs}
+            statusOptions={appointmentStatusOptions}
+            typeOptions={appointmentTypeOptions}
+          />
+        }
+      >
+        <ScheduleWorkspaceLayout
+          facilityId={selectedFacilityId}
           facility={facility}
-          handleCloseAppointmentHistory={handleCloseAppointmentHistory}
-          handleCloseAppointmentModal={handleCloseAppointmentModal}
-          handleChangeStatusFromMenu={handleChangeStatusFromMenu}
-          handleConfirmDialogConfirm={handleConfirmDialogConfirm}
-          handleDeleteAppointment={handleDeleteAppointment}
-          handleDeleteAppointmentFromMenu={handleDeleteAppointmentFromMenu}
-          handleOpenAppointmentHistory={handleOpenAppointmentHistory}
-          handleOpenDuplicate={handleOpenDuplicate}
-          handleOpenEdit={handleOpenEdit}
-          handleOpenPatientHub={handleOpenPatientHub}
-          handleSubmitAppointment={handleSubmitAppointment}
-          historyModalState={historyModalState}
-          onCloseAppointmentContextMenu={closeAppointmentContextMenu}
-          onCloseConfirmDialog={closeConfirmDialog}
-          onCloseEditBlockedDialog={closeEditBlockedDialog}
-          onEditSessionBlocked={showEditBlockedDialog}
-          onOpenPatientSearch={openPatientSearch}
-          patientFlow={patientFlow}
-          physicians={appointmentPhysicians}
-          recentPatients={appointmentRecentPatients}
-          resources={appointmentResources}
-          selectedFacilityId={selectedFacilityId}
-          staffs={appointmentStaffs}
-          statusOptions={appointmentStatusOptions}
-          typeOptions={appointmentTypeOptions}
+          selectedDate={selectedDate}
+          scheduleMode={scheduleMode}
+          viewMode={viewMode}
+          showSlotDividers={showSlotDividers}
+          appointmentBlockDisplay={preferences.appointmentBlockDisplay}
+          activeScheduleInterval={activeScheduleInterval}
+          formattedAppointments={formattedAppointments}
+          resourceDefinitions={resourceDefinitions}
+          activeColumnResourceKeys={activeColumnResourceKeys}
+          effectiveVisibleDates={effectiveVisibleDates}
+          visibleColumnIntervals={visibleColumnIntervals}
+          visibleDayCount={visibleDayCount}
+          onSelectDate={handleSelectScheduleDate}
+          onJumpToToday={handleJumpToToday}
+          onScheduleModeChange={handleScheduleModeChange}
+          onScheduleIntervalChange={handleScheduleIntervalChange}
+          onToggleResource={handleToggleScheduleResource}
+          onVisibleDatesChange={handleVisibleDatesChange}
+          onColumnResourceKeysChange={handleColumnResourceKeysChange}
+          onVisibleDayCountChange={setActiveVisibleDayCount}
+          onSlotDoubleClick={handleOpenFromSlot}
+          onAppointmentDrop={handleDropAppointment}
+          onAppointmentContextMenu={openAppointmentContextMenu}
+          onColumnIntervalsChange={setVisibleColumnIntervals}
         />
-      }
-    >
-      <ScheduleWorkspaceLayout
-        facilityId={selectedFacilityId}
-        facility={facility}
-        selectedDate={selectedDate}
-        scheduleMode={scheduleMode}
-        viewMode={viewMode}
-        showSlotDividers={showSlotDividers}
-        appointmentBlockDisplay={preferences.appointmentBlockDisplay}
-        activeScheduleInterval={activeScheduleInterval}
-        formattedAppointments={formattedAppointments}
-        resourceDefinitions={resourceDefinitions}
-        activeColumnResourceKeys={activeColumnResourceKeys}
-        effectiveVisibleDates={effectiveVisibleDates}
-        visibleColumnIntervals={visibleColumnIntervals}
-        visibleDayCount={visibleDayCount}
-        onSelectDate={handleSelectScheduleDate}
-        onJumpToToday={handleJumpToToday}
-        onScheduleModeChange={handleScheduleModeChange}
-        onScheduleIntervalChange={handleScheduleIntervalChange}
-        onToggleResource={handleToggleScheduleResource}
-        onVisibleDatesChange={handleVisibleDatesChange}
-        onColumnResourceKeysChange={handleColumnResourceKeysChange}
-        onVisibleDayCountChange={setActiveVisibleDayCount}
-        onSlotDoubleClick={handleOpenFromSlot}
-        onAppointmentDrop={handleDropAppointment}
-        onAppointmentContextMenu={openAppointmentContextMenu}
-        onColumnIntervalsChange={setVisibleColumnIntervals}
+      </WorkspaceShell>
+      <SlotBeingBookedDialog
+        isOpen={slotBooking.isOpen}
+        name={slotBooking.name}
+        isOverriding={slotBooking.isOverriding}
+        onOverride={handleSlotBookingOverride}
+        onCancel={closeSlotBooking}
       />
-    </WorkspaceShell>
+    </>
   );
 }

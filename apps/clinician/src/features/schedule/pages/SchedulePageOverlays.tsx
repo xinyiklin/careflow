@@ -29,6 +29,7 @@ export default function SchedulePageOverlays({
   onCloseConfirmDialog,
   onCloseEditBlockedDialog,
   onEditSessionBlocked,
+  onTakeOverEdit,
   onOpenPatientSearch,
   patientFlow,
   physicians,
@@ -115,8 +116,11 @@ export default function SchedulePageOverlays({
 
       <AppointmentEditBlockedDialog
         isOpen={editBlockedDialogState.isOpen}
+        appointmentId={editBlockedDialogState.appointmentId}
+        facilityId={selectedFacilityId}
         activeEditor={editBlockedDialogState.activeEditor}
         onClose={onCloseEditBlockedDialog}
+        onTakeOver={onTakeOverEdit}
       />
     </>
   );

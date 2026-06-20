@@ -5,7 +5,17 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+# Hard timeout: after this much inactivity a session auto-expires and the slot
+# becomes freely available again.
 APPOINTMENT_EDIT_SESSION_TIMEOUT = timedelta(minutes=10)
+# Idle threshold: a still-active session whose holder has been idle this long can
+# be overridden ("taken over") by another editor before the hard timeout. Kept
+# above the frontend heartbeat interval so an actively-editing user is never
+# prematurely overridable.
+APPOINTMENT_EDIT_SESSION_IDLE_OVERRIDE = timedelta(minutes=2)
+# How long a "currently being booked" slot presence marker stays live without a
+# heartbeat before it auto-expires.
+APPOINTMENT_SLOT_HOLD_TIMEOUT = timedelta(minutes=5)
 
 
 def get_staff_display_name(staff):
@@ -196,9 +206,87 @@ class AppointmentEditSession(models.Model):
         reference_time = reference_time or timezone.now()
         return self.last_seen_at >= reference_time - APPOINTMENT_EDIT_SESSION_TIMEOUT
 
+    def is_idle_for_override(self, reference_time=None):
+        """True when the session is still active but the holder has gone idle
+        long enough that another editor may take it over."""
+        reference_time = reference_time or timezone.now()
+        return self.is_active(reference_time) and (
+            self.last_seen_at < reference_time - APPOINTMENT_EDIT_SESSION_IDLE_OVERRIDE
+        )
+
     def __str__(self):
         user_name = self.user_display_name or "Unknown user"
         return f"{user_name} editing appointment {self.appointment_id}"
+
+
+class AppointmentSlotHold(models.Model):
+    """Soft "currently being booked" presence marker for an empty schedule slot.
+
+    Mirrors :class:`AppointmentEditSession` but is keyed on a
+    ``(facility, resource, start_time)`` slot rather than an existing
+    appointment, and is *always* overridable: a second scheduler is warned that
+    the slot is being booked and may take it over. Advisory only — the
+    appointment write path is unchanged.
+    """
+
+    facility = models.ForeignKey(
+        "facilities.Facility",
+        on_delete=models.CASCADE,
+        related_name="slot_holds",
+    )
+    resource = models.ForeignKey(
+        "facilities.FacilityResource",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="slot_holds",
+    )
+    start_time = models.DateTimeField()
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="appointment_slot_holds",
+    )
+    user_display_name = models.CharField(max_length=150, blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-last_seen_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["facility", "resource", "start_time"],
+                name="uniq_slot_hold_facility_resource_start",
+            ),
+            # Postgres treats NULLs as distinct, so the constraint above does
+            # not dedupe resource-agnostic slots. This partial constraint covers
+            # the NULL-resource case so concurrent holds on the same cell still
+            # collide (Django 4.2 lacks UniqueConstraint(nulls_distinct=False)).
+            models.UniqueConstraint(
+                fields=["facility", "start_time"],
+                condition=models.Q(resource__isnull=True),
+                name="uniq_slot_hold_facility_null_resource_start",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["facility", "start_time"],
+                name="slot_hold_facility_start_idx",
+            ),
+        ]
+
+    def is_active(self, reference_time=None):
+        reference_time = reference_time or timezone.now()
+        return self.last_seen_at >= reference_time - APPOINTMENT_SLOT_HOLD_TIMEOUT
+
+    def __str__(self):
+        user_name = self.user_display_name or "Unknown user"
+        return (
+            f"{user_name} booking slot {self.start_time} "
+            f"(facility {self.facility_id})"
+        )
 
 
 class BookableSlot(models.Model):

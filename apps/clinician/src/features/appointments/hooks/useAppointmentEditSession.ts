@@ -12,6 +12,11 @@ import type {
 import { getErrorMessage } from "../../../shared/utils/errors";
 
 const HEARTBEAT_INTERVAL_MS = 45_000;
+// Pause the heartbeat once the user has been away (tab hidden or no interaction)
+// this long, so an abandoned/forgotten tab stops keeping its lease alive and
+// becomes overridable by another editor. Kept below the server's 2-minute
+// idle-override threshold so an actively-editing user is never blocked.
+const PRESENCE_IDLE_MS = 90_000;
 
 type AppointmentEditSessionStatus =
   | "idle"
@@ -48,6 +53,7 @@ export default function useAppointmentEditSession({
 }: UseAppointmentEditSessionArgs) {
   const [state, setState] = useState<AppointmentEditSessionState>(idleState);
   const requestIdRef = useRef(0);
+  const lastActivityRef = useRef(Date.now());
   const shouldManageSession = Boolean(
     isOpen && mode === "edit" && appointmentId && facilityId
   );
@@ -62,6 +68,30 @@ export default function useAppointmentEditSession({
     },
     []
   );
+
+  // Treat tab focus and any pointer/keyboard interaction as presence. When the
+  // user goes away the heartbeat below stops, letting the lease go idle.
+  useEffect(() => {
+    if (!shouldManageSession) return undefined;
+
+    lastActivityRef.current = Date.now();
+    const markActive = () => {
+      lastActivityRef.current = Date.now();
+    };
+    const onVisibility = () => {
+      if (!document.hidden) lastActivityRef.current = Date.now();
+    };
+
+    window.addEventListener("pointerdown", markActive);
+    window.addEventListener("keydown", markActive);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("pointerdown", markActive);
+      window.removeEventListener("keydown", markActive);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [shouldManageSession]);
 
   const beginSession = useCallback(async () => {
     if (!shouldManageSession) return null;
@@ -114,6 +144,14 @@ export default function useAppointmentEditSession({
     if (!shouldManageSession || state.status !== "active") return undefined;
 
     const intervalId = window.setInterval(() => {
+      // Skip the keepalive while the user is away so the lease can go idle.
+      if (
+        document.hidden ||
+        Date.now() - lastActivityRef.current > PRESENCE_IDLE_MS
+      ) {
+        return;
+      }
+
       heartbeatAppointmentEditSession(facilityId, appointmentId)
         .then(applySessionResult)
         .catch((error) => {

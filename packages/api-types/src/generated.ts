@@ -111,10 +111,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         get: operations["appointments_list"];
         put?: never;
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         post: operations["appointments_create"];
         delete?: never;
         options?: never;
@@ -129,16 +135,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         get: operations["appointments_retrieve"];
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         put: operations["appointments_update"];
         post?: never;
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         delete: operations["appointments_destroy"];
         options?: never;
         head?: never;
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         patch: operations["appointments_partial_update"];
         trace?: never;
     };
@@ -149,16 +167,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /** @description Check who currently holds the appointment edit-session. */
         get: operations["appointments_edit_session_retrieve"];
         put?: never;
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /** @description Acquire (POST) or heartbeat (PATCH) the appointment edit-session; send override=true to take over an idle holder. */
         post: operations["appointments_edit_session_create"];
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /** @description Release the appointment edit-session held by the current user. */
         delete: operations["appointments_edit_session_destroy"];
         options?: never;
         head?: never;
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /** @description Acquire (POST) or heartbeat (PATCH) the appointment edit-session; send override=true to take over an idle holder. */
         patch: operations["appointments_edit_session_partial_update"];
         trace?: never;
     };
@@ -169,7 +187,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         get: operations["appointments_history_retrieve"];
         put?: never;
         post?: never;
@@ -242,7 +263,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Adds the ``edit-session`` action (and its helpers) to a viewset. */
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
         get: operations["appointments_heatmap_retrieve"];
         put?: never;
         post?: never;
@@ -250,6 +274,25 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/v1/appointments/slot-hold/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Acquire/override (POST) or heartbeat (PATCH) the soft 'being booked' presence hold on an empty slot. */
+        post: operations["appointments_slot_hold_create"];
+        /** @description Release the slot hold held by the current user. */
+        delete: operations["appointments_slot_hold_destroy"];
+        options?: never;
+        head?: never;
+        /** @description Acquire/override (POST) or heartbeat (PATCH) the soft 'being booked' presence hold on an empty slot. */
+        patch: operations["appointments_slot_hold_partial_update"];
         trace?: never;
     };
     "/v1/audit/events/": {
@@ -3450,6 +3493,28 @@ export interface components {
          * @enum {string}
          */
         DirectoryStatusEnum: "active" | "inactive" | "unknown";
+        EditSessionActiveEditor: {
+            user_id: number | null;
+            user_name: string;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            last_seen_at: string;
+        };
+        /**
+         * @description Documents the edit-session body (POST acquire, PATCH heartbeat; both
+         *     accept ``override`` to take over an idle holder). Schema-only — the action
+         *     reads ``override`` directly from ``request.data``.
+         */
+        EditSessionRequest: {
+            /** @default false */
+            override: boolean;
+        };
+        EditSessionResponse: {
+            status: components["schemas"]["StatusD60Enum"];
+            can_override?: boolean;
+            active_editor?: components["schemas"]["EditSessionActiveEditor"] | null;
+        };
         EffectiveFeeScheduleItem: {
             id: string;
             organization_item: number | null;
@@ -4075,6 +4140,15 @@ export interface components {
             is_active?: boolean;
             /** Format: date-time */
             readonly created_at?: string;
+        };
+        /**
+         * @description Documents the edit-session body (POST acquire, PATCH heartbeat; both
+         *     accept ``override`` to take over an idle holder). Schema-only — the action
+         *     reads ``override`` directly from ``request.data``.
+         */
+        PatchedEditSessionRequest: {
+            /** @default false */
+            override: boolean;
         };
         /**
          * @description Reject unknown and read-only fields on write requests.
@@ -5446,6 +5520,19 @@ export interface components {
          * @enum {string}
          */
         SexAtBirthEnum: "female" | "male" | "intersex" | "unknown" | "undisclosed";
+        SlotHoldActiveUser: {
+            user_id: number | null;
+            user_name: string;
+            /** Format: date-time */
+            started_at: string;
+            /** Format: date-time */
+            last_seen_at: string;
+        };
+        SlotHoldResponse: {
+            status: components["schemas"]["StatusD60Enum"];
+            can_override?: boolean;
+            active_user?: components["schemas"]["SlotHoldActiveUser"] | null;
+        };
         Staff: {
             readonly id: number;
             readonly user: components["schemas"]["User"];
@@ -5531,6 +5618,14 @@ export interface components {
          * @enum {string}
          */
         StatusA5bEnum: "pending" | "approved" | "denied" | "cancelled";
+        /**
+         * @description * `available` - available
+         *     * `active` - active
+         *     * `occupied` - occupied
+         *     * `released` - released
+         * @enum {string}
+         */
+        StatusD60Enum: "available" | "active" | "occupied" | "released";
         /**
          * @description * `open` - Open
          *     * `closed` - Closed
@@ -5925,7 +6020,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Appointment"];
+                    "application/json": components["schemas"]["EditSessionResponse"];
                 };
             };
         };
@@ -5939,11 +6034,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["Appointment"];
-                "application/x-www-form-urlencoded": components["schemas"]["Appointment"];
-                "multipart/form-data": components["schemas"]["Appointment"];
+                "application/json": components["schemas"]["EditSessionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EditSessionRequest"];
+                "multipart/form-data": components["schemas"]["EditSessionRequest"];
             };
         };
         responses: {
@@ -5952,7 +6047,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Appointment"];
+                    "application/json": components["schemas"]["EditSessionResponse"];
                 };
             };
         };
@@ -5968,12 +6063,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EditSessionResponse"];
+                };
             };
         };
     };
@@ -5988,9 +6084,9 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedAppointment"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAppointment"];
-                "multipart/form-data": components["schemas"]["PatchedAppointment"];
+                "application/json": components["schemas"]["PatchedEditSessionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEditSessionRequest"];
+                "multipart/form-data": components["schemas"]["PatchedEditSessionRequest"];
             };
         };
         responses: {
@@ -5999,7 +6095,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Appointment"];
+                    "application/json": components["schemas"]["EditSessionResponse"];
                 };
             };
         };
@@ -6125,6 +6221,82 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Appointment"];
+                };
+            };
+        };
+    };
+    appointments_slot_hold_create: {
+        parameters: {
+            query: {
+                /** @description Take over another scheduler's hold on the slot. */
+                override?: boolean;
+                /** @description Resource (schedule column) id; omit for resource-agnostic slots. */
+                resource?: number;
+                /** @description Facility-local slot start, e.g. 2026-04-22T09:00. */
+                start_time: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlotHoldResponse"];
+                };
+            };
+        };
+    };
+    appointments_slot_hold_destroy: {
+        parameters: {
+            query: {
+                /** @description Resource (schedule column) id; omit for resource-agnostic slots. */
+                resource?: number;
+                /** @description Facility-local slot start, e.g. 2026-04-22T09:00. */
+                start_time: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlotHoldResponse"];
+                };
+            };
+        };
+    };
+    appointments_slot_hold_partial_update: {
+        parameters: {
+            query: {
+                /** @description Take over another scheduler's hold on the slot. */
+                override?: boolean;
+                /** @description Resource (schedule column) id; omit for resource-agnostic slots. */
+                resource?: number;
+                /** @description Facility-local slot start, e.g. 2026-04-22T09:00. */
+                start_time: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlotHoldResponse"];
                 };
             };
         };
