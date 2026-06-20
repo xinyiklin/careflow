@@ -414,7 +414,16 @@ export default function SchedulePage() {
       }
     };
 
-    const handleScroll = () => {
+    const handleScroll = (event: Event) => {
+      // Scrolling the menu's own (status) list must not close it; only a
+      // scroll of the schedule underneath should.
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("[data-appointment-context-menu]")
+      ) {
+        return;
+      }
       closeAppointmentContextMenu();
     };
 
@@ -479,6 +488,63 @@ export default function SchedulePage() {
           });
         },
       });
+    } finally {
+      if (shouldReleaseEditSession) {
+        await releaseAppointmentEditSession(
+          selectedFacilityId,
+          appointmentId
+        ).catch(() => {});
+      }
+    }
+  };
+
+  const handleChangeStatusFromMenu = async (
+    appointment: AppointmentLike,
+    statusId: EntityId
+  ) => {
+    const appointmentId = appointment?.id;
+    if (!appointmentId) return;
+    if (String(appointment.status ?? "") === String(statusId)) return;
+    setAppError("");
+
+    const selectedStatus = appointmentStatusOptions.find(
+      (option) => String(option.id) === String(statusId)
+    );
+
+    const shouldReleaseEditSession = await beginDropEditSession(appointmentId);
+    if (shouldReleaseEditSession === null) return;
+
+    try {
+      await moveMutation.mutateAsync({
+        id: appointmentId,
+        data: {
+          patient: appointment.patient_id,
+          resource: appointment.resource ?? null,
+          rendering_provider: appointment.rendering_provider || null,
+          appointment_time: appointment.appointment_time,
+          room: appointment.room || "",
+          reason: appointment.reason || "",
+          notes: appointment.notes || "",
+          status: statusId,
+          appointment_type: appointment.appointment_type,
+          facility: appointment.facility,
+          // The block renders status_name/_color, but moveMutation's optimistic
+          // merge only carries what we send. Include the chosen status's derived
+          // fields so the label/color update immediately and stay correct even
+          // if the follow-up refetch fails. These are read-only server-side, so
+          // the PUT ignores them.
+          status_name: selectedStatus?.name ?? null,
+          status_code: selectedStatus?.code ?? null,
+          status_color: selectedStatus?.color ?? null,
+          // A status-only change keeps the same patient/date, so it can't
+          // create a new same-day double booking. Bypass the duplicate-day
+          // validator so an already double-booked appointment stays editable.
+          allow_same_day_double_book: true,
+        },
+      });
+    } catch {
+      // moveMutation reverts its optimistic update and surfaces the error
+      // message via setError; nothing extra to do here.
     } finally {
       if (shouldReleaseEditSession) {
         await releaseAppointmentEditSession(
@@ -588,6 +654,7 @@ export default function SchedulePage() {
           facility={facility}
           handleCloseAppointmentHistory={handleCloseAppointmentHistory}
           handleCloseAppointmentModal={handleCloseAppointmentModal}
+          handleChangeStatusFromMenu={handleChangeStatusFromMenu}
           handleConfirmDialogConfirm={handleConfirmDialogConfirm}
           handleDeleteAppointment={handleDeleteAppointment}
           handleDeleteAppointmentFromMenu={handleDeleteAppointmentFromMenu}
