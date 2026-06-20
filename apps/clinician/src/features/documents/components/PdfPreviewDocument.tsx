@@ -2,14 +2,14 @@ import { Document, Page } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 
-import type { MutableRefObject, ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 
 type PdfPreviewDocumentProps = {
   file: string;
   numPages: number;
   pageHeight: number | null;
   pageWidth: number | null;
-  pageRefs: MutableRefObject<Array<HTMLDivElement | null>> | null;
+  pageRefs: RefObject<Array<HTMLDivElement | null>> | null;
   onLoadSuccess: (data: { numPages: number }) => void;
   onPageRenderSuccess?: () => void;
 };
