@@ -23,11 +23,18 @@ from .services import (
     get_facility_timezone,
     get_user_display_name,
 )
+from .slot_hold import SlotHoldMixin
 
 
 class AppointmentViewSet(
-    AppointmentEditSessionMixin, FacilityScopedViewSetMixin, viewsets.ModelViewSet
+    AppointmentEditSessionMixin,
+    SlotHoldMixin,
+    FacilityScopedViewSetMixin,
+    viewsets.ModelViewSet,
 ):
+    """Facility-scoped appointment CRUD, plus the edit-session soft lock and
+    slot-hold presence actions."""
+
     serializer_class = AppointmentSerializer
     permission_classes = [permissions.IsAuthenticated]
 

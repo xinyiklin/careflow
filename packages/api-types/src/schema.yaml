@@ -201,7 +201,9 @@ paths:
   /v1/appointments/:
     get:
       operationId: appointments_list
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       tags:
       - appointments
       security:
@@ -218,7 +220,9 @@ paths:
           description: ''
     post:
       operationId: appointments_create
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       tags:
       - appointments
       requestBody:
@@ -246,7 +250,9 @@ paths:
   /v1/appointments/{id}/:
     get:
       operationId: appointments_retrieve
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       parameters:
       - in: path
         name: id
@@ -267,7 +273,9 @@ paths:
           description: ''
     put:
       operationId: appointments_update
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       parameters:
       - in: path
         name: id
@@ -300,7 +308,9 @@ paths:
           description: ''
     patch:
       operationId: appointments_partial_update
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       parameters:
       - in: path
         name: id
@@ -332,7 +342,9 @@ paths:
           description: ''
     delete:
       operationId: appointments_destroy
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       parameters:
       - in: path
         name: id
@@ -350,7 +362,7 @@ paths:
   /v1/appointments/{id}/edit-session/:
     get:
       operationId: appointments_edit_session_retrieve
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: Check who currently holds the appointment edit-session.
       parameters:
       - in: path
         name: id
@@ -367,11 +379,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
+                $ref: '#/components/schemas/EditSessionResponse'
           description: ''
     post:
       operationId: appointments_edit_session_create
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: Acquire (POST) or heartbeat (PATCH) the appointment edit-session;
+        send override=true to take over an idle holder.
       parameters:
       - in: path
         name: id
@@ -384,14 +397,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Appointment'
+              $ref: '#/components/schemas/EditSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Appointment'
+              $ref: '#/components/schemas/EditSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Appointment'
-        required: true
+              $ref: '#/components/schemas/EditSessionRequest'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -400,11 +412,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
+                $ref: '#/components/schemas/EditSessionResponse'
           description: ''
     patch:
       operationId: appointments_edit_session_partial_update
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: Acquire (POST) or heartbeat (PATCH) the appointment edit-session;
+        send override=true to take over an idle holder.
       parameters:
       - in: path
         name: id
@@ -417,13 +430,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedAppointment'
+              $ref: '#/components/schemas/PatchedEditSessionRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedAppointment'
+              $ref: '#/components/schemas/PatchedEditSessionRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedAppointment'
+              $ref: '#/components/schemas/PatchedEditSessionRequest'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -432,11 +445,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
+                $ref: '#/components/schemas/EditSessionResponse'
           description: ''
     delete:
       operationId: appointments_edit_session_destroy
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: Release the appointment edit-session held by the current user.
       parameters:
       - in: path
         name: id
@@ -449,12 +462,18 @@ paths:
       - jwtAuth: []
       - cookieAuth: []
       responses:
-        '204':
-          description: No response body
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EditSessionResponse'
+          description: ''
   /v1/appointments/{id}/history/:
     get:
       operationId: appointments_history_retrieve
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       parameters:
       - in: path
         name: id
@@ -576,7 +595,9 @@ paths:
   /v1/appointments/heatmap/:
     get:
       operationId: appointments_heatmap_retrieve
-      description: Adds the ``edit-session`` action (and its helpers) to a viewset.
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
       tags:
       - appointments
       security:
@@ -588,6 +609,103 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Appointment'
+          description: ''
+  /v1/appointments/slot-hold/:
+    post:
+      operationId: appointments_slot_hold_create
+      description: Acquire/override (POST) or heartbeat (PATCH) the soft 'being booked'
+        presence hold on an empty slot.
+      parameters:
+      - in: query
+        name: override
+        schema:
+          type: boolean
+        description: Take over another scheduler's hold on the slot.
+      - in: query
+        name: resource
+        schema:
+          type: integer
+        description: Resource (schedule column) id; omit for resource-agnostic slots.
+      - in: query
+        name: start_time
+        schema:
+          type: string
+          format: date-time
+        description: Facility-local slot start, e.g. 2026-04-22T09:00.
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotHoldResponse'
+          description: ''
+    patch:
+      operationId: appointments_slot_hold_partial_update
+      description: Acquire/override (POST) or heartbeat (PATCH) the soft 'being booked'
+        presence hold on an empty slot.
+      parameters:
+      - in: query
+        name: override
+        schema:
+          type: boolean
+        description: Take over another scheduler's hold on the slot.
+      - in: query
+        name: resource
+        schema:
+          type: integer
+        description: Resource (schedule column) id; omit for resource-agnostic slots.
+      - in: query
+        name: start_time
+        schema:
+          type: string
+          format: date-time
+        description: Facility-local slot start, e.g. 2026-04-22T09:00.
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotHoldResponse'
+          description: ''
+    delete:
+      operationId: appointments_slot_hold_destroy
+      description: Release the slot hold held by the current user.
+      parameters:
+      - in: query
+        name: resource
+        schema:
+          type: integer
+        description: Resource (schedule column) id; omit for resource-agnostic slots.
+      - in: query
+        name: start_time
+        schema:
+          type: string
+          format: date-time
+        description: Facility-local slot start, e.g. 2026-04-22T09:00.
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotHoldResponse'
           description: ''
   /v1/audit/events/:
     get:
@@ -6941,6 +7059,48 @@ components:
         * `active` - Active
         * `inactive` - Inactive
         * `unknown` - Unknown
+    EditSessionActiveEditor:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          nullable: true
+        user_name:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type: string
+          format: date-time
+      required:
+      - last_seen_at
+      - started_at
+      - user_id
+      - user_name
+    EditSessionRequest:
+      type: object
+      description: |-
+        Documents the edit-session body (POST acquire, PATCH heartbeat; both
+        accept ``override`` to take over an idle holder). Schema-only — the action
+        reads ``override`` directly from ``request.data``.
+      properties:
+        override:
+          type: boolean
+          default: false
+    EditSessionResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusD60Enum'
+        can_override:
+          type: boolean
+        active_editor:
+          allOf:
+          - $ref: '#/components/schemas/EditSessionActiveEditor'
+          nullable: true
+      required:
+      - status
     EffectiveFeeScheduleItem:
       type: object
       properties:
@@ -8582,6 +8742,16 @@ components:
           type: string
           format: date-time
           readOnly: true
+    PatchedEditSessionRequest:
+      type: object
+      description: |-
+        Documents the edit-session body (POST acquire, PATCH heartbeat; both
+        accept ``override`` to take over an idle holder). Schema-only — the action
+        reads ``override`` directly from ``request.data``.
+      properties:
+        override:
+          type: boolean
+          default: false
     PatchedEncounter:
       type: object
       description: |-
@@ -12002,6 +12172,38 @@ components:
         * `intersex` - Intersex
         * `unknown` - Unknown
         * `undisclosed` - Undisclosed
+    SlotHoldActiveUser:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          nullable: true
+        user_name:
+          type: string
+        started_at:
+          type: string
+          format: date-time
+        last_seen_at:
+          type: string
+          format: date-time
+      required:
+      - last_seen_at
+      - started_at
+      - user_id
+      - user_name
+    SlotHoldResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/StatusD60Enum'
+        can_override:
+          type: boolean
+        active_user:
+          allOf:
+          - $ref: '#/components/schemas/SlotHoldActiveUser'
+          nullable: true
+      required:
+      - status
     Staff:
       type: object
       properties:
@@ -12227,6 +12429,18 @@ components:
         * `approved` - Approved
         * `denied` - Denied
         * `cancelled` - Cancelled
+    StatusD60Enum:
+      enum:
+      - available
+      - active
+      - occupied
+      - released
+      type: string
+      description: |-
+        * `available` - available
+        * `active` - active
+        * `occupied` - occupied
+        * `released` - released
     StatusDa1Enum:
       enum:
       - open

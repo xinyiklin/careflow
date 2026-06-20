@@ -1,12 +1,18 @@
 from datetime import date, datetime, timedelta
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from appointments.models import Appointment, AppointmentEditSession
+from appointments.models import (
+    Appointment,
+    AppointmentEditSession,
+    AppointmentSlotHold,
+)
 from audit.models import AuditEvent
 from clinical.models import Encounter, ProgressNote
 from facilities.models import (
@@ -669,6 +675,253 @@ class AppointmentViewSetTests(TestCase):
             HTTP_HOST="localhost:8000",
         )
         self.assertEqual(response.status_code, 200)
+        self.assertFalse(
+            AppointmentEditSession.objects.filter(appointment=appointment).exists()
+        )
+
+    def test_edit_session_reports_can_override_after_idle_threshold(self):
+        facility_tz = ZoneInfo(str(self.facility.timezone))
+        appointment = self.create_appointment(
+            local_time=datetime(2026, 4, 22, 9, 0, tzinfo=facility_tz),
+        )
+        AppointmentEditSession.objects.create(
+            appointment=appointment,
+            user=self.user,
+            user_display_name="Schedule User",
+            last_seen_at=timezone.now() - timedelta(minutes=3),
+        )
+        second_user = self.create_scheduler_user()
+        self.client.force_authenticate(second_user)
+
+        response = self.client.post(
+            f"/v1/appointments/{appointment.pk}/edit-session/",
+            {"override": False},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        # Still occupied (no override flag), but now flagged as overridable.
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "occupied")
+        self.assertTrue(response.data["can_override"])
+        self.assertEqual(
+            AppointmentEditSession.objects.get(appointment=appointment).user,
+            self.user,
+        )
+
+    def test_edit_session_takeover_when_idle_and_override(self):
+        facility_tz = ZoneInfo(str(self.facility.timezone))
+        appointment = self.create_appointment(
+            local_time=datetime(2026, 4, 22, 9, 0, tzinfo=facility_tz),
+        )
+        AppointmentEditSession.objects.create(
+            appointment=appointment,
+            user=self.user,
+            user_display_name="Schedule User",
+            last_seen_at=timezone.now() - timedelta(minutes=3),
+        )
+        second_user = self.create_scheduler_user()
+        self.client.force_authenticate(second_user)
+
+        response = self.client.post(
+            f"/v1/appointments/{appointment.pk}/edit-session/",
+            {"override": True},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "active")
+        self.assertFalse(response.data["can_override"])
+        session = AppointmentEditSession.objects.get(appointment=appointment)
+        self.assertEqual(session.user, second_user)
+
+    SLOT_START = "2026-04-22T09:00"
+
+    def _slot_url(self, **overrides):
+        # The slot key travels as query params; None values (e.g. a
+        # resource-agnostic slot) are omitted.
+        params = {"start_time": self.SLOT_START, "resource": self.resource.id}
+        params.update(overrides)
+        query = urlencode({k: v for k, v in params.items() if v is not None})
+        return f"/v1/appointments/slot-hold/?{query}"
+
+    def test_slot_hold_acquires_for_current_user(self):
+        response = self.client.post(
+            self._slot_url(),
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "active")
+        self.assertFalse(response.data["can_override"])
+        hold = AppointmentSlotHold.objects.get(resource=self.resource)
+        self.assertEqual(hold.user, self.user)
+
+    def test_slot_hold_warns_when_another_user_is_booking(self):
+        AppointmentSlotHold.objects.create(
+            facility=self.facility,
+            resource=self.resource,
+            start_time=timezone.now() + timedelta(days=1),
+            user=self.user,
+            user_display_name="Schedule User",
+        )
+        second_user = self.create_scheduler_user()
+        self.client.force_authenticate(second_user)
+
+        # Slot key must match the existing hold's; reuse the seeded start_time.
+        hold = AppointmentSlotHold.objects.get(resource=self.resource)
+        response = self.client.post(
+            self._slot_url(start_time=hold.start_time.isoformat()),
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "occupied")
+        # Slots are always overridable when another scheduler holds them.
+        self.assertTrue(response.data["can_override"])
+        self.assertEqual(response.data["active_user"]["user_name"], "Schedule User")
+        self.assertEqual(
+            AppointmentSlotHold.objects.get(resource=self.resource).user,
+            self.user,
+        )
+
+    def test_slot_hold_override_takes_over(self):
+        existing = AppointmentSlotHold.objects.create(
+            facility=self.facility,
+            resource=self.resource,
+            start_time=timezone.now() + timedelta(days=1),
+            user=self.user,
+            user_display_name="Schedule User",
+        )
+        second_user = self.create_scheduler_user()
+        self.client.force_authenticate(second_user)
+
+        response = self.client.post(
+            self._slot_url(start_time=existing.start_time.isoformat(), override="true"),
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "active")
+        self.assertEqual(
+            AppointmentSlotHold.objects.get(resource=self.resource).user,
+            second_user,
+        )
+
+    def test_slot_hold_takes_over_stale_hold(self):
+        existing = AppointmentSlotHold.objects.create(
+            facility=self.facility,
+            resource=self.resource,
+            start_time=timezone.now() + timedelta(days=1),
+            user=self.user,
+            user_display_name="Schedule User",
+            last_seen_at=timezone.now() - timedelta(minutes=6),
+        )
+        second_user = self.create_scheduler_user()
+        self.client.force_authenticate(second_user)
+
+        response = self.client.post(
+            self._slot_url(start_time=existing.start_time.isoformat()),
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "active")
+        self.assertEqual(
+            AppointmentSlotHold.objects.get(resource=self.resource).user,
+            second_user,
+        )
+
+    def test_slot_hold_release_current_user_only(self):
+        existing = AppointmentSlotHold.objects.create(
+            facility=self.facility,
+            resource=self.resource,
+            start_time=timezone.now() + timedelta(days=1),
+            user=self.user,
+            user_display_name="Schedule User",
+        )
+        url = self._slot_url(start_time=existing.start_time.isoformat())
+        second_user = self.create_scheduler_user()
+        self.client.force_authenticate(second_user)
+
+        response = self.client.delete(url, HTTP_HOST="localhost:8000")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(AppointmentSlotHold.objects.filter(pk=existing.pk).exists())
+
+        self.client.force_authenticate(self.user)
+        response = self.client.delete(url, HTTP_HOST="localhost:8000")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(AppointmentSlotHold.objects.filter(pk=existing.pk).exists())
+
+    def test_slot_hold_rejects_unknown_resource(self):
+        response = self.client.post(
+            self._slot_url(resource=999999),
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_slot_hold_rejects_non_numeric_resource(self):
+        response = self.client.post(
+            self._slot_url(resource="abc"),
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_slot_hold_get_not_allowed(self):
+        # The slot-hold action only offers POST/PATCH/DELETE; GET is not
+        # offered, so the API contract and catalog stay accurate.
+        response = self.client.get(
+            "/v1/appointments/slot-hold/",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 405)
+
+    def test_slot_hold_patch_does_not_acquire_for_non_holder(self):
+        # A heartbeat with no existing hold is a no-op, not an acquire.
+        response = self.client.patch(
+            self._slot_url(),
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "available")
+        self.assertFalse(AppointmentSlotHold.objects.exists())
+
+    def test_slot_hold_null_resource_collides_under_unique_constraint(self):
+        start = timezone.now() + timedelta(days=1)
+        AppointmentSlotHold.objects.create(
+            facility=self.facility,
+            resource=None,
+            start_time=start,
+            user=self.user,
+            user_display_name="Schedule User",
+        )
+        # Partial unique constraint covers the NULL-resource case so a duplicate
+        # hold on the same (facility, start_time) cell still collides.
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                AppointmentSlotHold.objects.create(
+                    facility=self.facility,
+                    resource=None,
+                    start_time=start,
+                    user=self.create_scheduler_user(),
+                    user_display_name="Second Scheduler",
+                )
+
+    def test_edit_session_patch_does_not_acquire_for_non_holder(self):
+        facility_tz = ZoneInfo(str(self.facility.timezone))
+        appointment = self.create_appointment(
+            local_time=datetime(2026, 4, 22, 9, 0, tzinfo=facility_tz),
+        )
+        # A heartbeat with no existing session is a no-op, not an acquire.
+        response = self.client.patch(
+            f"/v1/appointments/{appointment.pk}/edit-session/",
+            {},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["status"], "available")
         self.assertFalse(
             AppointmentEditSession.objects.filter(appointment=appointment).exists()
         )

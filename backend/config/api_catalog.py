@@ -484,6 +484,18 @@ API_ENDPOINT_SECTIONS = [
                 "description": "Check appointment edit-session occupancy.",
             },
             {
+                "method": "POST",
+                "class": "post",
+                "path": (
+                    "/v1/appointments/slot-hold/"
+                    "?facility_id=<id>&start_time=<iso>&resource=<id>"
+                ),
+                "description": (
+                    "Soft 'being booked' presence for an empty slot "
+                    "(POST acquire/override, PATCH heartbeat, DELETE release)."
+                ),
+            },
+            {
                 "method": "GET",
                 "class": "get",
                 "path": "/v1/appointments/<id>/history/?facility_id=<id>",
