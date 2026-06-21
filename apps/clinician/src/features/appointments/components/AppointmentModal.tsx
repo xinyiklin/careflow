@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
@@ -173,6 +173,10 @@ export default function AppointmentModal({
       is_billable: true,
     },
   });
+
+  const appointmentTimeId = useId();
+  const endTimeId = useId();
+  const billingLabelId = useId();
 
   const [internalError, setInternalError] = useState("");
   const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
@@ -542,7 +546,9 @@ export default function AppointmentModal({
                 <FormSection icon={Clock3} title="Schedule">
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <div className="md:col-span-1 xl:col-span-1">
-                      <FieldLabel required>Appointment Time</FieldLabel>
+                      <FieldLabel required htmlFor={appointmentTimeId}>
+                        Appointment Time
+                      </FieldLabel>
                       <Controller
                         name="appointment_time"
                         control={control}
@@ -571,6 +577,7 @@ export default function AppointmentModal({
                             }}
                             slotProps={{
                               textField: {
+                                id: appointmentTimeId,
                                 size: "small",
                                 fullWidth: true,
                                 error: !!errors.appointment_time,
@@ -585,7 +592,9 @@ export default function AppointmentModal({
                     </div>
 
                     <div>
-                      <FieldLabel required>End Time</FieldLabel>
+                      <FieldLabel required htmlFor={endTimeId}>
+                        End Time
+                      </FieldLabel>
                       <Controller
                         name="end_time"
                         control={control}
@@ -604,6 +613,7 @@ export default function AppointmentModal({
                             onChange={field.onChange}
                             slotProps={{
                               textField: {
+                                id: endTimeId,
                                 size: "small",
                                 fullWidth: true,
                                 error: !!errors.end_time,
@@ -747,7 +757,7 @@ export default function AppointmentModal({
                     </LabeledField>
 
                     <div>
-                      <FieldLabel>Billing</FieldLabel>
+                      <FieldLabel id={billingLabelId}>Billing</FieldLabel>
                       <Controller
                         name="is_billable"
                         control={control}
@@ -757,6 +767,7 @@ export default function AppointmentModal({
                             shape="rounded"
                             variant={field.value ? "primary" : "default"}
                             aria-pressed={field.value}
+                            aria-labelledby={billingLabelId}
                             onClick={() => field.onChange(!field.value)}
                             className="h-10 w-full"
                           >

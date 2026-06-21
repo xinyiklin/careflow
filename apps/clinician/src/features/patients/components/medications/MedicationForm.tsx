@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 
 import { Button, Input } from "../../../../shared/components/ui";
 
@@ -72,12 +72,18 @@ function valuesFromMedication(
 function FieldLabel({
   children,
   required = false,
+  htmlFor,
 }: {
   children: string;
   required?: boolean;
+  /** Associates the label with its control via `htmlFor`/`id`. */
+  htmlFor?: string;
 }) {
   return (
-    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-cf-text-subtle">
+    <label
+      htmlFor={htmlFor}
+      className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.08em] text-cf-text-subtle"
+    >
       {children}
       {required ? <span className="ml-1 text-cf-danger-text">*</span> : null}
     </label>
@@ -91,6 +97,16 @@ export default function MedicationForm({
   onCancel,
   onSubmit,
 }: MedicationFormProps) {
+  const idMedication = useId();
+  const idDose = useId();
+  const idRoute = useId();
+  const idFrequency = useId();
+  const idStatus = useId();
+  const idStartDate = useId();
+  const idEndDate = useId();
+  const idPrescriber = useId();
+  const idNotes = useId();
+
   const [values, setValues] = useState<MedicationFormValues>(
     valuesFromMedication(medication)
   );
@@ -176,8 +192,11 @@ export default function MedicationForm({
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="md:col-span-2">
-          <FieldLabel required>Medication</FieldLabel>
+          <FieldLabel required htmlFor={idMedication}>
+            Medication
+          </FieldLabel>
           <Input
+            id={idMedication}
             value={values.medication_name}
             onChange={(event) =>
               updateValue("medication_name", event.target.value)
@@ -187,8 +206,11 @@ export default function MedicationForm({
         </div>
 
         <div>
-          <FieldLabel required>Dose</FieldLabel>
+          <FieldLabel required htmlFor={idDose}>
+            Dose
+          </FieldLabel>
           <Input
+            id={idDose}
             value={values.dose}
             onChange={(event) => updateValue("dose", event.target.value)}
             disabled={saving}
@@ -196,8 +218,11 @@ export default function MedicationForm({
         </div>
 
         <div>
-          <FieldLabel required>Route</FieldLabel>
+          <FieldLabel required htmlFor={idRoute}>
+            Route
+          </FieldLabel>
           <Input
+            id={idRoute}
             value={values.route}
             onChange={(event) => updateValue("route", event.target.value)}
             disabled={saving}
@@ -205,8 +230,11 @@ export default function MedicationForm({
         </div>
 
         <div>
-          <FieldLabel required>Frequency</FieldLabel>
+          <FieldLabel required htmlFor={idFrequency}>
+            Frequency
+          </FieldLabel>
           <Input
+            id={idFrequency}
             value={values.frequency}
             onChange={(event) => updateValue("frequency", event.target.value)}
             disabled={saving}
@@ -214,9 +242,10 @@ export default function MedicationForm({
         </div>
 
         <div>
-          <FieldLabel>Status</FieldLabel>
+          <FieldLabel htmlFor={idStatus}>Status</FieldLabel>
           <Input
             as="select"
+            id={idStatus}
             value={values.status}
             onChange={(event) =>
               updateValue("status", event.target.value as MedicationStatus)
@@ -232,8 +261,9 @@ export default function MedicationForm({
         </div>
 
         <div>
-          <FieldLabel>Start Date</FieldLabel>
+          <FieldLabel htmlFor={idStartDate}>Start Date</FieldLabel>
           <Input
+            id={idStartDate}
             type="date"
             value={values.start_date}
             onChange={(event) => updateValue("start_date", event.target.value)}
@@ -242,8 +272,9 @@ export default function MedicationForm({
         </div>
 
         <div>
-          <FieldLabel>End Date</FieldLabel>
+          <FieldLabel htmlFor={idEndDate}>End Date</FieldLabel>
           <Input
+            id={idEndDate}
             type="date"
             value={values.end_date}
             onChange={(event) => updateValue("end_date", event.target.value)}
@@ -252,8 +283,9 @@ export default function MedicationForm({
         </div>
 
         <div>
-          <FieldLabel>Prescriber</FieldLabel>
+          <FieldLabel htmlFor={idPrescriber}>Prescriber</FieldLabel>
           <Input
+            id={idPrescriber}
             value={values.prescriber_name}
             onChange={(event) =>
               updateValue("prescriber_name", event.target.value)
@@ -263,8 +295,9 @@ export default function MedicationForm({
         </div>
 
         <div className="md:col-span-2 xl:col-span-4">
-          <FieldLabel>Notes</FieldLabel>
+          <FieldLabel htmlFor={idNotes}>Notes</FieldLabel>
           <Input
+            id={idNotes}
             as="textarea"
             rows={2}
             className="min-h-20 resize-none"
