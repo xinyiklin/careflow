@@ -18,6 +18,23 @@
       })();
     </script>
 
+    <script>
+      // Apply the stored language before first paint so assistive tech and
+      // search engines see the correct lang attribute without waiting for the
+      // JS bundle. Mirrors applyDocumentLang in src/i18n/index.ts. Only codes
+      // from SUPPORTED_LANGUAGES are accepted; the static lang="en" attribute
+      // above serves as the default fallback when no valid value is stored.
+      (function () {
+        try {
+          var supported = ["en", "es", "zh-CN", "zh-TW"];
+          var lang = localStorage.getItem("careflow_patient_lang");
+          if (lang && supported.indexOf(lang) !== -1) {
+            document.documentElement.lang = lang;
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

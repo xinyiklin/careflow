@@ -35,8 +35,10 @@ export type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const NO_PORTAL_ACCESS_MESSAGE =
-  "This account doesn't have patient portal access.";
+// Stable, non-display sentinel for the 403 "no portal access" case. The
+// display layer (LoginPage) recognizes this code and renders the localized
+// auth.noPortalAccess copy; never surface this string to the user.
+export const NO_PORTAL_ACCESS = "no_portal_access";
 
 function getErrorStatus(error: unknown): number | undefined {
   if (!error || typeof error !== "object" || !("status" in error)) {
@@ -127,8 +129,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           logoutUser();
           setPatient(null);
           setStatus("anonymous");
-          setError(NO_PORTAL_ACCESS_MESSAGE);
-          throw new Error(NO_PORTAL_ACCESS_MESSAGE);
+          setError(NO_PORTAL_ACCESS);
+          throw new Error(NO_PORTAL_ACCESS);
         }
         throw err;
       }

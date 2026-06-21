@@ -7,7 +7,7 @@ import type { ChangeEvent, FormEvent } from "react";
 
 import { DEMO_MODE } from "../../../shared/config/appConfig";
 import { Button, Card, Field, Input } from "../../../shared/ui";
-import { useAuth } from "../AuthProvider";
+import { NO_PORTAL_ACCESS, useAuth } from "../AuthProvider";
 
 function getErrorMessage(err: unknown, fallback: string) {
   if (err instanceof Error && err.message) {
@@ -27,11 +27,18 @@ export function LoginPage() {
   const [demoLoading, setDemoLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // The provider signals the 403 "no portal access" case with a stable code
+  // (never display copy). Localize it here, where useTranslation is available.
+  const localizeAuthError = (message: string) =>
+    message === NO_PORTAL_ACCESS ? t("auth.noPortalAccess") : message;
+
   // Surface bootstrap errors (e.g. clinician account hitting /portal/me/).
   useEffect(() => {
     if (providerError) {
-      setFormError(providerError);
+      setFormError(localizeAuthError(providerError));
     }
+    // localizeAuthError depends only on t, which is stable across renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [providerError]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -48,7 +55,9 @@ export function LoginPage() {
     try {
       await login(credentials);
     } catch (err) {
-      setFormError(getErrorMessage(err, t("auth.invalidCredentials")));
+      setFormError(
+        localizeAuthError(getErrorMessage(err, t("auth.invalidCredentials")))
+      );
     } finally {
       setSubmitting(false);
     }

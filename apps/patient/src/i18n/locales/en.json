@@ -46,7 +46,9 @@
     "medications": "Medications",
     "messages": "Messages",
     "unreadMessages": "Messages — unread",
-    "profile": "Profile"
+    "profile": "Profile",
+    "primaryDesktop": "Primary",
+    "primaryMobile": "Primary (mobile)"
   },
   "dashboard": {
     "welcomeBack": "Welcome back, {{name}}",
@@ -286,7 +288,8 @@
     "languageHeading": "Display language",
     "languageDescription": "Change the language used across the patient portal.",
     "themeHeading": "Appearance",
-    "themeDescription": "Pick light, dark, or follow your system setting."
+    "themeDescription": "Pick light, dark, or follow your system setting.",
+    "sectionsLabel": "Profile sections"
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",

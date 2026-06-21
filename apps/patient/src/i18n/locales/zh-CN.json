@@ -46,7 +46,9 @@
     "medications": "用药",
     "messages": "消息",
     "unreadMessages": "消息 — 有未读",
-    "profile": "个人资料"
+    "profile": "个人资料",
+    "primaryDesktop": "主导航",
+    "primaryMobile": "主导航（移动端）"
   },
   "dashboard": {
     "welcomeBack": "欢迎回来，{{name}}",
@@ -286,7 +288,8 @@
     "languageHeading": "显示语言",
     "languageDescription": "更改整个患者门户使用的语言。",
     "themeHeading": "外观",
-    "themeDescription": "选择浅色、深色或跟随系统设置。"
+    "themeDescription": "选择浅色、深色或跟随系统设置。",
+    "sectionsLabel": "个人资料分区"
   },
   "errors": {
     "generic": "出错了，请重试。",

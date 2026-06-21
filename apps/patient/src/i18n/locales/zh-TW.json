@@ -46,7 +46,9 @@
     "medications": "用藥",
     "messages": "訊息",
     "unreadMessages": "訊息 — 有未讀",
-    "profile": "個人資料"
+    "profile": "個人資料",
+    "primaryDesktop": "主導覽",
+    "primaryMobile": "主導覽（行動版）"
   },
   "dashboard": {
     "welcomeBack": "歡迎回來，{{name}}",
@@ -286,7 +288,8 @@
     "languageHeading": "顯示語言",
     "languageDescription": "變更整個病患入口的顯示語言。",
     "themeHeading": "外觀",
-    "themeDescription": "選擇淺色、深色或跟隨系統設定。"
+    "themeDescription": "選擇淺色、深色或跟隨系統設定。",
+    "sectionsLabel": "個人資料分區"
   },
   "errors": {
     "generic": "發生錯誤,請再試一次。",
