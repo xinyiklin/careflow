@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import Http404
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -233,6 +234,7 @@ class ProgressNoteViewSet(
                 metadata={"encounter_id": note.encounter_id},
             )
 
+    @extend_schema(request=None, responses={200: ProgressNoteSerializer})
     @action(detail=True, methods=["post"])
     def sign(self, request, pk=None):
         self.reject_unknown_action_fields(request)
@@ -283,6 +285,7 @@ class ProgressNoteViewSet(
 
         return Response(self.get_serializer(note).data)
 
+    @extend_schema(request=None, responses={200: ProgressNoteSerializer})
     @action(detail=True, methods=["post"])
     def unsign(self, request, pk=None):
         self.reject_unknown_action_fields(request)

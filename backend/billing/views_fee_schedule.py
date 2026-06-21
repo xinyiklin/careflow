@@ -1,5 +1,6 @@
 from django.db.models import Count
-from rest_framework import mixins, permissions, viewsets
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import mixins, permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -102,6 +103,15 @@ class OrganizationFeeScheduleViewSet(
             metadata={"organization_id": schedule.organization_id},
         )
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="OrgFeeSchedulePopulateResult",
+                fields={"added": serializers.IntegerField()},
+            )
+        },
+    )
     @action(detail=True, methods=["post"])
     def populate(self, request, pk=None):
         membership = self._require_org_admin()
@@ -285,6 +295,15 @@ class FacilityFeeScheduleViewSet(
         serializer = self.get_serializer(new_schedule)
         return Response(serializer.data)
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="FacilityFeeSchedulePopulateResult",
+                fields={"added": serializers.IntegerField()},
+            )
+        },
+    )
     @action(detail=True, methods=["post"])
     def populate(self, request, pk=None):
         facility = self.require_billing_permission("billing.fee_schedules.manage")

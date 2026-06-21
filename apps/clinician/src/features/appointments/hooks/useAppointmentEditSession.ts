@@ -24,6 +24,7 @@ type AppointmentEditSessionStatus =
   | "active"
   | "available"
   | "occupied"
+  | "released"
   | "error";
 
 type AppointmentEditSessionState = {

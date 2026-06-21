@@ -9,7 +9,11 @@ import type {
 import type { ApiRecord, AppointmentLike } from "../../../shared/types/domain";
 import type { AppointmentHistoryEntry } from "../types";
 
-type AppointmentEditSessionStatus = "active" | "available" | "occupied";
+type AppointmentEditSessionStatus =
+  | "active"
+  | "available"
+  | "occupied"
+  | "released";
 
 export type AppointmentEditSessionActiveEditor = {
   user_id?: EntityId | null;
@@ -160,7 +164,7 @@ export function releaseAppointmentEditSession(
   });
 }
 
-type SlotHoldStatus = "active" | "available" | "occupied";
+type SlotHoldStatus = "active" | "available" | "occupied" | "released";
 
 export type SlotHoldActiveUser = {
   user_id?: EntityId | null;
