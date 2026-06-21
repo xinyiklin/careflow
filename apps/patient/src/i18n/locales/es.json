@@ -46,7 +46,9 @@
     "medications": "Medicamentos",
     "messages": "Mensajes",
     "unreadMessages": "Mensajes — sin leer",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "primaryDesktop": "Principal",
+    "primaryMobile": "Principal (móvil)"
   },
   "dashboard": {
     "welcomeBack": "Bienvenido de nuevo, {{name}}",
@@ -286,7 +288,8 @@
     "languageHeading": "Idioma del portal",
     "languageDescription": "Cambia el idioma usado en todo el portal del paciente.",
     "themeHeading": "Apariencia",
-    "themeDescription": "Elige claro, oscuro o sigue la configuración del sistema."
+    "themeDescription": "Elige claro, oscuro o sigue la configuración del sistema.",
+    "sectionsLabel": "Secciones del perfil"
   },
   "errors": {
     "generic": "Algo salió mal. Inténtalo de nuevo.",

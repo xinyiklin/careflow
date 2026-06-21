@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "./cn";
 
@@ -43,6 +44,7 @@ export function Modal({
   hideCloseButton = false,
   disableBackdropClose = false,
 }: ModalProps) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
 
   // Sync open prop -> showModal()/close().
@@ -114,7 +116,7 @@ export function Modal({
               <button
                 type="button"
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t("common.close")}
                 className={cn(
                   "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md",
                   "text-text-muted hover:bg-surface-soft hover:text-text",

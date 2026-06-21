@@ -178,6 +178,10 @@ export function ContactSection({ patient }: ContactSectionProps) {
                     }
                   >
                     <option value="">{t("profile.selectState")}</option>
+                    {/* US state names are intentionally not localized — official
+                        place names stay in English per standard practice. This is
+                        a deliberately partial list (NY/CA/TX/FL) covering the
+                        demo dataset; expand values for production deployment. */}
                     <option value="NY">New York</option>
                     <option value="CA">California</option>
                     <option value="TX">Texas</option>

@@ -276,7 +276,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
           {/* Desktop primary nav */}
           <nav
-            aria-label="Primary"
+            aria-label={t("nav.primaryDesktop")}
             className="ml-2 hidden flex-1 items-center gap-1 md:flex"
           >
             {NAV_ITEMS.map(({ to, labelKey, Icon, end, showUnread }) => (
@@ -334,7 +334,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom tab bar */}
       <nav
-        aria-label="Primary"
+        aria-label={t("nav.primaryMobile")}
         className={cn(
           "fixed inset-x-0 bottom-0 z-30 flex items-center justify-around",
           "border-t border-border bg-surface/95 backdrop-blur",
