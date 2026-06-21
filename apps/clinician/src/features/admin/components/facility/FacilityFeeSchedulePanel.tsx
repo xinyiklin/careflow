@@ -117,10 +117,6 @@ function CopyFromOrgModal({
     >
       <form id="copy-org-schedule-form" onSubmit={(e) => void handleSubmit(e)}>
         <div className="space-y-3">
-          <p className="text-sm text-cf-text-muted">
-            Select an organization fee schedule to copy. This creates an
-            independent copy that you can modify without affecting the original.
-          </p>
           {orgSchedules.length === 0 ? (
             <p className="py-6 text-center text-sm text-cf-text-muted">
               No organization fee schedules available.

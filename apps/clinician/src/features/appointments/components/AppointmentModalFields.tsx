@@ -8,8 +8,10 @@ import type { AppointmentPickerOption } from "../types";
 type FieldLabelProps = {
   children: ReactNode;
   required?: boolean;
-  /** Associates the label with its control via `htmlFor`/`id`. */
+  /** Associates the label with a labelable control via `htmlFor`. */
   htmlFor?: string;
+  /** The label's own `id`, e.g. for a custom control's `aria-labelledby`. */
+  id?: string;
 };
 
 type FormSectionProps = {
@@ -34,9 +36,11 @@ export function FieldLabel({
   children,
   required = false,
   htmlFor,
+  id,
 }: FieldLabelProps) {
   return (
     <label
+      id={id}
       htmlFor={htmlFor}
       className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-cf-text-subtle"
     >
