@@ -4,6 +4,7 @@ from django.core.exceptions import ImproperlyConfigured, SuspiciousFileOperation
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, override_settings
 
+from .document_pdf import DocumentPdfError, validate_supported_document_file
 from .document_storage import R2PatientDocumentStorage, get_patient_document_storage
 
 
@@ -102,3 +103,32 @@ class R2PatientDocumentStorageTests(SimpleTestCase):
     def test_factory_requires_r2_configuration(self):
         with self.assertRaises(ImproperlyConfigured):
             get_patient_document_storage()
+
+
+class ValidateSupportedDocumentFileTests(SimpleTestCase):
+    def test_accepts_real_pdf_and_rewinds_for_storage(self):
+        upload = SimpleUploadedFile(
+            "scan.pdf",
+            b"%PDF-1.4\n%real pdf bytes\n",
+            content_type="application/pdf",
+        )
+        validate_supported_document_file(upload)
+        # The magic-byte sniff must rewind so storage still saves the whole file.
+        self.assertTrue(upload.read().startswith(b"%PDF-"))
+
+    def test_rejects_spoofed_pdf_with_wrong_magic_bytes(self):
+        upload = SimpleUploadedFile(
+            "evil.pdf",
+            b"<html><body>not a pdf</body></html>",
+            content_type="application/pdf",
+        )
+        with self.assertRaises(DocumentPdfError):
+            validate_supported_document_file(upload)
+
+    def test_accepts_real_png(self):
+        upload = SimpleUploadedFile(
+            "image.png",
+            b"\x89PNG\r\n\x1a\n" + b"\x00" * 16,
+            content_type="image/png",
+        )
+        validate_supported_document_file(upload)
