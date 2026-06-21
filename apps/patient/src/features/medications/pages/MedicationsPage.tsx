@@ -1,9 +1,14 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { Pill } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 import { Card, EmptyState, PageHeader, cn } from "../../../shared/ui";
+import {
+  getPortalTabId,
+  getPortalTabPanelId,
+  usePortalTabs,
+} from "../../../shared/ui/portalTabs";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import { useMedications, type PortalMedication } from "../api/medications";
 import { useRefillRequests } from "../api/refills";
@@ -35,15 +40,27 @@ type SegmentProps = {
   active: boolean;
   count: number;
   label: string;
+  id: string;
+  controls: string;
   onClick: () => void;
 };
 
-function SegmentTab({ active, count, label, onClick }: SegmentProps) {
+function SegmentTab({
+  active,
+  count,
+  label,
+  id,
+  controls,
+  onClick,
+}: SegmentProps) {
   return (
     <button
       type="button"
       role="tab"
+      id={id}
       aria-selected={active}
+      aria-controls={controls}
+      tabIndex={active ? 0 : -1}
       onClick={onClick}
       className={cn(
         "inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium",
@@ -90,6 +107,13 @@ export function MedicationsPage() {
     null
   );
 
+  const idBase = useId();
+  const { getTabListProps } = usePortalTabs<TabKey>({
+    values: ["active", "inactive"],
+    value: tab,
+    onChange: setTab,
+  });
+
   const currentList = tab === "active" ? active : inactive;
 
   return (
@@ -115,6 +139,7 @@ export function MedicationsPage() {
       ) : (
         <div className="space-y-6">
           <div
+            {...getTabListProps()}
             role="tablist"
             aria-label={t("medications.pageTitle")}
             className="inline-flex items-center gap-1 rounded-md bg-surface-soft p-1"
@@ -123,49 +148,60 @@ export function MedicationsPage() {
               active={tab === "active"}
               count={active.length}
               label={t("medications.tabActive")}
+              id={getPortalTabId(idBase, "active")}
+              controls={getPortalTabPanelId(idBase)}
               onClick={() => setTab("active")}
             />
             <SegmentTab
               active={tab === "inactive"}
               count={inactive.length}
               label={t("medications.tabInactive")}
+              id={getPortalTabId(idBase, "inactive")}
+              controls={getPortalTabPanelId(idBase)}
               onClick={() => setTab("inactive")}
             />
           </div>
 
-          {currentList.length === 0 ? (
-            <EmptyState
-              icon={Pill}
-              title={
-                tab === "active"
-                  ? t("medications.noActiveTitle")
-                  : t("medications.noInactiveTitle")
-              }
-              description={
-                tab === "active"
-                  ? t("medications.noActiveBody")
-                  : t("medications.noInactiveBody")
-              }
-            />
-          ) : (
-            <ul className="space-y-3">
-              {currentList.map((medication) => (
-                <li key={medication.id}>
-                  <MedicationRow
-                    medication={medication}
-                    hasPendingRefill={pendingMedicationIds.has(medication.id)}
-                    onRequestRefill={
-                      tab === "active"
-                        ? (med) => setRefillTarget(med)
-                        : undefined
-                    }
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+          <div
+            role="tabpanel"
+            id={getPortalTabPanelId(idBase)}
+            aria-labelledby={getPortalTabId(idBase, tab)}
+            className="space-y-6"
+          >
+            {currentList.length === 0 ? (
+              <EmptyState
+                icon={Pill}
+                title={
+                  tab === "active"
+                    ? t("medications.noActiveTitle")
+                    : t("medications.noInactiveTitle")
+                }
+                description={
+                  tab === "active"
+                    ? t("medications.noActiveBody")
+                    : t("medications.noInactiveBody")
+                }
+              />
+            ) : (
+              <ul className="space-y-3">
+                {currentList.map((medication) => (
+                  <li key={medication.id}>
+                    <MedicationRow
+                      medication={medication}
+                      hasPendingRefill={pendingMedicationIds.has(medication.id)}
+                      onRequestRefill={
+                        tab === "active"
+                          ? (med) => setRefillTarget(med)
+                          : undefined
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
 
-          <RefillRequestList />
+            <RefillRequestList />
+          </div>
         </div>
       )}
 

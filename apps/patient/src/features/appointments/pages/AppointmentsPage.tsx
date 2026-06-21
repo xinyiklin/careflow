@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarPlus, CalendarRange, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 import { Button, EmptyState, PageHeader, cn } from "../../../shared/ui";
+import {
+  getPortalTabId,
+  getPortalTabPanelId,
+  usePortalTabs,
+} from "../../../shared/ui/portalTabs";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
   useUpcomingAppointments,
@@ -18,6 +23,7 @@ export function AppointmentsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("upcoming");
+  const idBase = useId();
 
   const upcomingQuery = useUpcomingAppointments();
   const pastQuery = usePastAppointments();
@@ -46,12 +52,18 @@ export function AppointmentsPage() {
       <SegmentedTabs
         value={mode}
         onChange={setMode}
+        idBase={idBase}
         upcomingLabel={t("appointments.tabUpcoming")}
         pastLabel={t("appointments.tabPast")}
         ariaLabel={t("appointments.rangeAriaLabel")}
       />
 
-      <div className="mt-5">
+      <div
+        role="tabpanel"
+        id={getPortalTabPanelId(idBase)}
+        aria-labelledby={getPortalTabId(idBase, mode)}
+        className="mt-5"
+      >
         {query.isError ? (
           <p role="alert" className="text-sm text-danger">
             {getErrorMessage(query.error)}
@@ -86,6 +98,7 @@ export function AppointmentsPage() {
 type SegmentedTabsProps = {
   value: Mode;
   onChange: (next: Mode) => void;
+  idBase: string;
   upcomingLabel: string;
   pastLabel: string;
   ariaLabel: string;
@@ -94,6 +107,7 @@ type SegmentedTabsProps = {
 function SegmentedTabs({
   value,
   onChange,
+  idBase,
   upcomingLabel,
   pastLabel,
   ariaLabel,
@@ -102,9 +116,15 @@ function SegmentedTabs({
     { value: "upcoming", label: upcomingLabel },
     { value: "past", label: pastLabel },
   ];
+  const { getTabListProps } = usePortalTabs<Mode>({
+    values: ["upcoming", "past"],
+    value,
+    onChange,
+  });
 
   return (
     <div
+      {...getTabListProps()}
       role="tablist"
       aria-label={ariaLabel}
       className="inline-flex rounded-md border border-border bg-surface p-1"
@@ -116,7 +136,10 @@ function SegmentedTabs({
             key={option.value}
             type="button"
             role="tab"
+            id={getPortalTabId(idBase, option.value)}
             aria-selected={isActive}
+            aria-controls={getPortalTabPanelId(idBase)}
+            tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(option.value)}
             className={cn(
               "h-8 min-w-[96px] rounded-sm px-3 text-xs font-medium tracking-tight transition-colors",
