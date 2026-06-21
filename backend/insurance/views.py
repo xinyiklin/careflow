@@ -246,7 +246,9 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
     def _policy_integrity_error(self, exc):
         # Two partial-unique constraints can fire on save: the active
         # (patient, carrier, member_id) uniqueness and the one-primary-per-patient
-        # rule. Map each to its own field so the 400 is accurate.
+        # rule. Map each to its own field so the 400 is accurate. Any other
+        # IntegrityError is a genuine fault, not a user-correctable conflict, so
+        # re-raise it to surface as a 500 instead of mislabeling it.
         if "unique_active_insurance_policy_per_member" in str(exc):
             return {
                 "member_id": (
@@ -254,7 +256,12 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
                     "exists for this patient."
                 )
             }
-        return {"is_primary": "This patient already has a primary insurance policy."}
+        elif "unique_primary_insurance_policy_per_patient" in str(exc):
+            return {
+                "is_primary": "This patient already has a primary insurance policy."
+            }
+        else:
+            raise exc
 
     def perform_create(self, serializer):
         facility = self.get_facility()
@@ -300,9 +307,10 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
             )
 
         self._ensure_policy_belongs_to_facility(serializer.instance)
-        patient = serializer.validated_data.get("patient", serializer.instance.patient)
-        if patient.facility_id != facility.id:
-            raise PermissionDenied("Selected patient does not belong to this facility.")
+        # `patient` is immutable on update — the serializer's get_fields() marks
+        # it read-only once an instance exists, so it can no longer arrive via the
+        # request body, and _ensure_policy_belongs_to_facility above already guards
+        # the owning patient's facility.
         try:
             policy = serializer.save()
         except IntegrityError as exc:
