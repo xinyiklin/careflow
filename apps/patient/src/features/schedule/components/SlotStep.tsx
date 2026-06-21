@@ -122,7 +122,7 @@ export function SlotStep({
           <div
             key={idx}
             aria-hidden="true"
-            className="h-10 animate-pulse rounded-md border border-border bg-surface-soft"
+            className="h-10 rounded-md border border-border bg-surface-soft"
           />
         ))}
       </div>

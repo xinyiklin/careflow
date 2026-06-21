@@ -35,7 +35,7 @@ export function ProviderStep({ selected, onSelect }: ProviderStepProps) {
           <div
             key={idx}
             aria-hidden="true"
-            className="h-20 animate-pulse rounded-lg border border-border bg-surface-soft"
+            className="h-20 rounded-lg border border-border bg-surface-soft"
           />
         ))}
       </div>

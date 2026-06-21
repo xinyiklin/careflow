@@ -41,7 +41,7 @@ export function VisitTypeStep({
           <li
             key={idx}
             aria-hidden="true"
-            className="h-16 animate-pulse rounded-lg border border-border bg-surface-soft"
+            className="h-16 rounded-lg border border-border bg-surface-soft"
           />
         ))}
       </ul>
