@@ -5,6 +5,11 @@ All endpoints are facility-scoped via ``get_patient_for_user`` — patients
 only see providers, types, slots, and appointments at their own facility.
 The kill switch (``Facility.online_scheduling_disabled``), provider
 opt-in, and type ``bookable_online`` are enforced at the queryset level.
+
+Per D002 (portal reads/writes not audited), the book and cancel mutations
+here deliberately emit no ``record_audit_event`` calls — mirroring the
+messaging portal views. The audited clinician twin (``AppointmentViewSet``)
+still logs every clinician-initiated write to the same ``Appointment``.
 """
 
 from django.db import transaction
