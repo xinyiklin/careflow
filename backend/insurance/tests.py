@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.test import TestCase
 from rest_framework.test import APIClient
 
@@ -14,6 +15,7 @@ from .models import (
     InsuranceCarrier,
     PatientInsurancePolicy,
 )
+from .views import PatientInsurancePolicyViewSet
 
 User = get_user_model()
 
@@ -306,6 +308,68 @@ class PatientInsurancePolicyViewSetTests(TestCase):
         )
         prior = PatientInsurancePolicy.objects.get(member_id="PRIM001")
         self.assertFalse(prior.is_primary)
+
+    def test_patch_cannot_reassign_policy_to_another_patient(self):
+        # The owning patient FK is read-only, so a PATCH that supplies a
+        # different (same-facility) patient PK must be silently ignored by DRF:
+        # the request succeeds (200) but the policy stays with its original
+        # patient — no cross-patient PHI reassignment.
+        other_patient = Patient.objects.create(
+            facility=self.facility,
+            first_name="Noah",
+            last_name="Nguyen",
+            date_of_birth=date(1985, 7, 12),
+            gender=self.facility.patient_genders.first(),
+        )
+        policy = PatientInsurancePolicy.objects.create(
+            patient=self.patient,
+            carrier=self.carrier,
+            member_id="OWN123",
+            coverage_order="primary",
+        )
+
+        response = self.client.patch(
+            f"/v1/insurance/policies/{policy.pk}/",
+            {
+                "patient": other_patient.id,
+                "plan_name": "Updated Plan",
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        policy.refresh_from_db()
+        self.assertEqual(policy.patient_id, self.patient.id)
+        self.assertNotEqual(policy.patient_id, other_patient.id)
+
+    def test_policy_integrity_error_maps_primary_and_reraises_unknown(self):
+        # _policy_integrity_error maps each recognized partial-unique constraint
+        # to its own 400 field, and re-raises any other IntegrityError so an
+        # unrelated/future fault surfaces as a real server error instead of a
+        # mislabeled is_primary 400.
+        viewset = PatientInsurancePolicyViewSet()
+
+        primary_result = viewset._policy_integrity_error(
+            IntegrityError(
+                "duplicate key value violates unique constraint "
+                '"unique_primary_insurance_policy_per_patient"'
+            )
+        )
+        self.assertIn("is_primary", primary_result)
+
+        member_result = viewset._policy_integrity_error(
+            IntegrityError(
+                "duplicate key value violates unique constraint "
+                '"unique_active_insurance_policy_per_member"'
+            )
+        )
+        self.assertIn("member_id", member_result)
+
+        with self.assertRaises(IntegrityError):
+            viewset._policy_integrity_error(
+                IntegrityError("some unrelated constraint failure")
+            )
 
 
 class PatientInsurancePolicyCrossFacilityTests(TestCase):

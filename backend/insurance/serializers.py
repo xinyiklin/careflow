@@ -275,7 +275,22 @@ class PatientInsurancePolicySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at", "carrier_name", "patient_name"]
+        read_only_fields = [
+            "created_at",
+            "updated_at",
+            "carrier_name",
+            "patient_name",
+        ]
+
+    def get_fields(self):
+        fields = super().get_fields()
+        # The owning patient FK is set on creation and immutable afterward: a
+        # PATCH/PUT must not be able to reassign a policy (and its PHI) to a
+        # different patient. It stays writable on create so the view can read it
+        # from validated_data, but goes read-only once an instance exists.
+        if self.instance is not None and "patient" in fields:
+            fields["patient"].read_only = True
+        return fields
 
     def validate_carrier(self, value):
         facility = self.context.get("facility")
