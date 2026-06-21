@@ -21,9 +21,28 @@ SUPPORTED_DOCUMENT_EXTENSIONS = {
     ".tiff",
 }
 
+# Leading magic bytes for the supported document formats. Used to reject a file
+# whose real content does not match its claimed extension/MIME type before it is
+# stored (a spoofed ``.pdf`` otherwise fails later at preview/bundle time).
+SUPPORTED_DOCUMENT_MAGIC_PREFIXES = (
+    b"%PDF-",  # PDF
+    b"\xff\xd8\xff",  # JPEG
+    b"\x89PNG\r\n\x1a\n",  # PNG
+    b"II*\x00",  # TIFF (little-endian)
+    b"MM\x00*",  # TIFF (big-endian)
+)
+
 
 class DocumentPdfError(ValueError):
     pass
+
+
+def _has_supported_magic(uploaded_file):
+    header = uploaded_file.read(8)
+    uploaded_file.seek(0)
+    return any(
+        header.startswith(prefix) for prefix in SUPPORTED_DOCUMENT_MAGIC_PREFIXES
+    )
 
 
 def validate_supported_document_file(uploaded_file):
@@ -42,6 +61,11 @@ def validate_supported_document_file(uploaded_file):
         content_type not in SUPPORTED_DOCUMENT_CONTENT_TYPES
         or not has_supported_extension
     ):
+        raise DocumentPdfError("Upload a PDF, TIFF, PNG, or JPG document.")
+
+    # Confirm the real leading bytes match a supported format so a spoofed
+    # extension/MIME cannot smuggle non-document bytes into storage.
+    if not _has_supported_magic(uploaded_file):
         raise DocumentPdfError("Upload a PDF, TIFF, PNG, or JPG document.")
 
 
