@@ -18,7 +18,7 @@ export function Skeleton({ className, lines, ...rest }: SkeletonProps) {
           <div
             key={i}
             className={cn(
-              "h-3 rounded-md bg-surface-soft cf-skeleton-pulse",
+              "h-3 rounded-md bg-surface-soft",
               i === lines - 1 ? "w-2/3" : "w-full"
             )}
           />
@@ -28,10 +28,7 @@ export function Skeleton({ className, lines, ...rest }: SkeletonProps) {
   }
   return (
     <div
-      className={cn(
-        "h-full w-full rounded-md bg-surface-soft cf-skeleton-pulse",
-        className
-      )}
+      className={cn("h-full w-full rounded-md bg-surface-soft", className)}
       {...rest}
     />
   );
