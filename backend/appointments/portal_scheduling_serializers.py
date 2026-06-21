@@ -4,6 +4,7 @@ All responses are stripped of clinician PII and audit fields; the
 patient only sees what's relevant to picking and booking a slot.
 """
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from appointments.scheduling import (
@@ -94,6 +95,7 @@ class PortalAppointmentBookingResponseSerializer(serializers.ModelSerializer):
     def get_provider_display_name(self, obj):
         return obj.rendering_provider_name or ""
 
+    @extend_schema_field(PortalCancelEligibilitySerializer())
     def get_cancel_eligibility(self, obj):
         return {
             "can_cancel": cancellation_window_open(obj),

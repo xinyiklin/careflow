@@ -188,10 +188,11 @@ export interface paths {
             cookie?: never;
         };
         /**
+         * Return the audit history for a single appointment
          * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
          *     slot-hold presence actions.
          */
-        get: operations["appointments_history_retrieve"];
+        get: operations["appointments_history_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -264,6 +265,7 @@ export interface paths {
             cookie?: never;
         };
         /**
+         * Return appointment counts per day for a given month
          * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
          *     slot-hold presence actions.
          */
@@ -3386,6 +3388,24 @@ export interface components {
             /** @default false */
             allow_same_day_double_book: boolean;
         };
+        AppointmentHeatmap: {
+            month: string;
+            counts: {
+                [key: string]: number;
+            };
+        };
+        AppointmentHistoryItem: {
+            id: string;
+            action: string;
+            summary: string;
+            actor_name: string;
+            /** Format: date-time */
+            created_at: string;
+            changed_fields: string[];
+            metadata: {
+                [key: string]: unknown;
+            };
+        };
         AppointmentStatus: {
             readonly id: number;
             readonly facility: number;
@@ -3438,6 +3458,10 @@ export interface components {
             end_time: string;
             readonly is_booked: boolean;
             notes?: string;
+        };
+        CancelEligibility: {
+            can_cancel: boolean;
+            cutoff_hours: number;
         };
         CareProvider: {
             readonly id: number;
@@ -3721,6 +3745,9 @@ export interface components {
             /** Format: date-time */
             readonly updated_at: string;
         };
+        FacilityFeeSchedulePopulateResult: {
+            added: number;
+        };
         FacilityInsuranceCarrierOverride: {
             readonly id: number;
             readonly facility: number;
@@ -3867,6 +3894,9 @@ export interface components {
             /** Format: date-time */
             readonly last_message_at: string;
             readonly unread_for_clinician: boolean;
+        };
+        OrgFeeSchedulePopulateResult: {
+            added: number;
         };
         Organization: {
             readonly id: number;
@@ -5072,10 +5102,7 @@ export interface components {
             readonly provider_display_name: string;
             readonly room: string;
             readonly reason: string;
-            /** @description can_cancel + cutoff_hours */
-            readonly cancel_eligibility: {
-                [key: string]: number;
-            };
+            readonly cancel_eligibility: components["schemas"]["CancelEligibility"];
         };
         /** @description Returned from the booking endpoint and the cancel eligibility check. */
         PortalAppointmentBookingResponse: {
@@ -5091,12 +5118,16 @@ export interface components {
             readonly appointment_type_name: string;
             readonly provider_display_name: string;
             readonly reason: string;
-            readonly cancel_eligibility: string;
+            readonly cancel_eligibility: components["schemas"]["PortalCancelEligibility"];
         };
         /** @description Payload for ``POST /v1/portal/scheduling/book/``. */
         PortalBookingRequest: {
             slot_id: number;
             reason?: string;
+        };
+        PortalCancelEligibility: {
+            can_cancel: boolean;
+            cutoff_hours: number;
         };
         /** @description Emergency contact snippet for the patient portal. */
         PortalEmergencyContact: {
@@ -6100,7 +6131,7 @@ export interface operations {
             };
         };
     };
-    appointments_history_retrieve: {
+    appointments_history_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -6116,7 +6147,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Appointment"];
+                    "application/json": components["schemas"]["AppointmentHistoryItem"][];
                 };
             };
         };
@@ -6220,7 +6251,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Appointment"];
+                    "application/json": components["schemas"]["AppointmentHeatmap"];
                 };
             };
         };
@@ -6713,20 +6744,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrganizationFeeSchedule"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganizationFeeSchedule"];
-                "multipart/form-data": components["schemas"]["OrganizationFeeSchedule"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationFeeSchedule"];
+                    "application/json": components["schemas"]["FacilityFeeSchedulePopulateResult"];
                 };
             };
         };
@@ -6968,20 +6993,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OrganizationFeeSchedule"];
-                "application/x-www-form-urlencoded": components["schemas"]["OrganizationFeeSchedule"];
-                "multipart/form-data": components["schemas"]["OrganizationFeeSchedule"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationFeeSchedule"];
+                    "application/json": components["schemas"]["OrgFeeSchedulePopulateResult"];
                 };
             };
         };
@@ -7207,13 +7226,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["ProgressNote"];
-                "application/x-www-form-urlencoded": components["schemas"]["ProgressNote"];
-                "multipart/form-data": components["schemas"]["ProgressNote"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -7234,13 +7247,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["ProgressNote"];
-                "application/x-www-form-urlencoded": components["schemas"]["ProgressNote"];
-                "multipart/form-data": components["schemas"]["ProgressNote"];
-            };
-        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

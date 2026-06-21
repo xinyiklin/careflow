@@ -470,10 +470,11 @@ paths:
           description: ''
   /v1/appointments/{id}/history/:
     get:
-      operationId: appointments_history_retrieve
+      operationId: appointments_history_list
       description: |-
         Facility-scoped appointment CRUD, plus the edit-session soft lock and
         slot-hold presence actions.
+      summary: Return the audit history for a single appointment
       parameters:
       - in: path
         name: id
@@ -490,7 +491,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
+                type: array
+                items:
+                  $ref: '#/components/schemas/AppointmentHistoryItem'
           description: ''
   /v1/appointments/bookable-slots/:
     get:
@@ -598,6 +601,7 @@ paths:
       description: |-
         Facility-scoped appointment CRUD, plus the edit-session soft lock and
         slot-hold presence actions.
+      summary: Return appointment counts per day for a given month
       tags:
       - appointments
       security:
@@ -608,7 +612,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
+                $ref: '#/components/schemas/AppointmentHeatmap'
           description: ''
   /v1/appointments/slot-hold/:
     post:
@@ -1217,18 +1221,6 @@ paths:
         required: true
       tags:
       - billing
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
-        required: true
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -1237,7 +1229,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationFeeSchedule'
+                $ref: '#/components/schemas/FacilityFeeSchedulePopulateResult'
           description: ''
   /v1/billing/facility-fee-schedules/copy-from-org/:
     post:
@@ -1495,18 +1487,6 @@ paths:
         required: true
       tags:
       - billing
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
-        required: true
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -1515,7 +1495,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationFeeSchedule'
+                $ref: '#/components/schemas/OrgFeeSchedulePopulateResult'
           description: ''
   /v1/clinical/encounters/:
     get:
@@ -1794,17 +1774,6 @@ paths:
         required: true
       tags:
       - clinical
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProgressNote'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProgressNote'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProgressNote'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -1831,17 +1800,6 @@ paths:
         required: true
       tags:
       - clinical
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProgressNote'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/ProgressNote'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/ProgressNote'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -6781,6 +6739,47 @@ components:
       - status_code
       - status_color
       - status_name
+    AppointmentHeatmap:
+      type: object
+      properties:
+        month:
+          type: string
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+      - counts
+      - month
+    AppointmentHistoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        summary:
+          type: string
+        actor_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        changed_fields:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+          additionalProperties: {}
+      required:
+      - action
+      - actor_name
+      - changed_fields
+      - created_at
+      - id
+      - metadata
+      - summary
     AppointmentStatus:
       type: object
       properties:
@@ -6938,6 +6937,16 @@ components:
       - provider
       - provider_display_name
       - start_time
+    CancelEligibility:
+      type: object
+      properties:
+        can_cancel:
+          type: boolean
+        cutoff_hours:
+          type: integer
+      required:
+      - can_cancel
+      - cutoff_hours
     CareProvider:
       type: object
       properties:
@@ -7618,6 +7627,13 @@ components:
       - id
       - updated_at
       - updated_by
+    FacilityFeeSchedulePopulateResult:
+      type: object
+      properties:
+        added:
+          type: integer
+      required:
+      - added
     FacilityInsuranceCarrierOverride:
       type: object
       properties:
@@ -8019,6 +8035,13 @@ components:
       - status_label
       - subject
       - unread_for_clinician
+    OrgFeeSchedulePopulateResult:
+      type: object
+      properties:
+        added:
+          type: integer
+      required:
+      - added
     Organization:
       type: object
       properties:
@@ -11055,10 +11078,8 @@ components:
           type: string
           readOnly: true
         cancel_eligibility:
-          type: object
-          additionalProperties:
-            type: integer
-          description: can_cancel + cutoff_hours
+          allOf:
+          - $ref: '#/components/schemas/CancelEligibility'
           readOnly: true
       required:
       - appointment_time
@@ -11113,7 +11134,8 @@ components:
           type: string
           readOnly: true
         cancel_eligibility:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/PortalCancelEligibility'
           readOnly: true
       required:
       - appointment_time
@@ -11138,6 +11160,16 @@ components:
           maxLength: 500
       required:
       - slot_id
+    PortalCancelEligibility:
+      type: object
+      properties:
+        can_cancel:
+          type: boolean
+        cutoff_hours:
+          type: integer
+      required:
+      - can_cancel
+      - cutoff_hours
     PortalEmergencyContact:
       type: object
       description: Emergency contact snippet for the patient portal.

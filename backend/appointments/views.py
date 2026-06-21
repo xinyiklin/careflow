@@ -2,10 +2,18 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.db import transaction
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
+from rest_framework.serializers import (
+    CharField,
+    DateTimeField,
+    DictField,
+    IntegerField,
+    ListField,
+)
 
 from audit.models import AuditEvent
 from clinical.models import Encounter, ProgressNote
@@ -138,6 +146,18 @@ class AppointmentViewSet(
             ).first()
             return super().update(request, *args, **kwargs)
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="AppointmentHeatmap",
+                fields={
+                    "month": CharField(),
+                    "counts": DictField(child=IntegerField()),
+                },
+            )
+        },
+        summary="Return appointment counts per day for a given month",
+    )
     @action(detail=False, methods=["get"], url_path="heatmap")
     def heatmap(self, request):
         facility = self.get_facility()
@@ -348,6 +368,24 @@ class AppointmentViewSet(
         )
         instance.delete()
 
+    @extend_schema(
+        responses={
+            200: inline_serializer(
+                name="AppointmentHistoryItem",
+                fields={
+                    "id": CharField(),
+                    "action": CharField(),
+                    "summary": CharField(),
+                    "actor_name": CharField(),
+                    "created_at": DateTimeField(),
+                    "changed_fields": ListField(child=CharField()),
+                    "metadata": DictField(),
+                },
+                many=True,
+            )
+        },
+        summary="Return the audit history for a single appointment",
+    )
     @action(detail=True, methods=["get"])
     def history(self, request, pk=None):
         appointment = self.get_object()

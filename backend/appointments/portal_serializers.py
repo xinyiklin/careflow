@@ -1,4 +1,4 @@
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, inline_serializer
 from rest_framework import serializers
 
 from .models import Appointment
@@ -64,8 +64,12 @@ class PortalAppointmentSerializer(serializers.ModelSerializer):
         return str(tz) if tz else ""
 
     @extend_schema_field(
-        serializers.DictField(
-            child=serializers.IntegerField(), help_text="can_cancel + cutoff_hours"
+        inline_serializer(
+            name="CancelEligibility",
+            fields={
+                "can_cancel": serializers.BooleanField(),
+                "cutoff_hours": serializers.IntegerField(),
+            },
         )
     )
     def get_cancel_eligibility(self, obj):
