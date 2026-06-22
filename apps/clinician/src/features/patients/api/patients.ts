@@ -77,18 +77,6 @@ export function patchPatient(
   });
 }
 
-export function deletePatient(
-  id: EntityId,
-  facilityId: EntityId | null | undefined
-) {
-  return apiRequest<PatientLike>(`/patients/${id}/`, {
-    method: "DELETE",
-    params: {
-      facility_id: facilityId,
-    },
-  });
-}
-
 export function fetchPatientById(
   id: EntityId,
   facilityId: EntityId | null | undefined

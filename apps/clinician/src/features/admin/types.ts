@@ -1,5 +1,3 @@
-import type { ReactNode } from "react";
-
 import type { ApiPayload, EntityId } from "../../shared/api/types";
 import type {
   Facility,
@@ -8,8 +6,6 @@ import type {
   UserProfile,
 } from "../../shared/types/domain";
 import type { SecurityPermissions } from "./constants/securityPermissions";
-
-export type AdminEntityId = EntityId;
 
 export type AdminSavePayload<TValues extends ApiPayload = ApiPayload> = {
   id?: EntityId | null;
@@ -40,10 +36,6 @@ export type AdminSortOption<TRecord> = {
   label: string;
   compare: (first: TRecord, second: TRecord) => number;
 };
-
-export type AdminRecordMeta = string | number;
-
-export type AdminRenderable = ReactNode;
 
 export type AdminCustomOperatingHours = {
   days: number[];
@@ -365,27 +357,6 @@ export type CPTCatalogEntry = {
   description: string;
   charge_amount: string | number;
   category: string;
-};
-
-export type AdminOrganizationPharmacyForm = ApiPayload & {
-  name: string;
-  legal_business_name: string;
-  ncpdp_id: string;
-  npi: string;
-  dea_number: string;
-  tax_id: string;
-  store_number: string;
-  service_type: string;
-  phone_number: string;
-  fax_number: string;
-  accepts_erx: boolean;
-  is_24_hour: boolean;
-  notes: string;
-  is_preferred: boolean;
-  is_hidden: boolean;
-  is_active: boolean;
-  sort_order: number | string;
-  address: AdminAddressForm;
 };
 
 export type AdminAddress = {

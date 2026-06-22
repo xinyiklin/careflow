@@ -5,7 +5,7 @@ import { Input } from "../../../../shared/components/ui";
 
 import type { InputHTMLAttributes, KeyboardEvent } from "react";
 
-export type InlineEditValue = string | number | null | undefined;
+type InlineEditValue = string | number | null | undefined;
 
 type InlineEditOption = {
   value: InlineEditValue;

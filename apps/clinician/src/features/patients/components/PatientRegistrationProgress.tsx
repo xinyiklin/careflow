@@ -7,7 +7,6 @@ import {
   Siren,
 } from "lucide-react";
 
-import { Badge } from "../../../shared/components/ui";
 import {
   getAddressPreview,
   getPrimaryPhone,
@@ -80,11 +79,6 @@ type PreviewMetricProps = {
   label: string;
   value?: string | number | null;
   tone?: "default" | "success" | "warning";
-};
-
-type RegistrationProgressRibbonProps = {
-  steps: RegistrationStep[];
-  completionPercent: number;
 };
 
 type RegistrationRailProps = {
@@ -177,54 +171,6 @@ function PreviewMetric({ label, value, tone = "default" }: PreviewMetricProps) {
         {value || "—"}
       </div>
     </div>
-  );
-}
-
-export function RegistrationProgressRibbon({
-  steps,
-  completionPercent,
-}: RegistrationProgressRibbonProps) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
-            Intake progress
-          </div>
-          <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold tracking-tight text-cf-text">
-              {completionPercent}%
-            </span>
-            <span className="text-sm text-cf-text-muted">ready to file</span>
-          </div>
-        </div>
-        <Badge variant={completionPercent >= 80 ? "success" : "muted"}>
-          {steps.filter((step) => step.complete).length} of {steps.length}
-        </Badge>
-      </div>
-
-      <div className="mt-4 grid grid-cols-5 gap-1.5">
-        {steps.map((step) => {
-          const Icon = step.icon;
-          return (
-            <div
-              key={step.key}
-              className={[
-                "min-h-16 rounded-xl border px-2 py-2",
-                step.complete
-                  ? "border-cf-accent bg-cf-accent text-cf-page-bg"
-                  : "border-cf-border bg-cf-surface-muted/70 text-cf-text-muted",
-              ].join(" ")}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              <div className="mt-2 truncate text-[10px] font-semibold uppercase tracking-[0.12em]">
-                {step.label}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </section>
   );
 }
 

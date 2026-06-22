@@ -34,20 +34,6 @@ export function demoLogin() {
   });
 }
 
-export function refreshToken() {
-  return apiRequest<AuthTokenResponse>("/users/token/refresh/", {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
-}
-
-export function registerUser(data: ApiPayload) {
-  return apiRequest("/users/register/", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
 export function fetchUserProfile() {
   return apiRequest<UserProfile>("/users/me/");
 }

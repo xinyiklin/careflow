@@ -13,15 +13,6 @@ import type {
 } from "../../../shared/types/domain";
 
 const DEFAULT_OPERATING_DAYS = [1, 2, 3, 4, 5] as const;
-const DAY_LABELS = {
-  1: "Mon",
-  2: "Tue",
-  3: "Wed",
-  4: "Thu",
-  5: "Fri",
-  6: "Sat",
-  7: "Sun",
-};
 
 export function parseTimeToMinutes(
   value: unknown,
@@ -120,28 +111,4 @@ export function isFacilityOperatingDate(
 
   const isoDay = Number(formatDateOnlyInTimeZone(date, timeZone, "i"));
   return getFacilityOperatingDays(facility).includes(isoDay);
-}
-
-export function formatOperatingWindow(facility?: FacilityLike | null): string {
-  const { startMinute, endMinute } = getFacilityOperatingWindow(facility);
-  return `${formatMinutes(startMinute)}-${formatMinutes(endMinute)}`;
-}
-
-export function formatOperatingDays(facility?: FacilityLike | null): string {
-  const days = getFacilityOperatingDays(facility);
-  if (days.join(",") === DEFAULT_OPERATING_DAYS.join(",")) return "Mon-Fri";
-  if (days.length === 7) return "Daily";
-  return days
-    .map((day) => DAY_LABELS[day as keyof typeof DAY_LABELS])
-    .filter(Boolean)
-    .join(", ");
-}
-
-function formatMinutes(totalMinutes: number): string {
-  const hour = Math.floor(totalMinutes / 60);
-  const minute = totalMinutes % 60;
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  const suffix = hour < 12 ? "AM" : "PM";
-
-  return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
 }

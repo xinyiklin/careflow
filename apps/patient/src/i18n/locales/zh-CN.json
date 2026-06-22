@@ -1,22 +1,13 @@
 {
   "common": {
     "appName": "CareFlow",
-    "loading": "加载中",
     "loadingEllipsis": "加载中…",
     "save": "保存",
     "cancel": "取消",
-    "delete": "删除",
-    "edit": "编辑",
     "close": "关闭",
-    "back": "返回",
-    "continue": "继续",
-    "submit": "提交",
-    "retry": "重试",
-    "signIn": "登录",
     "signOut": "退出登录",
     "language": "语言",
     "done": "完成",
-    "sending": "发送中…",
     "theme": "主题",
     "themeLight": "浅色",
     "themeDark": "深色",
@@ -55,7 +46,6 @@
     "greeting": "这是您今天的概览。",
     "nextAppointmentHeading": "您的下一次预约",
     "appointmentTypeWithProvider": "{{type}} · {{provider}}",
-    "noUpcomingAppointment": "您没有即将到来的预约。",
     "bookAppointment": "预约就诊",
     "rescheduleAppointment": "改期",
     "cancelAppointment": "取消",
@@ -75,8 +65,7 @@
     "pendingRefills": "{{count}} 个待审批续药",
     "pendingRefills_one": "{{count}} 个待审批续药",
     "pendingRefills_other": "{{count}} 个待审批续药",
-    "viewMedications": "查看用药",
-    "quickAccessHeading": "快速入口"
+    "viewMedications": "查看用药"
   },
   "appointments": {
     "pageTitle": "预约",
@@ -88,7 +77,6 @@
     "noPast": "没有历史预约可显示。",
     "cancel": "取消",
     "cancelling": "正在取消…",
-    "cancelled": "已取消",
     "cancelCutoffHint": "可在就诊前 {{hours}} 小时之内在线取消",
     "roomLabel": "诊室 {{room}}",
     "confirmCancelTitle": "确认取消此预约？",
@@ -137,11 +125,9 @@
     "allergiesCount": "{{count}} 条记录",
     "allergiesCount_one": "{{count}} 条过敏记录",
     "allergiesCount_other": "{{count}} 条过敏记录",
-    "noAllergies": "暂无过敏记录。",
     "noAllergiesTitle": "暂无过敏记录",
     "noAllergiesBody": "您的医疗团队尚未登记任何过敏信息。",
     "visitHistoryHeading": "就诊记录",
-    "noVisits": "暂无就诊记录。",
     "noVisitsTitle": "暂无就诊记录",
     "noVisitsBody": "过去与医疗团队的就诊记录会显示在这里。",
     "medicationsMore": "另有 {{count}} 项",
@@ -169,8 +155,6 @@
     "pageTitle": "用药",
     "tabActive": "在用",
     "tabInactive": "已停用",
-    "noActive": "暂无在用药物。",
-    "noInactive": "暂无已停用药物。",
     "noActiveTitle": "暂无在用药物",
     "noActiveBody": "您的医疗团队尚未开具在用药物。",
     "noInactiveTitle": "暂无停用药物",
@@ -184,7 +168,6 @@
     "refillNoPharmacies": "本机构暂无可用药房,请联系您的医疗团队。",
     "refillSuccessTitle": "续药已申请",
     "refillSuccessBody": "您的续药申请已发送。医疗团队会进行审核并跟进。",
-    "pharmacyLabel": "药房",
     "noteLabel": "给医疗团队的留言（可选）",
     "notePlaceholder": "发送前有什么需要我们知道的吗？",
     "submitRefill": "提交申请",
@@ -258,7 +241,6 @@
     "fieldCity": "城市",
     "fieldState": "州/省",
     "fieldZip": "邮编",
-    "fieldPrimaryAddress": "主要地址",
     "fieldContactName": "联系人姓名",
     "fieldRelationship": "关系",
     "selectState": "请选择州",
@@ -273,7 +255,6 @@
     "insurancePlan": "计划",
     "insurancePlanFallback": "标准计划",
     "insuranceEffective": "生效",
-    "editPrefix": "编辑",
     "preferredPharmacyHeading": "首选药房",
     "preferredPharmacyEmpty": "尚未选择药房。",
     "preferredPharmacyEmptyHelp": "选择一个药房后，续药申请会默认发送到该药房。",
@@ -290,9 +271,5 @@
     "themeHeading": "外观",
     "themeDescription": "选择浅色、深色或跟随系统设置。",
     "sectionsLabel": "个人资料分区"
-  },
-  "errors": {
-    "generic": "出错了，请重试。",
-    "network": "无法连接到服务器，请检查网络连接。"
   }
 }

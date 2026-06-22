@@ -1,22 +1,13 @@
 {
   "common": {
     "appName": "CareFlow",
-    "loading": "Loading",
     "loadingEllipsis": "Loading…",
     "save": "Save",
     "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
     "close": "Close",
-    "back": "Back",
-    "continue": "Continue",
-    "submit": "Submit",
-    "retry": "Try again",
-    "signIn": "Sign in",
     "signOut": "Sign out",
     "language": "Language",
     "done": "Done",
-    "sending": "Sending…",
     "theme": "Theme",
     "themeLight": "Light",
     "themeDark": "Dark",
@@ -55,7 +46,6 @@
     "greeting": "Here's where things stand today.",
     "nextAppointmentHeading": "Your next appointment",
     "appointmentTypeWithProvider": "{{type}} with {{provider}}",
-    "noUpcomingAppointment": "You have no upcoming appointments.",
     "bookAppointment": "Book an appointment",
     "rescheduleAppointment": "Reschedule",
     "cancelAppointment": "Cancel",
@@ -75,8 +65,7 @@
     "pendingRefills": "{{count}} pending refill",
     "pendingRefills_one": "{{count}} pending refill",
     "pendingRefills_other": "{{count}} pending refills",
-    "viewMedications": "View medications",
-    "quickAccessHeading": "Quick access"
+    "viewMedications": "View medications"
   },
   "appointments": {
     "pageTitle": "Appointments",
@@ -88,7 +77,6 @@
     "noPast": "No past appointments to show.",
     "cancel": "Cancel",
     "cancelling": "Cancelling…",
-    "cancelled": "Cancelled",
     "cancelCutoffHint": "Cancel online up to {{hours}}h before the visit",
     "roomLabel": "Room {{room}}",
     "confirmCancelTitle": "Cancel this appointment?",
@@ -137,11 +125,9 @@
     "allergiesCount": "{{count}} recorded",
     "allergiesCount_one": "{{count}} allergy on file",
     "allergiesCount_other": "{{count}} allergies on file",
-    "noAllergies": "No allergies recorded.",
     "noAllergiesTitle": "No allergies on file",
     "noAllergiesBody": "Your care team has not recorded any allergies.",
     "visitHistoryHeading": "Visit history",
-    "noVisits": "No visits yet.",
     "noVisitsTitle": "No visits yet",
     "noVisitsBody": "Past visits with your care team will appear here.",
     "medicationsMore": "+{{count}} more",
@@ -169,8 +155,6 @@
     "pageTitle": "Medications",
     "tabActive": "Active",
     "tabInactive": "Inactive",
-    "noActive": "No active medications.",
-    "noInactive": "No inactive medications.",
     "noActiveTitle": "No active medications",
     "noActiveBody": "Your care team hasn't prescribed any current medications.",
     "noInactiveTitle": "No past medications",
@@ -184,7 +168,6 @@
     "refillNoPharmacies": "No pharmacies available at your facility. Please contact your care team.",
     "refillSuccessTitle": "Refill requested",
     "refillSuccessBody": "Your refill request was sent. Your care team will review it and follow up.",
-    "pharmacyLabel": "Pharmacy",
     "noteLabel": "Note for your care team (optional)",
     "notePlaceholder": "Anything we should know before sending the refill?",
     "submitRefill": "Submit request",
@@ -258,7 +241,6 @@
     "fieldCity": "City",
     "fieldState": "State",
     "fieldZip": "ZIP code",
-    "fieldPrimaryAddress": "Primary address",
     "fieldContactName": "Contact name",
     "fieldRelationship": "Relationship",
     "selectState": "Select state",
@@ -273,7 +255,6 @@
     "insurancePlan": "Plan",
     "insurancePlanFallback": "Standard plan",
     "insuranceEffective": "Effective",
-    "editPrefix": "Edit",
     "preferredPharmacyHeading": "Preferred pharmacy",
     "preferredPharmacyEmpty": "No pharmacy selected.",
     "preferredPharmacyEmptyHelp": "Pick one so refill requests have a default destination.",
@@ -290,9 +271,5 @@
     "themeHeading": "Appearance",
     "themeDescription": "Pick light, dark, or follow your system setting.",
     "sectionsLabel": "Profile sections"
-  },
-  "errors": {
-    "generic": "Something went wrong. Please try again.",
-    "network": "Could not reach the server. Check your connection."
   }
 }

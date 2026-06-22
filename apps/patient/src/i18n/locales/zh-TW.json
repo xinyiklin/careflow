@@ -1,22 +1,13 @@
 {
   "common": {
     "appName": "CareFlow",
-    "loading": "載入中",
     "loadingEllipsis": "載入中…",
     "save": "儲存",
     "cancel": "取消",
-    "delete": "刪除",
-    "edit": "編輯",
     "close": "關閉",
-    "back": "返回",
-    "continue": "繼續",
-    "submit": "送出",
-    "retry": "重試",
-    "signIn": "登入",
     "signOut": "登出",
     "language": "語言",
     "done": "完成",
-    "sending": "傳送中…",
     "theme": "主題",
     "themeLight": "淺色",
     "themeDark": "深色",
@@ -55,7 +46,6 @@
     "greeting": "這是您今天的概況。",
     "nextAppointmentHeading": "您的下一次預約",
     "appointmentTypeWithProvider": "{{type}} · {{provider}}",
-    "noUpcomingAppointment": "您目前沒有預約。",
     "bookAppointment": "預約看診",
     "rescheduleAppointment": "改期",
     "cancelAppointment": "取消",
@@ -75,8 +65,7 @@
     "pendingRefills": "{{count}} 項待審核續藥",
     "pendingRefills_one": "{{count}} 項待審核續藥",
     "pendingRefills_other": "{{count}} 項待審核續藥",
-    "viewMedications": "查看用藥",
-    "quickAccessHeading": "快速入口"
+    "viewMedications": "查看用藥"
   },
   "appointments": {
     "pageTitle": "預約",
@@ -88,7 +77,6 @@
     "noPast": "沒有可顯示的歷史預約。",
     "cancel": "取消",
     "cancelling": "正在取消…",
-    "cancelled": "已取消",
     "cancelCutoffHint": "可於看診前 {{hours}} 小時之內線上取消",
     "roomLabel": "診間 {{room}}",
     "confirmCancelTitle": "確認取消此預約？",
@@ -137,11 +125,9 @@
     "allergiesCount": "{{count}} 筆紀錄",
     "allergiesCount_one": "{{count}} 筆過敏紀錄",
     "allergiesCount_other": "{{count}} 筆過敏紀錄",
-    "noAllergies": "尚無過敏紀錄。",
     "noAllergiesTitle": "尚無過敏紀錄",
     "noAllergiesBody": "您的醫療團隊尚未登記任何過敏資料。",
     "visitHistoryHeading": "就診紀錄",
-    "noVisits": "尚無就診紀錄。",
     "noVisitsTitle": "尚無就診紀錄",
     "noVisitsBody": "過去與醫療團隊的就診紀錄會顯示在這裡。",
     "medicationsMore": "另有 {{count}} 項",
@@ -169,8 +155,6 @@
     "pageTitle": "用藥",
     "tabActive": "使用中",
     "tabInactive": "已停用",
-    "noActive": "目前沒有使用中的藥物。",
-    "noInactive": "目前沒有已停用的藥物。",
     "noActiveTitle": "目前沒有使用中的藥物",
     "noActiveBody": "您的醫療團隊尚未開立任何現用藥物。",
     "noInactiveTitle": "目前沒有已停用的藥物",
@@ -184,7 +168,6 @@
     "refillNoPharmacies": "本診所目前沒有可用藥局,請聯絡您的醫療團隊。",
     "refillSuccessTitle": "已申請續藥",
     "refillSuccessBody": "您的續藥申請已送出。醫療團隊將審核並後續聯絡您。",
-    "pharmacyLabel": "藥局",
     "noteLabel": "給醫療團隊的備註（選填）",
     "notePlaceholder": "送出前有什麼需要我們知道的嗎？",
     "submitRefill": "送出申請",
@@ -258,7 +241,6 @@
     "fieldCity": "城市",
     "fieldState": "州/省",
     "fieldZip": "郵遞區號",
-    "fieldPrimaryAddress": "主要地址",
     "fieldContactName": "聯絡人姓名",
     "fieldRelationship": "關係",
     "selectState": "請選擇州",
@@ -273,7 +255,6 @@
     "insurancePlan": "方案",
     "insurancePlanFallback": "標準方案",
     "insuranceEffective": "生效日期",
-    "editPrefix": "編輯",
     "preferredPharmacyHeading": "偏好藥局",
     "preferredPharmacyEmpty": "尚未選擇藥局。",
     "preferredPharmacyEmptyHelp": "選擇一間藥局後,續藥申請將預設送到該藥局。",
@@ -290,9 +271,5 @@
     "themeHeading": "外觀",
     "themeDescription": "選擇淺色、深色或跟隨系統設定。",
     "sectionsLabel": "個人資料分區"
-  },
-  "errors": {
-    "generic": "發生錯誤,請再試一次。",
-    "network": "無法連線至伺服器,請檢查您的網路。"
   }
 }

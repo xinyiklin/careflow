@@ -1,5 +1,4 @@
 import {
-  LineChart,
   Layers,
   ChevronLeft,
   ChevronRight,
@@ -7,27 +6,18 @@ import {
   Code2,
   MapPin,
   Clock,
-  Coins,
-  Users,
-  CheckSquare,
-  ClipboardList,
 } from "lucide-react";
-import type { ComponentType } from "react";
 
 import { CategoryRail, CategoryRailItem } from "../../../shared/components/ui";
 import {
   formatBillingCurrency,
-  getRecordChargeAmount,
   type BillingIssueFilter,
   type BillingIssueOption,
   type BillingMixItem,
   type BillingQueueDefinition,
   type BillingQueueKey,
-  type BillingWorkspaceItem,
   type BillingWorkspaceSummary,
 } from "./billingWorkspaceUtils";
-
-import type { ClinicalEncounter, EncounterBillingRecord } from "../types";
 
 type HeaderMetricProps = {
   label: string;
@@ -312,111 +302,6 @@ export function BillingQueuePagination({
           <ChevronRight className="h-3.5 w-3.5" />
         </button>
       </div>
-    </div>
-  );
-}
-
-function insightCount(options: BillingIssueOption[], id: BillingIssueFilter) {
-  return options.find((option) => option.id === id)?.count || 0;
-}
-
-function InsightMetric({
-  label,
-  value,
-  icon: Icon,
-}: HeaderMetricProps & { icon?: ComponentType<{ className?: string }> }) {
-  return (
-    <div className="flex items-center gap-2.5 min-w-0 px-2 py-0.5">
-      {Icon ? (
-        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cf-surface-soft text-cf-text-subtle">
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-      ) : null}
-      <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wide text-cf-text-subtle leading-none">
-          {label}
-        </div>
-        <div className="mt-1 truncate text-xs font-bold tabular-nums text-cf-text leading-none">
-          {value}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function BillingQueueInsightStrip({
-  activeQueue,
-  items,
-  issueOptions,
-}: {
-  activeQueue: BillingQueueKey;
-  items: BillingWorkspaceItem[];
-  issueOptions: BillingIssueOption[];
-}) {
-  const recordItems =
-    activeQueue === "pending_coding" ? [] : (items as EncounterBillingRecord[]);
-  const providerCount = new Set(
-    items
-      .map((item) =>
-        activeQueue === "pending_coding"
-          ? (item as ClinicalEncounter).rendering_provider_name
-          : (item as EncounterBillingRecord).rendering_provider_name
-      )
-      .filter(Boolean)
-  ).size;
-  const queueValue = recordItems.reduce(
-    (sum, record) => sum + getRecordChargeAmount(record),
-    0
-  );
-
-  return (
-    <div className="mb-3 grid gap-3 rounded-xl border border-cf-border bg-cf-surface/60 px-4 py-2 md:grid-cols-[auto_repeat(4,minmax(0,1fr))] md:items-center">
-      <div className="flex items-center gap-2 text-cf-text-subtle">
-        <LineChart className="h-4 w-4" />
-      </div>
-      {activeQueue === "pending_coding" ? (
-        <>
-          <InsightMetric
-            label="Encounters"
-            value={items.length}
-            icon={ClipboardList}
-          />
-          <InsightMetric label="Providers" value={providerCount} icon={Users} />
-          <InsightMetric
-            label="Aging 7d"
-            value={insightCount(issueOptions, "aged")}
-            icon={Clock}
-          />
-          <InsightMetric
-            label="Next Step"
-            value="Create superbill"
-            icon={CheckSquare}
-          />
-        </>
-      ) : (
-        <>
-          <InsightMetric
-            label="Queue Value"
-            value={formatBillingCurrency(queueValue)}
-            icon={Coins}
-          />
-          <InsightMetric
-            label="Missing Payer"
-            value={insightCount(issueOptions, "missing_payer")}
-            icon={UserX}
-          />
-          <InsightMetric
-            label="Coding Gaps"
-            value={insightCount(issueOptions, "missing_coding")}
-            icon={Code2}
-          />
-          <InsightMetric
-            label="Aging 7d"
-            value={insightCount(issueOptions, "aged")}
-            icon={Clock}
-          />
-        </>
-      )}
     </div>
   );
 }

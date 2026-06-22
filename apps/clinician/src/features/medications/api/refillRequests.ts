@@ -78,7 +78,7 @@ export function getRefillRequestsQueryKey({
   ] as const;
 }
 
-export function getRefillRequestQueryKey(refillId: EntityId) {
+function getRefillRequestQueryKey(refillId: EntityId) {
   return ["medications", "refill-requests", "detail", refillId] as const;
 }
 

@@ -2,10 +2,8 @@ import { apiRequest } from "../../../../shared/api/client";
 
 import type { ApiPayload, EntityId } from "../../../../shared/api/types";
 import type {
-  AdminFacilityFeeScheduleOverride,
   AdminFacilityPayerOverride,
   AdminFacilityPharmacyOverride,
-  AdminFeeScheduleItem,
   AdminOrganizationFeeSchedule,
   AdminOrganizationFeeScheduleItem,
 } from "../../types";
@@ -83,49 +81,6 @@ export function createFacilityPharmacyOverride(
 ) {
   return apiRequest<AdminFacilityPharmacyOverride>(
     withFacility("/organizations/facility-pharmacy-overrides/", facilityId),
-    {
-      method: "POST",
-      body: JSON.stringify(data),
-    }
-  );
-}
-
-export function fetchFacilityFeeSchedule(
-  facilityId: EntityId | null | undefined
-) {
-  return apiRequest<AdminFeeScheduleItem[]>(
-    withFacility("/billing/fee-schedule-items/", facilityId)
-  );
-}
-
-export function fetchFacilityFeeScheduleOverrides(
-  facilityId: EntityId | null | undefined
-) {
-  return apiRequest<AdminFacilityFeeScheduleOverride[]>(
-    withFacility("/billing/facility-fee-schedule-overrides/", facilityId)
-  );
-}
-
-export function updateFacilityFeeScheduleOverride(
-  facilityId: EntityId | null | undefined,
-  id: EntityId,
-  data: ApiPayload
-) {
-  return apiRequest<AdminFacilityFeeScheduleOverride>(
-    withFacility(`/billing/facility-fee-schedule-overrides/${id}/`, facilityId),
-    {
-      method: "PATCH",
-      body: JSON.stringify(data),
-    }
-  );
-}
-
-export function createFacilityFeeScheduleOverride(
-  facilityId: EntityId | null | undefined,
-  data: ApiPayload
-) {
-  return apiRequest<AdminFacilityFeeScheduleOverride>(
-    withFacility("/billing/facility-fee-schedule-overrides/", facilityId),
     {
       method: "POST",
       body: JSON.stringify(data),

@@ -114,7 +114,7 @@ export const DEFAULT_QUICK_ACTION_ASSIGNMENTS = [
   { code: "Digit8", actionKey: "toggle-sidebar" },
 ] satisfies QuickActionAssignment[];
 
-export const QUICK_ACTION_OPTIONS = [
+const QUICK_ACTION_OPTIONS = [
   { key: "search-patients", label: "Search Patient", requiresAdmin: false },
   { key: "new-patient", label: "New Patient", requiresAdmin: false },
   {
@@ -321,32 +321,6 @@ export function getAssignedQuickActionSlot(
     (candidate) => candidate.code === assignment.code
   );
   return slot ? { ...slot, actionKey } : null;
-}
-
-export function getAvailableQuickActionSlots(
-  preferences: QuickActionPreferences,
-  currentCode: string | null = null
-) {
-  const usedCodes = new Set(
-    getStoredQuickActionAssignments(preferences)
-      .map((entry) => entry.code)
-      .filter((code) => code !== currentCode)
-  );
-
-  return QUICK_ACTION_SLOTS.filter((slot) => !usedCodes.has(slot.code));
-}
-
-export function getUnassignedQuickActionOptions(
-  access: QuickActionAccess,
-  preferences: QuickActionPreferences
-) {
-  const assignedActionKeys = new Set(
-    getStoredQuickActionAssignments(preferences).map((entry) => entry.actionKey)
-  );
-
-  return getQuickActionOptions(access).filter(
-    (option) => !assignedActionKeys.has(option.key)
-  );
 }
 
 export function buildQuickActions({

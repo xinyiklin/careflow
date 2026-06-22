@@ -3,10 +3,6 @@ import { apiRequest } from "../../../../shared/api/client";
 import type { ApiPayload, EntityId } from "../../../../shared/api/types";
 import type { OrganizationLike } from "../../../../shared/types/domain";
 
-export function fetchOrganizations() {
-  return apiRequest<OrganizationLike[]>("/organizations/");
-}
-
 export function fetchOrganization(id: EntityId) {
   return apiRequest<OrganizationLike>(`/organizations/${id}/`);
 }

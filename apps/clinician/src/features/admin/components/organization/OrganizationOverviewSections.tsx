@@ -28,10 +28,6 @@ type FieldProps = {
   className?: string;
 };
 
-export function hasText(value: unknown) {
-  return Boolean(String(value || "").trim());
-}
-
 function Field({ label, children, className = "" }: FieldProps) {
   return (
     <label className={["block", className].filter(Boolean).join(" ")}>

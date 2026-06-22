@@ -57,7 +57,6 @@ override, create `apps/patient/.env.local`:
 
 ```bash
 VITE_API_URL=http://localhost:8000
-VITE_APP_URL=http://localhost:5174
 ```
 
 ## Scripts
@@ -134,11 +133,10 @@ Install Command: npm install --workspaces --include-workspace-root
 
 The Install Command runs at the repo root so npm workspaces resolve the shared
 `@careflow/*` symlinks before the build runs from `apps/patient`. Set the
-deployed backend base URL and app URL:
+deployed backend base URL:
 
 ```bash
 VITE_API_URL=https://api.careflow.xinyiklin.com
-VITE_APP_URL=https://portal.careflow.xinyiklin.com
 ```
 
 The backend must allow the portal origin in its CORS and CSRF settings.

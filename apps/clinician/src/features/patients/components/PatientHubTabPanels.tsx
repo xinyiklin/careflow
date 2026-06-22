@@ -1,11 +1,4 @@
-import {
-  AlertTriangle,
-  CalendarClock,
-  ClipboardList,
-  Pencil,
-  Pill,
-  Plus,
-} from "lucide-react";
+import { CalendarClock, Pencil, Plus } from "lucide-react";
 
 import { Badge, Button } from "../../../shared/components/ui";
 import {
@@ -22,8 +15,6 @@ import type { KeyboardEvent } from "react";
 import type { AppointmentLike } from "../../../shared/types/domain";
 import type {
   AppointmentGroup,
-  PatientHubEmptyTab,
-  PatientHubEmptyTabs,
   PatientHubInsurancePolicy,
   PatientRecord,
 } from "../types";
@@ -257,53 +248,6 @@ export function InsuranceTab({
   );
 }
 
-export function EmptyClinicalTab({
-  title,
-  description,
-  action,
-  icon: Icon,
-  variant = "default",
-}: PatientHubEmptyTab) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="text-sm font-semibold text-cf-text">{title}</div>
-          <div className="text-sm text-cf-text-muted">{description}</div>
-        </div>
-        <Button size="sm">
-          <Plus className="h-4 w-4" />
-          {action}
-        </Button>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-cf-border bg-cf-surface px-5 py-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div
-            className={[
-              "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-cf-text-subtle",
-              variant === "warning"
-                ? "border-cf-warning-text/35 bg-cf-warning-bg text-cf-warning-text"
-                : "border-cf-border bg-cf-surface-soft",
-            ].join(" ")}
-          >
-            <Icon className="h-4 w-4" />
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-cf-text">
-              No records yet
-            </div>
-            <div className="text-sm text-cf-text-muted">
-              This section is ready for the future clinical workflow.
-            </div>
-          </div>
-        </div>
-        <Badge variant="muted">Not connected</Badge>
-      </div>
-    </div>
-  );
-}
-
 export function AppointmentsTab({
   appointmentGroups,
   onOpenAppointment,
@@ -381,25 +325,3 @@ export function AppointmentsTab({
     </div>
   );
 }
-
-export const PATIENT_HUB_EMPTY_TABS: PatientHubEmptyTabs = {
-  allergies: {
-    title: "Allergies & Adverse Reactions",
-    description: "No allergies recorded",
-    action: "Add",
-    icon: AlertTriangle,
-    variant: "warning",
-  },
-  medications: {
-    title: "Medications",
-    description: "0 medications",
-    action: "Add",
-    icon: Pill,
-  },
-  notes: {
-    title: "Clinical Charting",
-    description: "No clinical records yet",
-    action: "New Note",
-    icon: ClipboardList,
-  },
-};

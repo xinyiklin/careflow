@@ -1,7 +1,6 @@
 import { ApiError } from "./types";
 
 import type {
-  ApiBlobResponse,
   ApiErrorData,
   ApiHeaders,
   ApiParamValue,
@@ -324,67 +323,6 @@ export async function apiRequest<T = unknown>(
   }
 
   return response.json() as Promise<T>;
-}
-
-export async function apiBlobRequest(
-  path: string,
-  options: ApiRequestOptions = {},
-  retry = true
-): Promise<ApiBlobResponse> {
-  const { params, headers: customHeaders = {}, ...restOptions } = options;
-  const url = buildUrl(path, params);
-  const accessToken = getStoredAccessToken();
-  const method = restOptions.method || "GET";
-  const csrfHeaders = await buildCsrfHeaders(method, customHeaders);
-
-  const response = await fetch(url, {
-    ...restOptions,
-    credentials: "include",
-    headers: {
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...csrfHeaders,
-      ...customHeaders,
-    },
-  });
-
-  if (response.status === 401 && retry) {
-    try {
-      const newAccessToken = await requestNewAccessToken();
-      return apiBlobRequest(
-        path,
-        {
-          ...restOptions,
-          params,
-          headers: {
-            ...customHeaders,
-            Authorization: `Bearer ${newAccessToken}`,
-          },
-        },
-        false
-      );
-    } catch (error) {
-      clearStoredTokens();
-      emitAuthLogout();
-      throw error;
-    }
-  }
-
-  if (!response.ok) {
-    let errorMessage = response.statusText || "API request failed";
-    try {
-      const errorData = readErrorData(await response.json());
-      errorMessage = pickErrorMessage(errorData, errorMessage);
-    } catch {
-      // Binary endpoints may not return JSON on failure.
-    }
-    throw new ApiError(errorMessage, response.status);
-  }
-
-  return {
-    blob: await response.blob(),
-    contentDisposition: response.headers.get("Content-Disposition") || "",
-    contentType: response.headers.get("Content-Type") || "",
-  };
 }
 
 export function logoutUser() {

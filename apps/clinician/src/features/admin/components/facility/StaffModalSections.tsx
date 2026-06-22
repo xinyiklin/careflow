@@ -21,33 +21,6 @@ export const HIGH_IMPACT_PERMISSION_KEYS = new Set([
 ]);
 
 type OverrideMode = "inherit" | "grant" | "revoke";
-type PermissionItem =
-  (typeof SECURITY_PERMISSION_GROUPS)[number]["permissions"][number] & {
-    groupLabel: string;
-  };
-
-function getPermissionItems(): PermissionItem[] {
-  return SECURITY_PERMISSION_GROUPS.flatMap((group) =>
-    group.permissions.map((permission) => ({
-      ...permission,
-      groupLabel: group.label,
-    }))
-  );
-}
-
-export function getPermissionSummary(permissions: SecurityPermissions) {
-  const items = getPermissionItems();
-  const allowed = items.filter((permission) => permissions[permission.key]);
-  const highImpact = allowed.filter((permission) =>
-    HIGH_IMPACT_PERMISSION_KEYS.has(permission.key)
-  );
-
-  return {
-    allowed,
-    highImpact,
-    total: items.length,
-  };
-}
 
 export function getInitialsFromName(
   name: string | null | undefined,
@@ -61,17 +34,6 @@ export function getInitialsFromName(
       .join("")
       .toUpperCase() || fallback
   );
-}
-
-export function getOverrideStats(
-  overrides: Partial<Record<SecurityPermissionKey, boolean>> = {}
-) {
-  const values = Object.values(overrides);
-  return {
-    total: values.length,
-    granted: values.filter(Boolean).length,
-    blocked: values.filter((value) => value === false).length,
-  };
 }
 
 export function CompactField({
@@ -90,25 +52,6 @@ export function CompactField({
       </span>
       {children}
     </label>
-  );
-}
-
-export function AccessMetric({
-  label,
-  value,
-}: {
-  label: string;
-  value: ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-cf-border bg-cf-surface-soft/60 px-3 py-2">
-      <div className="text-lg font-semibold leading-none text-cf-text">
-        {value}
-      </div>
-      <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-        {label}
-      </div>
-    </div>
   );
 }
 

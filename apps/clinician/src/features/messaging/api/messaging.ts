@@ -42,7 +42,7 @@ type UseMessageThreadsParams = {
   enabled?: boolean;
 };
 
-export function getMessageThreadsQueryKey({
+function getMessageThreadsQueryKey({
   facilityId,
   status,
   patientId,

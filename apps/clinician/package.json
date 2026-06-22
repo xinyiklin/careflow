@@ -12,9 +12,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "format": "prettier . --write",
-    "format:check": "prettier . --check",
-    "precommit:prettier": "prettier --write",
-    "precommit:eslint": "eslint --fix"
+    "format:check": "prettier . --check"
   },
   "dependencies": {
     "@careflow/api-types": "*",
@@ -40,7 +38,6 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "autoprefixer": "^10.4.27",
     "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -48,7 +45,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
-    "postcss": "^8.5.9",
     "prettier": "^3.8.2",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.3",

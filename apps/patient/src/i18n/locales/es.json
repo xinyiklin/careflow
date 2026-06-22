@@ -1,20 +1,11 @@
 {
   "common": {
     "appName": "CareFlow",
-    "loading": "Cargando",
     "loadingEllipsis": "Cargando…",
     "done": "Listo",
-    "sending": "Enviando…",
     "save": "Guardar",
     "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "edit": "Editar",
     "close": "Cerrar",
-    "back": "Atrás",
-    "continue": "Continuar",
-    "submit": "Enviar",
-    "retry": "Reintentar",
-    "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión",
     "language": "Idioma",
     "theme": "Tema",
@@ -55,7 +46,6 @@
     "greeting": "Esto es lo que tienes hoy.",
     "nextAppointmentHeading": "Tu próxima cita",
     "appointmentTypeWithProvider": "{{type}} con {{provider}}",
-    "noUpcomingAppointment": "No tienes citas próximas.",
     "bookAppointment": "Reservar una cita",
     "rescheduleAppointment": "Reprogramar",
     "cancelAppointment": "Cancelar",
@@ -75,8 +65,7 @@
     "pendingRefills": "{{count}} resurtido pendiente",
     "pendingRefills_one": "{{count}} resurtido pendiente",
     "pendingRefills_other": "{{count}} resurtidos pendientes",
-    "viewMedications": "Ver medicamentos",
-    "quickAccessHeading": "Acceso rápido"
+    "viewMedications": "Ver medicamentos"
   },
   "appointments": {
     "pageTitle": "Citas",
@@ -88,7 +77,6 @@
     "noPast": "No hay citas pasadas para mostrar.",
     "cancel": "Cancelar",
     "cancelling": "Cancelando…",
-    "cancelled": "Cancelada",
     "cancelCutoffHint": "Puedes cancelar en línea hasta {{hours}} h antes de la visita",
     "roomLabel": "Sala {{room}}",
     "confirmCancelTitle": "¿Cancelar esta cita?",
@@ -137,11 +125,9 @@
     "allergiesCount": "{{count}} registrada",
     "allergiesCount_one": "{{count}} alergia registrada",
     "allergiesCount_other": "{{count}} alergias registradas",
-    "noAllergies": "No hay alergias registradas.",
     "noAllergiesTitle": "No hay alergias registradas",
     "noAllergiesBody": "Tu equipo de salud no ha registrado ninguna alergia.",
     "visitHistoryHeading": "Historial de visitas",
-    "noVisits": "Aún no tienes visitas.",
     "noVisitsTitle": "Aún no tienes visitas",
     "noVisitsBody": "Las visitas pasadas con tu equipo aparecerán aquí.",
     "medicationsMore": "+{{count}} más",
@@ -169,8 +155,6 @@
     "pageTitle": "Medicamentos",
     "tabActive": "Activos",
     "tabInactive": "Inactivos",
-    "noActive": "No tienes medicamentos activos.",
-    "noInactive": "No tienes medicamentos inactivos.",
     "noActiveTitle": "Sin medicamentos activos",
     "noActiveBody": "Tu equipo de salud no te ha recetado ningún medicamento actual.",
     "noInactiveTitle": "Sin medicamentos pasados",
@@ -184,7 +168,6 @@
     "refillNoPharmacies": "No hay farmacias disponibles en tu centro. Por favor contacta a tu equipo de salud.",
     "refillSuccessTitle": "Resurtido solicitado",
     "refillSuccessBody": "Tu solicitud de resurtido se envió. Tu equipo de salud la revisará y dará seguimiento.",
-    "pharmacyLabel": "Farmacia",
     "noteLabel": "Nota para tu equipo (opcional)",
     "notePlaceholder": "¿Algo que debamos saber antes de enviar el resurtido?",
     "submitRefill": "Enviar solicitud",
@@ -258,7 +241,6 @@
     "fieldCity": "Ciudad",
     "fieldState": "Estado",
     "fieldZip": "Código postal",
-    "fieldPrimaryAddress": "Dirección principal",
     "fieldContactName": "Nombre del contacto",
     "fieldRelationship": "Relación",
     "selectState": "Selecciona un estado",
@@ -273,7 +255,6 @@
     "insurancePlan": "Plan",
     "insurancePlanFallback": "Plan estándar",
     "insuranceEffective": "Vigencia",
-    "editPrefix": "Editar",
     "preferredPharmacyHeading": "Farmacia preferida",
     "preferredPharmacyEmpty": "No has elegido una farmacia.",
     "preferredPharmacyEmptyHelp": "Elige una para que las solicitudes de resurtido tengan un destino predeterminado.",
@@ -290,9 +271,5 @@
     "themeHeading": "Apariencia",
     "themeDescription": "Elige claro, oscuro o sigue la configuración del sistema.",
     "sectionsLabel": "Secciones del perfil"
-  },
-  "errors": {
-    "generic": "Algo salió mal. Inténtalo de nuevo.",
-    "network": "No se pudo conectar al servidor. Revisa tu conexión."
   }
 }

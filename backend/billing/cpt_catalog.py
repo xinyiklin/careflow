@@ -1165,11 +1165,6 @@ CPT_CATALOG = [
 ]
 
 
-CPT_CATALOG_BY_CODE = {entry[0]: entry for entry in CPT_CATALOG}
-
-CPT_CATEGORIES = sorted({entry[3] for entry in CPT_CATALOG})
-
-
 def get_catalog_entries():
     return [
         {
