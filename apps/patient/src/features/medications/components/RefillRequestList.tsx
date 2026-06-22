@@ -49,6 +49,16 @@ function RefillRow({ refill }: { refill: PortalRefillRequest }) {
             <span>{t("medications.requestedOn", { date: requested })}</span>
             <span aria-hidden="true">·</span>
             <span>{pharmacy}</span>
+            {refill.days_supply ? (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>
+                  {t("medications.daysSupplyOption", {
+                    count: refill.days_supply,
+                  })}
+                </span>
+              </>
+            ) : null}
           </div>
           {refill.patient_note ? (
             <p className="mt-1.5 text-xs text-text-subtle">

@@ -54,6 +54,19 @@ Avoid:
 `overflow-hidden` is acceptable only when the component intentionally owns
 scrolling or clips an animation/surface.
 
+### Clip rounded containers with filled edges
+
+A rounded, framed container (modal, card, panel) that has a **filled** edge
+region — a footer or header with its own background, a banner strip — must round
+to the container's radius. Put `overflow-hidden` on the rounded container (this
+is the sanctioned "clips a surface" case above, not hiding a layout mistake), or
+round the matching corners on the child. Without it the child's square corners
+poke past the container's `border-radius` — most visibly the two bottom corners
+of a filled modal footer. The shared modal shells already do this and are the
+reference: `apps/clinician/src/shared/components/ui/ModalShell.tsx` and
+`apps/patient/src/shared/ui/Modal.tsx`. Any new framed container with a filled
+edge region must follow the same rule.
+
 ## Copy And Chrome
 
 - Avoid unnecessary subtitles, helper descriptions, filler copy, and extra

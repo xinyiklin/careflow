@@ -95,7 +95,10 @@ export function Modal({
         // Stops backdrop-click from firing on inner clicks.
         onClick={(event) => event.stopPropagation()}
         className={cn(
-          "mx-auto my-8 w-full rounded-xl border border-border bg-surface text-text shadow-[var(--shadow-lg)]",
+          // `overflow-hidden` clips full-bleed children (the bordered header
+          // and the filled footer) to the card's radius — without it their
+          // square corners poke out past `rounded-xl` at the bottom.
+          "mx-auto my-8 w-full overflow-hidden rounded-xl border border-border bg-surface text-text shadow-[var(--shadow-lg)]",
           "transition-transform duration-150",
           SIZE_CLASS[size]
         )}

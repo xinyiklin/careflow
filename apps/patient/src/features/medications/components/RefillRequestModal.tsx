@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
-import { Button, Field, Modal, Select, Textarea } from "../../../shared/ui";
+import { Button, Field, Modal, Select, Textarea, cn } from "../../../shared/ui";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import { useProfile } from "../../profile/api/profile";
 import { usePortalPharmacies, type PortalPharmacy } from "../api/pharmacies";
@@ -16,6 +16,8 @@ type RefillRequestModalProps = {
 };
 
 const NOTE_MAX = 500;
+const DAYS_SUPPLY_OPTIONS = [30, 60, 90] as const;
+const DEFAULT_DAYS_SUPPLY = 30;
 
 function matchPreferredPharmacy(
   pharmacies: PortalPharmacy[],
@@ -51,9 +53,11 @@ export function RefillRequestModal({
   }, [pharmacies, preferredName]);
 
   const [pharmacyId, setPharmacyId] = useState<number | null>(null);
+  const [daysSupply, setDaysSupply] = useState<number>(DEFAULT_DAYS_SUPPLY);
   const [note, setNote] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const daysSupplyLabelId = useId();
 
   // Seed selection once pharmacies + profile finish loading.
   useEffect(() => {
@@ -73,6 +77,7 @@ export function RefillRequestModal({
     try {
       await requestRefill.mutateAsync({
         medication_id: medication.id,
+        days_supply: daysSupply,
         patient_note: note.trim() || undefined,
         pharmacy_id: pharmacyId,
       });
@@ -177,6 +182,46 @@ export function RefillRequestModal({
             </Select>
           )}
         </Field>
+
+        <div className="flex flex-col gap-1.5">
+          <span
+            id={daysSupplyLabelId}
+            className="text-xs font-medium text-text-muted"
+          >
+            {t("medications.refillDaysSupplyLabel")}
+          </span>
+          <div
+            role="radiogroup"
+            aria-labelledby={daysSupplyLabelId}
+            className="flex items-center gap-1 rounded-md bg-surface-soft p-1"
+          >
+            {DAYS_SUPPLY_OPTIONS.map((days) => {
+              const selected = daysSupply === days;
+              return (
+                <label
+                  key={days}
+                  className={cn(
+                    "flex h-9 flex-1 cursor-pointer items-center justify-center rounded-md px-3 text-sm font-medium transition-colors",
+                    "focus-within:outline-none focus-within:ring-2 focus-within:ring-accent/35",
+                    selected
+                      ? "bg-surface text-text shadow-[var(--shadow-sm)]"
+                      : "text-text-muted hover:text-text"
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="refill-days-supply"
+                    value={days}
+                    checked={selected}
+                    onChange={() => setDaysSupply(days)}
+                    className="sr-only"
+                  />
+                  {t("medications.daysSupplyOption", { count: days })}
+                </label>
+              );
+            })}
+          </div>
+        </div>
 
         <Field
           label={t("medications.noteLabel")}

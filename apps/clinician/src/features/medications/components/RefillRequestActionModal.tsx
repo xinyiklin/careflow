@@ -132,6 +132,16 @@ export default function RefillRequestActionModal({
                   Requested {formatDateTime(refillRequest.requested_at)}
                 </div>
               </div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
+                  Days supply
+                </div>
+                <div className="mt-1 font-medium text-cf-text">
+                  {refillRequest.days_supply
+                    ? `${refillRequest.days_supply} days`
+                    : "Not specified"}
+                </div>
+              </div>
             </div>
             {refillRequest.patient_note ? (
               <div className="mt-3">

@@ -1,5 +1,4 @@
 import {
-  Children,
   cloneElement,
   isValidElement,
   useId,
@@ -42,16 +41,18 @@ export function Field({
     .filter(Boolean)
     .join(" ");
 
-  // Best-effort: forward id + aria attributes onto the single child input.
-  const child = Children.only(children);
-  const enhanced = isValidElement(child)
-    ? cloneElement(child as ReactElement<Record<string, unknown>>, {
+  // Best-effort: forward id + aria attributes onto the child input when it
+  // is a single element. Loading/empty states may render `null` or multiple
+  // nodes (e.g. a placeholder while options load) — pass those through
+  // untouched rather than throwing.
+  const enhanced = isValidElement(children)
+    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
         id: inputId,
         "aria-describedby": describedBy || undefined,
         "aria-invalid": error ? true : undefined,
         required: required || undefined,
       })
-    : child;
+    : children;
 
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>

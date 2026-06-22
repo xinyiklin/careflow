@@ -452,6 +452,11 @@ export default function RefillInboxWorkspace({
                         </td>
                         <td className="px-3 py-4 align-top text-cf-text-muted">
                           {refill.pharmacy_name || "Not specified"}
+                          {refill.days_supply ? (
+                            <div className="text-xs text-cf-text-subtle">
+                              {refill.days_supply}-day supply
+                            </div>
+                          ) : null}
                         </td>
                         <td className="px-3 py-4 align-top">
                           <Badge variant={STATUS_BADGE_VARIANT[refill.status]}>

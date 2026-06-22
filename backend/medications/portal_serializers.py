@@ -4,7 +4,9 @@ from rest_framework import serializers
 
 from patients.models import Pharmacy
 
-from .models import Medication, RefillRequest
+from .models import DAYS_SUPPLY_CHOICES, Medication, RefillRequest
+
+ALLOWED_DAYS_SUPPLY = [value for value, _label in DAYS_SUPPLY_CHOICES]
 
 
 class PortalMedicationSerializer(serializers.ModelSerializer):
@@ -63,6 +65,7 @@ class PortalRefillRequestSerializer(serializers.ModelSerializer):
             "frequency",
             "pharmacy_id",
             "pharmacy_name",
+            "days_supply",
             "status",
             "status_label",
             "patient_note",
@@ -84,6 +87,7 @@ class PortalRefillRequestCreateSerializer(serializers.Serializer):
     """
 
     medication_id = serializers.IntegerField()
+    days_supply = serializers.ChoiceField(choices=ALLOWED_DAYS_SUPPLY)
     patient_note = serializers.CharField(
         required=False, allow_blank=True, max_length=500
     )
@@ -106,6 +110,7 @@ class PortalRefillRequestCreateSerializer(serializers.Serializer):
                 facility=patient.facility,
                 pharmacy=pharmacy,
                 pharmacy_name=(pharmacy.name if pharmacy else ""),
+                days_supply=validated_data["days_supply"],
                 status=RefillRequest.STATUS_PENDING,
                 patient_note=validated_data.get("patient_note", ""),
             )

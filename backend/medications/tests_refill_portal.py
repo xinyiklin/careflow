@@ -163,21 +163,27 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
 
     def test_anonymous_returns_401(self):
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 401)
 
     def test_clinician_without_portal_account_returns_403(self):
         self.client.force_authenticate(self._make_clinician_user())
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 403)
 
     def test_inactive_portal_account_returns_403(self):
         self.client.force_authenticate(self._make_inactive_portal_user())
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 403)
 
@@ -189,6 +195,7 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
                 "medication_id": self.medication_a.id,
                 "patient_note": "Running low",
                 "pharmacy_id": self.pharmacy_in_facility.id,
+                "days_supply": 60,
             },
             format="json",
         )
@@ -199,6 +206,7 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
         self.assertEqual(body["pharmacy_id"], self.pharmacy_in_facility.id)
         self.assertEqual(body["pharmacy_name"], "Allowed Pharmacy")
         self.assertEqual(body["patient_note"], "Running low")
+        self.assertEqual(body["days_supply"], 60)
         # Clinician-side fields must not leak.
         for forbidden in (
             "clinician_note",
@@ -213,7 +221,9 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
         self.medication_a.save()
         self.client.force_authenticate(self.portal_user_a)
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("medication_id", response.json())
@@ -222,7 +232,9 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
         # Patient B tries to refill Patient A's medication.
         self.client.force_authenticate(self.portal_user_b)
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 404)
 
@@ -235,7 +247,9 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
         )
         self.client.force_authenticate(self.portal_user_a)
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("medication_id", response.json())
@@ -247,6 +261,7 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
             {
                 "medication_id": self.medication_a.id,
                 "pharmacy_id": self.pharmacy_outside_facility.id,
+                "days_supply": 30,
             },
             format="json",
         )
@@ -257,7 +272,9 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
         self.patient_a.save()
         self.client.force_authenticate(self.portal_user_a)
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 201, response.data)
         body = response.json()
@@ -267,12 +284,44 @@ class PortalRefillCreateTests(PortalRefillBaseMixin, APITestCase):
     def test_no_pharmacy_and_no_preferred_pharmacy_creates_with_null(self):
         self.client.force_authenticate(self.portal_user_a)
         response = self.client.post(
-            self.URL, {"medication_id": self.medication_a.id}, format="json"
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 30},
+            format="json",
         )
         self.assertEqual(response.status_code, 201, response.data)
         body = response.json()
         self.assertIsNone(body["pharmacy_id"])
         self.assertEqual(body["pharmacy_name"], "")
+
+    def test_missing_days_supply_returns_400(self):
+        self.client.force_authenticate(self.portal_user_a)
+        response = self.client.post(
+            self.URL, {"medication_id": self.medication_a.id}, format="json"
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("days_supply", response.json())
+
+    def test_unsupported_days_supply_returns_400(self):
+        self.client.force_authenticate(self.portal_user_a)
+        response = self.client.post(
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 45},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("days_supply", response.json())
+
+    def test_days_supply_is_persisted_and_returned(self):
+        self.client.force_authenticate(self.portal_user_a)
+        response = self.client.post(
+            self.URL,
+            {"medication_id": self.medication_a.id, "days_supply": 90},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.json()["days_supply"], 90)
+        refill = RefillRequest.objects.get(pk=response.json()["id"])
+        self.assertEqual(refill.days_supply, 90)
 
 
 class PortalRefillListTests(PortalRefillBaseMixin, APITestCase):
