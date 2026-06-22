@@ -10,11 +10,6 @@ type RegistrationSectionShellProps = {
   children: ReactNode;
 };
 
-type ReadOnlyRegistrationRowProps = {
-  label: string;
-  value?: ReactNode;
-};
-
 export function RegistrationSectionShell({
   icon: Icon,
   title,
@@ -43,21 +38,5 @@ export function RegistrationSectionShell({
         {children}
       </div>
     </article>
-  );
-}
-
-export function ReadOnlyRegistrationRow({
-  label,
-  value,
-}: ReadOnlyRegistrationRowProps) {
-  return (
-    <div className="min-w-0">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
-        {label}
-      </div>
-      <div className="mt-0.5 truncate text-sm font-medium text-cf-text">
-        {value || <span className="text-cf-text-subtle">Add</span>}
-      </div>
-    </div>
   );
 }

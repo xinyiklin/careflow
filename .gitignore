@@ -44,7 +44,6 @@ CONTINUITY.md
 node_modules/
 apps/*/dist/
 apps/*/.vite/
-apps/clinician/src/dev-previews/
 apps/clinician/backups/
 npm-debug.log*
 yarn-debug.log*

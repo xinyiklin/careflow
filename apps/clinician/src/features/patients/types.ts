@@ -204,29 +204,12 @@ export type PatientGenderOption = SharedPatientGenderOption;
 
 export type PharmacyRecord = SharedPharmacyRecord;
 
-export type PatientHubEmptyTab = {
-  title: string;
-  description: string;
-  action: string;
-  icon: LucideIcon;
-  variant?: "default" | "warning";
-};
-
-export type PatientHubEmptyTabs = Partial<
-  Record<PatientHubTabKey, PatientHubEmptyTab>
->;
-
 export type PatientHubSidebarFactProps = {
   icon?: LucideIcon | null;
   prefix?: string | null;
   value?: ReactNode;
   /** Raw text copied to the clipboard; defaults to the rendered value. */
   copyValue?: string | null;
-};
-
-export type PatientHubSidebarSectionProps = {
-  title: string;
-  children: ReactNode;
 };
 
 export type PatientPharmacyPreference = {

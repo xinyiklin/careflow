@@ -226,10 +226,6 @@ ICD10_CATALOG = [
 ]
 
 
-ICD10_CATALOG_BY_CODE = {entry[0]: entry for entry in ICD10_CATALOG}
-ICD10_CHAPTERS = sorted({entry[2] for entry in ICD10_CATALOG})
-
-
 def get_catalog_entries():
     return [
         {"code": code, "description": description, "chapter": chapter}

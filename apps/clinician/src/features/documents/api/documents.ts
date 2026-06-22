@@ -40,22 +40,6 @@ function getFilenameFromDisposition(
   return plainMatch?.[1] || fallback || "document";
 }
 
-function openBlob(blob: Blob, filename?: string | null) {
-  const url = URL.createObjectURL(blob);
-  const openedWindow = window.open(url, "_blank", "noopener,noreferrer");
-
-  if (!openedWindow) {
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename || "document";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
-
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
-
 function downloadBlob(blob: Blob, filename?: string | null) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -187,23 +171,6 @@ export function deleteDocumentCategory({
   });
 }
 
-export async function openPatientDocumentBundle({
-  facilityId,
-  documents,
-}: PatientDocumentBundleParams) {
-  const response = await apiBlobRequest("/patients/documents/bundle/view/", {
-    method: "POST",
-    params: { facility_id: facilityId },
-    body: JSON.stringify({
-      document_ids: documents.map((document) => document.id),
-    }),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  openBlob(response.blob, "patient-documents.pdf");
-}
-
 export async function downloadPatientDocumentBundle({
   facilityId,
   documents,
@@ -227,22 +194,6 @@ export async function downloadPatientDocumentBundle({
       response.contentDisposition,
       "patient-documents.pdf"
     )
-  );
-}
-
-export async function openPatientDocument({
-  facilityId,
-  document,
-}: PatientDocumentParams) {
-  const response = await apiBlobRequest(
-    `/patients/documents/${document.id}/view/`,
-    {
-      params: { facility_id: facilityId },
-    }
-  );
-  openBlob(
-    response.blob,
-    getFilenameFromDisposition(response.contentDisposition, document.name)
   );
 }
 

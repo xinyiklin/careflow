@@ -150,25 +150,6 @@ export function AdminField({
   );
 }
 
-export function AdminEditorGrid({
-  fields,
-  preview,
-}: {
-  fields: ReactNode;
-  preview: ReactNode;
-}) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]">
-      <div className="grid min-h-0 md:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="min-w-0 space-y-4 bg-cf-surface p-4 md:border-r md:border-cf-border">
-          {fields}
-        </div>
-        <aside className="min-w-0 bg-cf-surface-muted/70 p-4">{preview}</aside>
-      </div>
-    </div>
-  );
-}
-
 export function AdminFieldGrid({
   children,
   columns = 2,
@@ -181,36 +162,6 @@ export function AdminFieldGrid({
 
   return (
     <div className={["grid gap-4", columnClass].join(" ")}>{children}</div>
-  );
-}
-
-export function AdminModalSummary({ children }: { children: ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface-soft/65 px-4 py-3 shadow-[var(--shadow-panel)]">
-      {children}
-    </div>
-  );
-}
-
-export function AdminPreviewRail({
-  title,
-  children,
-  actions = null,
-}: {
-  title?: string;
-  children: ReactNode;
-  actions?: ReactNode;
-}) {
-  return (
-    <div className="grid content-start gap-3 md:sticky md:top-0">
-      {title ? (
-        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-          {title}
-        </div>
-      ) : null}
-      {children}
-      {actions ? <div className="grid gap-2">{actions}</div> : null}
-    </div>
   );
 }
 
@@ -254,67 +205,5 @@ export function AdminToggleField({
         <span className="absolute left-1 h-4 w-4 rounded-full bg-white shadow-sm transition peer-checked:translate-x-5" />
       </span>
     </label>
-  );
-}
-
-export function AdminRecordPreview({
-  eyebrow,
-  title,
-  description,
-  meta = [],
-  color = "var(--color-cf-accent)",
-  children,
-}: {
-  eyebrow?: string;
-  title?: string;
-  description?: string;
-  meta?: Array<string | number>;
-  color?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <section className="overflow-hidden rounded-2xl border border-cf-border bg-cf-surface p-4 shadow-[var(--shadow-panel)] ring-1 ring-black/[0.015]">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-xs font-bold uppercase text-white shadow-sm ring-1 ring-black/5"
-            style={{
-              backgroundColor: color,
-              color: getReadablePreviewTextColor(color),
-            }}
-          >
-            {(title || eyebrow || "CF").slice(0, 2)}
-          </span>
-          <div className="min-w-0">
-            {eyebrow ? (
-              <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
-                {eyebrow}
-              </div>
-            ) : null}
-            <div className="truncate text-base font-semibold text-cf-text">
-              {title || "Untitled"}
-            </div>
-            {description ? (
-              <div className="mt-1 text-sm text-cf-text-muted">
-                {description}
-              </div>
-            ) : null}
-          </div>
-        </div>
-        {meta.length ? (
-          <div className="flex flex-wrap justify-end gap-2">
-            {meta.map((item) => (
-              <span
-                key={item}
-                className="rounded-full border border-cf-border bg-cf-surface px-2.5 py-1 text-xs font-semibold text-cf-text-muted"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-      {children ? <div className="mt-4">{children}</div> : null}
-    </section>
   );
 }

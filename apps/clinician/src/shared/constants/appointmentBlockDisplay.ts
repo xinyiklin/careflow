@@ -91,7 +91,7 @@ export const APPOINTMENT_BLOCK_COLOR_MODE_OPTIONS = [
   },
 ] as const;
 
-export function sanitizeAppointmentBlockColorMode(
+function sanitizeAppointmentBlockColorMode(
   value: unknown
 ): AppointmentBlockColorMode {
   return APPOINTMENT_BLOCK_COLOR_MODE_OPTIONS.some(

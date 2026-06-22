@@ -258,7 +258,6 @@ SECURE_HSTS_PRELOAD = (
     os.environ.get("SECURE_HSTS_PRELOAD", str(not DEBUG)).lower() == "true"
 )
 SECURE_CONTENT_TYPE_NOSNIFF = True
-REFERRER_POLICY = "same-origin"
 X_FRAME_OPTIONS = "DENY"
 
 # --- DRF ---

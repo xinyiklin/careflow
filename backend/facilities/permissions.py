@@ -11,15 +11,6 @@ from .access import (
 from .security import user_has_facility_permission
 
 
-class IsOrgAdmin(permissions.BasePermission):
-    def has_permission(self, request, view):
-        return bool(
-            request.user
-            and request.user.is_authenticated
-            and is_org_admin(request.user)
-        )
-
-
 class IsFacilityAdminOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:

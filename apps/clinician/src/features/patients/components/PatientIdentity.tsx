@@ -1,15 +1,9 @@
-import { CalendarDays, Hash, Mail, Phone } from "lucide-react";
-
-import { Badge } from "../../../shared/components/ui";
-import { formatDOB } from "../../../shared/utils/dateTime";
-import { getPrimaryPatientPhoneDisplay } from "../utils/contactValidation";
 import {
   getPatientDobMrn,
   getPatientInitials,
   getPatientName,
 } from "../utils/patientDisplay";
 
-import type { ReactNode } from "react";
 import type { PatientRecord } from "../types";
 
 type PatientAvatarProps = {
@@ -25,14 +19,6 @@ type PatientLineProps = {
 
 type PatientDobMrnLineProps = PatientLineProps & {
   prefix?: boolean;
-};
-
-type PatientSearchResultCardProps = {
-  patient: PatientRecord;
-  isSelected: boolean;
-  onSelect: () => void;
-  onOpen?: () => void;
-  actions?: ReactNode;
 };
 
 export function PatientAvatar({
@@ -83,73 +69,5 @@ export function PatientDobMrnLine({
     >
       {prefix ? value : value.replace(/^DOB\s*/, "") || "—"}
     </div>
-  );
-}
-
-export function PatientSearchResultCard({
-  patient,
-  isSelected,
-  onSelect,
-  onOpen,
-  actions,
-}: PatientSearchResultCardProps) {
-  const primaryPhone = getPrimaryPatientPhoneDisplay(patient);
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      onDoubleClick={onOpen}
-      className={[
-        "group w-full rounded-2xl border px-4 py-3 text-left transition",
-        isSelected
-          ? "border-cf-border-strong bg-cf-surface-soft shadow-sm"
-          : "border-cf-border bg-cf-surface hover:border-cf-border-strong hover:bg-cf-surface-muted/55",
-      ].join(" ")}
-    >
-      <div className="flex items-start gap-3">
-        <PatientAvatar patient={patient} selected={isSelected} />
-
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <PatientNameLine patient={patient} className="text-base" />
-            {patient.preferred_name ? (
-              <Badge variant="muted">Preferred: {patient.preferred_name}</Badge>
-            ) : null}
-          </div>
-
-          <div className="mt-2 grid gap-2 text-sm text-cf-text-muted sm:grid-cols-2 xl:grid-cols-4">
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5 shrink-0 text-cf-text-subtle" />
-              <span className="truncate">
-                {formatDOB(patient.date_of_birth)}
-              </span>
-            </span>
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              <Hash className="h-3.5 w-3.5 shrink-0 text-cf-text-subtle" />
-              <span className="truncate">{patient.chart_number || "—"}</span>
-            </span>
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 shrink-0 text-cf-text-subtle" />
-              <span className="truncate" title={primaryPhone || undefined}>
-                {primaryPhone || "—"}
-              </span>
-            </span>
-            <span className="inline-flex min-w-0 items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5 shrink-0 text-cf-text-subtle" />
-              <span className="truncate" title={patient.email || undefined}>
-                {patient.email || "—"}
-              </span>
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {isSelected && actions ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-cf-border pt-3">
-          {actions}
-        </div>
-      ) : null}
-    </button>
   );
 }

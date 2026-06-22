@@ -19,10 +19,6 @@ export type ApiParamValue = string | number | boolean | null | undefined;
 
 export type ApiParams = Record<string, ApiParamValue>;
 
-export type EntityId = string | number;
-
-export type ApiPayload = Record<string, unknown>;
-
 export type ApiHeaders = Record<string, string>;
 
 export type ApiRequestOptions = Omit<RequestInit, "headers"> & {
@@ -43,9 +39,3 @@ export class ApiError extends Error {
     this.data = data;
   }
 }
-
-export type ApiBlobResponse = {
-  blob: Blob;
-  contentDisposition: string;
-  contentType: string;
-};

@@ -268,10 +268,6 @@ MEDICATION_CATALOG = [
 ]
 
 
-MEDICATION_CATALOG_BY_NAME = {entry[0]: entry for entry in MEDICATION_CATALOG}
-MEDICATION_CATEGORIES = sorted({entry[4] for entry in MEDICATION_CATALOG})
-
-
 def get_catalog_entries():
     return [
         {

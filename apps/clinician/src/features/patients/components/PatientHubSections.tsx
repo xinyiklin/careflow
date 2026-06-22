@@ -3,30 +3,21 @@ import {
   AlertTriangle,
   CalendarClock,
   ClipboardList,
-  Clock,
   CreditCard,
   FileText,
   IdCard,
-  MapPin,
-  Phone,
   Pill,
   RotateCw,
   ShieldCheck,
-  UserRoundCheck,
 } from "lucide-react";
 
-import { Badge } from "../../../shared/components/ui";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import type {
-  AppointmentLike,
-  PatientAddress,
-} from "../../../shared/types/domain";
+import type { PatientAddress } from "../../../shared/types/domain";
 import type {
   InsurancePolicyFormValues,
   PatientHubInsurancePolicy,
   PatientHubTab,
-  PatientPharmacyPreference,
   PatientRecord,
 } from "../types";
 
@@ -84,10 +75,7 @@ export function formatCoverageOrder(
   return value ? labels[value] || "Secondary" : "Secondary";
 }
 
-export function getCoverageOrder(
-  value?: string | null,
-  isPrimary?: boolean | null
-) {
+function getCoverageOrder(value?: string | null, isPrimary?: boolean | null) {
   if (value) return value;
   return isPrimary ? "primary" : "secondary";
 }
@@ -192,13 +180,6 @@ export function formatMaskedSsn(patient?: PatientRecord | null) {
   return last4 ? `***-**-${last4}` : "—";
 }
 
-export function formatFullSsn(value?: string | null) {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (digits.length !== 9) return "";
-
-  return `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}`;
-}
-
 export function formatDeclinableValue(
   value?: string | null,
   declined?: boolean | null,
@@ -246,203 +227,6 @@ export function DetailRow({
       >
         {displayValue}
       </div>
-    </div>
-  );
-}
-
-export function SectionHeader({
-  title,
-  description,
-}: {
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div>
-      <h3 className="text-sm font-semibold text-cf-text">{title}</h3>
-      {description ? (
-        <p className="mt-1 text-sm text-cf-text-muted">{description}</p>
-      ) : null}
-    </div>
-  );
-}
-
-export function SummaryTile({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value?: ReactNode;
-  icon?: LucideIcon | null;
-}) {
-  const displayValue = value || "—";
-
-  return (
-    <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-3">
-      <div className="flex items-center gap-2 text-xs font-medium text-cf-text-subtle">
-        {Icon ? <Icon className="h-4 w-4" /> : null}
-        {label}
-      </div>
-      <div
-        className="mt-2 truncate text-sm font-semibold text-cf-text select-text"
-        title={String(displayValue)}
-      >
-        {displayValue}
-      </div>
-    </div>
-  );
-}
-
-export function AppointmentCard({
-  appointment,
-}: {
-  appointment: AppointmentLike;
-}) {
-  const appointmentDate = formatDateTime(appointment.appointment_time);
-
-  return (
-    <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-3 transition hover:border-cf-border-strong hover:bg-cf-surface-muted/60">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-cf-text">
-            <Clock className="h-4 w-4 shrink-0 text-cf-text-subtle" />
-            <span className="truncate">{appointmentDate}</span>
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {appointment.appointment_type_name ? (
-              <Badge variant="outline">
-                {appointment.appointment_type_name}
-              </Badge>
-            ) : null}
-            {appointment.status_name ? (
-              <Badge variant="muted">{appointment.status_name}</Badge>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-3 text-sm text-cf-text-muted">
-        {appointment.rendering_provider_name || "—"}
-        {appointment.room ? ` • ${appointment.room}` : ""}
-      </div>
-
-      {appointment.reason ? (
-        <div className="mt-1.5 line-clamp-2 text-sm text-cf-text-muted">
-          {appointment.reason}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-export function InsurancePolicyCard({
-  policy,
-  onClick,
-}: {
-  policy: PatientHubInsurancePolicy;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full rounded-xl border border-cf-border bg-cf-surface px-4 py-4 text-left transition hover:border-cf-border-strong hover:bg-cf-surface-muted/60"
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-cf-text">
-            <ShieldCheck className="h-4 w-4 shrink-0 text-cf-text-subtle" />
-            <span className="truncate">{policy.carrier_name}</span>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Badge variant={policy.is_primary ? "success" : "muted"}>
-              {formatCoverageOrder(policy.coverage_order, policy.is_primary)}
-            </Badge>
-            <Badge variant={policy.is_active ? "outline" : "warning"}>
-              {policy.is_active ? "Active" : "Terminated"}
-            </Badge>
-          </div>
-        </div>
-        <Badge variant="muted">
-          {policy.relationship_to_subscriber || "self"}
-        </Badge>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <DetailRow
-          icon={CreditCard}
-          label="Member ID"
-          value={policy.member_id}
-        />
-        <DetailRow icon={IdCard} label="Group" value={policy.group_number} />
-        <DetailRow icon={FileText} label="Plan" value={policy.plan_name} />
-        <DetailRow
-          icon={UserRoundCheck}
-          label="Subscriber"
-          value={policy.subscriber_name}
-        />
-      </div>
-
-      <div className="mt-3 text-xs text-cf-text-subtle">
-        Effective {formatDate(policy.effective_date)}
-        {policy.termination_date
-          ? ` • Ends ${formatDate(policy.termination_date)}`
-          : ""}
-      </div>
-    </button>
-  );
-}
-
-export function PharmacyPreferenceCard({
-  preference,
-}: {
-  preference: PatientPharmacyPreference;
-}) {
-  const pharmacy = preference.pharmacy || {};
-
-  return (
-    <div className="rounded-xl border border-cf-border bg-cf-surface px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-cf-text">
-            <Pill className="h-4 w-4 shrink-0 text-cf-text-subtle" />
-            <span className="truncate">
-              {preference.pharmacy_name || pharmacy.name}
-            </span>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {preference.is_default ? (
-              <Badge variant="success">Default</Badge>
-            ) : null}
-            {pharmacy.accepts_erx ? <Badge variant="outline">eRx</Badge> : null}
-            {pharmacy.service_type ? (
-              <Badge variant="muted">{pharmacy.service_type}</Badge>
-            ) : null}
-          </div>
-        </div>
-        <Badge variant={preference.is_active === false ? "warning" : "outline"}>
-          {preference.is_active === false ? "Inactive" : "Active"}
-        </Badge>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <DetailRow icon={IdCard} label="NCPDP" value={pharmacy.ncpdp_id} />
-        <DetailRow icon={IdCard} label="NPI" value={pharmacy.npi} />
-        <DetailRow icon={Phone} label="Phone" value={pharmacy.phone_number} />
-        <DetailRow icon={Phone} label="Fax" value={pharmacy.fax_number} />
-        <DetailRow
-          icon={MapPin}
-          label="Address"
-          value={formatAddress(pharmacy.address)}
-        />
-      </div>
-
-      {preference.notes ? (
-        <div className="mt-3 rounded-xl border border-cf-border bg-cf-surface-muted/50 px-3 py-2 text-sm text-cf-text-muted">
-          {preference.notes}
-        </div>
-      ) : null}
     </div>
   );
 }

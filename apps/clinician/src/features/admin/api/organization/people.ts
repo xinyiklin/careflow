@@ -7,10 +7,6 @@ export function fetchOrganizationPeople() {
   return apiRequest<AdminOrganizationUser[]>("/organizations/people/");
 }
 
-export function fetchOrganizationPerson(id: EntityId) {
-  return apiRequest<AdminOrganizationUser>(`/organizations/people/${id}/`);
-}
-
 export function createOrganizationPerson(data: ApiPayload) {
   return apiRequest<AdminOrganizationUser>("/organizations/people/", {
     method: "POST",
