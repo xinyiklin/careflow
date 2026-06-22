@@ -3511,6 +3511,13 @@ export interface components {
          */
         CoverageOrderEnum: "primary" | "secondary" | "tertiary" | "other";
         /**
+         * @description * `30` - 30 days
+         *     * `60` - 60 days
+         *     * `90` - 90 days
+         * @enum {integer}
+         */
+        DaysSupply86fEnum: 30 | 60 | 90;
+        /**
          * @description * `active` - Active
          *     * `inactive` - Inactive
          *     * `unknown` - Unknown
@@ -3895,6 +3902,8 @@ export interface components {
             readonly last_message_at: string;
             readonly unread_for_clinician: boolean;
         };
+        /** @enum {unknown} */
+        NullEnum: null;
         OrgFeeSchedulePopulateResult: {
             added: number;
         };
@@ -5325,6 +5334,7 @@ export interface components {
             readonly frequency: string;
             readonly pharmacy_id: number | null;
             readonly pharmacy_name: string;
+            readonly days_supply: (components["schemas"]["DaysSupply86fEnum"] | components["schemas"]["NullEnum"]) | null;
             readonly status: components["schemas"]["StatusA5bEnum"];
             readonly status_label: string;
             readonly patient_note: string;
@@ -5345,9 +5355,17 @@ export interface components {
          */
         PortalRefillRequestCreate: {
             medication_id: number;
+            days_supply: components["schemas"]["PortalRefillRequestCreateDaysSupplyEnum"];
             patient_note?: string;
             pharmacy_id?: number | null;
         };
+        /**
+         * @description * `30` - 30
+         *     * `60` - 60
+         *     * `90` - 90
+         * @enum {integer}
+         */
+        PortalRefillRequestCreateDaysSupplyEnum: 30 | 60 | 90;
         PortalSchedulingAppointmentType: {
             id: number;
             code: string;
@@ -5477,6 +5495,7 @@ export interface components {
             readonly frequency: string;
             readonly pharmacy_id: number | null;
             readonly pharmacy_name: string;
+            readonly days_supply: (components["schemas"]["DaysSupply86fEnum"] | components["schemas"]["NullEnum"]) | null;
             readonly prescriber_id: number | null;
             readonly prescriber_display: string;
             readonly source: components["schemas"]["RefillRequestSourceEnum"];

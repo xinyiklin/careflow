@@ -166,6 +166,7 @@ class RefillRequestSerializer(serializers.ModelSerializer):
             "frequency",
             "pharmacy_id",
             "pharmacy_name",
+            "days_supply",
             "prescriber_id",
             "prescriber_display",
             "source",

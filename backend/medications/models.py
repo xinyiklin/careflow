@@ -122,6 +122,15 @@ STATUS_CANCELLED = "cancelled"
 SOURCE_PATIENT = "patient"
 SOURCE_PHARMACY = "pharmacy"
 
+# Days-supply options a patient may request when asking for a refill.
+# Stored as an integer; the portal create serializer is the authoritative
+# enforcer of this set on the write path.
+DAYS_SUPPLY_CHOICES = [
+    (30, "30 days"),
+    (60, "60 days"),
+    (90, "90 days"),
+]
+
 
 class RefillRequest(models.Model):
     STATUS_PENDING = STATUS_PENDING
@@ -170,6 +179,14 @@ class RefillRequest(models.Model):
         related_name="refill_requests",
     )
     pharmacy_name = models.CharField(max_length=150, blank=True)
+    # Days of medication the patient is requesting. Nullable so requests
+    # predating this field (and any future pharmacy-sourced intake that
+    # doesn't collect it) stay valid; the portal create path requires it.
+    days_supply = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        choices=DAYS_SUPPLY_CHOICES,
+    )
     source = models.CharField(
         max_length=20,
         choices=SOURCE_CHOICES,

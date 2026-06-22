@@ -22,6 +22,7 @@ export type RefillRequest = {
   frequency: string | null;
   pharmacy_id: number | null;
   pharmacy_name: string;
+  days_supply: number | null;
   prescriber_id: number | null;
   prescriber_display: string;
   source: RefillRequestSource;
@@ -112,6 +113,11 @@ export function useRefillRequests({
         },
       })) ?? [],
     enabled: enabled && !!facilityId,
+    // The refill inbox is a live workflow queue fed by patient submissions
+    // in a separate app, so override the app-wide 5-min/no-focus defaults:
+    // refetch on mount and when the clinician returns to the tab.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 

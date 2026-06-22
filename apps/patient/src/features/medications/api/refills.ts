@@ -16,6 +16,7 @@ export type PortalRefillRequest = {
   frequency: string | null;
   pharmacy_id: number | null;
   pharmacy_name: string;
+  days_supply: number | null;
   status: PortalRefillStatus;
   status_label: string;
   patient_note: string;
@@ -25,6 +26,7 @@ export type PortalRefillRequest = {
 
 export type CreateRefillPayload = {
   medication_id: number;
+  days_supply: number;
   patient_note?: string;
   pharmacy_id?: number | null;
 };
@@ -38,6 +40,11 @@ export function useRefillRequests() {
     queryFn: async () =>
       (await apiRequest<PortalRefillRequest[]>("/portal/refill-requests/")) ??
       [],
+    // A clinician approves/denies in a separate app, so keep this list
+    // fresh: refetch on mount and when the patient returns to the tab
+    // rather than serving a stale cached status.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
