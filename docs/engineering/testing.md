@@ -84,7 +84,10 @@ finalizing unless the user explicitly asks for a faster partial pass.
 
 ## Chrome Visual QA
 
-Chrome visual QA is expected for major UI changes when feasible.
+Chrome visual QA is expected for major UI changes when feasible. A change is
+"major" when layout, spacing, density, theming, or responsive behavior
+changes, or an authenticated view gains new UI. Copy-only edits, type-only
+changes, and refactors with no visual impact are not major.
 
 Check:
 
