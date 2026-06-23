@@ -151,8 +151,9 @@ Before changing backend behavior, read
 - Keep APIs facility-scoped, role-aware, and auditable where patient-adjacent.
 - Preserve auth and permission boundaries.
 - Add migrations when models change.
-- Never edit existing migrations unless the user explicitly asks and the
-  migration has not been shared.
+- Never edit an existing migration unless the user explicitly asks and the
+  migration has not been pushed to the remote or applied to any shared
+  environment.
 - Keep storage abstractions compatible with future object storage backends.
 - If a patient-adjacent model lacks audit hooks and your task touches it, flag
   the gap in `CONTINUITY.md` instead of adding ad-hoc logging.
@@ -171,7 +172,8 @@ push, open a PR, merge, or delete a branch.
 - Stage only files related to the requested work.
 - Stage and commit `AGENTS.md` and `CLAUDE.md` like any other tracked file when
   they're part of the change; do not single them out to exclude. `CONTINUITY.md`
-  and `.claude/` are gitignored, so they never appear as staging candidates.
+  and the local agent toolkit under `.claude/` are gitignored, so they never
+  appear as staging candidates.
 - Use non-interactive git commands.
 - Do not rebase, amend, force-push, reset, delete branches, or run destructive
   operations unless explicitly requested. Feature-branch history rewrites and

@@ -36,9 +36,12 @@ docker-compose.*.override.yml
 # AGENTS.md and CLAUDE.md are tracked so any contributor (human or AI)
 # picks up the conventions on a fresh clone. Personal overrides go in
 # *.local.md (gitignored below) so private context never leaks into the repo.
-# CONTINUITY.md is a running session ledger and stays local.
+# CONTINUITY.md is a running session ledger and stays local. The Claude
+# agent toolkit is local workspace tooling and stays untracked.
+
 CONTINUITY.md
 *.local.md
+.claude/
 
 # Node / Frontend
 node_modules/
@@ -70,4 +73,3 @@ Thumbs.db
 # Postman local workspace/export files
 .postman/
 postman/
-.claude/

@@ -127,8 +127,9 @@ Audit-style records should answer:
 ## Migrations
 
 - Add migrations when models change.
-- Do not edit existing migrations unless the user explicitly asks and the
-  migration has not been shared.
+- Do not edit an existing migration unless the user explicitly asks and the
+  migration has not been pushed to the remote or applied to any shared
+  environment.
 - Verify migration state with `makemigrations --check --dry-run` when schema
   changes are expected to be complete.
 - Verify migrated behavior with targeted tests or `manage.py check`.
