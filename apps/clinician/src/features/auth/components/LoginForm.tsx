@@ -74,10 +74,15 @@ export default function LoginForm({
           )}
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-cf-text">
+            <label
+              htmlFor="login-username"
+              className="mb-1.5 block text-sm font-medium text-cf-text"
+            >
               Username
+              <span className="ml-1 text-cf-danger-text">*</span>
             </label>
             <Input
+              id="login-username"
               type="text"
               name="username"
               value={formData.username}
@@ -88,10 +93,15 @@ export default function LoginForm({
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-cf-text">
+            <label
+              htmlFor="login-password"
+              className="mb-1.5 block text-sm font-medium text-cf-text"
+            >
               Password
+              <span className="ml-1 text-cf-danger-text">*</span>
             </label>
             <Input
+              id="login-password"
               type="password"
               name="password"
               value={formData.password}
