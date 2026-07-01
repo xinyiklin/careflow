@@ -1,0 +1,219 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   CareFlow brand tokens (light). Names mirror the canonical set in
+   apps/clinician/src/index.css so the landing page reads as the same product.
+   Tailwind v4 emits each --color-* as a utility (bg-cf-surface, text-cf-text).
+--------------------------------------------------------------------------- */
+@theme {
+  --color-cf-page-bg: #f6f7f9;
+  --color-cf-surface: #ffffff;
+  --color-cf-surface-muted: #f8fafc;
+  --color-cf-surface-soft: #f1f5f9;
+
+  --color-cf-border: #e6e9ee;
+  --color-cf-border-strong: #cbd5e1;
+
+  --color-cf-text: #0f172a;
+  --color-cf-text-muted: #475569;
+  --color-cf-text-subtle: #64748b;
+
+  --color-cf-accent: #0f172a;
+  --color-cf-accent-hover: #1e293b;
+  --color-cf-accent-soft: #e2e8f0;
+
+  --color-cf-success-bg: #ecfdf5;
+  --color-cf-success-text: #047857;
+
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-panel-lg: 0 22px 60px -32px rgba(15, 23, 42, 0.28);
+
+  --radius-cf-control: 0.75rem;
+  --radius-cf-card: 1rem;
+  --radius-cf-shell: 1.5rem;
+}
+
+/* ── Dark token overrides ────────────────────────────────────────────────
+   Applied when the OS prefers dark (unless the page is forced to light), and
+   whenever the theme toggle forces dark. Values match the clinician `.dark`
+   block so the two surfaces stay in lockstep. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-cf-page-bg: #0f172a;
+    --color-cf-surface: #182233;
+    --color-cf-surface-muted: #111c2d;
+    --color-cf-surface-soft: #334155;
+    --color-cf-border: #334155;
+    --color-cf-border-strong: #475569;
+    --color-cf-text: #cbd5e1;
+    --color-cf-text-muted: #94a3b8;
+    --color-cf-text-subtle: #64748b;
+    --color-cf-accent: #e2e8f0;
+    --color-cf-accent-hover: #f1f5f9;
+    --color-cf-accent-soft: #334155;
+    --color-cf-success-bg: #052e16;
+    --color-cf-success-text: #34d399;
+    --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-panel-lg: 0 14px 32px -24px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme="dark"] {
+  --color-cf-page-bg: #0f172a;
+  --color-cf-surface: #182233;
+  --color-cf-surface-muted: #111c2d;
+  --color-cf-surface-soft: #334155;
+  --color-cf-border: #334155;
+  --color-cf-border-strong: #475569;
+  --color-cf-text: #cbd5e1;
+  --color-cf-text-muted: #94a3b8;
+  --color-cf-text-subtle: #64748b;
+  --color-cf-accent: #e2e8f0;
+  --color-cf-accent-hover: #f1f5f9;
+  --color-cf-accent-soft: #334155;
+  --color-cf-success-bg: #052e16;
+  --color-cf-success-text: #34d399;
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-panel-lg: 0 14px 32px -24px rgba(0, 0, 0, 0.5);
+}
+
+@layer base {
+  html {
+    color-scheme: light dark;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    /* Inter is the brand face (DESIGN.md); this is a deliberate override of the
+       design-skill default, not a reach for it. */
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    color: var(--color-cf-text);
+    background:
+      radial-gradient(
+        1100px 560px at 88% -12%,
+        rgba(219, 234, 254, 0.5),
+        transparent 60%
+      ),
+      radial-gradient(
+        820px 480px at -8% 106%,
+        rgba(226, 232, 240, 0.7),
+        transparent 62%
+      ),
+      linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family:
+      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* Dark ambient background, gated the same way as the token overrides. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body {
+    background:
+      radial-gradient(
+        1100px 560px at 88% -12%,
+        rgba(30, 64, 175, 0.2),
+        transparent 60%
+      ),
+      radial-gradient(
+        820px 480px at -8% 106%,
+        rgba(15, 23, 42, 0.85),
+        transparent 62%
+      ),
+      linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  }
+}
+
+:root[data-theme="dark"] body {
+  background:
+    radial-gradient(
+      1100px 560px at 88% -12%,
+      rgba(30, 64, 175, 0.2),
+      transparent 60%
+    ),
+    radial-gradient(
+      820px 480px at -8% 106%,
+      rgba(15, 23, 42, 0.85),
+      transparent 62%
+    ),
+    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+}
+
+@layer components {
+  /* Framed panel matching the product's route frame. */
+  .cf-panel {
+    border: 1px solid var(--color-cf-border);
+    border-radius: var(--radius-cf-card);
+    background: var(--color-cf-surface);
+    box-shadow: var(--shadow-panel);
+  }
+
+  /* Card that reacts to hover with a small physical lift. Motion stays inside
+     DESIGN.md's 150ms band and collapses under reduced-motion. */
+  .cf-lift {
+    transition:
+      transform 150ms ease,
+      border-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .cf-lift:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-cf-border-strong);
+    box-shadow: var(--shadow-panel-lg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cf-lift {
+      transition: none;
+    }
+    .cf-lift:hover {
+      transform: none;
+    }
+  }
+
+  /* Browser chrome around a product screenshot: honest frame, real image. */
+  .cf-frame {
+    border: 1px solid var(--color-cf-border);
+    border-radius: var(--radius-cf-shell);
+    background: var(--color-cf-surface);
+    box-shadow: var(--shadow-panel-lg);
+    overflow: hidden;
+  }
+
+  /* Theme-adaptive screenshot: show the variant matching the active theme.
+     Gated identically to the token overrides above so the framed shot tracks
+     the page (explicit data-theme wins; otherwise follow the OS). Exactly one
+     variant is ever displayed, so the duplicated alt announces only once. */
+  .cf-shot-dark {
+    display: none;
+  }
+  :root[data-theme="dark"] .cf-shot-light {
+    display: none;
+  }
+  :root[data-theme="dark"] .cf-shot-dark {
+    display: block;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cf-shot-light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .cf-shot-dark {
+    display: block;
+  }
+}

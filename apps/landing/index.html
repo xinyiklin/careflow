@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <script>
+      // Apply the stored theme before first paint so an explicit light/dark
+      // choice doesn't flash the OS theme. "light"/"dark" set the attribute;
+      // "system" (or unset) leaves it off so CSS falls back to
+      // prefers-color-scheme. Mirrors the ThemeToggle in src/app/theme.ts.
+      (function () {
+        try {
+          var t = localStorage.getItem("careflow_landing_theme");
+          if (t === "light" || t === "dark") {
+            document.documentElement.setAttribute("data-theme", t);
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap"
+      rel="stylesheet"
+    />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>CareFlow: clinic workflow demo</title>
+
+    <meta
+      name="description"
+      content="CareFlow is a full-stack EHR-style clinic workflow demo: a clinician workspace and a patient portal over a Django API. Portfolio project by Xinyi Lin."
+    />
+
+    <meta property="og:title" content="CareFlow: clinic workflow demo" />
+    <meta
+      property="og:description"
+      content="A clinician workspace and a patient portal over a facility-scoped Django API. Synthetic data, built as a portfolio project."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Match the mobile browser chrome to the page theme. Media-scoped so a
+         system-theme visitor (the default) gets a matching toolbar in both
+         modes instead of a fixed dark bar over a light page. -->
+    <meta
+      name="theme-color"
+      content="#f6f7f9"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#0f172a"
+      media="(prefers-color-scheme: dark)"
+    />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
