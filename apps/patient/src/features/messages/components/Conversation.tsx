@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Loader2, MessageSquare, Send } from "lucide-react";
+import { ArrowLeft, MessageSquare, Send } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
@@ -8,6 +8,7 @@ import {
   Button,
   Card,
   EmptyState,
+  Skeleton,
   Textarea,
   cn,
 } from "../../../shared/ui";
@@ -156,9 +157,17 @@ export function Conversation({ threadId, onBack }: ConversationProps) {
     return (
       <Card
         padded={false}
-        className="flex h-full items-center justify-center text-text-muted"
+        aria-busy="true"
+        className="flex h-full flex-col overflow-hidden"
       >
-        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+        <div className="flex items-center border-b border-border bg-surface px-4 py-3">
+          <Skeleton className="h-5 w-48 max-w-full" />
+        </div>
+        <div className="flex-1 space-y-3 bg-bg px-4 py-4">
+          <Skeleton className="h-14 w-3/5 rounded-lg" />
+          <Skeleton className="ml-auto h-11 w-1/2 rounded-lg" />
+          <Skeleton className="h-11 w-2/5 rounded-lg" />
+        </div>
       </Card>
     );
   }

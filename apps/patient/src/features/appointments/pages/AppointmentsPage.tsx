@@ -1,10 +1,17 @@
 import { useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarPlus, CalendarRange, Loader2 } from "lucide-react";
+import { CalendarPlus, CalendarRange } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
-import { Button, EmptyState, PageHeader, cn } from "../../../shared/ui";
+import {
+  Button,
+  Card,
+  EmptyState,
+  PageHeader,
+  Skeleton,
+  cn,
+} from "../../../shared/ui";
 import {
   getPortalTabId,
   getPortalTabPanelId,
@@ -69,9 +76,23 @@ export function AppointmentsPage() {
             {getErrorMessage(query.error)}
           </p>
         ) : showLoading ? (
-          <div className="flex items-center justify-center py-10 text-text-muted">
-            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-          </div>
+          <ul className="space-y-3" aria-busy="true">
+            {[0, 1, 2].map((row) => (
+              <li key={row}>
+                <Card padded={false} className="p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <Skeleton className="h-4 w-40 max-w-full" />
+                      <Skeleton className="h-3 w-24 max-w-full" />
+                      <Skeleton className="h-4 w-56 max-w-full" />
+                      <Skeleton className="h-3 w-32 max-w-full" />
+                    </div>
+                    <Skeleton className="h-5 w-20 rounded-sm" />
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
         ) : query.isLoading ? null : isEmpty ? (
           <EmptyState
             icon={CalendarRange}
@@ -142,7 +163,7 @@ function SegmentedTabs({
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(option.value)}
             className={cn(
-              "h-8 min-w-[96px] rounded-sm px-3 text-xs font-medium tracking-tight transition-colors",
+              "h-9 min-w-[96px] rounded-sm px-3 text-sm font-medium tracking-tight transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
               isActive
                 ? "bg-accent-soft text-accent"

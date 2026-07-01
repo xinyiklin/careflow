@@ -3,7 +3,7 @@ import { Pill } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
-import { Card, EmptyState, PageHeader, cn } from "../../../shared/ui";
+import { Card, EmptyState, PageHeader, Skeleton, cn } from "../../../shared/ui";
 import {
   getPortalTabId,
   getPortalTabPanelId,
@@ -63,10 +63,10 @@ function SegmentTab({
       tabIndex={active ? 0 : -1}
       onClick={onClick}
       className={cn(
-        "inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-sm font-medium",
+        "inline-flex h-9 items-center gap-1.5 rounded-sm px-3 text-sm font-medium tracking-tight",
         "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
         active
-          ? "bg-surface text-text shadow-[var(--shadow-sm)]"
+          ? "bg-accent-soft text-accent"
           : "text-text-muted hover:text-text"
       )}
     >
@@ -74,7 +74,7 @@ function SegmentTab({
       <span
         className={cn(
           "rounded-sm px-1.5 text-xs",
-          active ? "bg-accent-soft text-accent" : "bg-surface text-text-subtle"
+          active ? "bg-surface text-accent" : "bg-surface-soft text-text-subtle"
         )}
       >
         {count}
@@ -125,11 +125,22 @@ export function MedicationsPage() {
           <p className="text-sm text-text-muted">{getErrorMessage(error)}</p>
         </Card>
       ) : showLoading ? (
-        <Card>
-          <p className="text-sm text-text-muted">
-            {t("common.loadingEllipsis")}
-          </p>
-        </Card>
+        <ul className="space-y-3" aria-busy="true">
+          {[0, 1, 2].map((row) => (
+            <li key={row}>
+              <Card padded={false}>
+                <div className="space-y-2 px-5 py-4">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-44 max-w-full" />
+                    <Skeleton className="h-5 w-14 rounded-sm" />
+                  </div>
+                  <Skeleton className="h-4 w-56 max-w-full" />
+                  <Skeleton className="h-3 w-36 max-w-full" />
+                </div>
+              </Card>
+            </li>
+          ))}
+        </ul>
       ) : isLoading ? null : medications.length === 0 ? (
         <EmptyState
           icon={Pill}
@@ -142,7 +153,7 @@ export function MedicationsPage() {
             {...getTabListProps()}
             role="tablist"
             aria-label={t("medications.pageTitle")}
-            className="inline-flex items-center gap-1 rounded-md bg-surface-soft p-1"
+            className="inline-flex items-center gap-1 rounded-md border border-border bg-surface p-1"
           >
             <SegmentTab
               active={tab === "active"}
