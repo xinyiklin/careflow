@@ -111,6 +111,14 @@ What CareFlow is **not**:
 - HIPAA/SOC2 compliance claims. Portfolio piece, not a regulated product.
 - Mobile-native flows. Tablet-aware where it matters; phone is not a
   primary target.
-- Marketing surfaces, landing pages, public-facing brand site. The public
-  surface is the README; everything inside `/` (authenticated) is product
-  register.
+
+## Register boundary
+
+Everything inside the two authenticated portals is **product register** (the
+rules above). The one exception is `apps/landing` — the public marketing front
+door at `careflow.xinyiklin.com` — which is **marketing register**: hero
+typography, generous spacing, and product-explaining copy are appropriate there
+precisely because they are wrong inside the product. It reuses the brand tokens
+and stays restrained (no gradient-healthcare slop, no stock clinicians), but it
+is not held to the density and copy-restraint rules that govern the portals.
+Keep the two registers from bleeding into each other.

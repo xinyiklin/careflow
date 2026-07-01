@@ -17,6 +17,7 @@ careflow/
   apps/
     clinician/          @careflow/clinician — staff/admin/clinical app
     patient/            @careflow/patient — patient portal app
+    landing/            @careflow/landing — public marketing front door
 ```
 
 `backend/` is deliberately not under `apps/` or `services/`. It uses pip +
@@ -64,6 +65,19 @@ Why a join model instead of a `User.role` flag or `Patient.user` FK:
   itself, and relaxes cleanly later (OneToOne → ForeignKey when proxy access
   is needed).
 
+### `apps/landing`
+
+Public marketing page and front door for the whole project. A single static
+page (React + Vite, no client routing) that introduces CareFlow and links out
+to the two authenticated portals. Unauthenticated, calls no API, and carries no
+patient data. It is the one **marketing-register** surface; everything inside
+the two portals stays product-register (see `PRODUCT.md`).
+
+Reuses the brand: the committed `cf-*` token names, Inter, and the shared
+`@careflow/ui-icons` mark. Portal targets are env-configurable
+(`VITE_CLINICIAN_URL` / `VITE_PATIENT_URL`) so the same build points at
+whatever subdomains a given environment uses.
+
 ## Shared code
 
 ### `packages/api-types`
@@ -105,47 +119,63 @@ When to extract:
 
 ## Subdomain plan
 
+Currently live (Vercel frontends + Render API):
+
 ```text
-careflow.xinyiklin.com          → apps/clinician build (Vercel project A)
-portal.careflow.xinyiklin.com   → apps/patient build (Vercel project B)
+careflow.xinyiklin.com          → apps/clinician build (Vercel)
+portal.careflow.xinyiklin.com   → apps/patient build (Vercel)
 api.careflow.xinyiklin.com      → backend (Render)
+```
+
+Target (AWS Amplify migration, in progress; API stays on Render):
+
+```text
+careflow.xinyiklin.com            → apps/landing build (marketing front door)
+clinician.careflow.xinyiklin.com  → apps/clinician build
+patient.careflow.xinyiklin.com    → apps/patient build   (renamed from portal.)
+api.careflow.xinyiklin.com        → backend (Render, unchanged)
 ```
 
 Cookie domain in production is `.careflow.xinyiklin.com`
 (`backend/config/settings.py`). The refresh cookie issued by `/v1/users/token/`
-is therefore valid across CareFlow subdomains. It is also `Path`-scoped per
+is therefore valid across CareFlow subdomains — the new `clinician.` and
+`patient.` subdomains inherit it with no change. It is also `Path`-scoped per
 surface — the clinician cookie is pinned to `/v1/users/` and the portal cookie
 to `/v1/portal/` (`backend/users/views.py`) — so the browser never sends one
 surface's refresh cookie to the other, keeping the two sessions disjoint. The
 portal still has a separate portal-account role boundary under `/v1/portal/`.
 
-Keep both frontend origins in `CORS_ALLOWED_ORIGINS` and
-`CSRF_TRUSTED_ORIGINS` in the backend's production environment. CSRF may also
-need the API domain depending on deployment shape.
+**Pre-cutover prerequisite:** the two new subdomains are not yet in the backend
+origin allowlists. Before the Amplify apps go live, add
+`clinician.careflow.xinyiklin.com` and `patient.careflow.xinyiklin.com` to
+`CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `ALLOWED_HOSTS` (all
+env-overridable; defaults in `backend/config/settings.py`). Until then the
+Amplify portals calling the Render API fail CORS, CSRF, and host checks. The
+`careflow.` landing page needs no API access, so it needs no allowlist entry.
 
-## Vercel configuration (per project)
+## Per-app deployment
 
-Each app is a separate Vercel project pointing at the same repo:
+Each frontend is a separate project (Vercel today, one Amplify app each after
+the migration) pointing at the same repo:
 
 ```text
-Project: careflow-clinician
-  Root Directory: apps/clinician
-  Install Command: npm install --workspaces --include-workspace-root
-  Build Command: npm run build
-  Output Directory: dist
-  Domains: careflow.xinyiklin.com
-
-Project: careflow-patient
-  Root Directory: apps/patient
-  Install Command: npm install --workspaces --include-workspace-root
-  Build Command: npm run build
-  Output Directory: dist
-  Domains: portal.careflow.xinyiklin.com
+apps/clinician  → careflow.xinyiklin.com (Vercel) / clinician.careflow.xinyiklin.com (Amplify)
+apps/patient    → portal.careflow.xinyiklin.com (Vercel) / patient.careflow.xinyiklin.com (Amplify)
+apps/landing    → careflow.xinyiklin.com (Amplify; new front door)
 ```
 
-The Install Command runs at the repo root so npm workspaces resolves the
-`@careflow/api-types` symlink before the build runs from the app dir. Without
-it the build fails on the cross-package import.
+For every project: root directory is the app dir, but the install step runs at
+the **repo root** so npm workspaces resolves the `@careflow/*` symlinks before
+the per-app build (`npm install --workspaces --include-workspace-root` on
+Vercel; a root `npm install` in the Amplify build spec). Without it the build
+fails on the cross-package import. Build command `npm run build`, output `dist`.
+
+The two portals are client-routed SPAs and need a catch-all rewrite to
+`/index.html` (Vercel `vercel.json`, or an Amplify 200-rewrite rule). The
+landing page is a single static page and needs no rewrite. Set
+`VITE_API_URL=https://api.careflow.xinyiklin.com` on the clinician and patient
+projects so API resolution is explicit rather than relying on the hostname
+fallback in each `client.ts`.
 
 ## Mobile (future)
 
