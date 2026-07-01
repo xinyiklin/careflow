@@ -3,6 +3,25 @@
   <head>
     <meta charset="UTF-8" />
 
+    <script>
+      // Apply the best-known theme before first paint to avoid a flash. The
+      // authoritative theme is server-side user preferences (fetched after
+      // auth), so it can't be read here; the app mirrors the current preference
+      // to `cf-theme-hint` (see ThemeProvider) and we replay it. Unset or
+      // "system" follows the OS. Dark tokens are gated on the `.dark` class.
+      (function () {
+        try {
+          var pref = localStorage.getItem("cf-theme-hint");
+          var dark =
+            pref === "dark" ||
+            ((pref === "system" || !pref) &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
