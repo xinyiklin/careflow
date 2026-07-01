@@ -1,8 +1,9 @@
 # CareFlow
 
 [![CI](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml/badge.svg)](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml)
-[![Clinician app](https://img.shields.io/badge/Clinician%20app-careflow.xinyiklin.com-1F3A60?style=flat&logo=vercel&logoColor=white)](https://careflow.xinyiklin.com)
-[![Patient portal](https://img.shields.io/badge/Patient%20portal-portal.careflow.xinyiklin.com-2A6F77?style=flat&logo=vercel&logoColor=white)](https://portal.careflow.xinyiklin.com)
+[![Landing](https://img.shields.io/badge/Landing-careflow.xinyiklin.com-1F3A60?style=flat&logo=amazon-web-services&logoColor=white)](https://careflow.xinyiklin.com)
+[![Clinician app](https://img.shields.io/badge/Clinician%20app-clinician.careflow.xinyiklin.com-1F3A60?style=flat&logo=amazon-web-services&logoColor=white)](https://clinician.careflow.xinyiklin.com)
+[![Patient portal](https://img.shields.io/badge/Patient%20portal-patient.careflow.xinyiklin.com-2A6F77?style=flat&logo=amazon-web-services&logoColor=white)](https://patient.careflow.xinyiklin.com)
 [![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](./LICENSE)
 
 CareFlow is a full-stack EHR-style clinic workflow demo for scheduling,
@@ -16,8 +17,9 @@ closer to a real clinic workspace.
 
 ## Live Demo
 
-- Clinician app: https://careflow.xinyiklin.com
-- Patient portal: https://portal.careflow.xinyiklin.com
+- Landing page: https://careflow.xinyiklin.com
+- Clinician app: https://clinician.careflow.xinyiklin.com
+- Patient portal: https://patient.careflow.xinyiklin.com
 - Backend API: https://api.careflow.xinyiklin.com
 
 CareFlow uses synthetic demo data only. It is not production medical software,
@@ -120,7 +122,7 @@ audit log live under the same admin shell.
 | Backend | Django, Django REST Framework, Simple JWT, Whitenoise |
 | Database | PostgreSQL |
 | Documents | Local filesystem for development; Cloudflare R2/S3-compatible storage optional |
-| Deployment | Vercel frontend, Render backend |
+| Deployment | AWS Amplify frontends, Render backend |
 
 ## Project Structure
 
@@ -152,6 +154,10 @@ apps/patient/src/
                     medications + refills, allergies, medical summary, messages
   i18n/             Locale resources (en, es, zh-CN, zh-TW)
   shared/           API client, UI primitives, theme, hooks, config
+
+apps/landing/src/
+  app/              App entry and theme
+  components/       Hero, Portals, Highlights, Header, Footer, ScreenFrame
 
 packages/
   api-types/        Generated OpenAPI types shared across frontend apps
@@ -204,8 +210,8 @@ npm install
 ```
 
 Run from the repo root — npm workspaces install dependencies for every app
-(`apps/clinician`, `apps/patient`) and the shared `packages/` (`api-types`,
-`ui-icons`) in one pass.
+(`apps/clinician`, `apps/patient`, `apps/landing`) and the shared `packages/`
+(`api-types`, `ui-icons`) in one pass.
 
 Create `apps/clinician/.env.local` if the API is not using the default local URL:
 
@@ -229,10 +235,12 @@ CareFlow QA. If `5173` is occupied, first check whether the CareFlow frontend is
 already running there and use it if it is; otherwise stop the stale process and
 restart with `npm run dev`.
 
-The patient portal runs separately on `http://localhost:5174`:
+The patient portal runs separately on `http://localhost:5174`, and the landing
+page on `http://localhost:5175`:
 
 ```bash
 npm run dev:patient
+npm run dev:landing
 ```
 
 ## Demo Credentials
@@ -280,6 +288,14 @@ Frontend (patient portal):
 npm run lint:patient
 npm run typecheck:patient
 npm run build:patient
+```
+
+Frontend (landing):
+
+```bash
+npm run lint:landing
+npm run typecheck:landing
+npm run build:landing
 ```
 
 For major UI changes, run the app locally and visually inspect the changed flow

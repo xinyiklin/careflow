@@ -156,31 +156,31 @@ Current auth endpoints include:
 
 ## Deployment
 
-The production frontend is intended for Vercel. Typical settings:
+The production frontend is deployed on AWS Amplify at
+`clinician.careflow.xinyiklin.com`. Typical Amplify settings:
 
 ```text
-Root Directory: apps/clinician
+AMPLIFY_MONOREPO_APP_ROOT: apps/clinician
 Build Command: npm run build
 Output Directory: dist
-Install Command: npm install --workspaces --include-workspace-root
 ```
 
-The Install Command runs at the repo root so npm workspaces resolve the
-`@careflow/api-types` symlink before the build runs from `apps/clinician`.
+The install step runs at the repo root so npm workspaces resolve the
+`@careflow/*` symlinks before the build runs from `apps/clinician`.
 
-Set `VITE_API_URL` to the deployed backend base URL, for example:
+Set `VITE_API_URL` to the deployed backend base URL:
 
 ```bash
 VITE_API_URL=https://api.careflow.xinyiklin.com
-VITE_APP_URL=https://careflow.xinyiklin.com
+VITE_APP_URL=https://clinician.careflow.xinyiklin.com
 VITE_DEMO_MODE=true
 ```
 
 The backend must allow the frontend origin in CORS and CSRF settings.
 
-`vercel.json` includes a single-page app fallback rewrite so direct visits or
-browser refreshes on routes such as `/schedule`, `/documents`, or
-`/admin/facility` serve `index.html` and let React Router handle the route.
+A catch-all rewrite rule (Amplify 200-rewrite to `/index.html`) is needed so
+direct visits or browser refreshes on routes such as `/schedule`, `/documents`,
+or `/admin/facility` serve `index.html` and let React Router handle the route.
 
 ## Safety
 

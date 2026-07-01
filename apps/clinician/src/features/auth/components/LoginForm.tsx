@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
 
 import { APP_NAME } from "../../../shared/constants/app";
 import { DEMO_MODE } from "../../../shared/config/appConfig";
@@ -140,11 +139,10 @@ export default function LoginForm({
               className="w-full justify-center"
             >
               {demoLoading ? "Opening demo..." : "Continue with Demo"}
-              {!demoLoading && <ArrowRight className="h-4 w-4" />}
             </Button>
 
             <p className="mt-2.5 text-center text-xs text-cf-text-subtle">
-              No credentials needed &mdash; built for portfolio and preview use.
+              No credentials needed. Built for portfolio and preview use.
             </p>
           </>
         )}

@@ -121,17 +121,16 @@ message thread for exercising the full portal flow.
 
 ## Deployment
 
-The production portal is intended for Vercel on the `portal` subdomain. Typical
-settings:
+The production portal is deployed on AWS Amplify at
+`patient.careflow.xinyiklin.com`. Typical Amplify settings:
 
 ```text
-Root Directory: apps/patient
+AMPLIFY_MONOREPO_APP_ROOT: apps/patient
 Build Command: npm run build
 Output Directory: dist
-Install Command: npm install --workspaces --include-workspace-root
 ```
 
-The Install Command runs at the repo root so npm workspaces resolve the shared
+The install step runs at the repo root so npm workspaces resolve the shared
 `@careflow/*` symlinks before the build runs from `apps/patient`. Set the
 deployed backend base URL:
 
@@ -139,7 +138,9 @@ deployed backend base URL:
 VITE_API_URL=https://api.careflow.xinyiklin.com
 ```
 
-The backend must allow the portal origin in its CORS and CSRF settings.
+The backend must allow the portal origin in its CORS and CSRF settings. A
+catch-all rewrite rule (Amplify 200-rewrite to `/index.html`) is needed for
+client-side routing.
 
 ## Safety
 
