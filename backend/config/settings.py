@@ -57,7 +57,8 @@ ALLOWED_HOSTS = [
     host
     for host in get_csv_setting(
         "ALLOWED_HOSTS",
-        "localhost,127.0.0.1,careflow.xinyiklin.com,api.careflow.xinyiklin.com,.onrender.com",
+        "localhost,127.0.0.1,careflow.xinyiklin.com,clinician.careflow.xinyiklin.com,"
+        "patient.careflow.xinyiklin.com,api.careflow.xinyiklin.com,.onrender.com",
     )
     if host
 ]
@@ -220,14 +221,21 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- CORS / CSRF ---
 # Local dev origins: 5173 = clinician app, 5174 = patient portal app.
+# clinician./patient. subdomains are the Amplify migration targets (see
+# docs/engineering/architecture.md Subdomain plan); kept alongside the current
+# careflow./portal. Vercel origins until the cutover, so both deployments work.
 CORS_ALLOWED_ORIGINS = get_csv_setting(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,https://portal.careflow.xinyiklin.com",
+    "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,"
+    "https://portal.careflow.xinyiklin.com,https://clinician.careflow.xinyiklin.com,"
+    "https://patient.careflow.xinyiklin.com",
 )
 
 CSRF_TRUSTED_ORIGINS = get_csv_setting(
     "CSRF_TRUSTED_ORIGINS",
-    "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,https://portal.careflow.xinyiklin.com,https://api.careflow.xinyiklin.com",
+    "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,"
+    "https://portal.careflow.xinyiklin.com,https://clinician.careflow.xinyiklin.com,"
+    "https://patient.careflow.xinyiklin.com,https://api.careflow.xinyiklin.com",
 )
 
 CORS_ALLOW_CREDENTIALS = True
