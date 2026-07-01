@@ -1,8 +1,15 @@
-import { Inbox, Loader2, Plus } from "lucide-react";
+import { Inbox, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
-import { Badge, Button, Card, EmptyState, cn } from "../../../shared/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  Skeleton,
+  cn,
+} from "../../../shared/ui";
 import { formatRelative } from "../../../shared/utils/dates";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import {
@@ -114,8 +121,19 @@ export function ThreadList({
           {getErrorMessage(error)}
         </p>
       ) : showLoading ? (
-        <div className="flex flex-1 items-center justify-center py-10 text-text-muted">
-          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+        <div className="flex-1" aria-busy="true">
+          {[0, 1, 2].map((row) => (
+            <div
+              key={row}
+              className="min-h-[68px] space-y-2 border-b border-border px-4 py-3 last:border-b-0"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <Skeleton className="h-4 w-36 max-w-full" />
+                <Skeleton className="h-3 w-10" />
+              </div>
+              <Skeleton className="h-3 w-3/4" />
+            </div>
+          ))}
         </div>
       ) : isLoading ? (
         <div className="flex-1" aria-hidden="true" />

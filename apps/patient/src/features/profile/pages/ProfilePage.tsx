@@ -98,7 +98,7 @@ export function ProfilePage() {
 
   if (!patient) {
     return (
-      <div className="px-4 py-6 sm:px-6 sm:py-8">
+      <div>
         <PageHeader title={t("profile.pageTitle")} />
         {isError ? (
           <p className="text-sm text-text-muted">{getErrorMessage(error)}</p>
@@ -108,7 +108,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="space-y-5 px-4 py-6 sm:px-6 sm:py-8">
+    <div>
       <PageHeader title={t("profile.pageTitle")} />
 
       <ProfileTabs
@@ -121,6 +121,7 @@ export function ProfilePage() {
         role="tabpanel"
         id={getPortalTabPanelId(idBase)}
         aria-labelledby={getPortalTabId(idBase, activeTab)}
+        className="mt-5"
       >
         {activeTab === "personal" && <PersonalSection patient={patient} />}
         {activeTab === "contact" && <ContactSection patient={patient} />}
