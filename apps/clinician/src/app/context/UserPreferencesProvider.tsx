@@ -52,7 +52,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   scheduleViewMode: "slot",
   showScheduleSlotDividers: true,
   appointmentBlockDisplay: DEFAULT_APPOINTMENT_BLOCK_DISPLAY,
-  theme: "light",
+  theme: "system",
   clearRecentPatientsOnLogout: true,
   recentPatients: [],
   clearPersonalNotesOnLogout: false,
@@ -125,7 +125,9 @@ function normalizeLastFacilityForUser(
 }
 
 function sanitizeTheme(value: unknown) {
-  if (value === "dark" || value === "light") return value;
+  if (value === "dark" || value === "light" || value === "system") {
+    return value;
+  }
   return DEFAULT_USER_PREFERENCES.theme;
 }
 

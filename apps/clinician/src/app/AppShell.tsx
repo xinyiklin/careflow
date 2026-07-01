@@ -105,7 +105,7 @@ function AppShellLayout({
   const location = useLocation();
   const { preferences, updatePreferences, clearPersonalNotesForLogout } =
     useUserPreferences();
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const personalNotesKey = useMemo(() => getPersonalNotesKey(user), [user]);
   const personalNote = preferences.personalNotes || "";
 
@@ -125,10 +125,10 @@ function AppShellLayout({
   }, [setIsSidebarCollapsed]);
 
   const handleToggleTheme = useCallback(() => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
+    const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
     updatePreferences({ theme: nextTheme });
-  }, [setTheme, theme, updatePreferences]);
+  }, [setTheme, resolvedTheme, updatePreferences]);
 
   const handleLogout = useCallback(() => {
     if (preferences.clearPersonalNotesOnLogout && personalNotesKey) {

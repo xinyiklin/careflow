@@ -4,7 +4,7 @@ import type { AppointmentBlockDisplay } from "../constants/appointmentBlockDispl
 
 export type ApiRecord = Record<string, unknown>;
 
-export type ThemePreference = "light" | "dark";
+export type ThemePreference = "light" | "dark" | "system";
 
 export type ScheduleStartMode = "resources" | "days";
 
