@@ -286,11 +286,11 @@ export function Layout({ children }: { children: ReactNode }) {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    "relative inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    "relative inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors duration-150",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
                     isActive
-                      ? "bg-accent-soft text-accent"
-                      : "text-text-muted hover:bg-surface-soft hover:text-text"
+                      ? "bg-accent-soft font-semibold text-accent"
+                      : "font-medium text-text-muted hover:bg-surface-soft hover:text-text"
                   )
                 }
               >
@@ -349,22 +349,33 @@ export function Layout({ children }: { children: ReactNode }) {
             end={end}
             className={({ isActive }) =>
               cn(
-                "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium transition-colors",
+                "relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1 py-1.5 text-[10px] font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35",
                 isActive ? "text-accent" : "text-text-muted hover:text-text"
               )
             }
           >
-            <span className="relative inline-flex">
-              <Icon size={20} aria-hidden="true" />
-              {showUnread && hasUnreadMessages ? (
+            {({ isActive }) => (
+              <>
                 <span
-                  aria-label={t("nav.unreadMessages")}
-                  className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-surface"
-                />
-              ) : null}
-            </span>
-            <span className="truncate">{t(labelKey)}</span>
+                  className={cn(
+                    "inline-flex items-center justify-center rounded-full px-4 py-1 transition-colors duration-150",
+                    isActive ? "bg-accent-soft" : "bg-transparent"
+                  )}
+                >
+                  <span className="relative inline-flex">
+                    <Icon size={20} aria-hidden="true" />
+                    {showUnread && hasUnreadMessages ? (
+                      <span
+                        aria-label={t("nav.unreadMessages")}
+                        className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-surface"
+                      />
+                    ) : null}
+                  </span>
+                </span>
+                <span className="truncate">{t(labelKey)}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
