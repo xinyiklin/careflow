@@ -10,7 +10,7 @@ import type {
 } from "./types";
 
 const LOCAL_API_BASE = "http://localhost:8000";
-const PRODUCTION_APP_HOST = "careflow.xinyiklin.com";
+const PRODUCTION_APP_HOST = "clinician.xinyiklin.com";
 const PRODUCTION_API_HOST = "api.careflow.xinyiklin.com";
 const PRODUCTION_API_BASE = `https://${PRODUCTION_API_HOST}`;
 export const API_PREFIX = "/v1";

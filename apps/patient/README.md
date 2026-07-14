@@ -122,7 +122,7 @@ message thread for exercising the full portal flow.
 ## Deployment
 
 The production portal is deployed on AWS Amplify at
-`patient.careflow.xinyiklin.com`. Typical Amplify settings:
+`patient.xinyiklin.com`. Typical Amplify settings:
 
 ```text
 AMPLIFY_MONOREPO_APP_ROOT: apps/patient

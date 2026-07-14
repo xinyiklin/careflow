@@ -94,7 +94,6 @@ under `/v1`. If the backend is elsewhere, create `apps/clinician/.env.local`:
 
 ```bash
 VITE_API_URL=http://localhost:8000
-VITE_APP_URL=http://localhost:5173
 VITE_DEMO_MODE=true
 ```
 
@@ -157,7 +156,7 @@ Current auth endpoints include:
 ## Deployment
 
 The production frontend is deployed on AWS Amplify at
-`clinician.careflow.xinyiklin.com`. Typical Amplify settings:
+`clinician.xinyiklin.com`. Typical Amplify settings:
 
 ```text
 AMPLIFY_MONOREPO_APP_ROOT: apps/clinician
@@ -172,7 +171,6 @@ Set `VITE_API_URL` to the deployed backend base URL:
 
 ```bash
 VITE_API_URL=https://api.careflow.xinyiklin.com
-VITE_APP_URL=https://clinician.careflow.xinyiklin.com
 VITE_DEMO_MODE=true
 ```
 

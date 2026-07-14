@@ -4,8 +4,9 @@ The public marketing page and front door for CareFlow. A single static page
 (no client routing) that introduces the project and links out to the two
 authenticated portals.
 
-Intended to serve the apex domain (`careflow.xinyiklin.com`) on AWS Amplify,
-alongside the clinician (`clinician.`) and patient (`patient.`) subdomains.
+Serves the apex domain (`careflow.xinyiklin.com`) on AWS Amplify. The two
+authenticated portals sit on sibling subdomains of `xinyiklin.com`
+(`clinician.` and `patient.`), not under `careflow.`.
 
 ## Local
 
@@ -30,8 +31,8 @@ All optional; sensible defaults ship in `src/content.ts`.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `VITE_CLINICIAN_URL` | `https://clinician.careflow.xinyiklin.com` | Clinician portal target |
-| `VITE_PATIENT_URL` | `https://patient.careflow.xinyiklin.com` | Patient portal target |
+| `VITE_CLINICIAN_URL` | `https://clinician.xinyiklin.com` | Clinician portal target |
+| `VITE_PATIENT_URL` | `https://patient.xinyiklin.com` | Patient portal target |
 | `VITE_GITHUB_URL` | _(unset)_ | Adds a "Source" link in the footer when set |
 
 ## Screenshots

@@ -57,8 +57,8 @@ ALLOWED_HOSTS = [
     host
     for host in get_csv_setting(
         "ALLOWED_HOSTS",
-        "localhost,127.0.0.1,careflow.xinyiklin.com,clinician.careflow.xinyiklin.com,"
-        "patient.careflow.xinyiklin.com,api.careflow.xinyiklin.com,.onrender.com",
+        "localhost,127.0.0.1,careflow.xinyiklin.com,clinician.xinyiklin.com,"
+        "patient.xinyiklin.com,api.careflow.xinyiklin.com,.onrender.com",
     )
     if host
 ]
@@ -221,21 +221,21 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # --- CORS / CSRF ---
 # Local dev origins: 5173 = clinician app, 5174 = patient portal app.
-# clinician./patient. subdomains are the Amplify migration targets (see
-# docs/engineering/architecture.md Subdomain plan); kept alongside the current
-# careflow./portal. Vercel origins until the cutover, so both deployments work.
+# The two Amplify portals live at clinician./patient..xinyiklin.com — siblings of
+# the careflow. apex, not children of it (see docs/engineering/architecture.md
+# Subdomain plan). The careflow. landing page is static and makes no API calls;
+# its origin is kept only as headroom.
 CORS_ALLOWED_ORIGINS = get_csv_setting(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,"
-    "https://portal.careflow.xinyiklin.com,https://clinician.careflow.xinyiklin.com,"
-    "https://patient.careflow.xinyiklin.com",
+    "https://clinician.xinyiklin.com,https://patient.xinyiklin.com",
 )
 
 CSRF_TRUSTED_ORIGINS = get_csv_setting(
     "CSRF_TRUSTED_ORIGINS",
     "http://localhost:5173,http://localhost:5174,https://careflow.xinyiklin.com,"
-    "https://portal.careflow.xinyiklin.com,https://clinician.careflow.xinyiklin.com,"
-    "https://patient.careflow.xinyiklin.com,https://api.careflow.xinyiklin.com",
+    "https://clinician.xinyiklin.com,https://patient.xinyiklin.com,"
+    "https://api.careflow.xinyiklin.com",
 )
 
 CORS_ALLOW_CREDENTIALS = True
@@ -246,10 +246,11 @@ SESSION_COOKIE_SECURE = not DEBUG
 
 CSRF_COOKIE_SAMESITE = "None" if not DEBUG else "Lax"
 CSRF_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_DOMAIN = os.environ.get(
-    "CSRF_COOKIE_DOMAIN",
-    None if DEBUG else ".careflow.xinyiklin.com",
-)
+# Host-only: the csrftoken cookie is scoped to the API host that sets it. The
+# portals sit on sibling domains and never read it from document.cookie — they
+# take the token from the /v1/users/csrf/ response body — so no shared cookie
+# domain is needed. Env-overridable if a same-subtree surface ever needs one.
+CSRF_COOKIE_DOMAIN = os.environ.get("CSRF_COOKIE_DOMAIN") or None
 
 # --- SECURITY HEADERS ---
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

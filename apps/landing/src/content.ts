@@ -9,12 +9,11 @@ import {
 } from "lucide-react";
 
 // Portal destinations. Default to the AWS subdomains this landing page fronts;
-// override per environment (e.g. during the Render->Amplify cutover) with
-// VITE_CLINICIAN_URL / VITE_PATIENT_URL.
+// override per environment with VITE_CLINICIAN_URL / VITE_PATIENT_URL.
 const CLINICIAN_URL =
-  import.meta.env.VITE_CLINICIAN_URL ?? "https://clinician.careflow.xinyiklin.com";
+  import.meta.env.VITE_CLINICIAN_URL ?? "https://clinician.xinyiklin.com";
 const PATIENT_URL =
-  import.meta.env.VITE_PATIENT_URL ?? "https://patient.careflow.xinyiklin.com";
+  import.meta.env.VITE_PATIENT_URL ?? "https://patient.xinyiklin.com";
 
 export const GITHUB_URL = import.meta.env.VITE_GITHUB_URL ?? "";
 
@@ -101,7 +100,7 @@ export const HIGHLIGHTS: Highlight[] = [
   {
     icon: CalendarClock,
     title: "Scheduling that holds up",
-    body: "A day grid with an availability heatmap, drag to reschedule, and live slot-hold presence so two staff never book the same slot.",
+    body: "A day grid with an availability heatmap, drag to reschedule, and live slot-hold presence that helps staff avoid booking collisions.",
   },
   {
     icon: ClipboardList,

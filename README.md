@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml/badge.svg)](https://github.com/xinyiklin/careflow/actions/workflows/ci.yml)
 [![Landing](https://img.shields.io/badge/Landing-careflow.xinyiklin.com-1F3A60?style=flat&logo=amazon-web-services&logoColor=white)](https://careflow.xinyiklin.com)
-[![Clinician app](https://img.shields.io/badge/Clinician%20app-clinician.careflow.xinyiklin.com-1F3A60?style=flat&logo=amazon-web-services&logoColor=white)](https://clinician.careflow.xinyiklin.com)
-[![Patient portal](https://img.shields.io/badge/Patient%20portal-patient.careflow.xinyiklin.com-2A6F77?style=flat&logo=amazon-web-services&logoColor=white)](https://patient.careflow.xinyiklin.com)
+[![Clinician app](https://img.shields.io/badge/Clinician%20app-clinician.xinyiklin.com-1F3A60?style=flat&logo=amazon-web-services&logoColor=white)](https://clinician.xinyiklin.com)
+[![Patient portal](https://img.shields.io/badge/Patient%20portal-patient.xinyiklin.com-2A6F77?style=flat&logo=amazon-web-services&logoColor=white)](https://patient.xinyiklin.com)
 [![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](./LICENSE)
 
 CareFlow is a full-stack EHR-style clinic workflow demo for scheduling,
@@ -18,8 +18,8 @@ closer to a real clinic workspace.
 ## Live Demo
 
 - Landing page: https://careflow.xinyiklin.com
-- Clinician app: https://clinician.careflow.xinyiklin.com
-- Patient portal: https://patient.careflow.xinyiklin.com
+- Clinician app: https://clinician.xinyiklin.com
+- Patient portal: https://patient.xinyiklin.com
 - Backend API: https://api.careflow.xinyiklin.com
 
 CareFlow uses synthetic demo data only. It is not production medical software,
@@ -217,7 +217,6 @@ Create `apps/clinician/.env.local` if the API is not using the default local URL
 
 ```bash
 VITE_API_URL=http://localhost:8000
-VITE_APP_URL=http://localhost:5173
 VITE_DEMO_MODE=true
 ```
 
