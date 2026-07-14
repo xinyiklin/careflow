@@ -78,7 +78,10 @@ export function AppointmentRow({ appointment }: AppointmentRowProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setConfirmOpen(true)}
+                  onClick={() => {
+                    setError(null);
+                    setConfirmOpen(true);
+                  }}
                   disabled={cancelMutation.isPending}
                 >
                   {cancelMutation.isPending
@@ -92,20 +95,17 @@ export function AppointmentRow({ appointment }: AppointmentRowProps) {
             ) : null}
           </div>
         </div>
-
-        {error ? (
-          <p role="alert" className="mt-3 text-xs text-danger">
-            {error}
-          </p>
-        ) : null}
       </Card>
 
       <Modal
         open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
+        onClose={() => {
+          if (!cancelMutation.isPending) setConfirmOpen(false);
+        }}
         title={t("appointments.confirmCancelTitle")}
         description={t("appointments.confirmCancelBody")}
         size="sm"
+        disableBackdropClose={cancelMutation.isPending}
         footer={
           <>
             <Button
@@ -129,6 +129,11 @@ export function AppointmentRow({ appointment }: AppointmentRowProps) {
           <p className="font-medium text-text">{provider}</p>
           {type ? <p className="mt-0.5 text-text-muted">{type}</p> : null}
           <p className="mt-1">{when}</p>
+          {error ? (
+            <p role="alert" className="mt-3 text-xs text-danger">
+              {error}
+            </p>
+          ) : null}
         </div>
       </Modal>
     </>

@@ -254,16 +254,38 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   const saveRequestIdRef = useRef(0);
   const pendingSaveTimeoutRef = useRef<number | null>(null);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const activeUserIdRef = useRef(userId);
+  const sessionGenerationRef = useRef(0);
+
+  if (activeUserIdRef.current !== userId) {
+    activeUserIdRef.current = userId;
+    sessionGenerationRef.current += 1;
+    saveRequestIdRef.current += 1;
+  }
 
   const persistPreferences = useCallback(
     async (
       preferencesToSave: UserPreferences,
       requestId: number,
-      userIdForSave: UserProfile["id"]
+      userIdForSave: UserProfile["id"],
+      sessionGeneration: number
     ) => {
       const runSave = async () => {
+        if (
+          activeUserIdRef.current !== userIdForSave ||
+          sessionGenerationRef.current !== sessionGeneration
+        ) {
+          return;
+        }
+
         const data = await updateUserPreferences(preferencesToSave);
-        if (saveRequestIdRef.current !== requestId) return;
+        if (
+          saveRequestIdRef.current !== requestId ||
+          activeUserIdRef.current !== userIdForSave ||
+          sessionGenerationRef.current !== sessionGeneration
+        ) {
+          return;
+        }
 
         const savedPreferences = sanitizePreferences(data?.preferences);
         lastSavedPreferencesRef.current = JSON.stringify(savedPreferences);
@@ -336,7 +358,12 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
         pendingSaveTimeoutRef.current = null;
       }
       try {
-        await persistPreferences(preferences, requestId, user.id);
+        await persistPreferences(
+          preferences,
+          requestId,
+          user.id,
+          sessionGenerationRef.current
+        );
       } catch (error) {
         console.error("Failed to save user preferences.", error);
       }
@@ -401,7 +428,12 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
     lastSavedPreferencesRef.current = serializedPreferences;
     setPreferences(nextPreferences);
 
-    await persistPreferences(nextPreferences, requestId, user.id);
+    await persistPreferences(
+      nextPreferences,
+      requestId,
+      user.id,
+      sessionGenerationRef.current
+    );
   }, [persistPreferences, preferences, user]);
 
   const resetPreferences = useCallback(() => {

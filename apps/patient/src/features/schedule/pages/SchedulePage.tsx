@@ -78,7 +78,7 @@ export function SchedulePage() {
     setAppointmentType(next);
   };
 
-  const handleSelectSlot = (next: PortalSchedulingSlot) => {
+  const handleSelectSlot = (next: PortalSchedulingSlot | null) => {
     setSlot(next);
   };
 
@@ -201,7 +201,11 @@ function ProgressStrip({ currentIndex }: { currentIndex: number }) {
         const isActive = index === currentIndex;
         const isComplete = index < currentIndex;
         return (
-          <li key={step.id} className="flex flex-1 items-center gap-2">
+          <li
+            key={step.id}
+            aria-current={isActive ? "step" : undefined}
+            className="flex flex-1 items-center gap-2"
+          >
             <span
               aria-hidden="true"
               className={cn(
@@ -217,7 +221,7 @@ function ProgressStrip({ currentIndex }: { currentIndex: number }) {
             </span>
             <span
               className={cn(
-                "hidden truncate text-xs sm:inline",
+                "sr-only truncate text-xs sm:not-sr-only",
                 isActive ? "text-text font-medium" : "text-text-muted"
               )}
             >

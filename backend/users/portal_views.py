@@ -14,10 +14,19 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from medications.portal_serializers import PortalPreferredPharmacyUpdateSerializer
 from patients.models import PatientPharmacy, Pharmacy
 from patients.pharmacy_access import facility_can_use_pharmacy
+from users.identity import has_active_portal_identity
 from users.permissions import IsPortalPatient
-from users.portal import PatientPortalAccount
 from users.portal_access import get_patient_for_user
-from users.portal_serializers import PortalPatientSerializer
+from users.portal_serializers import (
+    PortalDemoLoginResponseSerializer,
+    PortalPatientSerializer,
+    PortalPreferredPharmacyResponseSerializer,
+)
+from users.serializers import (
+    AccessTokenResponseSerializer,
+    CookieTokenLoginRequestSerializer,
+    CookieTokenRefreshRequestSerializer,
+)
 from users.tokens import (
     PORTAL_SURFACE,
     PortalTokenObtainPairSerializer,
@@ -77,7 +86,7 @@ class PortalPreferredPharmacyView(APIView):
     @extend_schema(
         request=PortalPreferredPharmacyUpdateSerializer,
         responses={
-            200: PortalPreferredPharmacyUpdateSerializer,
+            200: PortalPreferredPharmacyResponseSerializer,
         },
         summary="Update authenticated patient's preferred pharmacy",
     )
@@ -149,7 +158,8 @@ class PortalDemoLoginView(APIView):
     throttle_scope = "demo"
 
     @extend_schema(
-        responses={200: None, 403: None, 500: None},
+        request=None,
+        responses={200: PortalDemoLoginResponseSerializer, 403: None, 500: None},
         summary="Sign in as the seeded demo patient",
     )
     def post(self, request):
@@ -169,7 +179,7 @@ class PortalDemoLoginView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        if not PatientPortalAccount.objects.filter(user=user, is_active=True).exists():
+        if not has_active_portal_identity(user):
             return Response(
                 {"detail": "Demo user is not linked to a portal account."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -197,6 +207,11 @@ class PortalTokenObtainPairView(TokenObtainPairView):
     serializer_class = PortalTokenObtainPairSerializer
     throttle_scope = "login"
 
+    @extend_schema(
+        request=CookieTokenLoginRequestSerializer,
+        responses={200: AccessTokenResponseSerializer},
+        summary="Sign in patient and set a refresh cookie",
+    )
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         refresh_token = response.data.pop("refresh", None)
@@ -219,6 +234,11 @@ class PortalTokenRefreshView(TokenRefreshView):
     serializer_class = PortalTokenRefreshSerializer
     throttle_scope = "refresh"
 
+    @extend_schema(
+        request=CookieTokenRefreshRequestSerializer,
+        responses={200: AccessTokenResponseSerializer},
+        summary="Refresh patient access token",
+    )
     def post(self, request, *args, **kwargs):
         data = (
             request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
@@ -246,6 +266,7 @@ class PortalLogoutView(APIView):
 
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=None, responses={204: None}, summary="Sign out patient")
     def post(self, request):
         blacklist_refresh_cookie(request)
         response = Response(status=status.HTTP_204_NO_CONTENT)

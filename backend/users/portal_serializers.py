@@ -6,12 +6,44 @@ from patients.models import Patient, PatientEmergencyContact, PatientPhone
 from shared.serializers import AddressSerializer
 
 
+class PortalDemoLoginResponseSerializer(serializers.Serializer):
+    """Access token returned by patient portal demo sign-in."""
+
+    access = serializers.CharField()
+    is_demo = serializers.BooleanField()
+
+
 class PortalEmergencyContactSerializer(serializers.Serializer):
     """Emergency contact snippet for the patient portal."""
 
     name = serializers.CharField(required=False, allow_blank=True)
     relationship = serializers.CharField(required=False, allow_blank=True)
     phone_number = serializers.CharField(required=False, allow_blank=True)
+
+
+class PortalPreferredPharmacyResponseSerializer(serializers.Serializer):
+    """Preferred-pharmacy state returned after a portal update."""
+
+    pharmacy_id = serializers.IntegerField(allow_null=True)
+    pharmacy_name = serializers.CharField(allow_blank=True)
+
+
+class PortalInsurancePolicySerializer(serializers.Serializer):
+    """One active insurance policy exposed in the patient portal profile."""
+
+    id = serializers.IntegerField()
+    carrier_name = serializers.CharField()
+    plan_name = serializers.CharField(allow_blank=True)
+    member_id = serializers.CharField()
+    group_number = serializers.CharField(allow_blank=True)
+    subscriber_name = serializers.CharField(allow_blank=True)
+    relationship_to_subscriber = serializers.CharField()
+    effective_date = serializers.DateField(allow_null=True)
+    termination_date = serializers.DateField(allow_null=True)
+    is_primary = serializers.BooleanField()
+    # `notes` is intentionally omitted: it is staff-authored internal commentary
+    # (eligibility disputes, coverage doubts) entered via the clinician-only
+    # insurance modal and must not surface in the patient portal (D002).
 
 
 class PortalPatientSerializer(serializers.ModelSerializer):
@@ -29,6 +61,12 @@ class PortalPatientSerializer(serializers.ModelSerializer):
     preferred_pharmacy_name = serializers.CharField(read_only=True, required=False)
     facility_name = serializers.CharField(source="facility.name", read_only=True)
     facility_timezone = serializers.SerializerMethodField()
+    # A SerializerMethodField, not a nested field bound to the reverse relation:
+    # the policies are reshaped (carrier -> carrier_name, notes dropped) below, so
+    # binding PortalInsurancePolicySerializer directly to instance.insurance_policies
+    # would make DRF serialize raw PatientInsurancePolicy rows and crash on the
+    # missing attributes. extend_schema_field keeps the OpenAPI contract typed.
+    insurance_policies = serializers.SerializerMethodField()
 
     class Meta:
         model = Patient
@@ -105,13 +143,16 @@ class PortalPatientSerializer(serializers.ModelSerializer):
         else:
             ret["preferred_pharmacy_name"] = ""
 
-        # Populate insurance_policies safely
+        return ret
+
+    @extend_schema_field(PortalInsurancePolicySerializer(many=True))
+    def get_insurance_policies(self, instance):
         from insurance.models import PatientInsurancePolicy
 
         policies = PatientInsurancePolicy.objects.filter(
             patient=instance, is_active=True
         ).order_by("coverage_order", "id")
-        ret["insurance_policies"] = [
+        return [
             {
                 "id": policy.id,
                 "carrier_name": policy.carrier.name if policy.carrier else "",
@@ -123,12 +164,9 @@ class PortalPatientSerializer(serializers.ModelSerializer):
                 "effective_date": policy.effective_date,
                 "termination_date": policy.termination_date,
                 "is_primary": policy.is_primary,
-                "notes": policy.notes,
             }
             for policy in policies
         ]
-
-        return ret
 
     def update(self, instance, validated_data):
         address_data = validated_data.pop("address", None)

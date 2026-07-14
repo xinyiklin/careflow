@@ -1,11 +1,20 @@
 import { apiRequest } from "../../../../shared/api/client";
 
 import type { ApiPayload, EntityId } from "../../../../shared/api/types";
-import type { AdminOrganizationPayerPreference } from "../../types";
+import type {
+  AdminInsuranceCarrier,
+  AdminOrganizationPayerPreference,
+} from "../../types";
 
 export function fetchOrganizationPayers() {
   return apiRequest<AdminOrganizationPayerPreference[]>(
     "/insurance/organization-carriers/"
+  );
+}
+
+export function fetchOrganizationPayerDirectory() {
+  return apiRequest<AdminInsuranceCarrier[]>(
+    "/insurance/organization-carriers/directory/"
   );
 }
 

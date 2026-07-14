@@ -5,7 +5,7 @@ info:
 paths:
   /v1/allergies/allergen-catalog/:
     get:
-      operationId: allergies_allergen_catalog_retrieve
+      operationId: allergies_allergen_catalog_list
       tags:
       - allergies
       security:
@@ -13,7 +13,13 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllergenCatalogEntry'
+          description: ''
   /v1/allergies/patient-allergies/:
     get:
       operationId: allergies_patient_allergies_list
@@ -189,7 +195,7 @@ paths:
           description: No response body
   /v1/allergies/reaction-catalog/:
     get:
-      operationId: allergies_reaction_catalog_retrieve
+      operationId: allergies_reaction_catalog_list
       tags:
       - allergies
       security:
@@ -197,7 +203,13 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReactionCatalogEntry'
+          description: ''
   /v1/appointments/:
     get:
       operationId: appointments_list
@@ -602,6 +614,13 @@ paths:
         Facility-scoped appointment CRUD, plus the edit-session soft lock and
         slot-hold presence actions.
       summary: Return appointment counts per day for a given month
+      parameters:
+      - in: query
+        name: month
+        schema:
+          type: string
+        description: Calendar month in YYYY-MM format.
+        required: true
       tags:
       - appointments
       security:
@@ -751,7 +770,7 @@ paths:
           description: ''
   /v1/billing/cpt-catalog/:
     get:
-      operationId: billing_cpt_catalog_retrieve
+      operationId: billing_cpt_catalog_list
       tags:
       - billing
       security:
@@ -759,7 +778,13 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CPTCatalogEntry'
+          description: ''
   /v1/billing/encounter-billing-records/:
     get:
       operationId: billing_encounter_billing_records_list
@@ -1240,19 +1265,20 @@ paths:
         Uses :func:`get_facility_for_user`, which allows org admins to operate
         against any active facility in their organization; staff users fall back
         to their default facility membership.
+      summary: Copy an organization fee schedule to the active facility
       tags:
       - billing
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
+              $ref: '#/components/schemas/FacilityFeeScheduleCopyRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
+              $ref: '#/components/schemas/FacilityFeeScheduleCopyRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/OrganizationFeeSchedule'
+              $ref: '#/components/schemas/FacilityFeeScheduleCopyRequest'
         required: true
       security:
       - jwtAuth: []
@@ -1651,7 +1677,7 @@ paths:
           description: ''
   /v1/clinical/icd10-catalog/:
     get:
-      operationId: clinical_icd10_catalog_retrieve
+      operationId: clinical_icd10_catalog_list
       tags:
       - clinical
       security:
@@ -1659,7 +1685,13 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ICD10CatalogEntry'
+          description: ''
   /v1/clinical/progress-notes/{id}/:
     get:
       operationId: clinical_progress_notes_retrieve
@@ -3439,6 +3471,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/FacilityInsuranceCarrierOverride'
           description: ''
+  /v1/insurance/facility-carrier-overrides/directory/:
+    get:
+      operationId: insurance_facility_carrier_overrides_directory_list
+      tags:
+      - insurance
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InsuranceCarrier'
+          description: ''
   /v1/insurance/organization-carriers/:
     get:
       operationId: insurance_organization_carriers_list
@@ -3532,6 +3581,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrganizationInsuranceCarrierPreferenceWrite'
+          description: ''
+  /v1/insurance/organization-carriers/directory/:
+    get:
+      operationId: insurance_organization_carriers_directory_list
+      tags:
+      - insurance
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InsuranceCarrier'
           description: ''
   /v1/insurance/policies/:
     get:
@@ -3881,7 +3947,7 @@ paths:
           description: No response body
   /v1/medications/catalog/:
     get:
-      operationId: medications_catalog_retrieve
+      operationId: medications_catalog_list
       description: Base for the static reference catalogs in this app.
       tags:
       - medications
@@ -3890,10 +3956,16 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MedicationCatalogEntry'
+          description: ''
   /v1/medications/frequency-catalog/:
     get:
-      operationId: medications_frequency_catalog_retrieve
+      operationId: medications_frequency_catalog_list
       description: Base for the static reference catalogs in this app.
       tags:
       - medications
@@ -3902,7 +3974,13 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FrequencyCatalogEntry'
+          description: ''
   /v1/medications/prescriber-delegations/:
     get:
       operationId: medications_prescriber_delegations_list
@@ -4282,7 +4360,7 @@ paths:
           description: ''
   /v1/medications/route-catalog/:
     get:
-      operationId: medications_route_catalog_retrieve
+      operationId: medications_route_catalog_list
       description: Base for the static reference catalogs in this app.
       tags:
       - medications
@@ -4291,7 +4369,13 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RouteCatalogEntry'
+          description: ''
   /v1/messaging/threads/:
     get:
       operationId: messaging_threads_list
@@ -4360,6 +4444,7 @@ paths:
         route, so we explicitly omit :class:`mixins.CreateModelMixin` and
         constrain ``http_method_names`` so the collection-level POST falls
         through to a 405 instead of being swallowed by an action route.
+      summary: Close a message thread
       parameters:
       - in: path
         name: id
@@ -4368,17 +4453,6 @@ paths:
         required: true
       tags:
       - messaging
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MessageThreadList'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/MessageThreadList'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/MessageThreadList'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -4401,6 +4475,7 @@ paths:
         route, so we explicitly omit :class:`mixins.CreateModelMixin` and
         constrain ``http_method_names`` so the collection-level POST falls
         through to a 405 instead of being swallowed by an action route.
+      summary: Reopen a message thread
       parameters:
       - in: path
         name: id
@@ -4409,17 +4484,6 @@ paths:
         required: true
       tags:
       - messaging
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MessageThreadList'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/MessageThreadList'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/MessageThreadList'
       security:
       - jwtAuth: []
       - cookieAuth: []
@@ -4442,6 +4506,7 @@ paths:
         route, so we explicitly omit :class:`mixins.CreateModelMixin` and
         constrain ``http_method_names`` so the collection-level POST falls
         through to a 405 instead of being swallowed by an action route.
+      summary: Reply to a message thread
       parameters:
       - in: path
         name: id
@@ -4454,22 +4519,23 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MessageThreadList'
+              $ref: '#/components/schemas/MessageReplyInput'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/MessageThreadList'
+              $ref: '#/components/schemas/MessageReplyInput'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/MessageThreadList'
+              $ref: '#/components/schemas/MessageReplyInput'
+        required: true
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageThreadList'
+                $ref: '#/components/schemas/Message'
           description: ''
   /v1/organizations/:
     get:
@@ -4633,6 +4699,23 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FacilityPharmacyPreferenceOverride'
+          description: ''
+  /v1/organizations/facility-pharmacy-overrides/directory/:
+    get:
+      operationId: organizations_facility_pharmacy_overrides_directory_list
+      tags:
+      - organizations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pharmacy'
           description: ''
   /v1/organizations/people/:
     get:
@@ -4823,6 +4906,23 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrganizationPharmacyPreferenceWrite'
           description: ''
+  /v1/organizations/pharmacies/directory/:
+    get:
+      operationId: organizations_pharmacies_directory_list
+      tags:
+      - organizations
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pharmacy'
+          description: ''
   /v1/organizations/roles/:
     get:
       operationId: organizations_roles_list
@@ -4972,7 +5072,7 @@ paths:
           description: No response body
   /v1/organizations/security/:
     get:
-      operationId: organizations_security_retrieve
+      operationId: organizations_security_list
       tags:
       - organizations
       security:
@@ -4980,18 +5080,39 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OrganizationSecurityRole'
+          description: ''
   /v1/organizations/security/update-role/:
     patch:
       operationId: organizations_security_update_role_partial_update
       tags:
       - organizations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationSecurity'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationSecurity'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrganizationSecurity'
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizationSecurityUpdateResult'
+          description: ''
   /v1/patients/:
     get:
       operationId: patients_list
@@ -5173,6 +5294,7 @@ paths:
 
         Picks the requested facility via the ``facility_id`` query parameter when
         present; otherwise falls back to the user's default staff profile.
+      summary: Reveal a patient's SSN
       parameters:
       - in: path
         name: id
@@ -5189,7 +5311,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Patient'
+                $ref: '#/components/schemas/PatientSsnReveal'
           description: ''
   /v1/patients/document-categories/:
     get:
@@ -5471,6 +5593,7 @@ paths:
 
         Picks the requested facility via the ``facility_id`` query parameter when
         present; otherwise falls back to the user's default staff profile.
+      summary: Download a patient document file
       parameters:
       - in: path
         name: id
@@ -5485,9 +5608,10 @@ paths:
       responses:
         '200':
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/PatientDocument'
+                type: string
+                format: binary
           description: ''
   /v1/patients/documents/{id}/view/:
     get:
@@ -5497,6 +5621,7 @@ paths:
 
         Picks the requested facility via the ``facility_id`` query parameter when
         present; otherwise falls back to the user's default staff profile.
+      summary: View a patient document file
       parameters:
       - in: path
         name: id
@@ -5511,9 +5636,10 @@ paths:
       responses:
         '200':
           content:
-            application/json:
+            application/octet-stream:
               schema:
-                $ref: '#/components/schemas/PatientDocument'
+                type: string
+                format: binary
           description: ''
   /v1/patients/documents/bundle/download/:
     post:
@@ -5523,19 +5649,20 @@ paths:
 
         Picks the requested facility via the ``facility_id`` query parameter when
         present; otherwise falls back to the user's default staff profile.
+      summary: Download a combined patient-document PDF
       tags:
       - patients
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatientDocument'
+              $ref: '#/components/schemas/PatientDocumentBundleRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatientDocument'
+              $ref: '#/components/schemas/PatientDocumentBundleRequest'
           application/json:
             schema:
-              $ref: '#/components/schemas/PatientDocument'
+              $ref: '#/components/schemas/PatientDocumentBundleRequest'
         required: true
       security:
       - jwtAuth: []
@@ -5543,9 +5670,10 @@ paths:
       responses:
         '200':
           content:
-            application/json:
+            application/pdf:
               schema:
-                $ref: '#/components/schemas/PatientDocument'
+                type: string
+                format: binary
           description: ''
   /v1/patients/documents/bundle/view/:
     post:
@@ -5555,19 +5683,20 @@ paths:
 
         Picks the requested facility via the ``facility_id`` query parameter when
         present; otherwise falls back to the user's default staff profile.
+      summary: View a combined patient-document PDF
       tags:
       - patients
       requestBody:
         content:
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatientDocument'
+              $ref: '#/components/schemas/PatientDocumentBundleRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatientDocument'
+              $ref: '#/components/schemas/PatientDocumentBundleRequest'
           application/json:
             schema:
-              $ref: '#/components/schemas/PatientDocument'
+              $ref: '#/components/schemas/PatientDocumentBundleRequest'
         required: true
       security:
       - jwtAuth: []
@@ -5575,9 +5704,10 @@ paths:
       responses:
         '200':
           content:
-            application/json:
+            application/pdf:
               schema:
-                $ref: '#/components/schemas/PatientDocument'
+                type: string
+                format: binary
           description: ''
   /v1/patients/pharmacies/:
     get:
@@ -5883,31 +6013,33 @@ paths:
         Issues a portal-surface token and writes the refresh cookie at the
         portal path, so the portal stops borrowing the clinician token
         endpoint (which set the clinic cookie path and a clinic-surface token).
+      summary: Sign in patient and set a refresh cookie
       tags:
       - portal
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PortalTokenObtainPair'
+              $ref: '#/components/schemas/CookieTokenLoginRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PortalTokenObtainPair'
+              $ref: '#/components/schemas/CookieTokenLoginRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PortalTokenObtainPair'
+              $ref: '#/components/schemas/CookieTokenLoginRequest'
         required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortalTokenObtainPair'
+                $ref: '#/components/schemas/AccessTokenResponse'
           description: ''
   /v1/portal/auth/logout/:
     post:
       operationId: portal_auth_logout_create
       description: Revoke and clear the portal-scoped refresh cookie.
+      summary: Sign out patient
       tags:
       - portal
       security:
@@ -5915,7 +6047,7 @@ paths:
       - cookieAuth: []
       - {}
       responses:
-        '200':
+        '204':
           description: No response body
   /v1/portal/auth/refresh/:
     post:
@@ -5928,26 +6060,26 @@ paths:
         browser keeps clinic and portal sessions isolated even on a shared host.
         The serializer also rejects a refresh token minted for the clinician
         surface, so a clinic token can't be replayed here to mint portal access.
+      summary: Refresh patient access token
       tags:
       - portal
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PortalTokenRefresh'
+              $ref: '#/components/schemas/CookieTokenRefreshRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PortalTokenRefresh'
+              $ref: '#/components/schemas/CookieTokenRefreshRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PortalTokenRefresh'
-        required: true
+              $ref: '#/components/schemas/CookieTokenRefreshRequest'
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortalTokenRefresh'
+                $ref: '#/components/schemas/AccessTokenResponse'
           description: ''
   /v1/portal/demo-login/:
     post:
@@ -5968,7 +6100,11 @@ paths:
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortalDemoLoginResponse'
+          description: ''
         '403':
           description: No response body
         '500':
@@ -6053,7 +6189,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PortalPreferredPharmacyUpdate'
+                $ref: '#/components/schemas/PortalPreferredPharmacyResponse'
           description: ''
   /v1/portal/medical-summary/:
     get:
@@ -6153,7 +6289,7 @@ paths:
       - jwtAuth: []
       - cookieAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -6227,7 +6363,7 @@ paths:
       - jwtAuth: []
       - cookieAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -6310,7 +6446,7 @@ paths:
       - jwtAuth: []
       - cookieAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -6392,7 +6528,7 @@ paths:
       - jwtAuth: []
       - cookieAuth: []
       responses:
-        '200':
+        '201':
           content:
             application/json:
               schema:
@@ -6448,6 +6584,7 @@ paths:
   /v1/users/demo-login/:
     post:
       operationId: users_demo_login_create
+      summary: Sign in as the seeded clinician demo user
       tags:
       - users
       security:
@@ -6456,10 +6593,19 @@ paths:
       - {}
       responses:
         '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemoLoginResponse'
+          description: ''
+        '403':
+          description: No response body
+        '500':
           description: No response body
   /v1/users/logout/:
     post:
       operationId: users_logout_create
+      summary: Sign out clinician
       tags:
       - users
       security:
@@ -6467,11 +6613,12 @@ paths:
       - cookieAuth: []
       - {}
       responses:
-        '200':
+        '204':
           description: No response body
   /v1/users/me/:
     get:
       operationId: users_me_retrieve
+      summary: Authenticated clinician profile
       tags:
       - users
       security:
@@ -6479,29 +6626,70 @@ paths:
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+          description: ''
   /v1/users/me/preferences/:
     patch:
       operationId: users_me_preferences_partial_update
+      summary: Update clinician preferences
       tags:
       - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserPreference'
       security:
       - jwtAuth: []
       - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreference'
+          description: ''
   /v1/users/register/:
     post:
       operationId: users_register_create
+      summary: Register clinician user
       tags:
       - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
       security:
       - jwtAuth: []
       - cookieAuth: []
       - {}
       responses:
-        '200':
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+          description: ''
+        '400':
+          description: No response body
+        '403':
           description: No response body
   /v1/users/token/:
     post:
@@ -6509,26 +6697,27 @@ paths:
       description: |-
         Takes a set of user credentials and returns an access and refresh JSON web
         token pair to prove the authentication of those credentials.
+      summary: Sign in clinician and set a refresh cookie
       tags:
       - users
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClinicTokenObtainPair'
+              $ref: '#/components/schemas/CookieTokenLoginRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ClinicTokenObtainPair'
+              $ref: '#/components/schemas/CookieTokenLoginRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ClinicTokenObtainPair'
+              $ref: '#/components/schemas/CookieTokenLoginRequest'
         required: true
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClinicTokenObtainPair'
+                $ref: '#/components/schemas/AccessTokenResponse'
           description: ''
   /v1/users/token/refresh/:
     post:
@@ -6536,29 +6725,38 @@ paths:
       description: |-
         Takes a refresh type JSON web token and returns an access type JSON web
         token if the refresh token is valid.
+      summary: Refresh clinician access token
       tags:
       - users
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ClinicTokenRefresh'
+              $ref: '#/components/schemas/CookieTokenRefreshRequest'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/ClinicTokenRefresh'
+              $ref: '#/components/schemas/CookieTokenRefreshRequest'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ClinicTokenRefresh'
-        required: true
+              $ref: '#/components/schemas/CookieTokenRefreshRequest'
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ClinicTokenRefresh'
+                $ref: '#/components/schemas/AccessTokenResponse'
           description: ''
 components:
   schemas:
+    AccessTokenResponse:
+      type: object
+      description: JSON payload returned after refresh cookies are removed from a
+        response.
+      properties:
+        access:
+          type: string
+      required:
+      - access
     ActionEnum:
       enum:
       - create
@@ -6603,6 +6801,17 @@ components:
       - line_1
       - state
       - zip_code
+    AllergenCatalogEntry:
+      type: object
+      description: One suggested allergen for an allergy-entry workflow.
+      properties:
+        label:
+          type: string
+        category:
+          type: string
+      required:
+      - category
+      - label
     Appointment:
       type: object
       properties:
@@ -6661,7 +6870,7 @@ components:
           type: string
           nullable: true
         duration_minutes:
-          type: string
+          type: integer
           readOnly: true
         room:
           type: string
@@ -6937,6 +7146,25 @@ components:
       - provider
       - provider_display_name
       - start_time
+    CPTCatalogEntry:
+      type: object
+      description: One predefined billing code used to seed a fee schedule.
+      properties:
+        service_code:
+          type: string
+        description:
+          type: string
+        charge_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        category:
+          type: string
+      required:
+      - category
+      - charge_amount
+      - description
+      - service_code
     CancelEligibility:
       type: object
       properties:
@@ -7020,32 +7248,26 @@ components:
         * `latex` - Latex
         * `contrast` - Contrast
         * `other` - Other
-    ClinicTokenObtainPair:
+    CookieTokenLoginRequest:
       type: object
-      description: Username/password login for the clinician app.
+      description: Credentials accepted by the cookie-backed token-login endpoints.
       properties:
         username:
           type: string
-          writeOnly: true
         password:
           type: string
           writeOnly: true
       required:
       - password
       - username
-    ClinicTokenRefresh:
+    CookieTokenRefreshRequest:
       type: object
-      description: Reject a refresh token whose ``surface`` claim doesn't match the
-        view.
+      description: Optional body override for the refresh token stored in an HttpOnly
+        cookie.
       properties:
         refresh:
           type: string
-        access:
-          type: string
-          readOnly: true
-      required:
-      - access
-      - refresh
+          writeOnly: true
     CoverageOrderEnum:
       enum:
       - primary
@@ -7058,6 +7280,74 @@ components:
         * `secondary` - Secondary
         * `tertiary` - Tertiary
         * `other` - Other
+    CurrentUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        last_name:
+          type: string
+          maxLength: 150
+        first_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 15
+        organization:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        organization_role:
+          type: string
+          nullable: true
+          readOnly: true
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/StaffMembership'
+          readOnly: true
+        current_membership:
+          allOf:
+          - $ref: '#/components/schemas/StaffMembership'
+          nullable: true
+          readOnly: true
+        is_org_admin:
+          type: boolean
+          readOnly: true
+        admin_facility_ids:
+          type: array
+          items:
+            type: integer
+          readOnly: true
+        preferences:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+      required:
+      - admin_facility_ids
+      - current_membership
+      - email
+      - id
+      - is_org_admin
+      - memberships
+      - organization
+      - organization_role
+      - preferences
+      - username
     DaysSupply86fEnum:
       enum:
       - 30
@@ -7068,6 +7358,30 @@ components:
         * `30` - 30 days
         * `60` - 60 days
         * `90` - 90 days
+    DemoLoginResponse:
+      type: object
+      description: Access token and clinician context returned by demo sign-in.
+      properties:
+        access:
+          type: string
+        is_demo:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/CurrentUser'
+      required:
+      - access
+      - is_demo
+      - user
+    DirectoryRecordSourceEnum:
+      enum:
+      - custom
+      - imported
+      - directory
+      type: string
+      description: |-
+        * `custom` - Custom
+        * `imported` - Imported
+        * `directory` - Directory
     DirectoryStatusEnum:
       enum:
       - active
@@ -7248,7 +7562,7 @@ components:
           type: string
           readOnly: true
         is_effectively_billable:
-          type: string
+          type: boolean
           readOnly: true
       required:
       - appointment_time
@@ -7539,6 +7853,13 @@ components:
       - organization
       - organization_name
       - timezone
+    FacilityFeeScheduleCopyRequest:
+      type: object
+      properties:
+        source_schedule_id:
+          type: integer
+      required:
+      - source_schedule_id
     FacilityFeeScheduleOverride:
       type: object
       description: |-
@@ -7801,15 +8122,81 @@ components:
       - linked_staff
       - linked_staff_name
       - name
+    FeeScheduleLinkedEntities:
+      type: object
+      properties:
+        facilities:
+          type: array
+          items:
+            type: string
+        staff:
+          type: array
+          items:
+            type: string
+        payers:
+          type: array
+          items:
+            type: string
+      required:
+      - facilities
+      - payers
+      - staff
+    FrequencyCatalogEntry:
+      type: object
+      description: One standardized medication frequency and daily-dose hint.
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+        times_per_day:
+          type: integer
+          nullable: true
+      required:
+      - code
+      - label
+      - times_per_day
+    ICD10CatalogEntry:
+      type: object
+      description: One suggested diagnosis code for clinical documentation.
+      properties:
+        code:
+          type: string
+        description:
+          type: string
+        chapter:
+          type: string
+      required:
+      - chapter
+      - code
+      - description
     InsuranceCarrier:
       type: object
       properties:
         id:
           type: integer
           readOnly: true
+        ownership_scope:
+          type: string
+          readOnly: true
         name:
           type: string
           maxLength: 150
+        source:
+          allOf:
+          - $ref: '#/components/schemas/DirectoryRecordSourceEnum'
+          readOnly: true
+        external_id:
+          type: string
+          readOnly: true
+        directory_source:
+          type: string
+          readOnly: true
+        last_directory_sync_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
         payer_id:
           type: string
           maxLength: 50
@@ -7843,8 +8230,13 @@ components:
           readOnly: true
       required:
       - created_at
+      - directory_source
+      - external_id
       - id
+      - last_directory_sync_at
       - name
+      - ownership_scope
+      - source
     LabelEnum:
       enum:
       - cell
@@ -7953,6 +8345,76 @@ components:
       - updated_at
       - updated_by
       - updated_by_name
+    MedicationCatalogEntry:
+      type: object
+      description: One suggested medication and its common prescribing defaults.
+      properties:
+        generic_name:
+          type: string
+        common_strengths:
+          type: array
+          items:
+            type: string
+        default_route:
+          type: string
+        default_frequency:
+          type: string
+        category:
+          type: string
+      required:
+      - category
+      - common_strengths
+      - default_frequency
+      - default_route
+      - generic_name
+    Message:
+      type: object
+      description: |-
+        Read shape for a single message inside a thread detail payload.
+
+        Mirrors the portal message serializer's field list so the clinician
+        UI doesn't accidentally receive a different shape: ``sender_user``
+        is omitted on purpose — only ``sender_display_name`` and
+        ``sender_kind`` cross the wire.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        sender_kind:
+          allOf:
+          - $ref: '#/components/schemas/SenderKindEnum'
+          readOnly: true
+        sender_display_name:
+          type: string
+          readOnly: true
+        body:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - body
+      - created_at
+      - id
+      - sender_display_name
+      - sender_kind
+    MessageReplyInput:
+      type: object
+      description: |-
+        Write shape for ``POST /v1/messaging/threads/<id>/reply/``.
+
+        Mirrors ``RefillRequestActionSerializer``: action input is its own
+        tiny serializer separate from the read shape. Body cap matches the
+        portal serializer so clinician replies and patient replies share
+        one limit.
+      properties:
+        body:
+          type: string
+          maxLength: 4000
+      required:
+      - body
     MessageThreadDetail:
       type: object
       description: |-
@@ -8206,10 +8668,11 @@ components:
           maximum: 32767
           minimum: 0
         item_count:
-          type: string
+          type: integer
           readOnly: true
         linked_entities:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/FeeScheduleLinkedEntities'
           readOnly: true
         created_by:
           type: integer
@@ -8561,6 +9024,53 @@ components:
       - is_deletable
       - is_system_role
       - name
+    OrganizationSecurityRole:
+      type: object
+      description: One organization role and its effective security permissions.
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        label:
+          type: string
+        is_system_role:
+          type: boolean
+        is_deletable:
+          type: boolean
+        description:
+          type: string
+        security_permissions:
+          type: object
+          additionalProperties:
+            type: boolean
+        member_count:
+          type: integer
+      required:
+      - description
+      - id
+      - is_deletable
+      - is_system_role
+      - key
+      - label
+      - member_count
+      - security_permissions
+    OrganizationSecurityUpdateResult:
+      type: object
+      description: Result returned after updating one organization role's permissions.
+      properties:
+        role:
+          type: string
+        security_permissions:
+          type: object
+          additionalProperties:
+            type: boolean
+        members_updated:
+          type: integer
+      required:
+      - members_updated
+      - role
+      - security_permissions
     PatchedAppointment:
       type: object
       properties:
@@ -8619,7 +9129,7 @@ components:
           type: string
           nullable: true
         duration_minutes:
-          type: string
+          type: integer
           readOnly: true
         room:
           type: string
@@ -8861,7 +9371,7 @@ components:
           type: string
           readOnly: true
         is_effectively_billable:
-          type: string
+          type: boolean
           readOnly: true
     PatchedEncounterBillingRecord:
       type: object
@@ -9396,10 +9906,11 @@ components:
           maximum: 32767
           minimum: 0
         item_count:
-          type: string
+          type: integer
           readOnly: true
         linked_entities:
-          type: string
+          allOf:
+          - $ref: '#/components/schemas/FeeScheduleLinkedEntities'
           readOnly: true
         created_by:
           type: integer
@@ -9601,6 +10112,16 @@ components:
           readOnly: true
         is_active:
           type: boolean
+    PatchedOrganizationSecurity:
+      type: object
+      properties:
+        role:
+          type: string
+          maxLength: 50
+        security_permissions:
+          type: object
+          additionalProperties:
+            type: boolean
     PatchedPatient:
       type: object
       properties:
@@ -9679,10 +10200,14 @@ components:
           items:
             $ref: '#/components/schemas/PatientEmergencyContact'
         patient_documents:
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientDocument'
           readOnly: true
         documents:
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientDocument'
           readOnly: true
         ssn:
           type: string
@@ -10037,7 +10562,7 @@ components:
         insurance_policies:
           type: array
           items:
-            type: integer
+            $ref: '#/components/schemas/PortalInsurancePolicy'
           readOnly: true
     PatchedPortalPreferredPharmacyUpdate:
       type: object
@@ -10219,7 +10744,7 @@ components:
         is_default:
           type: boolean
         can_render_claims:
-          type: string
+          type: boolean
           readOnly: true
         resource_default_room:
           type: string
@@ -10234,7 +10759,9 @@ components:
           readOnly: true
         security_overrides: {}
         effective_security_permissions:
-          type: string
+          type: object
+          additionalProperties:
+            type: boolean
           readOnly: true
         online_scheduling_enabled:
           type: boolean
@@ -10290,6 +10817,10 @@ components:
         is_deletable:
           type: boolean
           readOnly: true
+    PatchedUserPreference:
+      type: object
+      properties:
+        preferences: {}
     PatchedVitals:
       type: object
       description: |-
@@ -10449,10 +10980,14 @@ components:
           items:
             $ref: '#/components/schemas/PatientEmergencyContact'
         patient_documents:
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientDocument'
           readOnly: true
         documents:
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/PatientDocument'
           readOnly: true
         ssn:
           type: string
@@ -10669,6 +11204,16 @@ components:
       - title
       - uploaded_at
       - uploaded_by_name
+    PatientDocumentBundleRequest:
+      type: object
+      properties:
+        document_ids:
+          type: array
+          items:
+            type: integer
+          minItems: 1
+      required:
+      - document_ids
     PatientDocumentCategory:
       type: object
       properties:
@@ -10893,11 +11438,21 @@ components:
       required:
       - id
       - number
+    PatientSsnReveal:
+      type: object
+      properties:
+        ssn:
+          type: string
+      required:
+      - ssn
     Pharmacy:
       type: object
       properties:
         id:
           type: integer
+          readOnly: true
+        ownership_scope:
+          type: string
           readOnly: true
         name:
           type: string
@@ -10906,10 +11461,12 @@ components:
           type: string
           maxLength: 255
         source:
-          $ref: '#/components/schemas/PharmacySourceEnum'
+          allOf:
+          - $ref: '#/components/schemas/DirectoryRecordSourceEnum'
+          readOnly: true
         external_id:
           type: string
-          maxLength: 100
+          readOnly: true
         ncpdp_id:
           type: string
           nullable: true
@@ -10940,7 +11497,7 @@ components:
         languages: {}
         directory_source:
           type: string
-          maxLength: 50
+          readOnly: true
         directory_status:
           $ref: '#/components/schemas/DirectoryStatusEnum'
         last_directory_sync_at:
@@ -10971,19 +11528,13 @@ components:
           readOnly: true
       required:
       - created_at
+      - directory_source
+      - external_id
       - id
       - name
+      - ownership_scope
+      - source
       - updated_at
-    PharmacySourceEnum:
-      enum:
-      - custom
-      - imported
-      - directory
-      type: string
-      description: |-
-        * `custom` - Custom
-        * `imported` - Imported
-        * `directory` - Directory
     PortalAllergy:
       type: object
       description: |-
@@ -11183,6 +11734,17 @@ components:
       required:
       - can_cancel
       - cutoff_hours
+    PortalDemoLoginResponse:
+      type: object
+      description: Access token returned by patient portal demo sign-in.
+      properties:
+        access:
+          type: string
+        is_demo:
+          type: boolean
+      required:
+      - access
+      - is_demo
     PortalEmergencyContact:
       type: object
       description: Emergency contact snippet for the patient portal.
@@ -11235,6 +11797,45 @@ components:
       - reason
       - started_at
       - vitals
+    PortalInsurancePolicy:
+      type: object
+      description: One active insurance policy exposed in the patient portal profile.
+      properties:
+        id:
+          type: integer
+        carrier_name:
+          type: string
+        plan_name:
+          type: string
+        member_id:
+          type: string
+        group_number:
+          type: string
+        subscriber_name:
+          type: string
+        relationship_to_subscriber:
+          type: string
+        effective_date:
+          type: string
+          format: date
+          nullable: true
+        termination_date:
+          type: string
+          format: date
+          nullable: true
+        is_primary:
+          type: boolean
+      required:
+      - carrier_name
+      - effective_date
+      - group_number
+      - id
+      - is_primary
+      - member_id
+      - plan_name
+      - relationship_to_subscriber
+      - subscriber_name
+      - termination_date
     PortalMedicalSummary:
       type: object
       properties:
@@ -11467,7 +12068,9 @@ components:
           type: boolean
           readOnly: true
         messages:
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/PortalMessage'
           readOnly: true
       required:
       - id
@@ -11585,7 +12188,7 @@ components:
         insurance_policies:
           type: array
           items:
-            type: integer
+            $ref: '#/components/schemas/PortalInsurancePolicy'
           readOnly: true
       required:
       - date_of_birth
@@ -11632,20 +12235,18 @@ components:
       - phone_number
       - state
       - zip
-    PortalPreferredPharmacyUpdate:
+    PortalPreferredPharmacyResponse:
       type: object
-      description: |-
-        Body for ``PATCH /v1/portal/me/preferred-pharmacy/``.
-
-        Shape-only — the view resolves and authorizes the pharmacy so that
-        cross-facility selection can return 403 rather than a 400 body
-        validation error.
+      description: Preferred-pharmacy state returned after a portal update.
       properties:
         pharmacy_id:
           type: integer
           nullable: true
+        pharmacy_name:
+          type: string
       required:
       - pharmacy_id
+      - pharmacy_name
     PortalProgressNote:
       type: object
       properties:
@@ -11825,44 +12426,13 @@ components:
           format: date-time
           readOnly: true
         auto_confirms:
-          type: string
+          type: boolean
           readOnly: true
       required:
       - auto_confirms
       - end_time
       - id
       - start_time
-    PortalTokenObtainPair:
-      type: object
-      description: |-
-        Username/password login for the patient portal.
-
-        Tags the token with the portal surface and rejects users without an
-        active portal account, so a clinician credential cannot mint a portal
-        session even if it reaches this endpoint.
-      properties:
-        username:
-          type: string
-          writeOnly: true
-        password:
-          type: string
-          writeOnly: true
-      required:
-      - password
-      - username
-    PortalTokenRefresh:
-      type: object
-      description: Reject a refresh token whose ``surface`` claim doesn't match the
-        view.
-      properties:
-        refresh:
-          type: string
-        access:
-          type: string
-          readOnly: true
-      required:
-      - access
-      - refresh
     PortalVitals:
       type: object
       properties:
@@ -12052,6 +12622,17 @@ components:
         * `white` - White
         * `other` - Other
         * `unknown` - Unknown
+    ReactionCatalogEntry:
+      type: object
+      description: One suggested reaction and its initial severity.
+      properties:
+        label:
+          type: string
+        default_severity:
+          type: string
+      required:
+      - default_severity
+      - label
     RefillRequest:
       type: object
       description: |-
@@ -12176,6 +12757,36 @@ components:
       description: |-
         * `patient` - Patient
         * `pharmacy` - Pharmacy
+    Register:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        phone_number:
+          type: string
+          nullable: true
+          maxLength: 15
+      required:
+      - email
+      - password
+      - username
     RelationshipToSubscriberEnum:
       enum:
       - self
@@ -12190,6 +12801,17 @@ components:
         * `child` - Child
         * `parent` - Parent
         * `other` - Other
+    RouteCatalogEntry:
+      type: object
+      description: One standardized medication administration route.
+      properties:
+        code:
+          type: string
+        label:
+          type: string
+      required:
+      - code
+      - label
     SenderKindEnum:
       enum:
       - patient
@@ -12363,7 +12985,7 @@ components:
         is_default:
           type: boolean
         can_render_claims:
-          type: string
+          type: boolean
           readOnly: true
         resource_default_room:
           type: string
@@ -12378,7 +13000,9 @@ components:
           readOnly: true
         security_overrides: {}
         effective_security_permissions:
-          type: string
+          type: object
+          additionalProperties:
+            type: boolean
           readOnly: true
         online_scheduling_enabled:
           type: boolean
@@ -12410,6 +13034,44 @@ components:
       - title_name
       - user
       - user_id
+    StaffMembership:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        facility:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        role:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        title:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        is_active:
+          type: boolean
+        is_default:
+          type: boolean
+        effective_security_permissions:
+          type: object
+          additionalProperties:
+            type: boolean
+          readOnly: true
+        can_eprescribe:
+          type: boolean
+          readOnly: true
+      required:
+      - can_eprescribe
+      - effective_security_permissions
+      - facility
+      - id
+      - role
+      - title
     StaffRole:
       type: object
       properties:
@@ -12559,6 +13221,10 @@ components:
       - email
       - id
       - username
+    UserPreference:
+      type: object
+      properties:
+        preferences: {}
     Vitals:
       type: object
       description: |-

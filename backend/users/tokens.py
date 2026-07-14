@@ -7,13 +7,17 @@ from being replayed against the other surface's refresh endpoint, every token
 carries a ``surface`` claim and the refresh endpoints reject a mismatch.
 """
 
+from django.contrib.auth import get_user_model
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import (
     TokenObtainPairSerializer,
     TokenRefreshSerializer,
 )
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from .identity import has_active_clinic_identity, has_active_portal_identity
 
 SURFACE_CLAIM = "surface"
 CLINIC_SURFACE = "clinic"
@@ -31,6 +35,22 @@ def issue_refresh_for_user(user, surface):
     return refresh
 
 
+def _token_has_active_identity(token, surface):
+    user_id = token.get(api_settings.USER_ID_CLAIM)
+    if user_id is None:
+        return False
+
+    User = get_user_model()
+    try:
+        user = User.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+    except User.DoesNotExist:
+        return False
+
+    if surface == PORTAL_SURFACE:
+        return has_active_portal_identity(user)
+    return has_active_clinic_identity(user)
+
+
 class ClinicTokenObtainPairSerializer(TokenObtainPairSerializer):
     """Username/password login for the clinician app."""
 
@@ -39,6 +59,14 @@ class ClinicTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
         token[SURFACE_CLAIM] = CLINIC_SURFACE
         return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if not has_active_clinic_identity(self.user):
+            raise AuthenticationFailed(
+                "This account doesn't have active clinician access."
+            )
+        return data
 
 
 class PortalTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -57,11 +85,7 @@ class PortalTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        from users.portal import PatientPortalAccount
-
-        if not PatientPortalAccount.objects.filter(
-            user=self.user, is_active=True
-        ).exists():
+        if not has_active_portal_identity(self.user):
             raise AuthenticationFailed(
                 "This account doesn't have patient portal access."
             )
@@ -81,6 +105,9 @@ class _SurfaceTokenRefreshSerializer(TokenRefreshSerializer):
 
         if token.get(SURFACE_CLAIM) != self.expected_surface:
             raise InvalidToken("Refresh token is not valid for this surface.")
+
+        if not _token_has_active_identity(token, self.expected_surface):
+            raise InvalidToken("Account access is no longer active.")
 
         return super().validate(attrs)
 

@@ -1,6 +1,10 @@
 from django.db import IntegrityError
+from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.response import Response
 
 from audit.services import record_audit_event
 from facilities.access import get_facility_for_user
@@ -121,6 +125,26 @@ class OrganizationInsuranceCarrierPreferenceViewSet(
             },
         )
 
+    @extend_schema(responses=InsuranceCarrierSerializer(many=True))
+    @action(detail=False, methods=["get"])
+    def directory(self, request):
+        organization = _require_org_catalog_admin(request.user)
+        queryset = InsuranceCarrier.objects.filter(
+            owning_organization__isnull=True,
+            owning_facility__isnull=True,
+            is_active=True,
+        )
+        search = (request.query_params.get("search") or "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(payer_id__icontains=search)
+            )
+        linked_ids = OrganizationInsuranceCarrierPreference.objects.filter(
+            organization=organization
+        ).values_list("carrier_id", flat=True)
+        queryset = queryset.exclude(id__in=linked_ids).order_by("name")
+        return Response(InsuranceCarrierSerializer(queryset, many=True).data)
+
 
 class FacilityInsuranceCarrierOverrideViewSet(
     mixins.ListModelMixin,
@@ -206,6 +230,33 @@ class FacilityInsuranceCarrierOverrideViewSet(
                 "is_hidden": override.is_hidden,
             },
         )
+
+    @extend_schema(responses=InsuranceCarrierSerializer(many=True))
+    @action(detail=False, methods=["get"])
+    def directory(self, request):
+        facility = self.get_facility()
+        queryset = InsuranceCarrier.objects.filter(
+            owning_organization__isnull=True,
+            owning_facility__isnull=True,
+            is_active=True,
+        )
+        search = (request.query_params.get("search") or "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) | Q(payer_id__icontains=search)
+            )
+        linked_ids = FacilityInsuranceCarrierOverride.objects.filter(
+            facility=facility,
+            carrier_id__isnull=False,
+        ).values_list("carrier_id", flat=True)
+        organization_linked_ids = OrganizationInsuranceCarrierPreference.objects.filter(
+            organization=facility.organization
+        ).values_list("carrier_id", flat=True)
+        queryset = queryset.exclude(id__in=linked_ids).exclude(
+            id__in=organization_linked_ids
+        )
+        queryset = queryset.order_by("name")
+        return Response(InsuranceCarrierSerializer(queryset, many=True).data)
 
 
 class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):

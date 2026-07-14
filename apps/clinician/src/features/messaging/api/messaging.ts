@@ -40,6 +40,7 @@ type UseMessageThreadsParams = {
   patientId?: ApiParamValue;
   search?: string;
   enabled?: boolean;
+  refetchInterval?: number | false;
 };
 
 function getMessageThreadsQueryKey({
@@ -65,8 +66,11 @@ function getMessageThreadsQueryKey({
   ] as const;
 }
 
-export function getMessageThreadQueryKey(threadId: EntityId) {
-  return ["messaging", "thread", threadId] as const;
+export function getMessageThreadQueryKey(
+  facilityId: EntityId | null | undefined,
+  threadId: EntityId
+) {
+  return ["messaging", "thread", facilityId || null, threadId] as const;
 }
 
 export function useMessageThreads({
@@ -75,6 +79,7 @@ export function useMessageThreads({
   patientId,
   search,
   enabled = true,
+  refetchInterval = false,
 }: UseMessageThreadsParams) {
   return useQuery<MessageThreadSummary[]>({
     queryKey: getMessageThreadsQueryKey({
@@ -93,6 +98,7 @@ export function useMessageThreads({
         },
       })) ?? [],
     enabled: enabled && !!facilityId,
+    refetchInterval,
   });
 }
 
@@ -107,8 +113,8 @@ export function useMessageThread({
 }: UseMessageThreadParams) {
   return useQuery<MessageThreadDetail | null>({
     queryKey: threadId
-      ? getMessageThreadQueryKey(threadId)
-      : ["messaging", "thread", "none"],
+      ? getMessageThreadQueryKey(facilityId, threadId)
+      : ["messaging", "thread", facilityId || null, "none"],
     enabled: threadId !== null && threadId !== undefined && !!facilityId,
     queryFn: async () => {
       if (threadId === null || threadId === undefined) return null;
@@ -131,11 +137,12 @@ type ReplyMutationVariables = ThreadMutationVariables & {
 };
 
 function buildThreadInvalidator(
-  queryClient: ReturnType<typeof useQueryClient>
+  queryClient: ReturnType<typeof useQueryClient>,
+  facilityId: EntityId | null | undefined
 ) {
   return (threadId: EntityId) => {
     queryClient.invalidateQueries({
-      queryKey: getMessageThreadQueryKey(threadId),
+      queryKey: getMessageThreadQueryKey(facilityId, threadId),
     });
     queryClient.invalidateQueries({
       queryKey: ["messaging", "threads"],
@@ -147,7 +154,7 @@ export function useReplyToThread({
   facilityId,
 }: { facilityId?: EntityId | null } = {}) {
   const queryClient = useQueryClient();
-  const invalidate = buildThreadInvalidator(queryClient);
+  const invalidate = buildThreadInvalidator(queryClient, facilityId);
 
   return useMutation<MessageItem | null, Error, ReplyMutationVariables>({
     mutationFn: ({ threadId, values }) =>
@@ -164,7 +171,7 @@ export function useCloseThread({
   facilityId,
 }: { facilityId?: EntityId | null } = {}) {
   const queryClient = useQueryClient();
-  const invalidate = buildThreadInvalidator(queryClient);
+  const invalidate = buildThreadInvalidator(queryClient, facilityId);
 
   return useMutation<
     MessageThreadSummary | null,
@@ -188,7 +195,7 @@ export function useReopenThread({
   facilityId,
 }: { facilityId?: EntityId | null } = {}) {
   const queryClient = useQueryClient();
-  const invalidate = buildThreadInvalidator(queryClient);
+  const invalidate = buildThreadInvalidator(queryClient, facilityId);
 
   return useMutation<
     MessageThreadSummary | null,

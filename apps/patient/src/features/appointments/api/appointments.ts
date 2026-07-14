@@ -22,20 +22,30 @@ export type PortalAppointment = {
   };
 };
 
-export function useUpcomingAppointments() {
+type AppointmentQueryOptions = {
+  enabled?: boolean;
+};
+
+export function useUpcomingAppointments({
+  enabled = true,
+}: AppointmentQueryOptions = {}) {
   return useQuery<PortalAppointment[]>({
     queryKey: ["portal", "appointments", "upcoming"],
     queryFn: async () =>
       (await apiRequest<PortalAppointment[]>("/portal/appointments/")) ?? [],
+    enabled,
   });
 }
 
-export function usePastAppointments() {
+export function usePastAppointments({
+  enabled = true,
+}: AppointmentQueryOptions = {}) {
   return useQuery<PortalAppointment[]>({
     queryKey: ["portal", "appointments", "past"],
     queryFn: async () =>
       (await apiRequest<PortalAppointment[]>(
         "/portal/appointments/?past=true"
       )) ?? [],
+    enabled,
   });
 }

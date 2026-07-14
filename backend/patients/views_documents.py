@@ -1,5 +1,6 @@
 from django.http import FileResponse, Http404, HttpResponseRedirect
-from rest_framework import permissions, status, viewsets
+from drf_spectacular.utils import OpenApiTypes, extend_schema, inline_serializer
+from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
@@ -22,6 +23,18 @@ from .models import (
     ensure_default_document_categories,
 )
 from .serializers import PatientDocumentCategorySerializer, PatientDocumentSerializer
+
+DOCUMENT_BUNDLE_REQUEST = inline_serializer(
+    name="PatientDocumentBundleRequest",
+    fields={
+        "document_ids": serializers.ListField(
+            child=serializers.IntegerField(),
+            min_length=1,
+        )
+    },
+)
+DOCUMENT_FILE_RESPONSE = {(200, "application/octet-stream"): OpenApiTypes.BINARY}
+DOCUMENT_PDF_RESPONSE = {(200, "application/pdf"): OpenApiTypes.BINARY}
 
 
 def format_file_size(size):
@@ -241,18 +254,38 @@ class PatientDocumentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
                 },
             )
 
+    @extend_schema(
+        request=None,
+        responses=DOCUMENT_FILE_RESPONSE,
+        summary="View a patient document file",
+    )
     @action(detail=True, methods=["get"])
     def view(self, request, pk=None):
         return self._file_response(as_attachment=False)
 
+    @extend_schema(
+        request=None,
+        responses=DOCUMENT_FILE_RESPONSE,
+        summary="Download a patient document file",
+    )
     @action(detail=True, methods=["get"])
     def download(self, request, pk=None):
         return self._file_response(as_attachment=True)
 
+    @extend_schema(
+        request=DOCUMENT_BUNDLE_REQUEST,
+        responses=DOCUMENT_PDF_RESPONSE,
+        summary="View a combined patient-document PDF",
+    )
     @action(detail=False, methods=["post"], url_path="bundle/view")
     def bundle_view(self, request):
         return self._bundle_response(as_attachment=False)
 
+    @extend_schema(
+        request=DOCUMENT_BUNDLE_REQUEST,
+        responses=DOCUMENT_PDF_RESPONSE,
+        summary="Download a combined patient-document PDF",
+    )
     @action(detail=False, methods=["post"], url_path="bundle/download")
     def bundle_download(self, request):
         return self._bundle_response(as_attachment=True)
@@ -350,6 +383,12 @@ class PatientDocumentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
 
         if len(ordered_documents) != len(normalized_ids):
             raise PermissionDenied("One or more documents are unavailable.")
+
+        if len({document.patient_id for document in ordered_documents}) != 1:
+            return Response(
+                {"document_ids": "Documents in a bundle must belong to one patient."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             pdf = build_combined_pdf(

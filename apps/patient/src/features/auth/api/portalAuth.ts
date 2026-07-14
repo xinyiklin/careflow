@@ -55,10 +55,9 @@ export type PortalPatient = {
 
 /**
  * Drift guard: every field {@link PortalPatient} reads must still exist in the
- * backend `PortalPatient` schema. Note `insurance_policies` intentionally
- * diverges in *value* type — the schema serializes it as a PK list (`number[]`)
- * while the portal expects expanded objects; key-coverage tolerates that, so
- * this only fires if a field name is renamed or removed upstream.
+ * backend `PortalPatient` schema. Key coverage keeps this hand-authored portal
+ * type aligned with generated API contracts without coupling UI code to every
+ * generated nested type.
  */
 type _AssertPortalPatientKeys = AssertSchemaKeys<
   components["schemas"]["PortalPatient"],
@@ -72,7 +71,6 @@ export type PortalLoginCredentials = {
 
 export type PortalAuthTokenResponse = {
   access?: string | null;
-  refresh?: string | null;
   is_demo?: boolean;
 };
 

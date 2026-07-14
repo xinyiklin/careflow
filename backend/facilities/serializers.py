@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from shared.serializers import AddressSerializer
@@ -150,6 +151,7 @@ class StaffSerializer(serializers.ModelSerializer):
 
         return " ".join(part for part in [title_name, base_name] if part).strip()
 
+    @extend_schema_field(serializers.BooleanField())
     def get_can_render_claims(self, obj):
         role_code = (getattr(obj.role, "code", "") or "").strip().lower()
         title_code = (getattr(obj.title, "code", "") or "").strip().lower()
@@ -163,6 +165,7 @@ class StaffSerializer(serializers.ModelSerializer):
             "crna",
         }
 
+    @extend_schema_field(serializers.DictField(child=serializers.BooleanField()))
     def get_effective_security_permissions(self, obj):
         return obj.effective_security_permissions
 
@@ -179,6 +182,9 @@ class StaffSerializer(serializers.ModelSerializer):
         role = attrs.get("role", getattr(self.instance, "role", None))
         title = attrs.get("title", getattr(self.instance, "title", None))
         user = attrs.get("user", getattr(self.instance, "user", None))
+        fee_schedule = attrs.get(
+            "fee_schedule", getattr(self.instance, "fee_schedule", None)
+        )
 
         if role and role.facility_id != facility.id:
             raise serializers.ValidationError(
@@ -188,6 +194,11 @@ class StaffSerializer(serializers.ModelSerializer):
         if title and title.facility_id != facility.id:
             raise serializers.ValidationError(
                 {"title_id": "Title must belong to the selected facility."}
+            )
+
+        if fee_schedule and fee_schedule.organization_id != facility.organization_id:
+            raise serializers.ValidationError(
+                {"fee_schedule": "Fee schedule must belong to this organization."}
             )
 
         if user:
@@ -287,6 +298,19 @@ class FacilitySerializer(FacilityAddressMixin, serializers.ModelSerializer):
         if start_time and end_time and start_time >= end_time:
             raise serializers.ValidationError(
                 {"operating_end_time": "End time must be after start time."}
+            )
+
+        fee_schedule = attrs.get(
+            "fee_schedule", getattr(self.instance, "fee_schedule", None)
+        )
+        organization_id = getattr(self.instance, "organization_id", None)
+        if organization_id is None:
+            request = self.context.get("request")
+            membership = getattr(getattr(request, "user", None), "org_membership", None)
+            organization_id = getattr(membership, "organization_id", None)
+        if fee_schedule and fee_schedule.organization_id != organization_id:
+            raise serializers.ValidationError(
+                {"fee_schedule": "Fee schedule must belong to this organization."}
             )
 
         return attrs

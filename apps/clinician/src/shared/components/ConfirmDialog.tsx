@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Button, ModalShell } from "./ui";
 
 type ConfirmDialogVariant = "default" | "danger" | "warning";
@@ -28,15 +27,6 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter") onConfirm?.();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onConfirm]);
-
   const confirmVariant =
     variant === "danger"
       ? "danger"

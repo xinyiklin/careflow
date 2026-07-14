@@ -1,11 +1,20 @@
 import { apiRequest } from "../../../../shared/api/client";
 
 import type { ApiPayload, EntityId } from "../../../../shared/api/types";
-import type { AdminOrganizationPharmacyPreference } from "../../types";
+import type {
+  AdminOrganizationPharmacy,
+  AdminOrganizationPharmacyPreference,
+} from "../../types";
 
 export function fetchOrganizationPharmacies() {
   return apiRequest<AdminOrganizationPharmacyPreference[]>(
     "/organizations/pharmacies/"
+  );
+}
+
+export function fetchOrganizationPharmacyDirectory() {
+  return apiRequest<AdminOrganizationPharmacy[]>(
+    "/organizations/pharmacies/directory/"
   );
 }
 

@@ -18,6 +18,7 @@ from .models import (
     OrganizationFeeScheduleItem,
 )
 from .serializers import (
+    CPTCatalogEntrySerializer,
     FacilityFeeScheduleOverrideSerializer,
     OrganizationFeeScheduleItemSerializer,
     OrganizationFeeScheduleSerializer,
@@ -138,10 +139,11 @@ class CPTCatalogViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
 ):
+    serializer_class = CPTCatalogEntrySerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
-        return Response(get_catalog_entries())
+        return Response(self.get_serializer(get_catalog_entries(), many=True).data)
 
 
 class OrganizationFeeScheduleItemViewSet(
@@ -264,6 +266,14 @@ class FacilityFeeScheduleViewSet(
             metadata={"facility_id": facility.id},
         )
 
+    @extend_schema(
+        request=inline_serializer(
+            name="FacilityFeeScheduleCopyRequest",
+            fields={"source_schedule_id": serializers.IntegerField()},
+        ),
+        responses={200: OrganizationFeeScheduleSerializer},
+        summary="Copy an organization fee schedule to the active facility",
+    )
     @action(detail=False, methods=["post"], url_path="copy-from-org")
     def copy_from_org(self, request):
         facility = self.require_billing_permission("billing.fee_schedules.manage")

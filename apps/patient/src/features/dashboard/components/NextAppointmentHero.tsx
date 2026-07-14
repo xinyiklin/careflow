@@ -147,18 +147,15 @@ export function NextAppointmentHero({
             <Button
               variant="ghost"
               size="md"
-              onClick={() => setConfirmOpen(true)}
+              onClick={() => {
+                setError(null);
+                setConfirmOpen(true);
+              }}
             >
               {t("dashboard.cancelAppointment")}
             </Button>
           ) : null}
         </div>
-
-        {error ? (
-          <p className="text-xs text-danger" role="alert">
-            {error}
-          </p>
-        ) : null}
       </Card>
 
       <Modal
@@ -171,6 +168,7 @@ export function NextAppointmentHero({
         title={t("appointments.confirmCancelTitle")}
         description={t("appointments.confirmCancelBody")}
         size="sm"
+        disableBackdropClose={cancelMutation.isPending}
         footer={
           <>
             <Button
@@ -192,7 +190,7 @@ export function NextAppointmentHero({
           </>
         }
       >
-        <p className="text-sm text-text-muted">
+        <div className="text-sm text-text-muted">
           {(type || provider) && (
             <span className="font-medium text-text">
               {type && provider
@@ -202,7 +200,12 @@ export function NextAppointmentHero({
           )}
           {(type || provider) && <br />}
           <span>{when}</span>
-        </p>
+          {error ? (
+            <p className="mt-3 text-xs text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
       </Modal>
     </>
   );

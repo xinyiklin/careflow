@@ -6,6 +6,20 @@ from shared.serializers import StrictPayloadMixin
 from .models import PatientAllergy
 
 
+class AllergenCatalogEntrySerializer(serializers.Serializer):
+    """One suggested allergen for an allergy-entry workflow."""
+
+    label = serializers.CharField()
+    category = serializers.CharField()
+
+
+class ReactionCatalogEntrySerializer(serializers.Serializer):
+    """One suggested reaction and its initial severity."""
+
+    label = serializers.CharField()
+    default_severity = serializers.CharField()
+
+
 class PatientAllergySerializer(StrictPayloadMixin, serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     patient_chart_number = serializers.CharField(

@@ -126,6 +126,33 @@ class PatientViewSetTests(TestCase):
         with self.assertRaises(ValidationError):
             patient.full_clean()
 
+    def test_document_bundle_rejects_mixed_patients(self):
+        second_patient = Patient.objects.create(
+            facility=self.facility,
+            first_name="Avery",
+            last_name="Martinez",
+            date_of_birth=date(1994, 5, 2),
+            gender=self.gender,
+        )
+        first_document = PatientDocument.objects.create(
+            patient=self.patient,
+            name="Mia intake.pdf",
+        )
+        second_document = PatientDocument.objects.create(
+            patient=second_patient,
+            name="Avery intake.pdf",
+        )
+
+        response = self.client.post(
+            ("/v1/patients/documents/bundle/view/" f"?facility_id={self.facility.id}"),
+            {"document_ids": [first_document.pk, second_document.pk]},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("one patient", str(response.data["document_ids"]))
+
     def test_document_categories_can_be_managed_by_permitted_user(self):
         list_response = self.client.get(
             "/v1/patients/document-categories/",
@@ -851,3 +878,80 @@ class PatientViewSetTests(TestCase):
                 summary__startswith="Deactivated patient",
             ).exists()
         )
+
+
+class PharmacyOwnershipRemediationTests(TestCase):
+    """Regression tests for the pharmacy ownership review findings: migration
+    backfill (no cross-tenant leak) and directory-identity field locking."""
+
+    def setUp(self):
+        from organizations.models import OrganizationPharmacyPreference  # noqa: F401
+
+        self.organization = Organization.objects.create(name="Org A", slug="ph-org-a")
+        self.facility = Facility.objects.create(
+            organization=self.organization,
+            name="A Clinic",
+            timezone="America/New_York",
+        )
+
+    def test_backfill_owns_custom_pharmacy_and_leaves_directory_ownerless(self):
+        from importlib import import_module
+
+        from django.apps import apps as global_apps
+
+        from organizations.models import OrganizationPharmacyPreference
+        from patients.models import Pharmacy
+
+        # Seeded directory pharmacy: source=directory, left NULL/NULL by 0019.
+        directory_pharmacy = Pharmacy.objects.create(
+            name="Seeded Directory Pharmacy",
+            source=Pharmacy.SOURCE_DIRECTORY,
+            external_id="RX-SEED-1",
+            directory_source="careflow-seed",
+        )
+        # Tenant-private custom pharmacy linked to Org A only.
+        custom_pharmacy = Pharmacy.objects.create(
+            name="Org A Custom Pharmacy",
+            source=Pharmacy.SOURCE_CUSTOM,
+        )
+        OrganizationPharmacyPreference.objects.create(
+            organization=self.organization, pharmacy=custom_pharmacy
+        )
+
+        module = import_module("patients.migrations.0020_backfill_pharmacy_ownership")
+        module.backfill_pharmacy_ownership(global_apps, None)
+
+        directory_pharmacy.refresh_from_db()
+        custom_pharmacy.refresh_from_db()
+        self.assertIsNone(directory_pharmacy.owning_organization_id)
+        self.assertIsNone(directory_pharmacy.owning_facility_id)
+        self.assertEqual(custom_pharmacy.owning_organization_id, self.organization.id)
+        self.assertIsNone(custom_pharmacy.owning_facility_id)
+
+    def test_tenant_update_cannot_overwrite_directory_identity_fields(self):
+        from patients.models import Pharmacy
+        from patients.serializers import PharmacySerializer
+
+        pharmacy = Pharmacy.objects.create(
+            name="Custom",
+            source=Pharmacy.SOURCE_CUSTOM,
+            owning_organization=self.organization,
+        )
+        serializer = PharmacySerializer(
+            pharmacy,
+            data={
+                "name": "Custom Renamed",
+                "source": Pharmacy.SOURCE_DIRECTORY,
+                "external_id": "HIJACK",
+                "directory_source": "careflow-seed",
+            },
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        pharmacy.refresh_from_db()
+        self.assertEqual(pharmacy.name, "Custom Renamed")  # ordinary field updates
+        self.assertEqual(pharmacy.source, Pharmacy.SOURCE_CUSTOM)  # locked
+        self.assertEqual(pharmacy.external_id, "")  # locked
+        self.assertEqual(pharmacy.directory_source, "")  # locked

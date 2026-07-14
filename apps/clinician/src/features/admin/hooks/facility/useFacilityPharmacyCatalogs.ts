@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createFacilityPharmacyOverride,
+  fetchFacilityPharmacyDirectory,
   fetchFacilityPharmacyOverrides,
   updateFacilityPharmacyOverride,
 } from "../../api/facility/catalogs";
@@ -28,6 +29,11 @@ export default function useFacilityPharmacyCatalogs(
     queryFn: () => fetchFacilityPharmacyOverrides(facilityId),
     enabled,
   });
+  const directoryQuery = useQuery({
+    queryKey: [...getQueryKey(facilityId), "directory"],
+    queryFn: () => fetchFacilityPharmacyDirectory(facilityId),
+    enabled,
+  });
 
   const invalidate = () => {
     queryClient.invalidateQueries({
@@ -51,13 +57,21 @@ export default function useFacilityPharmacyCatalogs(
     pharmacyOverrides: Array.isArray(pharmaciesQuery.data)
       ? pharmaciesQuery.data
       : [],
-    loading: pharmaciesQuery.isLoading,
+    directoryPharmacies: Array.isArray(directoryQuery.data)
+      ? directoryQuery.data
+      : [],
+    loading: pharmaciesQuery.isLoading || directoryQuery.isLoading,
     saving: pharmacyMutation.isPending,
     error:
-      pharmacyMutation.error?.message || pharmaciesQuery.error?.message || "",
-    loadError: pharmaciesQuery.error?.message || "",
+      pharmacyMutation.error?.message ||
+      pharmaciesQuery.error?.message ||
+      directoryQuery.error?.message ||
+      "",
+    loadError:
+      pharmaciesQuery.error?.message || directoryQuery.error?.message || "",
     reload: () => {
       void pharmaciesQuery.refetch();
+      void directoryQuery.refetch();
     },
     savePharmacyOverride: (payload: SavePharmacyOverridePayload) =>
       pharmacyMutation.mutateAsync(payload),

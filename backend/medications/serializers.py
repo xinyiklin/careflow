@@ -5,6 +5,31 @@ from shared.serializers import StrictPayloadMixin
 from .models import Medication, PrescriberDelegation, RefillRequest
 
 
+class MedicationCatalogEntrySerializer(serializers.Serializer):
+    """One suggested medication and its common prescribing defaults."""
+
+    generic_name = serializers.CharField()
+    common_strengths = serializers.ListField(child=serializers.CharField())
+    default_route = serializers.CharField()
+    default_frequency = serializers.CharField()
+    category = serializers.CharField()
+
+
+class RouteCatalogEntrySerializer(serializers.Serializer):
+    """One standardized medication administration route."""
+
+    code = serializers.CharField()
+    label = serializers.CharField()
+
+
+class FrequencyCatalogEntrySerializer(serializers.Serializer):
+    """One standardized medication frequency and daily-dose hint."""
+
+    code = serializers.CharField()
+    label = serializers.CharField()
+    times_per_day = serializers.IntegerField(allow_null=True)
+
+
 class MedicationSerializer(StrictPayloadMixin, serializers.ModelSerializer):
     patient_name = serializers.SerializerMethodField()
     patient_chart_number = serializers.CharField(

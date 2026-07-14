@@ -47,26 +47,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback((setDoneLoading = true) => {
-    logoutUser();
+    void logoutUser();
     setUser(null);
     if (setDoneLoading) {
       setLoading(false);
     }
   }, []);
 
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      const data = await fetchUserProfile();
-      setUser(data ?? null);
-    } catch (err) {
-      if (getErrorStatus(err) !== 401) {
-        console.error("Failed to fetch user:", err);
+  const fetchCurrentUser = useCallback(
+    async (throwOnError = false) => {
+      try {
+        const data = await fetchUserProfile();
+        if (!data) {
+          throw new Error("User profile response was empty.");
+        }
+        setUser(data);
+      } catch (err) {
+        if (getErrorStatus(err) !== 401) {
+          console.error("Failed to fetch user:", err);
+        }
+        logout(false);
+        if (throwOnError) {
+          throw err;
+        }
+      } finally {
+        setLoading(false);
       }
-      logout(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [logout]);
+    },
+    [logout]
+  );
 
   const restoreCurrentSession = useCallback(async () => {
     try {
@@ -89,9 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Login response did not include an access token.");
       }
 
-      setAuthTokens({ access: data.access, refresh: data.refresh ?? null });
+      setAuthTokens({ access: data.access });
 
-      await fetchCurrentUser();
+      await fetchCurrentUser(true);
     },
     [fetchCurrentUser]
   );
@@ -102,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Demo login response did not include an access token.");
     }
 
-    setAuthTokens({ access: data.access, refresh: data.refresh ?? null });
+    setAuthTokens({ access: data.access });
 
     if (data.user) {
       setUser(data.user);
@@ -110,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    await fetchCurrentUser();
+    await fetchCurrentUser(true);
   }, [fetchCurrentUser]);
 
   useEffect(() => {

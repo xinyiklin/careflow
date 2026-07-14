@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.db import transaction
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -147,6 +147,15 @@ class AppointmentViewSet(
             return super().update(request, *args, **kwargs)
 
     @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="month",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                description="Calendar month in YYYY-MM format.",
+            )
+        ],
         responses={
             200: inline_serializer(
                 name="AppointmentHeatmap",

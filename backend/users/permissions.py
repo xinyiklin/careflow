@@ -1,4 +1,7 @@
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
+
+from .portal_access import get_patient_for_user
 
 
 class IsPortalPatient(BasePermission):
@@ -10,5 +13,8 @@ class IsPortalPatient(BasePermission):
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return False
-        portal_account = getattr(user, "portal_account", None)
-        return bool(portal_account and portal_account.is_active)
+        try:
+            get_patient_for_user(user)
+        except PermissionDenied:
+            return False
+        return True

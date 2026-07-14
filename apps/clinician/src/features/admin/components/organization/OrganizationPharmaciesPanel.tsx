@@ -10,6 +10,12 @@ import useAdminListControls, {
 } from "../../hooks/shared/useAdminListControls";
 import useOrganizationPharmacies from "../../hooks/organization/useOrganizationPharmacies";
 import {
+  AdminField,
+  AdminFieldGrid,
+  AdminFormModal,
+  AdminFormSection,
+} from "../shared/AdminFormModal";
+import {
   AdminInlineNotice,
   AdminListToolbar,
   AdminTableCard,
@@ -29,6 +35,7 @@ import type {
   AdminSortOption,
 } from "../../types";
 import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
+import type { FormEvent } from "react";
 
 function formatAddress(address: AdminAddress | null | undefined) {
   if (!address?.line_1) return "No address yet";
@@ -120,6 +127,7 @@ const PHARMACY_SORT_OPTIONS = [
 export default function OrganizationPharmaciesPanel() {
   const {
     preferences,
+    directoryPharmacies,
     loading,
     saving,
     error,
@@ -128,6 +136,8 @@ export default function OrganizationPharmaciesPanel() {
     savePharmacyPreference,
   } = useOrganizationPharmacies();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDirectoryModalOpen, setIsDirectoryModalOpen] = useState(false);
+  const [directoryPharmacyId, setDirectoryPharmacyId] = useState("");
   const [editingPreference, setEditingPreference] =
     useState<AdminOrganizationPharmacyPreference | null>(null);
   const [confirmDialogState, setConfirmDialogState] =
@@ -168,6 +178,20 @@ export default function OrganizationPharmaciesPanel() {
       values,
     });
     handleCloseModal();
+  };
+
+  const handleDirectoryImport = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await savePharmacyPreference({
+      values: {
+        pharmacy_id: Number(directoryPharmacyId),
+        is_preferred: true,
+        is_hidden: false,
+        is_active: true,
+      },
+    });
+    setDirectoryPharmacyId("");
+    setIsDirectoryModalOpen(false);
   };
 
   const closeConfirmDialog = () => {
@@ -236,6 +260,14 @@ export default function OrganizationPharmaciesPanel() {
                 Refresh
               </Button>
               <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsDirectoryModalOpen(true)}
+                disabled={saving || directoryPharmacies.length === 0}
+              >
+                <Plus className="h-3.5 w-3.5" /> Import directory
+              </Button>
+              <Button
                 variant="primary"
                 size="sm"
                 onClick={() => {
@@ -244,7 +276,7 @@ export default function OrganizationPharmaciesPanel() {
                 }}
                 disabled={saving}
               >
-                <Plus className="h-3.5 w-3.5" /> New
+                <Plus className="h-3.5 w-3.5" /> New custom
               </Button>
             </>
           }
@@ -380,6 +412,44 @@ export default function OrganizationPharmaciesPanel() {
           label="pharmacies"
         />
       </AdminTableCard>
+
+      <AdminFormModal
+        isOpen={isDirectoryModalOpen}
+        onClose={() => setIsDirectoryModalOpen(false)}
+        scope="Organization pharmacy"
+        title="Import Directory Pharmacy"
+        formId="organization-directory-pharmacy-form"
+        saving={saving}
+      >
+        <form
+          id="organization-directory-pharmacy-form"
+          className="space-y-4"
+          onSubmit={handleDirectoryImport}
+        >
+          <AdminFormSection>
+            <AdminFieldGrid>
+              <AdminField label="Pharmacy">
+                <select
+                  className="cf-input"
+                  value={directoryPharmacyId}
+                  onChange={(event) =>
+                    setDirectoryPharmacyId(event.target.value)
+                  }
+                  required
+                >
+                  <option value="">Select a directory pharmacy</option>
+                  {directoryPharmacies.map((pharmacy) => (
+                    <option key={pharmacy.id} value={String(pharmacy.id)}>
+                      {pharmacy.name}
+                      {pharmacy.city ? `, ${pharmacy.city}` : ""}
+                    </option>
+                  ))}
+                </select>
+              </AdminField>
+            </AdminFieldGrid>
+          </AdminFormSection>
+        </form>
+      </AdminFormModal>
 
       <OrganizationPharmacyModal
         isOpen={isModalOpen}

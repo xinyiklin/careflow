@@ -27,6 +27,11 @@ import {
 } from "../shared/constants/quickActions";
 import { PAGE_GUTTER_X } from "../shared/constants/layout";
 import { useBootReadiness } from "./BootReadinessContext";
+import {
+  getLocalStorageItem,
+  removeLocalStorageItem,
+  setSessionStorageItem,
+} from "../shared/utils/browserStorage";
 
 import type { Dispatch, SetStateAction } from "react";
 import type { NavigateFunction } from "react-router-dom";
@@ -111,7 +116,7 @@ function AppShellLayout({
 
   const dispatchScheduleQuickAction = useCallback(
     (type: string) => {
-      sessionStorage.setItem(SCHEDULE_QUICK_ACTION_STORAGE_KEY, type);
+      setSessionStorageItem(SCHEDULE_QUICK_ACTION_STORAGE_KEY, type);
       navigate("/schedule");
       window.dispatchEvent(
         new CustomEvent(SCHEDULE_QUICK_ACTION_EVENT, { detail: { type } })
@@ -132,7 +137,7 @@ function AppShellLayout({
 
   const handleLogout = useCallback(() => {
     if (preferences.clearPersonalNotesOnLogout && personalNotesKey) {
-      localStorage.removeItem(personalNotesKey);
+      removeLocalStorageItem(personalNotesKey);
     }
     void clearPersonalNotesForLogout()
       .catch((error) => {
@@ -193,11 +198,11 @@ function AppShellLayout({
       return;
     }
 
-    const legacyNote = localStorage.getItem(personalNotesKey);
+    const legacyNote = getLocalStorageItem(personalNotesKey);
     if (!legacyNote || personalNote) return;
 
     updatePreferences({ personalNotes: legacyNote });
-    localStorage.removeItem(personalNotesKey);
+    removeLocalStorageItem(personalNotesKey);
   }, [personalNote, personalNotesKey, updatePreferences]);
 
   useEffect(() => {
@@ -208,7 +213,7 @@ function AppShellLayout({
     // logout clears the server copy via handleLogout beforehand.
     const handleAuthLogout = () => {
       if (!preferences.clearPersonalNotesOnLogout) return;
-      localStorage.removeItem(personalNotesKey);
+      removeLocalStorageItem(personalNotesKey);
     };
 
     window.addEventListener("auth:logout", handleAuthLogout);

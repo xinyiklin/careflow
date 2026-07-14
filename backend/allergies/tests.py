@@ -114,6 +114,32 @@ class PatientAllergyViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    def test_reference_catalogs_are_authenticated_and_serialize_entries(self):
+        unauthenticated_response = APIClient().get(
+            "/v1/allergies/allergen-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+        allergen_response = self.client.get(
+            "/v1/allergies/allergen-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+        reaction_response = self.client.get(
+            "/v1/allergies/reaction-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(unauthenticated_response.status_code, 401)
+        self.assertEqual(allergen_response.status_code, 200)
+        self.assertEqual(reaction_response.status_code, 200)
+        self.assertEqual(
+            allergen_response.data[0],
+            {"label": "Penicillin", "category": PatientAllergy.CATEGORY_MEDICATION},
+        )
+        self.assertEqual(
+            reaction_response.data[0],
+            {"label": "Rash", "default_severity": PatientAllergy.SEVERITY_MILD},
+        )
+
     def test_list_filters_by_patient_and_active_flag(self):
         active_allergy = self.create_allergy()
         self.create_allergy(

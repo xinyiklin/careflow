@@ -133,8 +133,13 @@ export function PatientResultRow({
       role="button"
       tabIndex={0}
       onClick={onSelect}
-      onDoubleClick={() => onOpenPatientProfile?.(patient)}
+      onDoubleClick={(event) => {
+        const target = event.target as HTMLElement;
+        if (target.closest("button, a, input, select, textarea")) return;
+        onOpenPatientProfile?.(patient);
+      }}
       onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key !== "Enter" && event.key !== " ") return;
         event.preventDefault();
         onSelect();

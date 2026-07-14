@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useUserPreferences } from "../../../app/context/UserPreferencesProvider";
+import { removeLocalStorageItem } from "../../../shared/utils/browserStorage";
 
 import type { EntityId } from "../../../shared/api/types";
 import type { PatientLike } from "../../../shared/types/domain";
@@ -42,7 +43,7 @@ export default function usePatientFlow(
   const [isQuickStartOpen, setIsQuickStartOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.removeItem("recentPatients");
+    removeLocalStorageItem("recentPatients");
   }, []);
 
   const openQuickStart = (source: PatientSearchSource = "navbar") => {

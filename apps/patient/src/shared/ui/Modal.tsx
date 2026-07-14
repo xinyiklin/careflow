@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
@@ -18,7 +18,7 @@ type ModalProps = {
   footer?: ReactNode;
   /** Hide the close (X) icon button in the corner. */
   hideCloseButton?: boolean;
-  /** Disable backdrop-click-to-close. */
+  /** Disable backdrop-click and Escape-to-close. */
   disableBackdropClose?: boolean;
 };
 
@@ -46,6 +46,8 @@ export function Modal({
 }: ModalProps) {
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
 
   // Sync open prop -> showModal()/close().
   useEffect(() => {
@@ -72,6 +74,17 @@ export function Modal({
     return () => dialog.removeEventListener("close", handleClose);
   }, [onClose]);
 
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleCancel = (event: Event) => {
+      if (disableBackdropClose) event.preventDefault();
+    };
+    dialog.addEventListener("cancel", handleCancel);
+    return () => dialog.removeEventListener("cancel", handleCancel);
+  }, [disableBackdropClose]);
+
   const handleBackdropClick = (event: React.MouseEvent<HTMLDialogElement>) => {
     if (disableBackdropClose) return;
     // Clicks on the backdrop have target === the dialog element.
@@ -84,6 +97,8 @@ export function Modal({
     <dialog
       ref={dialogRef}
       onClick={handleBackdropClick}
+      aria-labelledby={title ? titleId : undefined}
+      aria-describedby={description ? descriptionId : undefined}
       className={cn(
         "p-0 bg-transparent",
         "backdrop:bg-black/40 backdrop:backdrop-blur-sm",
@@ -107,12 +122,17 @@ export function Modal({
           <div className="flex items-start justify-between gap-4 border-b border-border px-6 pt-5 pb-4">
             <div className="min-w-0 flex-1">
               {title ? (
-                <h2 className="text-base font-semibold tracking-tight text-text">
+                <h2
+                  id={titleId}
+                  className="text-base font-semibold tracking-tight text-text"
+                >
                   {title}
                 </h2>
               ) : null}
               {description ? (
-                <p className="mt-1 text-sm text-text-muted">{description}</p>
+                <p id={descriptionId} className="mt-1 text-sm text-text-muted">
+                  {description}
+                </p>
               ) : null}
             </div>
             {!hideCloseButton ? (

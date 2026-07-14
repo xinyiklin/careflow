@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "generate:schema": "cd ../../backend && ./venv/bin/python manage.py spectacular --file ../packages/api-types/src/schema.yaml",
+    "generate:schema": "node scripts/generate-schema.mjs",
     "generate:types": "openapi-typescript src/schema.yaml -o src/generated.ts",
     "generate": "npm run generate:schema && npm run generate:types"
   },

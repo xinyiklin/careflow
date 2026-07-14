@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createOrganizationPharmacy,
+  fetchOrganizationPharmacyDirectory,
   fetchOrganizationPharmacies,
   updateOrganizationPharmacy,
 } from "../../api/organization/pharmacies";
@@ -26,6 +27,10 @@ export default function useOrganizationPharmacies() {
     queryKey: ORGANIZATION_PHARMACIES_QUERY_KEY,
     queryFn: fetchOrganizationPharmacies,
   });
+  const directoryQuery = useQuery({
+    queryKey: [...ORGANIZATION_PHARMACIES_QUERY_KEY, "directory"],
+    queryFn: fetchOrganizationPharmacyDirectory,
+  });
 
   const saveMutation = useMutation({
     mutationFn: ({ id, values }: SavePharmacyPreferencePayload) => {
@@ -46,10 +51,21 @@ export default function useOrganizationPharmacies() {
     preferences: Array.isArray(pharmaciesQuery.data)
       ? pharmaciesQuery.data
       : [],
-    loading: pharmaciesQuery.isLoading,
-    error: pharmaciesQuery.error?.message || "",
-    loadError: pharmaciesQuery.error?.message || "",
-    reload: pharmaciesQuery.refetch,
+    directoryPharmacies: Array.isArray(directoryQuery.data)
+      ? directoryQuery.data
+      : [],
+    loading: pharmaciesQuery.isLoading || directoryQuery.isLoading,
+    error:
+      saveMutation.error?.message ||
+      pharmaciesQuery.error?.message ||
+      directoryQuery.error?.message ||
+      "",
+    loadError:
+      pharmaciesQuery.error?.message || directoryQuery.error?.message || "",
+    reload: () => {
+      void pharmaciesQuery.refetch();
+      void directoryQuery.refetch();
+    },
     saving: saveMutation.isPending,
     savePharmacyPreference: (payload: SavePharmacyPreferencePayload) =>
       saveMutation.mutateAsync(payload),

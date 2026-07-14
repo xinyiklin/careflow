@@ -294,7 +294,13 @@ def user_has_facility_permission(user, facility_id, permission):
         return False
 
     staff = (
-        user.staff_profiles.filter(facility_id=facility_id, is_active=True)
+        user.staff_profiles.filter(
+            facility_id=facility_id,
+            is_active=True,
+            facility__is_active=True,
+            role__is_active=True,
+            user__org_membership__is_active=True,
+        )
         .select_related("role")
         .first()
     )

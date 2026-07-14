@@ -6,11 +6,11 @@ drf-spectacular==0.29.0
 djangorestframework_simplejwt==5.5.1
 django-cors-headers==4.9.0
 django-colorfield==0.14.0
-django-timezone-field
+django-timezone-field==7.2.1
 dj-database-url==3.0.1
 psycopg[binary]==3.2.13
 gunicorn==23.0.0
 whitenoise==6.11.0
 pillow==11.3.0
 pypdf==5.9.0
-python-dotenv
+python-dotenv==1.2.1

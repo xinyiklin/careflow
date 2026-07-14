@@ -42,6 +42,7 @@ class PortalSchedulingSlotSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(serializers.BooleanField())
     def get_auto_confirms(self, obj):
         return slot_auto_confirms(obj)
 

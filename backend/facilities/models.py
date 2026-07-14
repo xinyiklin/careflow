@@ -73,6 +73,15 @@ class Facility(models.Model):
 
     def clean(self):
         super().clean()
+        if (
+            self.fee_schedule_id
+            and self.organization_id
+            and self.fee_schedule.organization_id != self.organization_id
+        ):
+            raise ValidationError(
+                {"fee_schedule": "Fee schedule must belong to this organization."}
+            )
+
         if self.custom_operating_hours:
             if not isinstance(self.custom_operating_hours, list):
                 raise ValidationError({"custom_operating_hours": "Must be a list."})
@@ -506,11 +515,21 @@ class Staff(models.Model):
         verbose_name_plural = "Staff"
 
     def clean(self):
+        from users.portal import PatientPortalAccount
+
         if self.role and self.role.facility_id != self.facility_id:
             raise ValidationError({"role": "Role must belong to the same facility."})
 
         if self.title and self.title.facility_id != self.facility_id:
             raise ValidationError({"title": "Title must belong to the same facility."})
+
+        if (
+            self.user_id
+            and PatientPortalAccount.objects.filter(user=self.user).exists()
+        ):
+            raise ValidationError(
+                {"user": "Patient portal users cannot have clinician staff access."}
+            )
 
         if self.npi and (len(self.npi) != 10 or not self.npi.isdigit()):
             raise ValidationError({"npi": "NPI must be exactly 10 digits."})
@@ -527,6 +546,15 @@ class Staff(models.Model):
         ):
             raise ValidationError(
                 {"facility": "Staff facility must belong to the user's organization."}
+            )
+
+        if (
+            self.fee_schedule_id
+            and self.facility_id
+            and self.fee_schedule.organization_id != self.facility.organization_id
+        ):
+            raise ValidationError(
+                {"fee_schedule": "Fee schedule must belong to the same organization."}
             )
 
     def save(self, *args, **kwargs):

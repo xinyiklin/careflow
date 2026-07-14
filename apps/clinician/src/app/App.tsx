@@ -12,9 +12,10 @@ function App() {
   const { user, loading: authLoading, logout } = useAuth();
   const { facility, selectedFacilityId } = useFacility();
   const location = useLocation();
-  const [isRoutePreloading, setIsRoutePreloading] = useState(true);
+  const [isRoutePreloading, setIsRoutePreloading] = useState(false);
   const [isShellReady, setIsShellReady] = useState(false);
   const hasCompletedInitialPreloadRef = useRef(false);
+  const isAuthenticated = Boolean(user);
   const canRenderWorkspace = !!user && !!facility && !!selectedFacilityId;
   // We only know a user has *no* assignable facilities once the user
   // object is loaded AND it reports an empty memberships array. While
@@ -38,6 +39,17 @@ function App() {
   useEffect(() => {
     let isCurrent = true;
 
+    // An anonymous visit must not wait for a protected route chunk before it
+    // can be redirected to login. Reset the preload state on logout so a
+    // subsequent authenticated session gets the normal initial preload.
+    if (authLoading || !isAuthenticated) {
+      hasCompletedInitialPreloadRef.current = false;
+      setIsRoutePreloading(false);
+      return () => {
+        isCurrent = false;
+      };
+    }
+
     if (hasCompletedInitialPreloadRef.current) {
       preloadRouteForPath(location.pathname);
       return () => {
@@ -56,7 +68,7 @@ function App() {
     return () => {
       isCurrent = false;
     };
-  }, [location.pathname]);
+  }, [authLoading, isAuthenticated, location.pathname]);
 
   if (!bootLoading) {
     if (!user) {

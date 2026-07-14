@@ -87,6 +87,26 @@ class PatientPortalAccountModelTests(PortalTestMixin, TestCase):
         with self.assertRaises(ValidationError):
             account.full_clean()
 
+    def test_save_enforces_clinician_portal_identity_separation(self):
+        clinician = self._make_clinician_user()
+
+        with self.assertRaises(ValidationError):
+            PatientPortalAccount.objects.create(
+                user=clinician,
+                patient=self.patient,
+            )
+
+    def test_organization_membership_rejects_existing_portal_user(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+
+        with self.assertRaises(ValidationError):
+            OrganizationMembership.objects.create(
+                user=user,
+                organization=self.organization,
+                role=OrganizationMembership.ROLE_MEMBER,
+            )
+
     def test_rejects_user_with_staff_profile(self):
         clinician = self._make_clinician_user()
         Staff.objects.create(
@@ -150,6 +170,26 @@ class IsPortalPatientPermissionTests(PortalTestMixin, TestCase):
         request = self._make_request(user)
 
         self.assertFalse(IsPortalPatient().has_permission(request, view=None))
+
+    def test_inactive_patient_is_denied(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.patient.is_active = False
+        self.patient.save(update_fields=["is_active"])
+
+        self.assertFalse(
+            IsPortalPatient().has_permission(self._make_request(user), view=None)
+        )
+
+    def test_inactive_facility_is_denied(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.facility.is_active = False
+        self.facility.save(update_fields=["is_active"])
+
+        self.assertFalse(
+            IsPortalPatient().has_permission(self._make_request(user), view=None)
+        )
 
 
 class GetPatientForUserTests(PortalTestMixin, TestCase):
@@ -283,6 +323,33 @@ class PortalMeViewTests(PortalTestMixin, APITestCase):
             leaked,
             f"Portal profile must not expose clinician/PHI fields: {sorted(leaked)}",
         )
+
+    def test_portal_insurance_policies_exclude_staff_notes(self):
+        # `notes` is staff-authored internal commentary and must not reach the
+        # patient portal (D002), nor appear in the committed API contract.
+        from insurance.models import InsuranceCarrier, PatientInsurancePolicy
+
+        carrier = InsuranceCarrier.objects.create(
+            name="Portal Test Plan", payer_id="PTP001"
+        )
+        PatientInsurancePolicy.objects.create(
+            patient=self.patient,
+            carrier=carrier,
+            member_id="MEM123",
+            coverage_order="primary",
+            is_active=True,
+            notes="INTERNAL: coverage disputed, do not show patient",
+        )
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/v1/portal/me/")
+        self.assertEqual(response.status_code, 200)
+        policies = response.json()["insurance_policies"]
+        self.assertEqual(len(policies), 1)
+        self.assertNotIn("notes", policies[0])
+        self.assertNotIn("do not show patient", response.content.decode())
 
     def test_update_portal_profile_success(self):
         user = self._make_portal_user()
@@ -542,3 +609,97 @@ class CrossSurfaceRefreshTokenTests(PortalTestMixin, APITestCase):
 
         self.assertEqual(response.status_code, 401)
         self.assertNotIn("access", response.data)
+
+
+class SurfaceAuthenticationTests(PortalTestMixin, APITestCase):
+    def test_clinic_access_token_is_rejected_by_portal_api(self):
+        clinician = self._make_clinician_user()
+        refresh = issue_refresh_for_user(clinician, CLINIC_SURFACE)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}"
+        )
+
+        response = self.client.get("/v1/portal/me/")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_portal_access_token_is_rejected_by_clinic_api(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        refresh = issue_refresh_for_user(user, PORTAL_SURFACE)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}"
+        )
+
+        response = self.client.get("/v1/users/me/")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_clinic_session_is_rejected_by_portal_api(self):
+        self._make_clinician_user()
+        self.assertTrue(
+            self.client.login(
+                username="clinician_user",
+                password="testpass123",
+            )
+        )
+
+        response = self.client.get("/v1/portal/me/")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_portal_session_is_rejected_by_clinic_api(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        self.assertTrue(
+            self.client.login(
+                username="portal_user",
+                password="testpass123",
+            )
+        )
+
+        response = self.client.get("/v1/users/me/")
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_portal_access_and_refresh_are_revoked_with_patient(self):
+        user = self._make_portal_user()
+        PatientPortalAccount.objects.create(user=user, patient=self.patient)
+        refresh = issue_refresh_for_user(user, PORTAL_SURFACE)
+        self.patient.is_active = False
+        self.patient.save(update_fields=["is_active"])
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}"
+        )
+        access_response = self.client.get("/v1/portal/me/")
+        self.client.credentials()
+        self.client.cookies["careflow_refresh"] = str(refresh)
+        refresh_response = self.client.post(
+            PORTAL_REFRESH_URL,
+            {},
+            format="json",
+        )
+
+        self.assertEqual(access_response.status_code, 401)
+        self.assertEqual(refresh_response.status_code, 401)
+
+    def test_clinic_access_and_refresh_are_revoked_with_membership(self):
+        clinician = self._make_clinician_user()
+        refresh = issue_refresh_for_user(clinician, CLINIC_SURFACE)
+        OrganizationMembership.objects.filter(user=clinician).update(is_active=False)
+
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}"
+        )
+        access_response = self.client.get("/v1/users/me/")
+        self.client.credentials()
+        self.client.cookies["careflow_refresh"] = str(refresh)
+        refresh_response = self.client.post(
+            CLINIC_REFRESH_URL,
+            {},
+            format="json",
+        )
+
+        self.assertEqual(access_response.status_code, 401)
+        self.assertEqual(refresh_response.status_code, 401)

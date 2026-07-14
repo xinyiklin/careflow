@@ -111,6 +111,46 @@ class MedicationViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    def test_reference_catalogs_are_authenticated_and_serialize_entries(self):
+        unauthenticated_response = APIClient().get(
+            "/v1/medications/catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+        medication_response = self.client.get(
+            "/v1/medications/catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+        route_response = self.client.get(
+            "/v1/medications/route-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+        frequency_response = self.client.get(
+            "/v1/medications/frequency-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(unauthenticated_response.status_code, 401)
+        self.assertEqual(medication_response.status_code, 200)
+        self.assertEqual(route_response.status_code, 200)
+        self.assertEqual(frequency_response.status_code, 200)
+        self.assertEqual(
+            set(medication_response.data[0]),
+            {
+                "generic_name",
+                "common_strengths",
+                "default_route",
+                "default_frequency",
+                "category",
+            },
+        )
+        self.assertEqual(
+            route_response.data[0], {"code": "PO", "label": "Oral (by mouth)"}
+        )
+        self.assertEqual(
+            frequency_response.data[0],
+            {"code": "QD", "label": "Once daily", "times_per_day": 1},
+        )
+
     def test_list_requires_facility_staff_membership(self):
         response = self.client.get(
             "/v1/medications/",

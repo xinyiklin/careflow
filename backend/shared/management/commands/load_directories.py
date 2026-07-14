@@ -44,8 +44,14 @@ class Command(BaseCommand):
         created = 0
         updated = 0
         for external_id, name, service_type, phone, website in PHARMACY_DIRECTORY:
+            # Scope the upsert to ownerless (global) rows so a tenant-private
+            # pharmacy that happens to carry the same external_id can never be
+            # matched here (which would raise MultipleObjectsReturned) or be
+            # silently overwritten with canonical data.
             obj, was_created = Pharmacy.objects.update_or_create(
                 external_id=external_id,
+                owning_organization=None,
+                owning_facility=None,
                 defaults={
                     "name": name,
                     "source": Pharmacy.SOURCE_DIRECTORY,
@@ -72,10 +78,17 @@ class Command(BaseCommand):
         created = 0
         updated = 0
         for name, payer_id, phone, website in CARRIER_DIRECTORY:
+            # Scope to ownerless (global) rows: a tenant-private carrier may
+            # legitimately reuse a real payer_id, so keying on payer_id alone
+            # could match it and raise MultipleObjectsReturned or overwrite it.
             obj, was_created = InsuranceCarrier.objects.update_or_create(
                 payer_id=payer_id,
+                owning_organization=None,
+                owning_facility=None,
                 defaults={
                     "name": name,
+                    "source": InsuranceCarrier.SOURCE_DIRECTORY,
+                    "directory_source": "careflow-seed",
                     "phone_number": phone,
                     "website": website,
                     "is_active": True,

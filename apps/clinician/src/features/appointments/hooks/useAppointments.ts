@@ -23,7 +23,10 @@ export default function useAppointments({
         dateTo,
       }),
     enabled: !!facilityId && !!date,
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData, previousQuery) =>
+      String(previousQuery?.queryKey[1] ?? "") === String(facilityId ?? "")
+        ? previousData
+        : undefined,
   });
 
   return {

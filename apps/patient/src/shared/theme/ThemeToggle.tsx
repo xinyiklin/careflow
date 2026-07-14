@@ -1,5 +1,8 @@
 import { Monitor, Moon, Sun } from "lucide-react";
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
+
+import type { KeyboardEvent } from "react";
 
 import { useTheme, type ThemeChoice } from "./ThemeProvider";
 
@@ -28,11 +31,44 @@ export function ThemeToggle({
 }: ThemeToggleProps) {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
+  const groupRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const currentIndex = OPTIONS.findIndex((option) => option.value === theme);
+    let nextIndex = currentIndex;
+
+    switch (event.key) {
+      case "ArrowLeft":
+      case "ArrowUp":
+        nextIndex = (currentIndex - 1 + OPTIONS.length) % OPTIONS.length;
+        break;
+      case "ArrowRight":
+      case "ArrowDown":
+        nextIndex = (currentIndex + 1) % OPTIONS.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = OPTIONS.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    setTheme(OPTIONS[nextIndex].value);
+    groupRef.current
+      ?.querySelectorAll<HTMLButtonElement>('[role="radio"]')
+      [nextIndex]?.focus();
+  };
 
   return (
     <div
+      ref={groupRef}
       role="radiogroup"
       aria-label={t("common.theme")}
+      onKeyDown={handleKeyDown}
       className={`inline-flex items-center gap-0.5 rounded-md border border-border bg-surface-soft p-0.5 ${className}`}
     >
       {OPTIONS.map(({ value, labelKey, Icon }) => {

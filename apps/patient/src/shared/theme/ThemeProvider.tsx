@@ -26,9 +26,14 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readStoredTheme(): ThemeChoice {
   if (typeof window === "undefined") return "system";
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (raw === "light" || raw === "dark" || raw === "system") {
-    return raw;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw === "light" || raw === "dark" || raw === "system") {
+      return raw;
+    }
+  } catch {
+    // Storage can be disabled by browser privacy controls. The DOM attribute
+    // remains enough to apply a theme for this session.
   }
   return "system";
 }
@@ -79,7 +84,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setTheme = useCallback((next: ThemeChoice) => {
     setThemeState(next);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, next);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        // Keep the in-memory choice when persistent storage is unavailable.
+      }
     }
     applyThemeAttribute(next);
   }, []);

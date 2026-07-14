@@ -253,6 +253,20 @@ class Pharmacy(models.Model):
     ]
 
     name = models.CharField(max_length=150)
+    owning_organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="private_pharmacies",
+        null=True,
+        blank=True,
+    )
+    owning_facility = models.ForeignKey(
+        "facilities.Facility",
+        on_delete=models.CASCADE,
+        related_name="private_pharmacies",
+        null=True,
+        blank=True,
+    )
     legal_business_name = models.CharField(max_length=255, blank=True)
     source = models.CharField(
         max_length=20,
@@ -322,6 +336,28 @@ class Pharmacy(models.Model):
     class Meta:
         ordering = ["name"]
         verbose_name_plural = "Pharmacies"
+        constraints = [
+            models.CheckConstraint(
+                check=~Q(
+                    owning_organization__isnull=False,
+                    owning_facility__isnull=False,
+                ),
+                name="pharmacy_has_at_most_one_tenant_owner",
+            ),
+            models.UniqueConstraint(
+                fields=["directory_source", "external_id"],
+                condition=~Q(external_id=""),
+                name="unique_pharmacy_external_directory_id",
+            ),
+        ]
+
+    @property
+    def ownership_scope(self):
+        if self.owning_facility_id:
+            return "facility"
+        if self.owning_organization_id:
+            return "organization"
+        return "global"
 
     def __str__(self):
         return self.name
