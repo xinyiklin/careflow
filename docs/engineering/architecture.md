@@ -119,63 +119,66 @@ When to extract:
 
 ## Subdomain plan
 
-Currently live (Vercel frontends + Render API):
+Live (AWS Amplify frontends + Render API):
 
 ```text
-careflow.xinyiklin.com          → apps/clinician build (Vercel)
-portal.careflow.xinyiklin.com   → apps/patient build (Vercel)
-api.careflow.xinyiklin.com      → backend (Render)
+careflow.xinyiklin.com     → apps/landing build (marketing front door)
+clinician.xinyiklin.com    → apps/clinician build
+patient.xinyiklin.com      → apps/patient build
+api.careflow.xinyiklin.com → backend (Render)
 ```
 
-Target (AWS Amplify migration, in progress; API stays on Render):
+The two portals are **siblings of the `careflow.` apex, not children of it**.
+Only the landing page and the API sit under `careflow.xinyiklin.com`. Nothing in
+the auth flow depends on a frontend sharing a domain with the API:
 
-```text
-careflow.xinyiklin.com            → apps/landing build (marketing front door)
-clinician.careflow.xinyiklin.com  → apps/clinician build
-patient.careflow.xinyiklin.com    → apps/patient build   (renamed from portal.)
-api.careflow.xinyiklin.com        → backend (Render, unchanged)
-```
+- **Refresh cookie** (`careflow_refresh`, `backend/users/views.py`) is set with
+  no `Domain` attribute, so it is host-only to the API. `SameSite=None; Secure`
+  means the browser still attaches it to cross-site XHR from either portal
+  origin. It is also `Path`-scoped per surface — clinician to `/v1/users/`,
+  portal to `/v1/portal/` — so the browser never sends one surface's refresh
+  cookie to the other, keeping the two sessions disjoint. The portal keeps its
+  separate portal-account role boundary under `/v1/portal/`.
+- **CSRF cookie** is host-only too: `CSRF_COOKIE_DOMAIN` defaults to `None`, so
+  the cookie is scoped to the API host that sets it. The portals never read it
+  from `document.cookie` — `/v1/users/csrf/` is `@ensure_csrf_cookie` and returns
+  the token in its JSON body (`{"csrfToken": ...}`), and each `client.ts` takes it
+  from there — so the double-submit check passes from any origin. Env-overridable
+  if a same-subtree surface ever needs a shared cookie domain.
 
-Cookie domain in production is `.careflow.xinyiklin.com`
-(`backend/config/settings.py`). The refresh cookie issued by `/v1/users/token/`
-is therefore valid across CareFlow subdomains — the new `clinician.` and
-`patient.` subdomains inherit it with no change. It is also `Path`-scoped per
-surface — the clinician cookie is pinned to `/v1/users/` and the portal cookie
-to `/v1/portal/` (`backend/users/views.py`) — so the browser never sends one
-surface's refresh cookie to the other, keeping the two sessions disjoint. The
-portal still has a separate portal-account role boundary under `/v1/portal/`.
+**Origin allowlists:** `clinician.xinyiklin.com` and `patient.xinyiklin.com` are
+in `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `ALLOWED_HOSTS` (all
+env-overridable; defaults in `backend/config/settings.py`) so the Amplify portals
+clear CORS, CSRF, and host checks against the Render API. The `careflow.` landing
+page is static and makes no API calls; its origin is kept only as headroom.
 
-**Pre-cutover prerequisite:** the two new subdomains are not yet in the backend
-origin allowlists. Before the Amplify apps go live, add
-`clinician.careflow.xinyiklin.com` and `patient.careflow.xinyiklin.com` to
-`CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `ALLOWED_HOSTS` (all
-env-overridable; defaults in `backend/config/settings.py`). Until then the
-Amplify portals calling the Render API fail CORS, CSRF, and host checks. The
-`careflow.` landing page needs no API access, so it needs no allowlist entry.
+> **Deploy note:** these settings are env-var-first. If the Render service defines
+> `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, or
+> `CSRF_COOKIE_DOMAIN`, those values override the code defaults above — a domain
+> change must be applied in the Render dashboard too, not just here.
 
 ## Per-app deployment
 
-Each frontend is a separate project (Vercel today, one Amplify app each after
-the migration) pointing at the same repo:
+Each frontend is a separate Amplify app pointing at the same repo:
 
 ```text
-apps/clinician  → careflow.xinyiklin.com (Vercel) / clinician.careflow.xinyiklin.com (Amplify)
-apps/patient    → portal.careflow.xinyiklin.com (Vercel) / patient.careflow.xinyiklin.com (Amplify)
-apps/landing    → careflow.xinyiklin.com (Amplify; new front door)
+apps/clinician  → clinician.xinyiklin.com
+apps/patient    → patient.xinyiklin.com
+apps/landing    → careflow.xinyiklin.com (front door)
 ```
 
-For every project: root directory is the app dir, but the install step runs at
-the **repo root** so npm workspaces resolves the `@careflow/*` symlinks before
-the per-app build (`npm install --workspaces --include-workspace-root` on
-Vercel; a root `npm install` in the Amplify build spec). Without it the build
-fails on the cross-package import. Build command `npm run build`, output `dist`.
+For every app: root directory is the app dir, but the install step runs at the
+**repo root** so npm workspaces resolves the `@careflow/*` symlinks before the
+per-app build (a root `npm install` in the Amplify build spec). Without it the
+build fails on the cross-package import. Build command `npm run build`, output
+`dist`.
 
 The two portals are client-routed SPAs and need a catch-all rewrite to
-`/index.html` (Vercel `vercel.json`, or an Amplify 200-rewrite rule). The
-landing page is a single static page and needs no rewrite. Set
+`/index.html` (an Amplify 200-rewrite rule). The landing page is a single static
+page and needs no rewrite. Set
 `VITE_API_URL=https://api.careflow.xinyiklin.com` on the clinician and patient
-projects so API resolution is explicit rather than relying on the hostname
-fallback in each `client.ts`.
+apps so API resolution is explicit rather than relying on the hostname fallback
+in each `client.ts`.
 
 ## Mobile (future)
 

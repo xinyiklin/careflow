@@ -50,7 +50,6 @@ services:
       context: ./apps/clinician
     environment:
       VITE_API_URL: http://localhost:8000
-      VITE_APP_URL: http://localhost:5173
       VITE_DEMO_MODE: "true"
     ports:
       - "5173:5173"
