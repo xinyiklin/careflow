@@ -62,6 +62,7 @@ type PharmacyFormContentProps = {
     >
   ) => void;
   saving?: boolean;
+  canonicalReadOnly?: boolean;
 };
 
 export function PharmacyFormContent({
@@ -69,6 +70,7 @@ export function PharmacyFormContent({
   onChange,
   onAddressChange,
   saving = false,
+  canonicalReadOnly = false,
 }: PharmacyFormContentProps) {
   const fireChange = (name: string, value: string) => {
     onChange({
@@ -79,7 +81,10 @@ export function PharmacyFormContent({
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Left Column: Identity & E-Prescribing */}
-      <div className="space-y-6">
+      <fieldset
+        className="space-y-6 disabled:opacity-70"
+        disabled={saving || canonicalReadOnly}
+      >
         {/* Section 1: Pharmacy Identity */}
         <div className="space-y-4">
           <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
@@ -287,12 +292,15 @@ export function PharmacyFormContent({
             </label>
           </div>
         </div>
-      </div>
+      </fieldset>
 
       {/* Right Column: Address & Organization Settings */}
       <div className="space-y-6 md:border-l md:border-cf-border/60 md:pl-6">
         {/* Section 3: Location Details */}
-        <div className="space-y-4">
+        <fieldset
+          className="space-y-4 disabled:opacity-70"
+          disabled={saving || canonicalReadOnly}
+        >
           <h3 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cf-text-subtle border-b border-cf-border pb-1">
             <MapPin className="h-4 w-4 text-cf-accent shrink-0" />
             Location Address
@@ -377,7 +385,7 @@ export function PharmacyFormContent({
               </label>
             </div>
           </div>
-        </div>
+        </fieldset>
 
         {/* Section 4: Organization Preferences */}
         <div className="space-y-4 pt-2">

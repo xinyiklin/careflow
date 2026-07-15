@@ -3,7 +3,7 @@
 Operational rules for coding agents working in the CareFlow repository.
 
 CareFlow is a full-stack EHR-style clinic workflow demo: React + Vite
-frontends, Django + DRF backend, PostgreSQL, Vercel + Render. API routes are
+frontends, Django + DRF backend, PostgreSQL, AWS Amplify + Render. API routes are
 versioned under `/v1/`. The repo is an npm workspaces monorepo with clinician
 and patient frontends in `apps/`, generated OpenAPI types in
 `packages/api-types/`, shared icon assets in `packages/ui-icons/`, and the

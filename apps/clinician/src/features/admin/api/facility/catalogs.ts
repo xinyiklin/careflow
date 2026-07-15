@@ -4,6 +4,8 @@ import type { ApiPayload, EntityId } from "../../../../shared/api/types";
 import type {
   AdminFacilityPayerOverride,
   AdminFacilityPharmacyOverride,
+  AdminInsuranceCarrier,
+  AdminOrganizationPharmacy,
   AdminOrganizationFeeSchedule,
   AdminOrganizationFeeScheduleItem,
 } from "../../types";
@@ -20,6 +22,14 @@ export function fetchFacilityPayerOverrides(
 ) {
   return apiRequest<AdminFacilityPayerOverride[]>(
     withFacility("/insurance/facility-carrier-overrides/", facilityId)
+  );
+}
+
+export function fetchFacilityPayerDirectory(
+  facilityId: EntityId | null | undefined
+) {
+  return apiRequest<AdminInsuranceCarrier[]>(
+    withFacility("/insurance/facility-carrier-overrides/directory/", facilityId)
   );
 }
 
@@ -55,6 +65,17 @@ export function fetchFacilityPharmacyOverrides(
 ) {
   return apiRequest<AdminFacilityPharmacyOverride[]>(
     withFacility("/organizations/facility-pharmacy-overrides/", facilityId)
+  );
+}
+
+export function fetchFacilityPharmacyDirectory(
+  facilityId: EntityId | null | undefined
+) {
+  return apiRequest<AdminOrganizationPharmacy[]>(
+    withFacility(
+      "/organizations/facility-pharmacy-overrides/directory/",
+      facilityId
+    )
   );
 }
 

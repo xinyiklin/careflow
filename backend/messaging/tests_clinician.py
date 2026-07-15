@@ -9,8 +9,11 @@ creation lives on the portal viewset and is covered in
 """
 
 from datetime import date
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APITestCase
 
 from audit.models import AuditEvent
@@ -19,6 +22,7 @@ from organizations.models import Organization, OrganizationMembership
 from patients.models import Patient
 
 from .models import Message, MessageThread
+from .views import MessageThreadViewSet
 
 User = get_user_model()
 
@@ -406,12 +410,22 @@ class ClinicianMessagingReplyTests(ClinicianMessagingBaseMixin, APITestCase):
         MessageThread.objects.filter(pk=thread.pk).update(unread_for_clinician=False)
 
         self.client.force_authenticate(self.clinician)
-        response = self.client.post(
-            _thread_reply_url(thread.id),
-            {"body": "Thanks for reaching out."},
-            format="json",
-        )
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.post(
+                _thread_reply_url(thread.id),
+                {"body": "Thanks for reaching out."},
+                format="json",
+            )
+
         self.assertEqual(response.status_code, 201, response.data)
+        self.assertTrue(
+            any(
+                '"messaging_messagethread"' in query["sql"]
+                and "FOR UPDATE" in query["sql"].upper()
+                for query in queries
+            ),
+            "Replies must lock the thread row before checking its state.",
+        )
         body = response.json()
         self.assertEqual(body["sender_kind"], Message.SENDER_CLINICIAN)
         self.assertEqual(
@@ -466,6 +480,30 @@ class ClinicianMessagingReplyTests(ClinicianMessagingBaseMixin, APITestCase):
         self.assertIn("status", response.json())
         self.assertEqual(thread.messages.count(), 1)
 
+    def test_reply_rereads_thread_state_instead_of_using_a_stale_object(self):
+        thread = self._make_thread(self.patient)
+        self._make_patient_message(thread)
+        stale_open_thread = MessageThread.objects.get(pk=thread.pk)
+        MessageThread.objects.filter(pk=thread.pk).update(
+            status=MessageThread.STATUS_CLOSED
+        )
+
+        self.client.force_authenticate(self.clinician)
+        with patch.object(
+            MessageThreadViewSet,
+            "get_object",
+            return_value=stale_open_thread,
+        ):
+            response = self.client.post(
+                _thread_reply_url(thread.id),
+                {"body": "This must not land after close."},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("status", response.json())
+        self.assertEqual(thread.messages.count(), 1)
+
     def test_reply_with_empty_body_returns_400(self):
         thread = self._make_thread(self.patient)
         self._make_patient_message(thread)
@@ -511,8 +549,18 @@ class ClinicianMessagingCloseTests(ClinicianMessagingBaseMixin, APITestCase):
     def test_close_open_thread_returns_200_and_records_audit(self):
         thread = self._make_thread(self.patient)
         self.client.force_authenticate(self.clinician)
-        response = self.client.post(_thread_close_url(thread.id), {}, format="json")
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.post(_thread_close_url(thread.id), {}, format="json")
+
         self.assertEqual(response.status_code, 200, response.data)
+        self.assertTrue(
+            any(
+                '"messaging_messagethread"' in query["sql"]
+                and "FOR UPDATE" in query["sql"].upper()
+                for query in queries
+            ),
+            "Close must lock the thread row before checking its state.",
+        )
         body = response.json()
         self.assertEqual(body["status"], "closed")
         self.assertEqual(body["status_label"], "Closed")
@@ -543,6 +591,24 @@ class ClinicianMessagingCloseTests(ClinicianMessagingBaseMixin, APITestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("status", response.json())
 
+    def test_close_rereads_thread_state_instead_of_using_a_stale_object(self):
+        thread = self._make_thread(self.patient)
+        stale_open_thread = MessageThread.objects.get(pk=thread.pk)
+        MessageThread.objects.filter(pk=thread.pk).update(
+            status=MessageThread.STATUS_CLOSED
+        )
+
+        self.client.force_authenticate(self.clinician)
+        with patch.object(
+            MessageThreadViewSet,
+            "get_object",
+            return_value=stale_open_thread,
+        ):
+            response = self.client.post(_thread_close_url(thread.id), {}, format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("status", response.json())
+
     def test_close_cross_facility_returns_404(self):
         thread = self._make_thread(self.patient_other)
         self.client.force_authenticate(self.clinician)
@@ -568,8 +634,20 @@ class ClinicianMessagingReopenTests(ClinicianMessagingBaseMixin, APITestCase):
             self.patient, status_value=MessageThread.STATUS_CLOSED
         )
         self.client.force_authenticate(self.clinician)
-        response = self.client.post(_thread_reopen_url(thread.id), {}, format="json")
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.post(
+                _thread_reopen_url(thread.id), {}, format="json"
+            )
+
         self.assertEqual(response.status_code, 200, response.data)
+        self.assertTrue(
+            any(
+                '"messaging_messagethread"' in query["sql"]
+                and "FOR UPDATE" in query["sql"].upper()
+                for query in queries
+            ),
+            "Reopen must lock the thread row before checking its state.",
+        )
         body = response.json()
         self.assertEqual(body["status"], "open")
         self.assertEqual(body["status_label"], "Open")
@@ -594,6 +672,28 @@ class ClinicianMessagingReopenTests(ClinicianMessagingBaseMixin, APITestCase):
         thread = self._make_thread(self.patient)
         self.client.force_authenticate(self.clinician)
         response = self.client.post(_thread_reopen_url(thread.id), {}, format="json")
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("status", response.json())
+
+    def test_reopen_rereads_thread_state_instead_of_using_a_stale_object(self):
+        thread = self._make_thread(
+            self.patient, status_value=MessageThread.STATUS_CLOSED
+        )
+        stale_closed_thread = MessageThread.objects.get(pk=thread.pk)
+        MessageThread.objects.filter(pk=thread.pk).update(
+            status=MessageThread.STATUS_OPEN
+        )
+
+        self.client.force_authenticate(self.clinician)
+        with patch.object(
+            MessageThreadViewSet,
+            "get_object",
+            return_value=stale_closed_thread,
+        ):
+            response = self.client.post(
+                _thread_reopen_url(thread.id), {}, format="json"
+            )
+
         self.assertEqual(response.status_code, 400)
         self.assertIn("status", response.json())
 

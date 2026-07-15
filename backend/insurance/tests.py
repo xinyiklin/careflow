@@ -13,6 +13,7 @@ from patients.models import Patient
 from .models import (
     FacilityInsuranceCarrierOverride,
     InsuranceCarrier,
+    OrganizationInsuranceCarrierPreference,
     PatientInsurancePolicy,
 )
 from .views import PatientInsurancePolicyViewSet
@@ -85,7 +86,7 @@ class PatientInsurancePolicyViewSetTests(TestCase):
             HTTP_HOST="localhost:8000",
         )
 
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, 201, response.data)
         self.assertEqual(PatientInsurancePolicy.objects.count(), 1)
         self.assertTrue(
             AuditEvent.objects.filter(
@@ -371,6 +372,117 @@ class PatientInsurancePolicyViewSetTests(TestCase):
                 IntegrityError("some unrelated constraint failure")
             )
 
+    def test_facility_can_link_global_payer_without_organization_preference(self):
+        self.user.staff_profiles.update(
+            role=StaffRole.objects.get(facility=self.facility, code="admin")
+        )
+        global_carrier = InsuranceCarrier.objects.create(
+            name="Global Direct Plan",
+            payer_id="GDP001",
+        )
+        other_facility = Facility.objects.create(
+            organization=self.organization,
+            name="Other Clinic",
+            timezone="America/New_York",
+        )
+        private_carrier = InsuranceCarrier.objects.create(
+            name="Other Facility Plan",
+            payer_id="OFP001",
+            owning_facility=other_facility,
+            source=InsuranceCarrier.SOURCE_CUSTOM,
+        )
+
+        directory_response = self.client.get(
+            "/v1/insurance/facility-carrier-overrides/directory/",
+            {"facility_id": self.facility.id},
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(directory_response.status_code, 200)
+        directory_ids = {item["id"] for item in directory_response.data}
+        self.assertIn(global_carrier.id, directory_ids)
+        self.assertNotIn(private_carrier.id, directory_ids)
+
+        create_response = self.client.post(
+            "/v1/insurance/facility-carrier-overrides/"
+            f"?facility_id={self.facility.id}",
+            {"carrier_id": global_carrier.id, "is_active": True},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+        self.assertEqual(create_response.status_code, 201)
+        self.assertTrue(
+            FacilityInsuranceCarrierOverride.objects.filter(
+                facility=self.facility,
+                carrier=global_carrier,
+            ).exists()
+        )
+
+    def test_facility_custom_payer_is_private_to_that_facility(self):
+        self.user.staff_profiles.update(
+            role=StaffRole.objects.get(facility=self.facility, code="admin")
+        )
+        response = self.client.post(
+            "/v1/insurance/facility-carrier-overrides/"
+            f"?facility_id={self.facility.id}",
+            {
+                "carrier_details": {
+                    "name": "Facility Custom Plan",
+                    "payer_id": "FCP001",
+                },
+                "is_active": True,
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        carrier = InsuranceCarrier.objects.get(name="Facility Custom Plan")
+        self.assertEqual(carrier.owning_facility, self.facility)
+        self.assertIsNone(carrier.owning_organization)
+        self.assertEqual(carrier.source, InsuranceCarrier.SOURCE_CUSTOM)
+
+    def test_organization_custom_payer_is_owned_by_organization(self):
+        OrganizationMembership.objects.filter(user=self.user).update(role="admin")
+        response = self.client.post(
+            "/v1/insurance/organization-carriers/",
+            {
+                "carrier": {
+                    "name": "Organization Custom Plan",
+                    "payer_id": "OCP001",
+                },
+                "is_active": True,
+            },
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        carrier = InsuranceCarrier.objects.get(name="Organization Custom Plan")
+        self.assertEqual(carrier.owning_organization, self.organization)
+        self.assertIsNone(carrier.owning_facility)
+
+    def test_organization_cannot_edit_global_payer_details(self):
+        OrganizationMembership.objects.filter(user=self.user).update(role="admin")
+        global_carrier = InsuranceCarrier.objects.create(
+            name="Canonical Global Plan",
+            payer_id="CGP001",
+        )
+        preference = OrganizationInsuranceCarrierPreference.objects.create(
+            organization=self.organization,
+            carrier=global_carrier,
+        )
+
+        response = self.client.patch(
+            f"/v1/insurance/organization-carriers/{preference.id}/",
+            {"carrier": {"name": "Tenant Renamed Plan"}},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        global_carrier.refresh_from_db()
+        self.assertEqual(global_carrier.name, "Canonical Global Plan")
+
 
 class PatientInsurancePolicyCrossFacilityTests(TestCase):
     """A facility-B staff user must not read, create, update, or delete a
@@ -487,3 +599,110 @@ class PatientInsurancePolicyCrossFacilityTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.policy_a.refresh_from_db()
         self.assertTrue(self.policy_a.is_active)
+
+
+class CarrierOwnershipRemediationTests(TestCase):
+    """Regression tests for the payer/pharmacy ownership review findings:
+    migration backfill (no cross-tenant leak), directory-identity field locking,
+    and the ownerless-scoped directory seeder."""
+
+    def setUp(self):
+        self.organization = Organization.objects.create(name="Org A", slug="org-a")
+        self.other_organization = Organization.objects.create(
+            name="Org B", slug="org-b"
+        )
+        self.facility = Facility.objects.create(
+            organization=self.organization,
+            name="A Clinic",
+            timezone="America/New_York",
+        )
+
+    def test_backfill_assigns_private_carrier_and_leaves_seed_ownerless(self):
+        from importlib import import_module
+
+        from django.apps import apps as global_apps
+
+        from .carrier_directory import CARRIER_DIRECTORY
+
+        seed_payer_id = CARRIER_DIRECTORY[0][1]
+        # A global directory carrier (payer_id in the seed) left NULL/NULL by 0008.
+        global_carrier = InsuranceCarrier.objects.create(
+            name="Seeded Global", payer_id=seed_payer_id
+        )
+        # A tenant-private custom carrier (not in the seed) linked to Org A only.
+        private_carrier = InsuranceCarrier.objects.create(
+            name="Org A Private", payer_id="ZZZPRIV1"
+        )
+        OrganizationInsuranceCarrierPreference.objects.create(
+            organization=self.organization, carrier=private_carrier
+        )
+
+        module = import_module("insurance.migrations.0009_backfill_carrier_ownership")
+        module.backfill_carrier_ownership(global_apps, None)
+
+        global_carrier.refresh_from_db()
+        private_carrier.refresh_from_db()
+        # Seeded row stays ownerless (global, discoverable by everyone).
+        self.assertIsNone(global_carrier.owning_organization_id)
+        self.assertIsNone(global_carrier.owning_facility_id)
+        # Private row is attributed to its organization, so Org B's /directory/
+        # can never surface it.
+        self.assertEqual(private_carrier.owning_organization_id, self.organization.id)
+        self.assertIsNone(private_carrier.owning_facility_id)
+
+    def test_tenant_update_cannot_overwrite_directory_identity_fields(self):
+        from .serializers import InsuranceCarrierSerializer
+
+        carrier = InsuranceCarrier.objects.create(
+            name="Custom",
+            payer_id="CUST1",
+            source=InsuranceCarrier.SOURCE_CUSTOM,
+            owning_organization=self.organization,
+        )
+        serializer = InsuranceCarrierSerializer(
+            carrier,
+            data={
+                "name": "Custom Renamed",
+                "source": InsuranceCarrier.SOURCE_DIRECTORY,
+                "external_id": "HIJACK",
+                "directory_source": "careflow-seed",
+            },
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        carrier.refresh_from_db()
+        self.assertEqual(carrier.name, "Custom Renamed")  # ordinary field updates
+        self.assertEqual(carrier.source, InsuranceCarrier.SOURCE_CUSTOM)  # locked
+        self.assertEqual(carrier.external_id, "")  # locked
+        self.assertEqual(carrier.directory_source, "")  # locked
+
+    def test_load_directories_skips_tenant_owned_carrier_with_same_payer_id(self):
+        from django.core.management import call_command
+
+        from .carrier_directory import CARRIER_DIRECTORY
+
+        seed_payer_id = CARRIER_DIRECTORY[0][1]
+        tenant_carrier = InsuranceCarrier.objects.create(
+            name="Tenant Named",
+            payer_id=seed_payer_id,
+            source=InsuranceCarrier.SOURCE_CUSTOM,
+            owning_organization=self.organization,
+        )
+
+        # Must not raise MultipleObjectsReturned and must not overwrite the
+        # tenant row with canonical data.
+        call_command("load_directories", "--carriers-only", verbosity=0)
+
+        tenant_carrier.refresh_from_db()
+        self.assertEqual(tenant_carrier.name, "Tenant Named")
+        self.assertEqual(tenant_carrier.owning_organization_id, self.organization.id)
+        # A distinct global row now exists for that payer_id.
+        self.assertTrue(
+            InsuranceCarrier.objects.filter(
+                payer_id=seed_payer_id,
+                owning_organization__isnull=True,
+                owning_facility__isnull=True,
+            ).exists()
+        )

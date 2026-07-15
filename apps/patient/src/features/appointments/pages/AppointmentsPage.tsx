@@ -32,8 +32,10 @@ export function AppointmentsPage() {
   const [mode, setMode] = useState<Mode>("upcoming");
   const idBase = useId();
 
-  const upcomingQuery = useUpcomingAppointments();
-  const pastQuery = usePastAppointments();
+  const upcomingQuery = useUpcomingAppointments({
+    enabled: mode === "upcoming",
+  });
+  const pastQuery = usePastAppointments({ enabled: mode === "past" });
   const query = mode === "upcoming" ? upcomingQuery : pastQuery;
   const showLoading = useMinimumLoading(query.isLoading);
 

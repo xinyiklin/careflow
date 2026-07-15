@@ -13,6 +13,7 @@ const PRODUCTION_APP_HOST = "patient.xinyiklin.com";
 const PRODUCTION_API_HOST = "api.careflow.xinyiklin.com";
 const PRODUCTION_API_BASE = `https://${PRODUCTION_API_HOST}`;
 export const API_PREFIX = "/v1";
+const LOGOUT_PENDING_KEY = "careflow:patient-logout-pending";
 
 // Access token lives in memory only; refresh is an HttpOnly cookie set by the backend. Nothing token-y is persisted in localStorage.
 let inMemoryAccessToken: string | null = null;
@@ -64,9 +65,30 @@ function getStoredAccessToken(): string | null {
   return inMemoryAccessToken;
 }
 
+function isLogoutPending() {
+  try {
+    return window.localStorage.getItem(LOGOUT_PENDING_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setLogoutPending(isPending: boolean) {
+  try {
+    if (isPending) {
+      window.localStorage.setItem(LOGOUT_PENDING_KEY, "true");
+    } else {
+      window.localStorage.removeItem(LOGOUT_PENDING_KEY);
+    }
+  } catch {
+    // In-memory token clearing still signs out the current page.
+  }
+}
+
 function setStoredTokens({ access }: AuthTokens) {
   if (access) {
     inMemoryAccessToken = access;
+    setLogoutPending(false);
   }
 }
 
@@ -219,6 +241,9 @@ async function requestNewAccessToken(): Promise<string> {
 }
 
 export async function restoreAuthSession() {
+  if (isLogoutPending()) {
+    throw new Error("Signed out locally while server logout is pending.");
+  }
   return requestNewAccessToken();
 }
 
@@ -327,16 +352,24 @@ export async function apiRequest<T = unknown>(
 
 export function logoutUser() {
   clearStoredTokens();
-  ensureCsrfToken()
+  setLogoutPending(true);
+  const logoutRequest = ensureCsrfToken()
     .then((csrfToken) =>
       fetch(`${API_BASE}${API_PREFIX}/portal/auth/logout/`, {
         method: "POST",
         credentials: "include",
+        keepalive: true,
         headers: { "X-CSRFToken": csrfToken },
       })
     )
-    .catch(() => {});
+    .then((response) => {
+      if (response.ok) setLogoutPending(false);
+    })
+    .catch(() => {
+      // Keep the marker so a reload cannot restore the unrevoked cookie.
+    });
   emitAuthLogout();
+  return logoutRequest;
 }
 
 export default API_BASE;

@@ -1,4 +1,5 @@
-from rest_framework import permissions, viewsets
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -312,6 +313,16 @@ class PatientViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
             summary=f"Deactivated patient {get_patient_display_name(instance)}",
         )
 
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="PatientSsnReveal",
+                fields={"ssn": serializers.CharField()},
+            )
+        },
+        summary="Reveal a patient's SSN",
+    )
     @action(detail=True, methods=["get"], url_path="reveal-ssn")
     def reveal_ssn(self, request, pk=None):
         patient = self.get_object()

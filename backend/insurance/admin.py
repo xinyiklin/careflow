@@ -6,9 +6,22 @@ from .models import InsuranceCarrier, PatientInsurancePolicy
 
 @admin.register(InsuranceCarrier)
 class InsuranceCarrierAdmin(admin.ModelAdmin):
-    list_display = ("name", "payer_id", "phone_number", "is_active")
-    list_filter = ("is_active",)
-    search_fields = ("name", "payer_id", "phone_number")
+    list_display = (
+        "name",
+        "payer_id",
+        "ownership_scope",
+        "source",
+        "directory_source",
+        "is_active",
+    )
+    list_filter = (
+        "source",
+        "directory_source",
+        "owning_organization",
+        "owning_facility",
+        "is_active",
+    )
+    search_fields = ("name", "payer_id", "phone_number", "external_id")
 
 
 @admin.register(PatientInsurancePolicy)

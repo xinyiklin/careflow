@@ -17,7 +17,10 @@ export default function useScheduleHeatmap({
     queryKey: ["appointmentHeatmap", facilityId, month],
     queryFn: () => fetchAppointmentHeatmap({ facilityId, month }),
     enabled: !!facilityId && !!month,
-    placeholderData: (previousData) => previousData,
+    placeholderData: (previousData, previousQuery) =>
+      String(previousQuery?.queryKey[1] ?? "") === String(facilityId ?? "")
+        ? previousData
+        : undefined,
     staleTime: 60_000,
   });
 

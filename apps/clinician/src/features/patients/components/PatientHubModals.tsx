@@ -5,6 +5,7 @@ import InsurancePolicyModal from "./InsurancePolicyModal";
 import ProgressNoteModal from "./ProgressNoteModal";
 import VitalsIntakeModal from "./VitalsIntakeModal";
 import ConfirmDialog from "../../../shared/components/ConfirmDialog";
+import DatePickerProvider from "../../../shared/components/DatePickerProvider";
 
 import type { EntityId } from "../../../shared/api/types";
 import type { AppointmentLike } from "../../../shared/types/domain";
@@ -148,97 +149,99 @@ export default function PatientHubModals({
   editBlockedDialog,
 }: PatientHubModalsProps) {
   return (
-    <>
-      <InsurancePolicyModal
-        isOpen={insurance.isPolicyModalOpen}
-        policy={insurance.editingPolicy}
-        carriers={insurance.carriers}
-        saving={insurance.saving}
-        onClose={insurance.onClose}
-        onSubmit={insurance.onSubmit}
-        onDelete={insurance.onDelete}
-      />
-
-      <AppointmentModal
-        isOpen={appointment.modal.isOpen}
-        mode={appointment.modal.mode as AppointmentMode}
-        appointmentId={appointment.modal.editingId}
-        formData={appointment.modal.formData}
-        facilityId={facilityId}
-        physicians={appointment.physicians}
-        staffs={appointment.staffs}
-        resources={appointment.resources}
-        statusOptions={appointment.statusOptions}
-        typeOptions={appointment.typeOptions}
-        error={appointment.error}
-        onSubmit={appointment.onSubmit}
-        onClose={appointment.onClose}
-        onDelete={appointment.onDelete}
-        onOpenHistory={appointment.onOpenHistory}
-        selectedPatient={appointment.selectedPatient}
-        onSelectPatient={appointment.setSelectedPatient}
-        timeZone={timeZone}
-        onEditSessionBlocked={appointment.onEditSessionBlocked}
-      />
-
-      <AppointmentHistoryModal
-        isOpen={historyModal.isOpen}
-        appointmentId={historyModal.appointmentId}
-        facilityId={facilityId}
-        patientName={historyModal.patientName}
-        appointmentTime={historyModal.appointmentTime}
-        timeZone={timeZone}
-        onClose={historyModal.onClose}
-      />
-
-      <ProgressNoteModal
-        isOpen={progressNote.state.isOpen}
-        encounter={progressNote.state.encounter}
-        appointment={progressNote.state.appointment}
-        patientName={patientName}
-        providers={progressNote.providers}
-        canEdit={progressNote.canEdit}
-        canSign={progressNote.canSign}
-        canUnsign={progressNote.canUnsign}
-        saving={progressNote.saving}
-        signing={progressNote.signing}
-        unsigning={progressNote.unsigning}
-        error={progressNote.error}
-        onClose={progressNote.onClose}
-        onSaveDraft={progressNote.onSaveDraft}
-        onSign={progressNote.onSign}
-        onUnsign={progressNote.onUnsign}
-      />
-
-      {vitals ? (
-        <VitalsIntakeModal
-          isOpen={vitals.state.isOpen}
-          encounter={vitals.state.encounter}
-          vitals={vitals.state.vitals}
-          patientName={patientName}
-          saving={vitals.saving}
-          error={vitals.error}
-          onClose={vitals.onClose}
-          onSubmit={vitals.onSubmit}
+    <DatePickerProvider>
+      <>
+        <InsurancePolicyModal
+          isOpen={insurance.isPolicyModalOpen}
+          policy={insurance.editingPolicy}
+          carriers={insurance.carriers}
+          saving={insurance.saving}
+          onClose={insurance.onClose}
+          onSubmit={insurance.onSubmit}
+          onDelete={insurance.onDelete}
         />
-      ) : null}
 
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        confirmText={confirmDialog.confirmText}
-        cancelText={confirmDialog.cancelText}
-        variant={confirmDialog.variant}
-        onConfirm={confirmDialog.onConfirm ?? undefined}
-        onCancel={confirmDialog.onCancel}
-      />
+        <AppointmentModal
+          isOpen={appointment.modal.isOpen}
+          mode={appointment.modal.mode as AppointmentMode}
+          appointmentId={appointment.modal.editingId}
+          formData={appointment.modal.formData}
+          facilityId={facilityId}
+          physicians={appointment.physicians}
+          staffs={appointment.staffs}
+          resources={appointment.resources}
+          statusOptions={appointment.statusOptions}
+          typeOptions={appointment.typeOptions}
+          error={appointment.error}
+          onSubmit={appointment.onSubmit}
+          onClose={appointment.onClose}
+          onDelete={appointment.onDelete}
+          onOpenHistory={appointment.onOpenHistory}
+          selectedPatient={appointment.selectedPatient}
+          onSelectPatient={appointment.setSelectedPatient}
+          timeZone={timeZone}
+          onEditSessionBlocked={appointment.onEditSessionBlocked}
+        />
 
-      <AppointmentEditBlockedDialog
-        isOpen={editBlockedDialog.isOpen}
-        activeEditor={editBlockedDialog.activeEditor}
-        onClose={editBlockedDialog.onClose}
-      />
-    </>
+        <AppointmentHistoryModal
+          isOpen={historyModal.isOpen}
+          appointmentId={historyModal.appointmentId}
+          facilityId={facilityId}
+          patientName={historyModal.patientName}
+          appointmentTime={historyModal.appointmentTime}
+          timeZone={timeZone}
+          onClose={historyModal.onClose}
+        />
+
+        <ProgressNoteModal
+          isOpen={progressNote.state.isOpen}
+          encounter={progressNote.state.encounter}
+          appointment={progressNote.state.appointment}
+          patientName={patientName}
+          providers={progressNote.providers}
+          canEdit={progressNote.canEdit}
+          canSign={progressNote.canSign}
+          canUnsign={progressNote.canUnsign}
+          saving={progressNote.saving}
+          signing={progressNote.signing}
+          unsigning={progressNote.unsigning}
+          error={progressNote.error}
+          onClose={progressNote.onClose}
+          onSaveDraft={progressNote.onSaveDraft}
+          onSign={progressNote.onSign}
+          onUnsign={progressNote.onUnsign}
+        />
+
+        {vitals ? (
+          <VitalsIntakeModal
+            isOpen={vitals.state.isOpen}
+            encounter={vitals.state.encounter}
+            vitals={vitals.state.vitals}
+            patientName={patientName}
+            saving={vitals.saving}
+            error={vitals.error}
+            onClose={vitals.onClose}
+            onSubmit={vitals.onSubmit}
+          />
+        ) : null}
+
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText={confirmDialog.confirmText}
+          cancelText={confirmDialog.cancelText}
+          variant={confirmDialog.variant}
+          onConfirm={confirmDialog.onConfirm ?? undefined}
+          onCancel={confirmDialog.onCancel}
+        />
+
+        <AppointmentEditBlockedDialog
+          isOpen={editBlockedDialog.isOpen}
+          activeEditor={editBlockedDialog.activeEditor}
+          onClose={editBlockedDialog.onClose}
+        />
+      </>
+    </DatePickerProvider>
   );
 }

@@ -49,6 +49,8 @@ type FacilityPharmacyRow = {
 };
 
 const EMPTY_FORM = {
+  mode: "directory" as "directory" | "custom",
+  directory_id: "",
   name: "",
   service_type: "retail",
   phone_number: "",
@@ -88,6 +90,7 @@ export default function FacilityPharmaciesPanel() {
   const [form, setForm] = useState(EMPTY_FORM);
   const {
     pharmacyOverrides,
+    directoryPharmacies,
     loading,
     saving,
     error,
@@ -173,15 +176,21 @@ export default function FacilityPharmaciesPanel() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const pharmacyValues =
+      form.mode === "directory"
+        ? { pharmacy_id: Number(form.directory_id) }
+        : {
+            pharmacy_details: {
+              name: form.name,
+              service_type: form.service_type,
+              phone_number: getPhoneInputDigits(form.phone_number),
+              fax_number: getPhoneInputDigits(form.fax_number),
+              is_active: true,
+            },
+          };
     await savePharmacyOverride({
       values: {
-        pharmacy_details: {
-          name: form.name,
-          service_type: form.service_type,
-          phone_number: getPhoneInputDigits(form.phone_number),
-          fax_number: getPhoneInputDigits(form.fax_number),
-          is_active: true,
-        },
+        ...pharmacyValues,
         is_active: true,
         is_hidden: false,
         is_preferred: true,
@@ -227,7 +236,7 @@ export default function FacilityPharmaciesPanel() {
                 onClick={() => setIsModalOpen(true)}
                 disabled={saving || !facilityId}
               >
-                <Plus className="h-3.5 w-3.5" /> New
+                <Plus className="h-3.5 w-3.5" /> Add
               </Button>
             </>
           }
@@ -298,55 +307,97 @@ export default function FacilityPharmaciesPanel() {
         >
           <AdminFormSection>
             <AdminFieldGrid>
-              <AdminField label="Name">
-                <input
+              <AdminField label="Source">
+                <select
                   className="cf-input"
-                  value={form.name}
+                  value={form.mode}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      name: event.target.value,
+                      mode: event.target.value as "directory" | "custom",
                     }))
                   }
-                  required
-                />
+                >
+                  <option value="directory">Global directory</option>
+                  <option value="custom">Facility-only custom pharmacy</option>
+                </select>
               </AdminField>
-              <AdminField label="Service type">
-                <input
-                  className="cf-input"
-                  value={form.service_type}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      service_type: event.target.value,
-                    }))
-                  }
-                />
-              </AdminField>
-              <AdminField label="Phone">
-                <PhoneInput
-                  name="phone_number"
-                  value={form.phone_number}
-                  onChange={(value) =>
-                    setForm((current) => ({
-                      ...current,
-                      phone_number: value,
-                    }))
-                  }
-                />
-              </AdminField>
-              <AdminField label="Fax">
-                <PhoneInput
-                  name="fax_number"
-                  value={form.fax_number}
-                  onChange={(value) =>
-                    setForm((current) => ({
-                      ...current,
-                      fax_number: value,
-                    }))
-                  }
-                />
-              </AdminField>
+              {form.mode === "directory" ? (
+                <AdminField label="Pharmacy">
+                  <select
+                    className="cf-input"
+                    value={form.directory_id}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        directory_id: event.target.value,
+                      }))
+                    }
+                    required
+                  >
+                    <option value="">Select a directory pharmacy</option>
+                    {directoryPharmacies.map((pharmacy) => (
+                      <option key={pharmacy.id} value={String(pharmacy.id)}>
+                        {pharmacy.name}
+                        {pharmacy.city ? `, ${pharmacy.city}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </AdminField>
+              ) : null}
+              {form.mode === "custom" ? (
+                <>
+                  <AdminField label="Name">
+                    <input
+                      className="cf-input"
+                      value={form.name}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          name: event.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </AdminField>
+                  <AdminField label="Service type">
+                    <input
+                      className="cf-input"
+                      value={form.service_type}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          service_type: event.target.value,
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="Phone">
+                    <PhoneInput
+                      name="phone_number"
+                      value={form.phone_number}
+                      onChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          phone_number: value,
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="Fax">
+                    <PhoneInput
+                      name="fax_number"
+                      value={form.fax_number}
+                      onChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          fax_number: value,
+                        }))
+                      }
+                    />
+                  </AdminField>
+                </>
+              ) : null}
             </AdminFieldGrid>
           </AdminFormSection>
         </form>

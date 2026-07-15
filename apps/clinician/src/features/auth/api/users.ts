@@ -13,7 +13,7 @@ export type LoginCredentials = {
 
 export type AuthTokenResponse = {
   access?: string | null;
-  refresh?: string | null;
+  is_demo?: boolean;
   user?: UserProfile | null;
 };
 

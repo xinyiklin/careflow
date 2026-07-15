@@ -70,7 +70,8 @@ APIs are versioned under `/v1/`.
   storage for deployed demos.
 - Organization/facility admin APIs for staff, roles, permissions, resources,
   operating hours, appointment config, fee schedules, payer/pharmacy
-  preferences, document categories, and read-only activity logs.
+  preferences, direct links to the global payer/pharmacy directory, private
+  tenant custom records, document categories, and read-only activity logs.
 - Patient portal API under `/v1/portal/`, gated by `IsPortalPatient` and a
   `PatientPortalAccount` join model: profile, appointments with online
   self-scheduling (providers, appointment types, open slots, book) and
@@ -149,6 +150,7 @@ python manage.py test
 For backend lint/format checks when touching Python source:
 
 ```bash
+pip install -r requirements-dev.txt
 python -m ruff check .
 python -m black --check .
 ```

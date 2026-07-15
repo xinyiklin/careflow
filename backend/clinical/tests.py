@@ -142,6 +142,27 @@ class ClinicalEncounterViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    def test_icd10_catalog_is_authenticated_and_serializes_entries(self):
+        unauthenticated_response = APIClient().get(
+            "/v1/clinical/icd10-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+        response = self.client.get(
+            "/v1/clinical/icd10-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(unauthenticated_response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data[0],
+            {
+                "code": "B34.9",
+                "description": "Viral infection, unspecified",
+                "chapter": "Infectious & parasitic",
+            },
+        )
+
     def test_list_rejects_explicit_facility_without_staff_membership(self):
         response = self.client.get(
             "/v1/clinical/encounters/",

@@ -1,3 +1,4 @@
+from django.db.models import F
 from rest_framework.exceptions import PermissionDenied
 
 from organizations.permissions import (
@@ -7,7 +8,7 @@ from organizations.permissions import (
 )
 
 from .models import Facility, Staff
-from .security import user_has_facility_permission
+from .security import holds_all_self_management, user_has_facility_permission
 
 
 def lock_facility_security_staff(facility):
@@ -27,12 +28,96 @@ def lock_facility_security_staff(facility):
     )
 
 
+def validate_staff_security_transition(
+    *,
+    actor,
+    facility,
+    staff,
+    prospective_role,
+    prospective_overrides,
+    prospective_is_active,
+):
+    """Lock and validate one staff security-state transition.
+
+    Callers remain responsible for authorization. This shared invariant protects
+    the current actor from removing their own facility administration and keeps
+    a facility from losing its final administrator, regardless of whether the
+    transition originates from a facility or organization-admin endpoint.
+    Must run inside ``transaction.atomic()``.
+    """
+    facility_staff = lock_facility_security_staff(facility)
+    locked_staff_by_id = {item.id: item for item in facility_staff}
+    locked_staff = locked_staff_by_id.get(staff.id)
+    if locked_staff is None:
+        locked_staff = (
+            Staff.objects.select_for_update(of=("self",))
+            .select_related("role")
+            .get(pk=staff.pk)
+        )
+        facility_staff.append(locked_staff)
+
+    prospective_role_permissions = (
+        prospective_role.security_permissions if prospective_role else {}
+    )
+    if locked_staff.user_id == actor.id and (
+        not prospective_is_active
+        or not holds_all_self_management(
+            prospective_role_permissions,
+            prospective_overrides,
+        )
+    ):
+        raise PermissionDenied(
+            "You cannot remove your own administrative or security "
+            "management access. This would lock you out."
+        )
+
+    def holds_admin_after(candidate):
+        if candidate.id == locked_staff.id:
+            if not prospective_is_active:
+                return False
+            return holds_all_self_management(
+                prospective_role_permissions,
+                prospective_overrides,
+            )
+        if not candidate.is_active:
+            return False
+        return holds_all_self_management(
+            candidate.role.security_permissions if candidate.role else {},
+            candidate.security_overrides,
+        )
+
+    had_admin = any(
+        candidate.is_active
+        and holds_all_self_management(
+            candidate.role.security_permissions if candidate.role else {},
+            candidate.security_overrides,
+        )
+        for candidate in facility_staff
+    )
+    if had_admin and not any(
+        holds_admin_after(candidate) for candidate in facility_staff
+    ):
+        raise PermissionDenied(
+            "This change would leave the facility without an administrator. "
+            "Assign another administrator first."
+        )
+
+    return locked_staff
+
+
 def get_default_staff_profile(user):
     if not user or not user.is_authenticated:
         return None
 
     memberships = list(
-        Staff.objects.filter(user=user, is_active=True)
+        Staff.objects.filter(
+            user=user,
+            is_active=True,
+            facility__is_active=True,
+            role__is_active=True,
+            user__org_membership__is_active=True,
+            facility__organization_id=F("user__org_membership__organization_id"),
+        )
         .select_related("facility", "role", "title")
         .order_by("-is_default", "facility__name", "facility_id")
     )
@@ -68,6 +153,10 @@ def get_staff_profile_for_facility(user, facility_id):
             user=user,
             facility_id=facility_id,
             is_active=True,
+            facility__is_active=True,
+            role__is_active=True,
+            user__org_membership__is_active=True,
+            facility__organization_id=F("user__org_membership__organization_id"),
         )
         .select_related("facility", "role", "title")
         .first()

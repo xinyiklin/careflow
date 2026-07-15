@@ -176,7 +176,7 @@ def _facility_status(facility, code):
 
 @extend_schema(
     request=PortalBookingRequestSerializer,
-    responses=PortalAppointmentBookingResponseSerializer,
+    responses={201: PortalAppointmentBookingResponseSerializer},
     summary="Book a slot from the portal",
 )
 class PortalSchedulingBookView(APIView):
@@ -243,13 +243,14 @@ class PortalSchedulingBookView(APIView):
         )
 
 
-@extend_schema(
-    responses=PortalAppointmentBookingResponseSerializer,
-    summary="Cancel a patient-booked appointment",
-)
 class PortalSchedulingCancelView(APIView):
     permission_classes = [IsPortalPatient]
 
+    @extend_schema(
+        request=None,
+        responses=PortalAppointmentBookingResponseSerializer,
+        summary="Cancel a patient-booked appointment",
+    )
     @transaction.atomic
     def post(self, request, pk):
         patient = get_patient_for_user(request.user)

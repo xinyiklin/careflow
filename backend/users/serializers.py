@@ -1,4 +1,5 @@
 from django.contrib.auth.password_validation import validate_password
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from facilities.models import Staff
@@ -6,12 +7,37 @@ from facilities.models import Staff
 from .models import User, UserPreference
 
 
+class CookieTokenLoginRequestSerializer(serializers.Serializer):
+    """Credentials accepted by the cookie-backed token-login endpoints."""
+
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+
+class CookieTokenRefreshRequestSerializer(serializers.Serializer):
+    """Optional body override for the refresh token stored in an HttpOnly cookie."""
+
+    refresh = serializers.CharField(required=False, allow_blank=True, write_only=True)
+
+
+class AccessTokenResponseSerializer(serializers.Serializer):
+    """JSON payload returned after refresh cookies are removed from a response."""
+
+    access = serializers.CharField()
+
+
 def get_active_staff_profiles(user):
     if not user or not user.is_authenticated:
         return []
 
     return list(
-        Staff.objects.filter(user=user, is_active=True)
+        Staff.objects.filter(
+            user=user,
+            is_active=True,
+            facility__is_active=True,
+            role__is_active=True,
+            user__org_membership__is_active=True,
+        )
         .select_related("facility", "facility__organization", "role", "title")
         .order_by("-is_default", "facility__name", "facility_id")
     )
@@ -103,6 +129,7 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
             "can_eprescribe",
         ]
 
+    @extend_schema_field(serializers.DictField())
     def get_facility(self, obj):
         return {
             "id": obj.facility.id,
@@ -118,6 +145,7 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
             },
         }
 
+    @extend_schema_field(serializers.DictField())
     def get_role(self, obj):
         return {
             "id": obj.role.id,
@@ -125,6 +153,7 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
             "code": obj.role.code,
         }
 
+    @extend_schema_field(serializers.DictField(allow_null=True))
     def get_title(self, obj):
         if not obj.title:
             return None
@@ -135,9 +164,11 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
             "code": obj.title.code,
         }
 
+    @extend_schema_field(serializers.DictField(child=serializers.BooleanField()))
     def get_effective_security_permissions(self, obj):
         return obj.effective_security_permissions
 
+    @extend_schema_field(serializers.BooleanField())
     def get_can_eprescribe(self, obj):
         # Placeholder e-prescribing eligibility — drives provider-only
         # affordances like the refill "Me" filter. Real prescribing/EPCS
@@ -145,6 +176,7 @@ class StaffMembershipSerializer(serializers.ModelSerializer):
         return bool(obj.eprescribe_enabled)
 
 
+@extend_schema_serializer(component_name="CurrentUser")
 class UserSerializer(serializers.ModelSerializer):
     organization = serializers.SerializerMethodField()
     organization_role = serializers.SerializerMethodField()
@@ -172,6 +204,7 @@ class UserSerializer(serializers.ModelSerializer):
             "preferences",
         ]
 
+    @extend_schema_field(serializers.DictField(allow_null=True))
     def get_organization(self, obj):
         membership = getattr(obj, "org_membership", None)
         if not membership or not membership.is_active:
@@ -183,6 +216,7 @@ class UserSerializer(serializers.ModelSerializer):
             "slug": membership.organization.slug,
         }
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_organization_role(self, obj):
         membership = getattr(obj, "org_membership", None)
         if not membership or not membership.is_active:
@@ -190,6 +224,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         return membership.role
 
+    @extend_schema_field(StaffMembershipSerializer(many=True))
     def get_memberships(self, obj):
         preference_record = getattr(obj, "preference_record", None)
         preferences = getattr(preference_record, "preferences", {}) or {}
@@ -198,7 +233,13 @@ class UserSerializer(serializers.ModelSerializer):
             preferences.get("lastFacilityId") or preferences.get("defaultFacilityId"),
         )
         profiles = list(
-            Staff.objects.filter(user=obj, is_active=True)
+            Staff.objects.filter(
+                user=obj,
+                is_active=True,
+                facility__is_active=True,
+                role__is_active=True,
+                user__org_membership__is_active=True,
+            )
             .select_related("facility", "facility__organization", "role", "title")
             .order_by("-is_default", "facility__name")
         )
@@ -212,12 +253,14 @@ class UserSerializer(serializers.ModelSerializer):
             )
         return StaffMembershipSerializer(profiles, many=True).data
 
+    @extend_schema_field(StaffMembershipSerializer(allow_null=True))
     def get_current_membership(self, obj):
         profile = get_active_staff_profile(obj)
         if not profile:
             return None
         return StaffMembershipSerializer(profile).data
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_org_admin(self, obj):
         membership = getattr(obj, "org_membership", None)
         if not membership or not membership.is_active:
@@ -225,8 +268,15 @@ class UserSerializer(serializers.ModelSerializer):
 
         return membership.role in ["owner", "admin"]
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_admin_facility_ids(self, obj):
-        profiles = Staff.objects.filter(user=obj, is_active=True).select_related("role")
+        profiles = Staff.objects.filter(
+            user=obj,
+            is_active=True,
+            facility__is_active=True,
+            role__is_active=True,
+            user__org_membership__is_active=True,
+        ).select_related("role")
 
         admin_ids = []
         for profile in profiles:
@@ -235,6 +285,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         return admin_ids
 
+    @extend_schema_field(serializers.DictField())
     def get_preferences(self, obj):
         preference_record = getattr(obj, "preference_record", None)
         preferences = preference_record.preferences if preference_record else {}
@@ -269,6 +320,9 @@ class UserPreferenceSerializer(serializers.ModelSerializer):
             user=self.instance.user,
             facility_id=submitted_facility_id,
             is_active=True,
+            facility__is_active=True,
+            role__is_active=True,
+            user__org_membership__is_active=True,
         ).exists()
         if not has_membership:
             raise serializers.ValidationError(
@@ -277,6 +331,14 @@ class UserPreferenceSerializer(serializers.ModelSerializer):
 
         preferences["lastFacilityId"] = submitted_facility_id
         return preferences
+
+
+class DemoLoginResponseSerializer(serializers.Serializer):
+    """Access token and clinician context returned by demo sign-in."""
+
+    access = serializers.CharField()
+    is_demo = serializers.BooleanField()
+    user = UserSerializer()
 
 
 class RegisterSerializer(serializers.ModelSerializer):

@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from rest_framework import serializers
 
+from facilities.access import validate_staff_security_transition
+from facilities.models import Facility, Staff, StaffRole
 from patients.models import Pharmacy
 from patients.serializers import PharmacySerializer
 from shared.serializers import AddressSerializer
@@ -16,6 +18,52 @@ from .models import (
 from .security import normalize_org_security_permissions
 
 User = get_user_model()
+
+
+def build_staff_security_audit_event(
+    *,
+    facility,
+    staff,
+    previous_role_id,
+    previous_is_active,
+    next_role_id,
+    next_is_active,
+    created,
+):
+    """Assemble a facility-scoped security audit event for a Staff mutation.
+
+    Mirrors the facility /staff/ endpoint's event shape (app_label="facilities",
+    model_name="staff", facility set) so both surfaces group identically and a
+    facility admin can see staff changes made through the org People path.
+    """
+    changed_fields = []
+    if created:
+        changed_fields.append("Created")
+    else:
+        if previous_role_id != next_role_id:
+            changed_fields.append("role_id")
+        if previous_is_active != next_is_active:
+            changed_fields.append("is_active")
+    verb = "Created" if created else "Updated"
+    return {
+        "facility": facility,
+        "object_pk": staff.pk,
+        "action": "create" if created else "update",
+        "summary": f"{verb} staff membership for {staff.user}",
+        "metadata": {
+            "changed_fields": changed_fields,
+            "previous": {
+                "role_id": previous_role_id,
+                "is_active": previous_is_active,
+            },
+            "next": {
+                "role_id": next_role_id,
+                "is_active": next_is_active,
+            },
+            "user_id": staff.user_id,
+            "via": "organization_people",
+        },
+    }
 
 
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
@@ -63,6 +111,27 @@ class OrganizationSecuritySerializer(serializers.Serializer):
 
     def validate_security_permissions(self, value):
         return normalize_org_security_permissions(value)
+
+
+class OrganizationSecurityRoleSerializer(serializers.Serializer):
+    """One organization role and its effective security permissions."""
+
+    id = serializers.IntegerField()
+    key = serializers.CharField()
+    label = serializers.CharField()
+    is_system_role = serializers.BooleanField()
+    is_deletable = serializers.BooleanField()
+    description = serializers.CharField(allow_blank=True)
+    security_permissions = serializers.DictField(child=serializers.BooleanField())
+    member_count = serializers.IntegerField()
+
+
+class OrganizationSecurityUpdateResultSerializer(serializers.Serializer):
+    """Result returned after updating one organization role's permissions."""
+
+    role = serializers.CharField()
+    security_permissions = serializers.DictField(child=serializers.BooleanField())
+    members_updated = serializers.IntegerField()
 
 
 class OrganizationAddressMixin:
@@ -258,67 +327,156 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop("user", {})
         facility_ids = validated_data.pop("facility_ids", None)
         admin_facility_ids = validated_data.pop("admin_facility_ids", None)
+        # Facility Staff rows created/re-roled/deactivated below carry the same
+        # security weight as the facility twin's own /staff/ endpoint; collect
+        # them so the view can emit a facility-scoped security audit event per
+        # row (the org-membership audit alone is not facility-scoped, so a
+        # facility admin could never see they gained or lost an administrator).
+        self.security_audit_events = []
 
-        user = instance.user
-        for attr, value in user_data.items():
-            setattr(user, attr, value)
-        user.save()
+        with transaction.atomic():
+            user = instance.user
+            if facility_ids is not None:
+                org_facilities = list(
+                    Facility.objects.filter(
+                        organization=instance.organization
+                    ).order_by("id")
+                )
+                org_facility_ids = {facility.id for facility in org_facilities}
+                target_facility_ids = set(facility_ids) & org_facility_ids
+                target_admin_ids = set(admin_facility_ids or []) & target_facility_ids
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
+                staff_to_deactivate = list(
+                    Staff.objects.filter(
+                        user=user,
+                        facility__organization=instance.organization,
+                        is_active=True,
+                    )
+                    .exclude(facility_id__in=target_facility_ids)
+                    .select_related("facility", "role")
+                )
+                for staff in staff_to_deactivate:
+                    validate_staff_security_transition(
+                        actor=self.context["request"].user,
+                        facility=staff.facility,
+                        staff=staff,
+                        prospective_role=staff.role,
+                        prospective_overrides=staff.security_overrides,
+                        prospective_is_active=False,
+                    )
 
-        if facility_ids is not None:
-            from facilities.models import Facility, Staff, StaffRole
+                for staff in staff_to_deactivate:
+                    self._record_staff_security_event(
+                        facility=staff.facility,
+                        staff=staff,
+                        previous_role_id=staff.role_id,
+                        previous_is_active=staff.is_active,
+                        next_role_id=staff.role_id,
+                        next_is_active=False,
+                        created=False,
+                    )
 
-            org_facilities = Facility.objects.filter(organization=instance.organization)
-            org_facility_ids = set(org_facilities.values_list("id", flat=True))
+                staff_to_update = []
+                for facility in org_facilities:
+                    if facility.id not in target_facility_ids:
+                        continue
 
-            target_facility_ids = set(facility_ids) & org_facility_ids
-            target_admin_ids = set(admin_facility_ids or []) & target_facility_ids
+                    default_role = (
+                        StaffRole.objects.filter(
+                            facility=facility, code="front_desk"
+                        ).first()
+                        or StaffRole.objects.filter(facility=facility).first()
+                    )
+                    staff, created = Staff.objects.get_or_create(
+                        user=user,
+                        facility=facility,
+                        defaults={"role": default_role, "is_active": True},
+                    )
+                    previous_role_id = staff.role_id
+                    previous_is_active = staff.is_active
+                    prospective_role = staff.role
+                    is_admin = facility.id in target_admin_ids
+                    current_role_code = staff.role.code if staff.role else ""
 
-            with transaction.atomic():
+                    if is_admin and current_role_code != "admin":
+                        admin_role = StaffRole.objects.filter(
+                            facility=facility,
+                            code="admin",
+                        ).first()
+                        if admin_role:
+                            prospective_role = admin_role
+                    elif not is_admin and current_role_code == "admin":
+                        non_admin_role = (
+                            StaffRole.objects.filter(facility=facility)
+                            .exclude(code="admin")
+                            .first()
+                        )
+                        if non_admin_role:
+                            prospective_role = non_admin_role
+
+                    role_is_changing = staff.role_id != getattr(
+                        prospective_role,
+                        "id",
+                        None,
+                    )
+                    if not created and staff.is_active and role_is_changing:
+                        staff = validate_staff_security_transition(
+                            actor=self.context["request"].user,
+                            facility=facility,
+                            staff=staff,
+                            prospective_role=prospective_role,
+                            prospective_overrides=staff.security_overrides,
+                            prospective_is_active=True,
+                        )
+
+                    if created or not staff.is_active or role_is_changing:
+                        staff_to_update.append(
+                            (
+                                staff,
+                                prospective_role,
+                                created,
+                                previous_role_id,
+                                previous_is_active,
+                            )
+                        )
+
                 Staff.objects.filter(
-                    user=user, facility__organization=instance.organization
+                    user=user,
+                    facility__organization=instance.organization,
                 ).exclude(facility_id__in=target_facility_ids).update(is_active=False)
 
-                for fac in org_facilities:
-                    if fac.id in target_facility_ids:
-                        staff, created = Staff.objects.get_or_create(
-                            user=user,
-                            facility=fac,
-                            defaults={
-                                "role": StaffRole.objects.filter(
-                                    facility=fac, code="front_desk"
-                                ).first()
-                                or StaffRole.objects.filter(facility=fac).first(),
-                                "is_active": True,
-                            },
-                        )
-                        if not created:
-                            staff.is_active = True
+                for (
+                    staff,
+                    prospective_role,
+                    created,
+                    previous_role_id,
+                    previous_is_active,
+                ) in staff_to_update:
+                    staff.is_active = True
+                    staff.role = prospective_role
+                    staff.save()
+                    self._record_staff_security_event(
+                        facility=staff.facility,
+                        staff=staff,
+                        previous_role_id=None if created else previous_role_id,
+                        previous_is_active=False if created else previous_is_active,
+                        next_role_id=staff.role_id,
+                        next_is_active=True,
+                        created=created,
+                    )
 
-                        is_admin = fac.id in target_admin_ids
-                        current_role_code = staff.role.code if staff.role else ""
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+            user.save()
 
-                        if is_admin and current_role_code != "admin":
-                            admin_role = StaffRole.objects.filter(
-                                facility=fac, code="admin"
-                            ).first()
-                            if admin_role:
-                                staff.role = admin_role
-                        elif not is_admin and current_role_code == "admin":
-                            non_admin_role = (
-                                StaffRole.objects.filter(facility=fac)
-                                .exclude(code="admin")
-                                .first()
-                            )
-                            if non_admin_role:
-                                staff.role = non_admin_role
-
-                        staff.save()
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
 
         return instance
+
+    def _record_staff_security_event(self, **kwargs):
+        self.security_audit_events.append(build_staff_security_audit_event(**kwargs))
 
 
 class OrganizationPersonCreateSerializer(serializers.Serializer):
@@ -350,30 +508,28 @@ class OrganizationPersonCreateSerializer(serializers.Serializer):
         organization = self.context["organization"]
         facility_ids = validated_data.pop("facility_ids", [])
         admin_facility_ids = validated_data.pop("admin_facility_ids", [])
-
-        user = User.objects.create_user(
-            username=validated_data["username"],
-            email=validated_data["email"],
-            first_name=validated_data.get("first_name", ""),
-            last_name=validated_data.get("last_name", ""),
-        )
-
-        membership = OrganizationMembership.objects.create(
-            user=user,
-            organization=organization,
-            role=validated_data["role"],
-            is_active=True,
-        )
-
-        from facilities.models import Facility, Staff, StaffRole
-
-        org_facilities = Facility.objects.filter(organization=organization)
-        org_facility_ids = set(org_facilities.values_list("id", flat=True))
-
-        target_facility_ids = set(facility_ids) & org_facility_ids
-        target_admin_ids = set(admin_facility_ids) & target_facility_ids
+        self.security_audit_events = []
 
         with transaction.atomic():
+            user = User.objects.create_user(
+                username=validated_data["username"],
+                email=validated_data["email"],
+                first_name=validated_data.get("first_name", ""),
+                last_name=validated_data.get("last_name", ""),
+            )
+
+            membership = OrganizationMembership.objects.create(
+                user=user,
+                organization=organization,
+                role=validated_data["role"],
+                is_active=True,
+            )
+
+            org_facilities = list(Facility.objects.filter(organization=organization))
+            org_facility_ids = {facility.id for facility in org_facilities}
+            target_facility_ids = set(facility_ids) & org_facility_ids
+            target_admin_ids = set(admin_facility_ids) & target_facility_ids
+
             for fac in org_facilities:
                 if fac.id in target_facility_ids:
                     is_admin = fac.id in target_admin_ids
@@ -389,8 +545,19 @@ class OrganizationPersonCreateSerializer(serializers.Serializer):
                             or StaffRole.objects.filter(facility=fac).first()
                         )
 
-                    Staff.objects.create(
+                    staff = Staff.objects.create(
                         user=user, facility=fac, role=role, is_active=True
+                    )
+                    self.security_audit_events.append(
+                        build_staff_security_audit_event(
+                            facility=fac,
+                            staff=staff,
+                            previous_role_id=None,
+                            previous_is_active=False,
+                            next_role_id=staff.role_id,
+                            next_is_active=True,
+                            created=True,
+                        )
                     )
 
         return membership
@@ -440,64 +607,19 @@ class OrganizationPharmacyPreferenceWriteSerializer(serializers.Serializer):
             )
         pharmacy = attrs.get("pharmacy_id")
         organization = self.context["organization"]
-        if (
-            self.instance is None
-            and pharmacy
-            and pharmacy.source == Pharmacy.SOURCE_CUSTOM
-            and not OrganizationPharmacyPreference.objects.filter(
-                organization=organization,
-                pharmacy=pharmacy,
-            ).exists()
+        if pharmacy and (
+            pharmacy.owning_facility_id
+            or (
+                pharmacy.owning_organization_id
+                and pharmacy.owning_organization_id != organization.id
+            )
         ):
             raise serializers.ValidationError(
                 {
-                    "pharmacy_id": (
-                        "Custom pharmacies must be created from details instead of "
-                        "attached by global ID."
-                    )
+                    "pharmacy_id": "This private pharmacy is not available to the organization."
                 }
             )
         return attrs
-
-    def _clone_pharmacy_for_organization(self, pharmacy, pharmacy_data):
-        address = None
-        if pharmacy.address_id:
-            address_model = pharmacy.address.__class__
-            address = address_model.objects.create(
-                line_1=pharmacy.address.line_1,
-                line_2=pharmacy.address.line_2,
-                city=pharmacy.address.city,
-                state=pharmacy.address.state,
-                zip_code=pharmacy.address.zip_code,
-                country=pharmacy.address.country,
-            )
-
-        cloned = Pharmacy.objects.create(
-            name=pharmacy.name,
-            legal_business_name=pharmacy.legal_business_name,
-            source=Pharmacy.SOURCE_CUSTOM,
-            external_id="",
-            ncpdp_id=None,
-            npi=None,
-            dea_number=pharmacy.dea_number,
-            tax_id=pharmacy.tax_id,
-            store_number=pharmacy.store_number,
-            service_type=pharmacy.service_type,
-            accepts_erx=pharmacy.accepts_erx,
-            is_24_hour=pharmacy.is_24_hour,
-            hours=pharmacy.hours,
-            languages=pharmacy.languages,
-            directory_source="",
-            directory_status=Pharmacy.DIRECTORY_STATUS_UNKNOWN,
-            phone_number=pharmacy.phone_number,
-            fax_number=pharmacy.fax_number,
-            address=address,
-            notes=pharmacy.notes,
-            is_active=pharmacy.is_active,
-        )
-        serializer = PharmacySerializer(cloned, data=pharmacy_data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        return serializer.save()
 
     def create(self, validated_data):
         organization = self.context["organization"]
@@ -507,7 +629,12 @@ class OrganizationPharmacyPreferenceWriteSerializer(serializers.Serializer):
         if pharmacy is None and pharmacy_data:
             serializer = PharmacySerializer(data=pharmacy_data)
             serializer.is_valid(raise_exception=True)
-            pharmacy = serializer.save()
+            pharmacy = serializer.save(
+                owning_organization=organization,
+                source=Pharmacy.SOURCE_CUSTOM,
+                external_id="",
+                directory_source="",
+            )
 
         preference, _created = OrganizationPharmacyPreference.objects.update_or_create(
             organization=organization,
@@ -521,26 +648,22 @@ class OrganizationPharmacyPreferenceWriteSerializer(serializers.Serializer):
         pharmacy_data = validated_data.pop("pharmacy", None)
 
         if pharmacy_data:
-            is_shared = (
-                OrganizationPharmacyPreference.objects.filter(
-                    pharmacy=instance.pharmacy,
+            if instance.pharmacy.owning_organization_id != instance.organization_id:
+                raise serializers.ValidationError(
+                    {
+                        "pharmacy": (
+                            "Global pharmacy details are maintained by the directory. "
+                            "Only organization-owned custom pharmacies can be edited here."
+                        )
+                    }
                 )
-                .exclude(pk=instance.pk)
-                .exists()
+            serializer = PharmacySerializer(
+                instance.pharmacy,
+                data=pharmacy_data,
+                partial=True,
             )
-            if instance.pharmacy.source != Pharmacy.SOURCE_CUSTOM or is_shared:
-                instance.pharmacy = self._clone_pharmacy_for_organization(
-                    instance.pharmacy,
-                    pharmacy_data,
-                )
-            else:
-                serializer = PharmacySerializer(
-                    instance.pharmacy,
-                    data=pharmacy_data,
-                    partial=True,
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -622,6 +745,39 @@ class FacilityPharmacyPreferenceOverrideSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Provide either an organization pharmacy or a local pharmacy."
             )
+        pharmacy = attrs.get("pharmacy")
+        facility = self.context["facility"]
+        if pharmacy and (
+            (
+                pharmacy.owning_organization_id
+                and pharmacy.owning_organization_id != facility.organization_id
+            )
+            or (
+                pharmacy.owning_facility_id
+                and pharmacy.owning_facility_id != facility.id
+            )
+        ):
+            raise serializers.ValidationError(
+                {
+                    "pharmacy_id": "This private pharmacy is not available to the facility."
+                }
+            )
+        if (
+            pharmacy
+            and not self.instance
+            and OrganizationPharmacyPreference.objects.filter(
+                organization=facility.organization,
+                pharmacy=pharmacy,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {
+                    "pharmacy_id": (
+                        "This pharmacy is already available through the organization. "
+                        "Create an organization-preference override instead."
+                    )
+                }
+            )
         return attrs
 
     def create(self, validated_data):
@@ -629,7 +785,12 @@ class FacilityPharmacyPreferenceOverrideSerializer(serializers.ModelSerializer):
         if pharmacy_details:
             serializer = PharmacySerializer(data=pharmacy_details)
             serializer.is_valid(raise_exception=True)
-            validated_data["pharmacy"] = serializer.save()
+            validated_data["pharmacy"] = serializer.save(
+                owning_facility=self.context["facility"],
+                source=Pharmacy.SOURCE_CUSTOM,
+                external_id="",
+                directory_source="",
+            )
 
         return FacilityPharmacyPreferenceOverride.objects.create(
             facility=self.context["facility"],
@@ -639,6 +800,18 @@ class FacilityPharmacyPreferenceOverrideSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         pharmacy_details = validated_data.pop("pharmacy_details", None)
         if pharmacy_details:
+            if (
+                not instance.pharmacy_id
+                or instance.pharmacy.owning_facility_id != instance.facility_id
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "pharmacy_details": (
+                            "Global and organization pharmacy details cannot be edited "
+                            "from a facility link."
+                        )
+                    }
+                )
             serializer = PharmacySerializer(
                 instance.pharmacy if instance.pharmacy_id else None,
                 data=pharmacy_details,

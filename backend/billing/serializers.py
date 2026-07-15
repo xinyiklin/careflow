@@ -4,6 +4,7 @@ from .serializers_billing import (
     EncounterDiagnosisSerializer,
 )
 from .serializers_fee_schedule import (
+    CPTCatalogEntrySerializer,
     EffectiveFeeScheduleItemSerializer,
     FacilityFeeScheduleOverrideSerializer,
     OrganizationFeeScheduleItemSerializer,
@@ -14,6 +15,7 @@ __all__ = [
     "EncounterBillingRecordSerializer",
     "EncounterChargeLineSerializer",
     "EncounterDiagnosisSerializer",
+    "CPTCatalogEntrySerializer",
     "EffectiveFeeScheduleItemSerializer",
     "FacilityFeeScheduleOverrideSerializer",
     "OrganizationFeeScheduleItemSerializer",

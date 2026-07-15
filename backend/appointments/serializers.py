@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone as dt_timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Appointment
@@ -378,6 +379,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
                 }
             )
 
+    @extend_schema_field(serializers.IntegerField())
     def get_duration_minutes(self, obj):
         return obj.duration_minutes
 

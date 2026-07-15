@@ -65,7 +65,7 @@ class MessageThreadListCreateView(APIView):
 
     @extend_schema(
         request=PortalMessageThreadCreateSerializer,
-        responses=PortalMessageThreadDetailSerializer,
+        responses={201: PortalMessageThreadDetailSerializer},
     )
     def post(self, request):
         patient = get_patient_for_user(request.user)
@@ -137,7 +137,7 @@ class MessageThreadDetailView(APIView):
 
 @extend_schema(
     request=PortalMessageReplySerializer,
-    responses=PortalMessageSerializer,
+    responses={201: PortalMessageSerializer},
     summary="Reply to a patient portal message thread",
 )
 class MessageThreadReplyView(APIView):
@@ -156,24 +156,30 @@ class MessageThreadReplyView(APIView):
 
     def post(self, request, pk):
         patient = get_patient_for_user(request.user)
-        thread = MessageThread.objects.filter(pk=pk, patient=patient).first()
-        if not thread:
-            raise NotFound("Message thread not found.")
-        if thread.status == MessageThread.STATUS_CLOSED:
-            raise ValidationError(
-                {"status": "This thread is closed and cannot accept replies."}
+        with transaction.atomic():
+            thread = (
+                MessageThread.objects.select_for_update(of=("self",))
+                .filter(pk=pk, patient=patient)
+                .first()
+            )
+            if not thread:
+                raise NotFound("Message thread not found.")
+            if thread.status == MessageThread.STATUS_CLOSED:
+                raise ValidationError(
+                    {"status": "This thread is closed and cannot accept replies."}
+                )
+
+            shape = PortalMessageReplySerializer(data=request.data)
+            shape.is_valid(raise_exception=True)
+
+            message = Message.objects.create(
+                thread=thread,
+                sender_kind=Message.SENDER_PATIENT,
+                sender_user=request.user,
+                sender_display_name=_patient_display_name(patient),
+                body=shape.validated_data["body"],
             )
 
-        shape = PortalMessageReplySerializer(data=request.data)
-        shape.is_valid(raise_exception=True)
-
-        message = Message.objects.create(
-            thread=thread,
-            sender_kind=Message.SENDER_PATIENT,
-            sender_user=request.user,
-            sender_display_name=_patient_display_name(patient),
-            body=shape.validated_data["body"],
-        )
         return Response(
             PortalMessageSerializer(message).data,
             status=status.HTTP_201_CREATED,

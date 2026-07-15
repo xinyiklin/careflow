@@ -151,7 +151,7 @@ Audit-style records should answer:
 
 ## Deployment And Infrastructure
 
-- Current production shape is Vercel frontend and Render backend.
+- Current production shape is AWS Amplify frontends and Render backend.
 - Docker Compose exists for optional local development only.
 - Do not introduce infrastructure, platform changes, or paid/vendor
   dependencies without asking.

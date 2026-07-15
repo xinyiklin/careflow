@@ -78,6 +78,30 @@ Reuses the brand: the committed `cf-*` token names, Inter, and the shared
 (`VITE_CLINICIAN_URL` / `VITE_PATIENT_URL`) so the same build points at
 whatever subdomains a given environment uses.
 
+## Payer and pharmacy directory ownership
+
+Payers and pharmacies use a shared canonical directory with tenant adoption,
+not tenant-owned copies of imported rows:
+
+- An ownerless carrier or pharmacy is a global canonical record maintained by
+  an external directory sync or an application administrator.
+- An organization preference links a canonical record and owns organization
+  policy such as availability, preference, notes, sort order, fee schedule,
+  and payer-specific operational configuration.
+- A facility may inherit an organization preference or link a canonical record
+  directly. Direct facility linking does not require prior organization
+  adoption.
+- Custom records are explicitly owned by one organization or one facility and
+  are never offered to another tenant. Promoting one to the global directory is
+  an application-administrator workflow, not an in-place tenant edit.
+- Tenant APIs cannot edit canonical identity/contact fields. Directory updates
+  may propagate to every link while tenant-owned preference fields remain
+  unchanged.
+
+The canonical row stores source/external sync metadata; organization and
+facility link models store tenant policy. This prevents one tenant's edit from
+silently changing another tenant's payer or pharmacy.
+
 ## Shared code
 
 ### `packages/api-types`
@@ -86,8 +110,7 @@ Generated from `drf-spectacular` (Django) → OpenAPI 3 schema →
 `openapi-typescript` → `generated.ts`. `schema.yaml` and `generated.ts` are
 committed so frontend consumers have a stable contract. Regenerate with
 `npm run generate` from the repo root after backend API or serializer schema
-changes. Add a dedicated schema-drift CI guard if this becomes a frequent
-review risk.
+changes. CI regenerates both files and fails when committed contracts drift.
 
 ### `packages/ui-icons`
 
@@ -122,15 +145,15 @@ When to extract:
 Live (AWS Amplify frontends + Render API):
 
 ```text
-careflow.xinyiklin.com     → apps/landing build (marketing front door)
-clinician.xinyiklin.com    → apps/clinician build
-patient.xinyiklin.com      → apps/patient build
+careflow.xinyiklin.com    → apps/landing build (marketing front door)
+clinician.xinyiklin.com   → apps/clinician build
+patient.xinyiklin.com     → apps/patient build
 api.careflow.xinyiklin.com → backend (Render)
 ```
 
 The two portals are **siblings of the `careflow.` apex, not children of it**.
 Only the landing page and the API sit under `careflow.xinyiklin.com`. Nothing in
-the auth flow depends on a frontend sharing a domain with the API:
+the auth flow depends on the frontends sharing a domain with the API:
 
 - **Refresh cookie** (`careflow_refresh`, `backend/users/views.py`) is set with
   no `Domain` attribute, so it is host-only to the API. `SameSite=None; Secure`
@@ -139,18 +162,21 @@ the auth flow depends on a frontend sharing a domain with the API:
   portal to `/v1/portal/` — so the browser never sends one surface's refresh
   cookie to the other, keeping the two sessions disjoint. The portal keeps its
   separate portal-account role boundary under `/v1/portal/`.
-- **CSRF cookie** is host-only too: `CSRF_COOKIE_DOMAIN` defaults to `None`, so
-  the cookie is scoped to the API host that sets it. The portals never read it
-  from `document.cookie` — `/v1/users/csrf/` is `@ensure_csrf_cookie` and returns
-  the token in its JSON body (`{"csrfToken": ...}`), and each `client.ts` takes it
-  from there — so the double-submit check passes from any origin. Env-overridable
-  if a same-subtree surface ever needs a shared cookie domain.
+- **CSRF cookie** is host-only: `CSRF_COOKIE_DOMAIN` defaults to `None`, so the
+  cookie is scoped to the API host that sets it. The portals never read it from
+  `document.cookie` — `/v1/users/csrf/` is `@ensure_csrf_cookie` and returns the
+  token in its JSON body (`{"csrfToken": ...}`), and each `client.ts` takes it
+  from there — so the double-submit check passes from any origin. It was
+  previously a `.careflow.xinyiklin.com` wildcard, which granted breadth nothing
+  used once the portals moved off that subtree. Env-overridable if a
+  same-subtree surface ever needs a shared cookie domain.
 
 **Origin allowlists:** `clinician.xinyiklin.com` and `patient.xinyiklin.com` are
 in `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, and `ALLOWED_HOSTS` (all
 env-overridable; defaults in `backend/config/settings.py`) so the Amplify portals
 clear CORS, CSRF, and host checks against the Render API. The `careflow.` landing
-page is static and makes no API calls; its origin is kept only as headroom.
+page is static and makes no API calls; its origin is kept only as headroom. The
+retired `portal.careflow.xinyiklin.com` Vercel origin has been removed.
 
 > **Deploy note:** these settings are env-var-first. If the Render service defines
 > `ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, or
@@ -167,18 +193,18 @@ apps/patient    → patient.xinyiklin.com
 apps/landing    → careflow.xinyiklin.com (front door)
 ```
 
-For every app: root directory is the app dir, but the install step runs at the
-**repo root** so npm workspaces resolves the `@careflow/*` symlinks before the
-per-app build (a root `npm install` in the Amplify build spec). Without it the
-build fails on the cross-package import. Build command `npm run build`, output
-`dist`.
+For every app: root directory is the app dir, but the install step runs at
+the **repo root** so npm workspaces resolves the `@careflow/*` symlinks before
+the per-app build (a root `npm install` in the Amplify build spec). Without it
+the build fails on the cross-package import. Build command `npm run build`,
+output `dist`.
 
 The two portals are client-routed SPAs and need a catch-all rewrite to
-`/index.html` (an Amplify 200-rewrite rule). The landing page is a single static
-page and needs no rewrite. Set
+`/index.html` (an Amplify 200-rewrite rule). The
+landing page is a single static page and needs no rewrite. Set
 `VITE_API_URL=https://api.careflow.xinyiklin.com` on the clinician and patient
-apps so API resolution is explicit rather than relying on the hostname fallback
-in each `client.ts`.
+projects so API resolution is explicit rather than relying on the hostname
+fallback in each `client.ts`.
 
 ## Mobile (future)
 
@@ -212,17 +238,13 @@ Triggers to add it:
 - Cross-app build dependencies (e.g., `apps/*` depend on a built artifact from
   `packages/*` that must compile first).
 
-When you add it, point the Vercel build command at
+When you add it, point the Amplify build command at
 `turbo build --filter=clinician` (and likewise for patient). The matrix CI
 job in `.github/workflows/ci.yml` becomes a single `turbo run build lint
 typecheck` invocation.
 
 ## Follow-ups (tracked here, not built)
 
-- **Schema-drift CI guard**: `npm run generate && git diff --exit-code
-  packages/api-types/src/generated.ts packages/api-types/src/schema.yaml`.
-  Catches the case where a serializer change lands without regenerated API
-  artifacts.
 - **Patient self-registration**: out of scope in v1. When added, route through
   a clinician-issued one-time token rather than a public signup endpoint.
 - **2FA / SSO**: lives on `User`, not `PatientPortalAccount`. Benefits both
@@ -233,6 +255,3 @@ typecheck` invocation.
 - **Audit events for portal reads**: deferred — would flood the audit log for
   read traffic. If patient self-access ever needs auditing, add a light
   portal-read audit class rather than the full `AdminAuditEvent` shape.
-- **`apps/clinician/Dockerfile`**: still single-package layout. Workspace-aware
-  rewrite needed before the optional Docker dev workflow works again. Docker
-  is optional per `backend-guidelines.md`, so this hasn't blocked anyone.

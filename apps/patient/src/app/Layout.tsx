@@ -124,7 +124,6 @@ function AvatarMenu({ name, initials, onSignOut }: AvatarMenuProps) {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((current) => !current)}
-        aria-haspopup="menu"
         aria-expanded={open}
         aria-label={name || t("nav.profile")}
         className={cn(
@@ -144,7 +143,6 @@ function AvatarMenu({ name, initials, onSignOut }: AvatarMenuProps) {
 
       {open ? (
         <div
-          role="menu"
           aria-label={t("nav.profile")}
           className={cn(
             "absolute right-0 z-40 mt-2 w-72 origin-top-right rounded-lg border border-border bg-surface-elevated",
@@ -163,7 +161,6 @@ function AvatarMenu({ name, initials, onSignOut }: AvatarMenuProps) {
           <div className="px-2 py-2">
             <button
               type="button"
-              role="menuitem"
               onClick={handleProfile}
               className={cn(
                 "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-text-muted",
@@ -206,7 +203,6 @@ function AvatarMenu({ name, initials, onSignOut }: AvatarMenuProps) {
           <div className="border-t border-border px-2 py-2">
             <button
               type="button"
-              role="menuitem"
               onClick={handleSignOut}
               className={cn(
                 "flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-text-muted",
@@ -228,7 +224,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const location = useLocation();
   const { logout, patient } = useAuth();
-  const { data: threads } = useMessageThreads();
+  const { data: threads } = useMessageThreads({ refetchInterval: 30_000 });
   const hasUnreadMessages =
     threads?.some((thread) => thread.unread_for_patient) ?? false;
 

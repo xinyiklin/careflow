@@ -9,6 +9,7 @@ These serializers strictly omit clinician-side state. In particular:
   member never reaches the portal.
 """
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Message, MessageThread
@@ -94,6 +95,7 @@ class PortalMessageThreadDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(PortalMessageSerializer(many=True))
     def get_messages(self, obj):
         # ``Message.Meta.ordering`` is ``created_at`` ascending, which is
         # the order we want for rendering the conversation.

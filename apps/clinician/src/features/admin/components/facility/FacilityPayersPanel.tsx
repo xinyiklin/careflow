@@ -49,6 +49,8 @@ type FacilityPayerRow = {
 };
 
 const EMPTY_FORM = {
+  mode: "directory" as "directory" | "custom",
+  directory_id: "",
   name: "",
   payer_id: "",
   phone_number: "",
@@ -85,8 +87,15 @@ export default function FacilityPayersPanel() {
   const facilityId = adminFacility?.id || null;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const { payerOverrides, loading, saving, error, reload, savePayerOverride } =
-    useFacilityPayerCatalogs(facilityId);
+  const {
+    payerOverrides,
+    directoryPayers,
+    loading,
+    saving,
+    error,
+    reload,
+    savePayerOverride,
+  } = useFacilityPayerCatalogs(facilityId);
   const organizationPayers = useOrganizationPayers();
 
   const rows = useMemo<FacilityPayerRow[]>(() => {
@@ -164,14 +173,20 @@ export default function FacilityPayersPanel() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const payerValues =
+      form.mode === "directory"
+        ? { carrier_id: Number(form.directory_id) }
+        : {
+            carrier_details: {
+              name: form.name,
+              payer_id: form.payer_id,
+              phone_number: getPhoneInputDigits(form.phone_number),
+              is_active: true,
+            },
+          };
     await savePayerOverride({
       values: {
-        carrier_details: {
-          name: form.name,
-          payer_id: form.payer_id,
-          phone_number: getPhoneInputDigits(form.phone_number),
-          is_active: true,
-        },
+        ...payerValues,
         is_active: true,
         is_hidden: false,
       },
@@ -216,7 +231,7 @@ export default function FacilityPayersPanel() {
                 onClick={() => setIsModalOpen(true)}
                 disabled={saving || !facilityId}
               >
-                <Plus className="h-3.5 w-3.5" /> New
+                <Plus className="h-3.5 w-3.5" /> Add
               </Button>
             </>
           }
@@ -287,43 +302,85 @@ export default function FacilityPayersPanel() {
         >
           <AdminFormSection>
             <AdminFieldGrid>
-              <AdminField label="Name">
-                <input
+              <AdminField label="Source">
+                <select
                   className="cf-input"
-                  value={form.name}
+                  value={form.mode}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
-                      name: event.target.value,
+                      mode: event.target.value as "directory" | "custom",
                     }))
                   }
-                  required
-                />
+                >
+                  <option value="directory">Global directory</option>
+                  <option value="custom">Facility-only custom payer</option>
+                </select>
               </AdminField>
-              <AdminField label="Payer ID">
-                <input
-                  className="cf-input"
-                  value={form.payer_id}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      payer_id: event.target.value,
-                    }))
-                  }
-                />
-              </AdminField>
-              <AdminField label="Phone">
-                <PhoneInput
-                  name="phone_number"
-                  value={form.phone_number}
-                  onChange={(value) =>
-                    setForm((current) => ({
-                      ...current,
-                      phone_number: value,
-                    }))
-                  }
-                />
-              </AdminField>
+              {form.mode === "directory" ? (
+                <AdminField label="Payer">
+                  <select
+                    className="cf-input"
+                    value={form.directory_id}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        directory_id: event.target.value,
+                      }))
+                    }
+                    required
+                  >
+                    <option value="">Select a directory payer</option>
+                    {directoryPayers.map((payer) => (
+                      <option key={payer.id} value={String(payer.id)}>
+                        {payer.name}
+                        {payer.payer_id ? ` (${payer.payer_id})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </AdminField>
+              ) : null}
+              {form.mode === "custom" ? (
+                <>
+                  <AdminField label="Name">
+                    <input
+                      className="cf-input"
+                      value={form.name}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          name: event.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </AdminField>
+                  <AdminField label="Payer ID">
+                    <input
+                      className="cf-input"
+                      value={form.payer_id}
+                      onChange={(event) =>
+                        setForm((current) => ({
+                          ...current,
+                          payer_id: event.target.value,
+                        }))
+                      }
+                    />
+                  </AdminField>
+                  <AdminField label="Phone">
+                    <PhoneInput
+                      name="phone_number"
+                      value={form.phone_number}
+                      onChange={(value) =>
+                        setForm((current) => ({
+                          ...current,
+                          phone_number: value,
+                        }))
+                      }
+                    />
+                  </AdminField>
+                </>
+              ) : null}
             </AdminFieldGrid>
           </AdminFormSection>
         </form>

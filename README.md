@@ -166,6 +166,11 @@ packages/
 
 ## Local Setup
 
+### Prerequisites
+
+- Node.js 24.18.0 LTS (run `nvm use` at the repository root when using nvm)
+- Python 3.12 for the Django backend
+
 ### Backend
 
 ```bash

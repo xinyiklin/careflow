@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { apiRequest } from "../../../shared/api/client";
+import { useAuth } from "../../auth/AuthProvider";
 import type { PortalPatient } from "../../auth/api/portalAuth";
 
 export type PreferredPharmacyUpdate = {
@@ -21,14 +22,27 @@ export function useProfile() {
 
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
-  return useMutation<PortalPatient | null, Error, Partial<PortalPatient>>({
-    mutationFn: (data) =>
-      apiRequest<PortalPatient>("/portal/me/", {
+  const { getSessionSnapshot, updatePatient } = useAuth();
+  return useMutation<
+    {
+      session: ReturnType<typeof getSessionSnapshot>;
+      updated: PortalPatient | null;
+    },
+    Error,
+    Partial<PortalPatient>
+  >({
+    mutationFn: async (data) => {
+      const session = getSessionSnapshot();
+      const updated = await apiRequest<PortalPatient>("/portal/me/", {
         method: "PATCH",
         body: JSON.stringify(data),
-      }),
-    onSuccess: (updated) => {
-      queryClient.setQueryData(["portal", "me"], updated);
+      });
+      return { session, updated };
+    },
+    onSuccess: ({ session, updated }) => {
+      if (updated && updatePatient(updated, session)) {
+        queryClient.setQueryData(["portal", "me"], updated);
+      }
     },
   });
 }

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createFacilityPayerOverride,
+  fetchFacilityPayerDirectory,
   fetchFacilityPayerOverrides,
   updateFacilityPayerOverride,
 } from "../../api/facility/catalogs";
@@ -28,6 +29,11 @@ export default function useFacilityPayerCatalogs(
     queryFn: () => fetchFacilityPayerOverrides(facilityId),
     enabled,
   });
+  const directoryQuery = useQuery({
+    queryKey: [...getQueryKey(facilityId), "directory"],
+    queryFn: () => fetchFacilityPayerDirectory(facilityId),
+    enabled,
+  });
 
   const invalidate = () => {
     queryClient.invalidateQueries({
@@ -47,12 +53,21 @@ export default function useFacilityPayerCatalogs(
 
   return {
     payerOverrides: Array.isArray(payersQuery.data) ? payersQuery.data : [],
-    loading: payersQuery.isLoading,
+    directoryPayers: Array.isArray(directoryQuery.data)
+      ? directoryQuery.data
+      : [],
+    loading: payersQuery.isLoading || directoryQuery.isLoading,
     saving: payerMutation.isPending,
-    error: payerMutation.error?.message || payersQuery.error?.message || "",
-    loadError: payersQuery.error?.message || "",
+    error:
+      payerMutation.error?.message ||
+      payersQuery.error?.message ||
+      directoryQuery.error?.message ||
+      "",
+    loadError:
+      payersQuery.error?.message || directoryQuery.error?.message || "",
     reload: () => {
       void payersQuery.refetch();
+      void directoryQuery.refetch();
     },
     savePayerOverride: (payload: SavePayerOverridePayload) =>
       payerMutation.mutateAsync(payload),

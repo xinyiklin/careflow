@@ -606,12 +606,6 @@ API_ENDPOINT_SECTIONS = [
             {
                 "method": "POST",
                 "class": "post",
-                "path": "/v1/medications/refill-requests/?facility_id=<id>",
-                "description": "Create a clinician-initiated refill request.",
-            },
-            {
-                "method": "POST",
-                "class": "post",
                 "path": "/v1/medications/refill-requests/<id>/approve/?facility_id=<id>",
                 "description": "Approve a pending refill request.",
             },

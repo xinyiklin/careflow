@@ -1,8 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework.test import APIClient
 
 from audit.models import AuditEvent
+from billing.models import OrganizationFeeSchedule
+from facilities.access import user_can_access_facility
 from facilities.models import AppointmentStatus, Facility, Staff, StaffRole
 from facilities.security import get_role_security_template, user_has_facility_permission
 from organizations.models import Organization, OrganizationMembership
@@ -68,6 +71,92 @@ class FacilitySecurityPermissionTests(TestCase):
                 "patients.view",
             )
         )
+
+    def test_inactive_role_revokes_facility_access(self):
+        OrganizationMembership.objects.filter(user=self.user).update(
+            role=OrganizationMembership.ROLE_MEMBER
+        )
+        role = StaffRole.objects.create(
+            facility=self.facility,
+            code="temporary",
+            name="Temporary",
+            security_permissions=get_role_security_template("staff"),
+        )
+        Staff.objects.create(
+            user=self.user,
+            facility=self.facility,
+            role=role,
+            is_active=True,
+        )
+        StaffRole.objects.filter(pk=role.pk).update(is_active=False)
+
+        self.assertFalse(user_can_access_facility(self.user, self.facility.pk))
+        self.assertFalse(
+            user_has_facility_permission(
+                self.user,
+                self.facility.pk,
+                "schedule.view",
+            )
+        )
+
+    def test_inactive_organization_membership_revokes_facility_access(self):
+        Staff.objects.create(
+            user=self.user,
+            facility=self.facility,
+            role=StaffRole.objects.get(facility=self.facility, code="staff"),
+            is_active=True,
+        )
+        OrganizationMembership.objects.filter(user=self.user).update(is_active=False)
+
+        self.assertFalse(user_can_access_facility(self.user, self.facility.pk))
+
+    def test_inactive_facility_revokes_staff_access(self):
+        Staff.objects.create(
+            user=self.user,
+            facility=self.facility,
+            role=StaffRole.objects.get(facility=self.facility, code="staff"),
+            is_active=True,
+        )
+        Facility.objects.filter(pk=self.facility.pk).update(is_active=False)
+
+        self.assertFalse(user_can_access_facility(self.user, self.facility.pk))
+
+    def test_facility_rejects_fee_schedule_from_another_organization(self):
+        other_organization = Organization.objects.create(
+            name="Other Health",
+            slug="other-health",
+        )
+        foreign_schedule = OrganizationFeeSchedule.objects.create(
+            organization=other_organization,
+            name="Other Standard",
+            code="other-standard",
+        )
+
+        with self.assertRaises(ValidationError):
+            Facility.objects.create(
+                organization=self.organization,
+                name="Invalid schedule clinic",
+                fee_schedule=foreign_schedule,
+            )
+
+    def test_staff_rejects_fee_schedule_from_another_organization(self):
+        other_organization = Organization.objects.create(
+            name="Other Staff Health",
+            slug="other-staff-health",
+        )
+        foreign_schedule = OrganizationFeeSchedule.objects.create(
+            organization=other_organization,
+            name="Other Staff Standard",
+            code="other-staff-standard",
+        )
+
+        with self.assertRaises(ValidationError):
+            Staff.objects.create(
+                user=self.user,
+                facility=self.facility,
+                role=StaffRole.objects.get(facility=self.facility, code="staff"),
+                fee_schedule=foreign_schedule,
+            )
 
     def test_appointment_status_update_does_not_use_staff_role_permissions(self):
         Staff.objects.create(
@@ -337,6 +426,70 @@ class FacilitySecurityManagementTests(TestCase):
         )
         response = self.create_role(admin, {"code": "custom", "name": "Custom Role"})
         self.assertEqual(response.status_code, 201)
+
+    def test_limited_admin_cannot_assign_role_granting_security_manage(self):
+        admin = self.make_admin(
+            "limited_staff_creator",
+            OrganizationMembership.ROLE_MEMBER,
+            security_overrides={"admin.security.manage": False},
+        )
+        permissions = get_role_security_template("staff")
+        permissions["admin.security.manage"] = True
+        security_role = StaffRole.objects.create(
+            facility=self.facility,
+            code="security_only",
+            name="Security only",
+            security_permissions=permissions,
+        )
+        target = User.objects.create_user(
+            username="security_only_target",
+            password="testpass123",
+            email="security-only-target@example.com",
+        )
+        OrganizationMembership.objects.create(
+            user=target,
+            organization=self.organization,
+            role=OrganizationMembership.ROLE_MEMBER,
+        )
+        self.client.force_authenticate(admin)
+
+        response = self.client.post(
+            f"/v1/facilities/staff/?facility_id={self.facility.pk}",
+            {"user_id": target.pk, "role_id": security_role.pk},
+            format="json",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(
+            Staff.objects.filter(user=target, facility=self.facility).exists()
+        )
+
+    def test_assigned_custom_role_cannot_be_deleted(self):
+        admin = self.make_admin(
+            "assigned_role_admin", OrganizationMembership.ROLE_MEMBER
+        )
+        role = StaffRole.objects.create(
+            facility=self.facility,
+            code="assigned_custom",
+            name="Assigned custom",
+            security_permissions=get_role_security_template("staff"),
+        )
+        target = self.make_member(
+            "assigned_role_target",
+            OrganizationMembership.ROLE_MEMBER,
+            role,
+        )
+        self.client.force_authenticate(admin)
+
+        response = self.client.delete(
+            f"/v1/facilities/staff-roles/{role.pk}/?facility_id={self.facility.pk}",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertTrue(Staff.objects.filter(user=target, role=role).exists())
+        self.assertTrue(StaffRole.objects.filter(pk=role.pk).exists())
 
     def test_cannot_remove_security_manage_from_own_role(self):
         admin = self.make_admin("fac_self_sec", OrganizationMembership.ROLE_MEMBER)

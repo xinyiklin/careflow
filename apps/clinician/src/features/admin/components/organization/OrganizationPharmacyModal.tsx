@@ -174,8 +174,10 @@ export default function OrganizationPharmacyModal({
         : null,
     };
 
+    const canonicalReadOnly =
+      initialValues?.pharmacy?.ownership_scope === "global";
     onSubmit?.({
-      pharmacy,
+      ...(canonicalReadOnly ? {} : { pharmacy }),
       is_preferred: formData.is_preferred,
       is_hidden: formData.is_hidden,
       is_active: formData.is_active,
@@ -193,6 +195,8 @@ export default function OrganizationPharmacyModal({
       .toUpperCase() || "RX";
 
   const isEditMode = mode === "edit";
+  const canonicalReadOnly =
+    initialValues?.pharmacy?.ownership_scope === "global";
   const modalTitle = isEditMode ? (
     <div className="flex flex-wrap items-center justify-between gap-4 mr-6">
       <div className="flex items-center gap-3">
@@ -253,11 +257,18 @@ export default function OrganizationPharmacyModal({
       bodyClassName="bg-cf-surface px-6 py-5 border-t border-b border-cf-border/60 overflow-y-auto max-h-[75vh] flex-1"
     >
       <form id="organization-pharmacy-form" onSubmit={handleSubmit}>
+        {canonicalReadOnly ? (
+          <div className="mb-4 rounded-lg border border-cf-border bg-cf-surface-soft px-3 py-2 text-xs text-cf-text-muted">
+            Directory identity, credentials, contact information, and address
+            are maintained globally. Organization preferences remain editable.
+          </div>
+        ) : null}
         <PharmacyFormContent
           formData={formData}
           onChange={handleChange}
           onAddressChange={handleAddressChange}
           saving={saving}
+          canonicalReadOnly={canonicalReadOnly}
         />
       </form>
     </AdminFormModal>

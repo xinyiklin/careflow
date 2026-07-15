@@ -10,6 +10,8 @@ thread, thread detail, reply). All endpoints are gated by
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -422,12 +424,22 @@ class PortalMessagingReplyTests(PortalMessagingBaseMixin, APITestCase):
         before = timezone.now()
 
         self.client.force_authenticate(self.portal_user_a)
-        response = self.client.post(
-            _thread_reply_url(thread.id),
-            {"body": "Follow-up question"},
-            format="json",
-        )
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.post(
+                _thread_reply_url(thread.id),
+                {"body": "Follow-up question"},
+                format="json",
+            )
+
         self.assertEqual(response.status_code, 201, response.data)
+        self.assertTrue(
+            any(
+                '"messaging_messagethread"' in query["sql"]
+                and "FOR UPDATE" in query["sql"].upper()
+                for query in queries
+            ),
+            "Portal replies must lock the thread row before checking its state.",
+        )
         body = response.json()
         self.assertEqual(body["sender_kind"], Message.SENDER_PATIENT)
         self.assertEqual(body["sender_display_name"], "Alice Anderson")

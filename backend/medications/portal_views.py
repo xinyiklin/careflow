@@ -8,6 +8,7 @@ cross-facility access at the queryset / serializer level.
 
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Case, IntegerField, Value, When
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -97,7 +98,7 @@ class RefillRequestListCreateView(APIView):
 
     @extend_schema(
         request=PortalRefillRequestCreateSerializer,
-        responses=PortalRefillRequestSerializer,
+        responses={201: PortalRefillRequestSerializer},
     )
     def post(self, request):
         patient = get_patient_for_user(request.user)
@@ -148,10 +149,6 @@ class RefillRequestListCreateView(APIView):
         )
 
 
-@extend_schema(
-    responses=PortalRefillRequestSerializer,
-    summary="Cancel a pending refill request",
-)
 class RefillRequestCancelView(APIView):
     """Cancel a still-pending refill request owned by the patient.
 
@@ -163,21 +160,29 @@ class RefillRequestCancelView(APIView):
 
     permission_classes = [IsPortalPatient]
 
+    @extend_schema(
+        request=None,
+        responses=PortalRefillRequestSerializer,
+        summary="Cancel a pending refill request",
+    )
     def post(self, request, pk):
         patient = get_patient_for_user(request.user)
-        refill = (
-            RefillRequest.objects.filter(pk=pk, patient=patient)
-            .select_related("medication", "pharmacy")
-            .first()
-        )
-        if not refill:
-            raise NotFound("Refill request not found.")
-        if refill.status != RefillRequest.STATUS_PENDING:
-            raise ValidationError(
-                {"status": "Only pending refill requests can be cancelled."}
+        with transaction.atomic():
+            refill = (
+                RefillRequest.objects.select_for_update(of=("self",))
+                .filter(pk=pk, patient=patient)
+                .select_related("medication", "pharmacy")
+                .first()
             )
-        refill.status = RefillRequest.STATUS_CANCELLED
-        refill.save()
+            if not refill:
+                raise NotFound("Refill request not found.")
+            if refill.status != RefillRequest.STATUS_PENDING:
+                raise ValidationError(
+                    {"status": "Only pending refill requests can be cancelled."}
+                )
+            refill.status = RefillRequest.STATUS_CANCELLED
+            refill.save(update_fields=["status"])
+
         return Response(PortalRefillRequestSerializer(refill).data)
 
 

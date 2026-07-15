@@ -11,15 +11,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [clinician, patient]
+        app: [clinician, patient, landing]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version-file: ".nvmrc"
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -57,7 +57,7 @@ jobs:
           --health-retries=5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -66,13 +66,21 @@ jobs:
           # so tests exercise the same interpreter that runs in production.
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
 
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint Python
+        run: python -m ruff check .
+
+      - name: Check Python formatting
+        run: python -m black --check .
 
       - name: Run Django checks
         env:
@@ -82,7 +90,7 @@ jobs:
           DB_PASSWORD: password
           DB_HOST: localhost
           DB_PORT: "5432"
-          SECRET_KEY: "ci-secret-key"
+          SECRET_KEY: "careflow-ci-test-secret-key-at-least-32-chars"
           DEBUG: "True"
         run: python manage.py check
 
@@ -94,7 +102,7 @@ jobs:
           DB_PASSWORD: password
           DB_HOST: localhost
           DB_PORT: "5432"
-          SECRET_KEY: "ci-secret-key"
+          SECRET_KEY: "careflow-ci-test-secret-key-at-least-32-chars"
           DEBUG: "True"
         run: python manage.py makemigrations --check --dry-run
 
@@ -106,6 +114,41 @@ jobs:
           DB_PASSWORD: password
           DB_HOST: localhost
           DB_PORT: "5432"
-          SECRET_KEY: "ci-secret-key"
+          SECRET_KEY: "careflow-ci-test-secret-key-at-least-32-chars"
           DEBUG: "True"
         run: python manage.py test --verbosity 2
+
+  contracts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Regenerate OpenAPI schema and types
+        env:
+          SECRET_KEY: "careflow-ci-contract-secret-key-at-least-32-chars"
+          DEBUG: "True"
+        run: npm run generate
+
+      - name: Check generated API contract drift
+        run: git diff --exit-code -- packages/api-types/src/schema.yaml packages/api-types/src/generated.ts

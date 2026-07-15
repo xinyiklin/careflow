@@ -12,11 +12,18 @@ from .models import (
 
 
 class InsuranceCarrierSerializer(serializers.ModelSerializer):
+    ownership_scope = serializers.CharField(read_only=True)
+
     class Meta:
         model = InsuranceCarrier
         fields = [
             "id",
+            "ownership_scope",
             "name",
+            "source",
+            "external_id",
+            "directory_source",
+            "last_directory_sync_at",
             "payer_id",
             "phone_number",
             "website",
@@ -28,7 +35,44 @@ class InsuranceCarrierSerializer(serializers.ModelSerializer):
             "is_active",
             "created_at",
         ]
-        read_only_fields = ["created_at"]
+        # source/external_id/directory_source identify a canonical directory
+        # record and are reserved for the directory sync. Tenant create paths set
+        # them explicitly via serializer.save(**kwargs); leaving them writable let
+        # a tenant PATCH a private record to claim a canonical external id and
+        # poison the next directory sync, so they are read-only on this serializer.
+        # payer_id stays writable: tenants legitimately set it on custom carriers.
+        read_only_fields = [
+            "created_at",
+            "last_directory_sync_at",
+            "source",
+            "external_id",
+            "directory_source",
+        ]
+        validators = []
+
+    def validate(self, attrs):
+        external_id = attrs.get(
+            "external_id", getattr(self.instance, "external_id", "")
+        )
+        directory_source = attrs.get(
+            "directory_source", getattr(self.instance, "directory_source", "")
+        )
+        if external_id:
+            matches = InsuranceCarrier.objects.filter(
+                directory_source=directory_source,
+                external_id=external_id,
+            )
+            if self.instance:
+                matches = matches.exclude(pk=self.instance.pk)
+            if matches.exists():
+                raise serializers.ValidationError(
+                    {
+                        "external_id": (
+                            "This external payer ID already exists for the directory source."
+                        )
+                    }
+                )
+        return attrs
 
 
 class OrganizationInsuranceCarrierPreferenceSerializer(serializers.ModelSerializer):
@@ -104,6 +148,20 @@ class OrganizationInsuranceCarrierPreferenceWriteSerializer(serializers.Serializ
             raise serializers.ValidationError(
                 "Provide an existing carrier_id or carrier details."
             )
+        carrier = attrs.get("carrier_id")
+        organization = self.context["organization"]
+        if carrier and (
+            carrier.owning_facility_id
+            or (
+                carrier.owning_organization_id
+                and carrier.owning_organization_id != organization.id
+            )
+        ):
+            raise serializers.ValidationError(
+                {
+                    "carrier_id": "This private payer is not available to the organization."
+                }
+            )
         return attrs
 
     def create(self, validated_data):
@@ -114,7 +172,12 @@ class OrganizationInsuranceCarrierPreferenceWriteSerializer(serializers.Serializ
         if carrier is None and carrier_data:
             serializer = InsuranceCarrierSerializer(data=carrier_data)
             serializer.is_valid(raise_exception=True)
-            carrier = serializer.save()
+            carrier = serializer.save(
+                owning_organization=organization,
+                source=InsuranceCarrier.SOURCE_CUSTOM,
+                external_id="",
+                directory_source="",
+            )
 
         preference, _created = (
             OrganizationInsuranceCarrierPreference.objects.update_or_create(
@@ -130,6 +193,15 @@ class OrganizationInsuranceCarrierPreferenceWriteSerializer(serializers.Serializ
         carrier_data = validated_data.pop("carrier", None)
 
         if carrier_data:
+            if instance.carrier.owning_organization_id != instance.organization_id:
+                raise serializers.ValidationError(
+                    {
+                        "carrier": (
+                            "Global payer details are maintained by the directory. "
+                            "Only organization-owned custom payers can be edited here."
+                        )
+                    }
+                )
             serializer = InsuranceCarrierSerializer(
                 instance.carrier,
                 data=carrier_data,
@@ -218,6 +290,36 @@ class FacilityInsuranceCarrierOverrideSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Provide either an organization payer or a local payer."
             )
+        carrier = attrs.get("carrier")
+        facility = self.context["facility"]
+        if carrier and (
+            (
+                carrier.owning_organization_id
+                and carrier.owning_organization_id != facility.organization_id
+            )
+            or (
+                carrier.owning_facility_id and carrier.owning_facility_id != facility.id
+            )
+        ):
+            raise serializers.ValidationError(
+                {"carrier_id": "This private payer is not available to the facility."}
+            )
+        if (
+            carrier
+            and not self.instance
+            and OrganizationInsuranceCarrierPreference.objects.filter(
+                organization=facility.organization,
+                carrier=carrier,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                {
+                    "carrier_id": (
+                        "This payer is already available through the organization. "
+                        "Create an organization-preference override instead."
+                    )
+                }
+            )
         return attrs
 
     def create(self, validated_data):
@@ -225,7 +327,12 @@ class FacilityInsuranceCarrierOverrideSerializer(serializers.ModelSerializer):
         if carrier_details:
             serializer = InsuranceCarrierSerializer(data=carrier_details)
             serializer.is_valid(raise_exception=True)
-            validated_data["carrier"] = serializer.save()
+            validated_data["carrier"] = serializer.save(
+                owning_facility=self.context["facility"],
+                source=InsuranceCarrier.SOURCE_CUSTOM,
+                external_id="",
+                directory_source="",
+            )
 
         return FacilityInsuranceCarrierOverride.objects.create(
             facility=self.context["facility"],
@@ -235,6 +342,18 @@ class FacilityInsuranceCarrierOverrideSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         carrier_details = validated_data.pop("carrier_details", None)
         if carrier_details:
+            if (
+                not instance.carrier_id
+                or instance.carrier.owning_facility_id != instance.facility_id
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "carrier_details": (
+                            "Global and organization payer details cannot be edited "
+                            "from a facility link."
+                        )
+                    }
+                )
             serializer = InsuranceCarrierSerializer(
                 instance.carrier if instance.carrier_id else None,
                 data=carrier_details,

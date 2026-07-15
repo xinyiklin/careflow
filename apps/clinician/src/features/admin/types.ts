@@ -216,6 +216,7 @@ export type AdminOrganizationUserForm = ApiPayload & {
 
 export type AdminOrganizationPharmacy = {
   id: EntityId;
+  ownership_scope?: "global" | "organization" | "facility" | string;
   name?: string | null;
   legal_business_name?: string | null;
   source?: "custom" | "imported" | "directory" | string | null;
@@ -265,6 +266,10 @@ export type AdminFacilityPharmacyOverride = {
 
 export type AdminInsuranceCarrier = {
   id: EntityId;
+  ownership_scope?: "global" | "organization" | "facility" | string;
+  source?: "custom" | "imported" | "directory" | string | null;
+  external_id?: string | null;
+  directory_source?: string | null;
   name?: string | null;
   payer_id?: string | null;
   phone_number?: string | null;

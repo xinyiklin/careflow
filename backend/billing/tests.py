@@ -162,6 +162,28 @@ class EncounterBillingRecordViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 401)
 
+    def test_cpt_catalog_is_authenticated_and_serializes_entries(self):
+        unauthenticated_response = APIClient().get(
+            "/v1/billing/cpt-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+        response = self.client.get(
+            "/v1/billing/cpt-catalog/",
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(unauthenticated_response.status_code, 401)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data[0],
+            {
+                "service_code": "99202",
+                "description": "Office/outpatient visit, new, straightforward",
+                "charge_amount": "115.00",
+                "category": "E&M New Patient",
+            },
+        )
+
     def test_create_billing_record_for_signed_encounter(self):
         encounter = self.create_encounter()
 

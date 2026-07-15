@@ -37,6 +37,7 @@ export default function AppSidebar({
     facilityId: selectedFacilityId,
     status: "open",
     enabled: canViewMessaging,
+    refetchInterval: 30_000,
   });
   const inboxUnreadCount = canViewMessaging
     ? (messagingThreadsQuery.data ?? []).filter(

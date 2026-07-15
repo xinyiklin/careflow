@@ -37,6 +37,8 @@ import type {
 import type { AdminListFilter } from "../../hooks/shared/useAdminListControls";
 
 const EMPTY_FORM = {
+  mode: "directory" as "directory" | "custom",
+  directory_id: "",
   name: "",
   payer_id: "",
   phone_number: "",
@@ -143,8 +145,16 @@ const PAYER_SORT_OPTIONS = [
 ] satisfies AdminSortOption<AdminOrganizationPayerPreference>[];
 
 export default function OrganizationPayersPanel() {
-  const { payers, loading, saving, error, loadError, reload, savePayer } =
-    useOrganizationPayers();
+  const {
+    payers,
+    directoryPayers,
+    loading,
+    saving,
+    error,
+    loadError,
+    reload,
+    savePayer,
+  } = useOrganizationPayers();
   const schedulesQuery = useQuery({
     queryKey: ["admin", "organization", "fee-schedule-sheets"],
     queryFn: fetchOrganizationFeeSchedules,
@@ -180,21 +190,29 @@ export default function OrganizationPayersPanel() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const isGlobalLink = editingPayer?.carrier?.ownership_scope === "global";
+    const carrierValues = isGlobalLink
+      ? {}
+      : !editingPayer && form.mode === "directory"
+        ? { carrier_id: Number(form.directory_id) }
+        : {
+            carrier: {
+              name: form.name,
+              payer_id: form.payer_id,
+              phone_number: getPhoneInputDigits(form.phone_number),
+              website: form.website,
+              address_line_1: form.address_line_1,
+              address_line_2: form.address_line_2,
+              city: form.city,
+              state: form.state,
+              zip_code: form.zip_code,
+              is_active: true,
+            },
+          };
     await savePayer({
       id: editingPayer?.id || null,
       values: {
-        carrier: {
-          name: form.name,
-          payer_id: form.payer_id,
-          phone_number: getPhoneInputDigits(form.phone_number),
-          website: form.website,
-          address_line_1: form.address_line_1,
-          address_line_2: form.address_line_2,
-          city: form.city,
-          state: form.state,
-          zip_code: form.zip_code,
-          is_active: true,
-        },
+        ...carrierValues,
         notes: form.notes,
         is_preferred: form.is_preferred,
         is_hidden: form.is_hidden,
@@ -240,7 +258,7 @@ export default function OrganizationPayersPanel() {
                 onClick={() => openModal(null)}
                 disabled={saving}
               >
-                <Plus className="h-3.5 w-3.5" /> New
+                <Plus className="h-3.5 w-3.5" /> Add
               </Button>
             </>
           }
@@ -328,43 +346,105 @@ export default function OrganizationPayersPanel() {
           className="space-y-4"
           onSubmit={handleSubmit}
         >
-          <AdminFormSection>
-            <AdminFieldGrid>
-              <AdminField label="Name">
-                <input
-                  className="cf-input"
-                  value={form.name}
-                  onChange={(event) => updateField("name", event.target.value)}
-                  required
-                />
-              </AdminField>
-              <AdminField label="Payer ID">
-                <input
-                  className="cf-input"
-                  value={form.payer_id}
-                  onChange={(event) =>
-                    updateField("payer_id", event.target.value)
-                  }
-                />
-              </AdminField>
-              <AdminField label="Phone">
-                <PhoneInput
-                  name="phone_number"
-                  value={form.phone_number}
-                  onChange={(value) => updateField("phone_number", value)}
-                />
-              </AdminField>
-              <AdminField label="Website">
-                <input
-                  className="cf-input"
-                  value={form.website}
-                  onChange={(event) =>
-                    updateField("website", event.target.value)
-                  }
-                />
-              </AdminField>
-            </AdminFieldGrid>
-          </AdminFormSection>
+          {!editingPayer ? (
+            <AdminFormSection>
+              <AdminFieldGrid>
+                <AdminField label="Source">
+                  <select
+                    className="cf-input"
+                    value={form.mode}
+                    onChange={(event) =>
+                      updateField("mode", event.target.value)
+                    }
+                  >
+                    <option value="directory">Global directory</option>
+                    <option value="custom">
+                      Organization-only custom payer
+                    </option>
+                  </select>
+                </AdminField>
+                {form.mode === "directory" ? (
+                  <AdminField label="Payer">
+                    <select
+                      className="cf-input"
+                      value={form.directory_id}
+                      onChange={(event) =>
+                        updateField("directory_id", event.target.value)
+                      }
+                      required
+                    >
+                      <option value="">Select a directory payer</option>
+                      {directoryPayers.map((payer) => (
+                        <option key={payer.id} value={String(payer.id)}>
+                          {payer.name}
+                          {payer.payer_id ? ` (${payer.payer_id})` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </AdminField>
+                ) : null}
+              </AdminFieldGrid>
+            </AdminFormSection>
+          ) : null}
+          {editingPayer?.carrier?.ownership_scope === "global" ? (
+            <AdminInlineNotice>
+              Directory identity and contact fields are maintained globally.
+              Organization preferences below remain editable.
+            </AdminInlineNotice>
+          ) : null}
+          {editingPayer || form.mode === "custom" ? (
+            <AdminFormSection>
+              <AdminFieldGrid>
+                <AdminField label="Name">
+                  <input
+                    className="cf-input"
+                    value={form.name}
+                    onChange={(event) =>
+                      updateField("name", event.target.value)
+                    }
+                    required
+                    disabled={
+                      editingPayer?.carrier?.ownership_scope === "global"
+                    }
+                  />
+                </AdminField>
+                <AdminField label="Payer ID">
+                  <input
+                    className="cf-input"
+                    value={form.payer_id}
+                    onChange={(event) =>
+                      updateField("payer_id", event.target.value)
+                    }
+                    disabled={
+                      editingPayer?.carrier?.ownership_scope === "global"
+                    }
+                  />
+                </AdminField>
+                <AdminField label="Phone">
+                  <PhoneInput
+                    name="phone_number"
+                    value={form.phone_number}
+                    onChange={(value) => updateField("phone_number", value)}
+                    disabled={
+                      editingPayer?.carrier?.ownership_scope === "global"
+                    }
+                  />
+                </AdminField>
+                <AdminField label="Website">
+                  <input
+                    className="cf-input"
+                    value={form.website}
+                    onChange={(event) =>
+                      updateField("website", event.target.value)
+                    }
+                    disabled={
+                      editingPayer?.carrier?.ownership_scope === "global"
+                    }
+                  />
+                </AdminField>
+              </AdminFieldGrid>
+            </AdminFormSection>
+          ) : null}
           {feeSchedules.length > 0 ? (
             <AdminFormSection>
               <AdminFieldGrid>

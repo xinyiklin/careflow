@@ -9,6 +9,8 @@ Covers ``/v1/portal/refill-requests/`` (GET + POST + cancel),
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -409,9 +411,19 @@ class PortalRefillCancelTests(PortalRefillBaseMixin, APITestCase):
             status=RefillRequest.STATUS_PENDING,
         )
         self.client.force_authenticate(self.portal_user_a)
-        response = self.client.post(self._url(refill.id))
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.post(self._url(refill.id))
+
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.json()["status"], "cancelled")
+        self.assertTrue(
+            any(
+                '"medications_refillrequest"' in query["sql"]
+                and "FOR UPDATE" in query["sql"].upper()
+                for query in queries
+            ),
+            "Cancellation must lock the refill row before checking its state.",
+        )
         refill.refresh_from_db()
         self.assertEqual(refill.status, RefillRequest.STATUS_CANCELLED)
         self.assertIsNone(refill.resolved_at)

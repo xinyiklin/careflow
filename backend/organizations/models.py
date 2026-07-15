@@ -111,12 +111,19 @@ class OrganizationMembership(models.Model):
 
     def clean(self):
         if self.user_id:
+            from users.portal import PatientPortalAccount
+
             existing = OrganizationMembership.objects.filter(user=self.user)
             if self.pk:
                 existing = existing.exclude(pk=self.pk)
 
             if existing.exists():
                 raise ValidationError("A user can only belong to one organization.")
+
+            if PatientPortalAccount.objects.filter(user=self.user).exists():
+                raise ValidationError(
+                    "Patient portal users cannot belong to a clinician organization."
+                )
 
     def save(self, *args, **kwargs):
         self.full_clean()

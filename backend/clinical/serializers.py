@@ -1,9 +1,18 @@
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from shared.serializers import StrictPayloadMixin
 
 from .models import Encounter, ProgressNote, Vitals
+
+
+class ICD10CatalogEntrySerializer(serializers.Serializer):
+    """One suggested diagnosis code for clinical documentation."""
+
+    code = serializers.CharField()
+    description = serializers.CharField()
+    chapter = serializers.CharField()
 
 
 class VitalsSerializer(StrictPayloadMixin, serializers.ModelSerializer):
@@ -204,6 +213,7 @@ class EncounterSerializer(StrictPayloadMixin, serializers.ModelSerializer):
     def get_patient_name(self, obj):
         return f"{obj.patient.last_name}, {obj.patient.first_name}"
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_effectively_billable(self, obj):
         if not obj.appointment:
             return True

@@ -2,7 +2,38 @@ from django.db import models, transaction
 
 
 class InsuranceCarrier(models.Model):
+    SOURCE_CUSTOM = "custom"
+    SOURCE_IMPORTED = "imported"
+    SOURCE_DIRECTORY = "directory"
+    SOURCE_CHOICES = [
+        (SOURCE_CUSTOM, "Custom"),
+        (SOURCE_IMPORTED, "Imported"),
+        (SOURCE_DIRECTORY, "Directory"),
+    ]
+
     name = models.CharField(max_length=150)
+    owning_organization = models.ForeignKey(
+        "organizations.Organization",
+        on_delete=models.CASCADE,
+        related_name="private_insurance_carriers",
+        null=True,
+        blank=True,
+    )
+    owning_facility = models.ForeignKey(
+        "facilities.Facility",
+        on_delete=models.CASCADE,
+        related_name="private_insurance_carriers",
+        null=True,
+        blank=True,
+    )
+    source = models.CharField(
+        max_length=20,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_DIRECTORY,
+    )
+    external_id = models.CharField(max_length=100, blank=True)
+    directory_source = models.CharField(max_length=50, blank=True)
+    last_directory_sync_at = models.DateTimeField(null=True, blank=True)
     payer_id = models.CharField(max_length=50, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
     website = models.URLField(blank=True)
@@ -16,6 +47,28 @@ class InsuranceCarrier(models.Model):
 
     class Meta:
         ordering = ["name"]
+        constraints = [
+            models.CheckConstraint(
+                check=~models.Q(
+                    owning_organization__isnull=False,
+                    owning_facility__isnull=False,
+                ),
+                name="carrier_has_at_most_one_tenant_owner",
+            ),
+            models.UniqueConstraint(
+                fields=["directory_source", "external_id"],
+                condition=~models.Q(external_id=""),
+                name="unique_carrier_external_directory_id",
+            ),
+        ]
+
+    @property
+    def ownership_scope(self):
+        if self.owning_facility_id:
+            return "facility"
+        if self.owning_organization_id:
+            return "organization"
+        return "global"
 
     def __str__(self):
         return self.name

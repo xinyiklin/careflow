@@ -1,7 +1,9 @@
-from django.db.models import Prefetch
+from django.db import transaction
+from django.db.models import Prefetch, Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from audit.services import record_audit_event
@@ -11,6 +13,8 @@ from facilities.security import (
     get_effective_staff_permissions,
     user_has_facility_permission,
 )
+from patients.models import Pharmacy
+from patients.serializers import PharmacySerializer
 
 from .models import (
     FacilityPharmacyPreferenceOverride,
@@ -34,7 +38,9 @@ from .serializers import (
     OrganizationPharmacyPreferenceSerializer,
     OrganizationPharmacyPreferenceWriteSerializer,
     OrganizationRoleSerializer,
+    OrganizationSecurityRoleSerializer,
     OrganizationSecuritySerializer,
+    OrganizationSecurityUpdateResultSerializer,
     OrganizationSerializer,
 )
 
@@ -163,6 +169,35 @@ class FacilityPharmacyPreferenceOverrideViewSet(
             },
         )
 
+    @extend_schema(responses=PharmacySerializer(many=True))
+    @action(detail=False, methods=["get"])
+    def directory(self, request):
+        facility = self.get_facility()
+        queryset = Pharmacy.objects.filter(
+            owning_organization__isnull=True,
+            owning_facility__isnull=True,
+            is_active=True,
+        ).select_related("address")
+        search = (request.query_params.get("search") or "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(ncpdp_id__icontains=search)
+                | Q(npi__icontains=search)
+            )
+        linked_ids = FacilityPharmacyPreferenceOverride.objects.filter(
+            facility=facility,
+            pharmacy_id__isnull=False,
+        ).values_list("pharmacy_id", flat=True)
+        organization_linked_ids = OrganizationPharmacyPreference.objects.filter(
+            organization=facility.organization
+        ).values_list("pharmacy_id", flat=True)
+        queryset = queryset.exclude(id__in=linked_ids).exclude(
+            id__in=organization_linked_ids
+        )
+        queryset = queryset.order_by("name")
+        return Response(PharmacySerializer(queryset, many=True).data)
+
 
 class OrganizationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -273,7 +308,15 @@ class OrganizationPeopleViewSet(
         if not is_org_admin(self.request.user) and not self.request.user.is_superuser:
             raise PermissionDenied("Only organization admins can create people.")
 
+        if (
+            serializer.validated_data.get("role") == OrganizationMembership.ROLE_OWNER
+            and not self.request.user.is_superuser
+            and not is_org_owner(self.request.user)
+        ):
+            raise PermissionDenied("Only an owner can assign the owner role.")
+
         membership = serializer.save()
+        self._emit_staff_security_events(serializer)
         record_audit_event(
             actor=self.request.user,
             action="create",
@@ -304,7 +347,51 @@ class OrganizationPeopleViewSet(
             ):
                 raise PermissionDenied("Only an owner can modify another owner.")
 
-        membership = serializer.save()
+            if serializer.validated_data.get(
+                "role"
+            ) == OrganizationMembership.ROLE_OWNER and not is_org_owner(
+                self.request.user
+            ):
+                raise PermissionDenied("Only an owner can assign the owner role.")
+
+        with transaction.atomic():
+            locked_memberships = list(
+                OrganizationMembership.objects.select_for_update().filter(
+                    organization_id=target_membership.organization_id
+                )
+            )
+            locked_target = next(
+                membership
+                for membership in locked_memberships
+                if membership.pk == target_membership.pk
+            )
+            prospective_role = serializer.validated_data.get("role", locked_target.role)
+            prospective_is_active = serializer.validated_data.get(
+                "is_active", locked_target.is_active
+            )
+            removes_active_owner = (
+                locked_target.role == OrganizationMembership.ROLE_OWNER
+                and locked_target.is_active
+                and (
+                    prospective_role != OrganizationMembership.ROLE_OWNER
+                    or not prospective_is_active
+                )
+            )
+            has_other_active_owner = any(
+                membership.pk != locked_target.pk
+                and membership.role == OrganizationMembership.ROLE_OWNER
+                and membership.is_active
+                for membership in locked_memberships
+            )
+            if removes_active_owner and not has_other_active_owner:
+                raise PermissionDenied(
+                    "Assign another active organization owner before changing "
+                    "this owner."
+                )
+
+            serializer.instance = locked_target
+            membership = serializer.save()
+        self._emit_staff_security_events(serializer)
         record_audit_event(
             actor=self.request.user,
             action="update",
@@ -318,6 +405,22 @@ class OrganizationPeopleViewSet(
                 "is_active": membership.is_active,
             },
         )
+
+    def _emit_staff_security_events(self, serializer):
+        """Emit one facility-scoped security audit event per Staff mutation the
+        serializer performed, so facility admins can see role/active changes made
+        through this org-level path (mirrors the facility /staff/ endpoint)."""
+        for event in getattr(serializer, "security_audit_events", []):
+            record_audit_event(
+                actor=self.request.user,
+                action=event["action"],
+                app_label="facilities",
+                model_name="staff",
+                facility=event["facility"],
+                object_pk=event["object_pk"],
+                summary=event["summary"],
+                metadata=event["metadata"],
+            )
 
 
 class OrganizationPharmacyPreferenceViewSet(
@@ -419,10 +522,38 @@ class OrganizationPharmacyPreferenceViewSet(
             },
         )
 
+    @extend_schema(responses=PharmacySerializer(many=True))
+    @action(detail=False, methods=["get"])
+    def directory(self, request):
+        membership = self.get_membership()
+        if not user_can_manage_organization_pharmacies(
+            request.user,
+            membership.organization,
+        ):
+            raise PermissionDenied("You do not have access to pharmacy management.")
+        queryset = Pharmacy.objects.filter(
+            owning_organization__isnull=True,
+            owning_facility__isnull=True,
+            is_active=True,
+        ).select_related("address")
+        search = (request.query_params.get("search") or "").strip()
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search)
+                | Q(ncpdp_id__icontains=search)
+                | Q(npi__icontains=search)
+            )
+        linked_ids = OrganizationPharmacyPreference.objects.filter(
+            organization=membership.organization
+        ).values_list("pharmacy_id", flat=True)
+        queryset = queryset.exclude(id__in=linked_ids).order_by("name")
+        return Response(PharmacySerializer(queryset, many=True).data)
+
 
 class OrganizationSecurityViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=OrganizationSecurityRoleSerializer(many=True))
     def list(self, request):
         membership = require_org_security_manager(request.user)
         org = membership.organization
@@ -456,6 +587,10 @@ class OrganizationSecurityViewSet(viewsets.ViewSet):
 
         return Response(roles_data)
 
+    @extend_schema(
+        request=OrganizationSecuritySerializer,
+        responses=OrganizationSecurityUpdateResultSerializer,
+    )
     @action(detail=False, methods=["patch"], url_path="update-role")
     def update_role(self, request):
         membership = require_org_security_manager(request.user)
@@ -546,7 +681,12 @@ class OrganizationRoleViewSet(viewsets.ModelViewSet):
         if instance.code == OrganizationMembership.ROLE_OWNER:
             raise PermissionDenied("The owner role is protected and cannot be deleted.")
         if not instance.is_deletable:
-            instance.is_active = False
-            instance.save()
-            return
+            raise PermissionDenied("This protected role cannot be deleted.")
+        if OrganizationMembership.objects.filter(
+            organization=instance.organization,
+            role=instance.code,
+        ).exists():
+            raise ValidationError(
+                {"detail": "Reassign organization members before deleting this role."}
+            )
         instance.delete()

@@ -48,13 +48,16 @@ function threadQueryKey(threadId: number) {
   return ["portal", "messaging", "thread", threadId] as const;
 }
 
-export function useMessageThreads() {
+export function useMessageThreads({
+  refetchInterval = false,
+}: { refetchInterval?: number | false } = {}) {
   return useQuery<PortalMessageThreadSummary[]>({
     queryKey: THREADS_QUERY_KEY,
     queryFn: async () =>
       (await apiRequest<PortalMessageThreadSummary[]>(
         "/portal/messaging/threads/"
       )) ?? [],
+    refetchInterval,
   });
 }
 

@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -24,6 +25,11 @@ import type { ReactNode } from "react";
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 
+export type AuthSessionSnapshot = {
+  generation: number;
+  patientId: number | null;
+};
+
 export type AuthContextValue = {
   status: AuthStatus;
   patient: PortalPatient | null;
@@ -31,6 +37,11 @@ export type AuthContextValue = {
   login: (credentials: PortalLoginCredentials) => Promise<void>;
   demoLogin: () => Promise<void>;
   logout: () => void;
+  getSessionSnapshot: () => AuthSessionSnapshot;
+  updatePatient: (
+    patient: PortalPatient,
+    expectedSession: AuthSessionSnapshot
+  ) => boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -54,33 +65,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [patient, setPatient] = useState<PortalPatient | null>(null);
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [error, setError] = useState<string | null>(null);
+  const sessionGenerationRef = useRef(0);
+  const activePatientIdRef = useRef<number | null>(null);
+
+  const setActivePatient = useCallback((nextPatient: PortalPatient | null) => {
+    sessionGenerationRef.current += 1;
+    activePatientIdRef.current = nextPatient?.id ?? null;
+    setPatient(nextPatient);
+  }, []);
 
   const logout = useCallback(() => {
-    logoutUser();
-    setPatient(null);
+    void logoutUser();
+    setActivePatient(null);
     setStatus("anonymous");
     // Drop every cached query so the next patient never sees the prior
     // patient's medications/messages/profile from this browser session.
     queryClient.clear();
-  }, [queryClient]);
+  }, [queryClient, setActivePatient]);
+
+  const getSessionSnapshot = useCallback(
+    (): AuthSessionSnapshot => ({
+      generation: sessionGenerationRef.current,
+      patientId: activePatientIdRef.current,
+    }),
+    []
+  );
+
+  const updatePatient = useCallback(
+    (nextPatient: PortalPatient, expectedSession: AuthSessionSnapshot) => {
+      if (
+        expectedSession.generation !== sessionGenerationRef.current ||
+        expectedSession.patientId !== activePatientIdRef.current ||
+        nextPatient.id !== activePatientIdRef.current
+      ) {
+        return false;
+      }
+
+      activePatientIdRef.current = nextPatient.id;
+      setPatient(nextPatient);
+      return true;
+    },
+    []
+  );
 
   const loadPatient = useCallback(async () => {
     const data = await fetchPortalMe();
     if (!data) {
       throw new Error("Portal profile response was empty.");
     }
-    setPatient(data);
+    setActivePatient(data);
     setStatus("authenticated");
     setError(null);
     return data;
-  }, []);
+  }, [setActivePatient]);
 
   const bootstrap = useCallback(async () => {
     try {
       await restoreAuthSession();
     } catch {
       // No refresh cookie / refresh expired — treat as anonymous, no error UI.
-      setPatient(null);
+      setActivePatient(null);
       setStatus("anonymous");
       return;
     }
@@ -96,17 +140,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // shouldn't surface "Sign in failed" out of nowhere. Just
         // clear the stale session and fall through to anonymous.
         logoutUser();
-        setPatient(null);
+        setActivePatient(null);
         setStatus("anonymous");
         return;
       }
       if (errStatus !== 401) {
         console.error("Failed to load portal profile:", err);
       }
-      setPatient(null);
+      setActivePatient(null);
       setStatus("anonymous");
     }
-  }, [loadPatient]);
+  }, [loadPatient, setActivePatient]);
 
   const login = useCallback(
     async ({ username, password }: PortalLoginCredentials) => {
@@ -116,10 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Login response did not include an access token.");
       }
 
-      setAuthTokens({
-        access: tokens.access,
-        refresh: tokens.refresh ?? null,
-      });
+      setAuthTokens({ access: tokens.access });
 
       try {
         await loadPatient();
@@ -127,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const errStatus = getErrorStatus(err);
         if (errStatus === 403) {
           logoutUser();
-          setPatient(null);
+          setActivePatient(null);
           setStatus("anonymous");
           setError(NO_PORTAL_ACCESS);
           throw new Error(NO_PORTAL_ACCESS);
@@ -135,7 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw err;
       }
     },
-    [loadPatient]
+    [loadPatient, setActivePatient]
   );
 
   const demoLogin = useCallback(async () => {
@@ -145,17 +186,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error("Demo login response did not include an access token.");
     }
 
-    setAuthTokens({
-      access: tokens.access,
-      refresh: tokens.refresh ?? null,
-    });
+    setAuthTokens({ access: tokens.access });
 
     await loadPatient();
   }, [loadPatient]);
 
   useEffect(() => {
     const handleAuthLogout = () => {
-      setPatient(null);
+      setActivePatient(null);
       setStatus("anonymous");
       queryClient.clear();
     };
@@ -165,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("auth:logout", handleAuthLogout);
     };
-  }, [queryClient]);
+  }, [queryClient, setActivePatient]);
 
   useEffect(() => {
     bootstrap();
@@ -180,6 +218,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         demoLogin,
         logout,
+        getSessionSnapshot,
+        updatePatient,
       }}
     >
       {children}

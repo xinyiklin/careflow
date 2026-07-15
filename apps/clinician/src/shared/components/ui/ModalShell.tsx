@@ -81,7 +81,16 @@ export default function ModalShell({
   useEffect(() => {
     if (!isOpen) return undefined;
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") onClose?.();
+      if (e.key !== "Escape") return;
+
+      const visiblePanels = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-modal-panel='true']")
+      ).filter((panel) => panel.offsetParent !== null);
+      const topmostPanel = visiblePanels[visiblePanels.length - 1];
+      if (topmostPanel !== panelRef.current) return;
+
+      e.preventDefault();
+      onClose?.();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);

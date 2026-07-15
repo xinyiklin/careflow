@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from shared.serializers import StrictPayloadMixin
@@ -7,6 +8,21 @@ from .models import (
     OrganizationFeeSchedule,
     OrganizationFeeScheduleItem,
 )
+
+
+class CPTCatalogEntrySerializer(serializers.Serializer):
+    """One predefined billing code used to seed a fee schedule."""
+
+    service_code = serializers.CharField()
+    description = serializers.CharField()
+    charge_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    category = serializers.CharField()
+
+
+class FeeScheduleLinkedEntitiesSerializer(serializers.Serializer):
+    facilities = serializers.ListField(child=serializers.CharField())
+    staff = serializers.ListField(child=serializers.CharField())
+    payers = serializers.ListField(child=serializers.CharField())
 
 
 class EffectiveFeeScheduleItemSerializer(serializers.Serializer):
@@ -195,9 +211,11 @@ class OrganizationFeeScheduleSerializer(
             "sort_order": {"required": False},
         }
 
+    @extend_schema_field(serializers.IntegerField())
     def get_item_count(self, obj):
         return getattr(obj, "item_count", None) or obj.items.count()
 
+    @extend_schema_field(FeeScheduleLinkedEntitiesSerializer)
     def get_linked_entities(self, obj):
         facilities = list(obj.linked_facilities.values_list("name", flat=True)[:5])
         staff = list(

@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from facilities.security import user_has_facility_permission
@@ -190,11 +191,13 @@ class PatientDocumentCategorySerializer(serializers.ModelSerializer):
 
 class PharmacySerializer(AddressModelSerializerMixin, serializers.ModelSerializer):
     address = AddressSerializer(required=False, allow_null=True)
+    ownership_scope = serializers.CharField(read_only=True)
 
     class Meta:
         model = Pharmacy
         fields = [
             "id",
+            "ownership_scope",
             "name",
             "legal_business_name",
             "source",
@@ -220,12 +223,46 @@ class PharmacySerializer(AddressModelSerializerMixin, serializers.ModelSerialize
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at"]
+        # source/external_id/directory_source identify a canonical directory
+        # record and are reserved for the directory sync. Tenant create paths set
+        # them explicitly via serializer.save(**kwargs); leaving them writable let
+        # a tenant PATCH a private record to claim a canonical external id and
+        # poison the next directory sync, so they are read-only on this serializer.
+        read_only_fields = [
+            "created_at",
+            "updated_at",
+            "source",
+            "external_id",
+            "directory_source",
+        ]
+        validators = []
 
     def validate(self, attrs):
         for field in ["ncpdp_id", "npi"]:
             if attrs.get(field) == "":
                 attrs[field] = None
+        external_id = attrs.get(
+            "external_id", getattr(self.instance, "external_id", "")
+        )
+        directory_source = attrs.get(
+            "directory_source", getattr(self.instance, "directory_source", "")
+        )
+        if external_id:
+            matches = Pharmacy.objects.filter(
+                directory_source=directory_source,
+                external_id=external_id,
+            )
+            if self.instance:
+                matches = matches.exclude(pk=self.instance.pk)
+            if matches.exists():
+                raise serializers.ValidationError(
+                    {
+                        "external_id": (
+                            "This external pharmacy ID already exists for the "
+                            "directory source."
+                        )
+                    }
+                )
         return attrs
 
     def create(self, validated_data):
@@ -383,6 +420,7 @@ class PatientSerializer(AddressModelSerializerMixin, serializers.ModelSerializer
             return obj.ssn[-4:]
         return obj.ssn_last4 or ""
 
+    @extend_schema_field(PatientDocumentSerializer(many=True))
     def get_patient_documents(self, obj):
         request = self.context.get("request")
         if not request or not user_has_facility_permission(
@@ -399,6 +437,7 @@ class PatientSerializer(AddressModelSerializerMixin, serializers.ModelSerializer
             context=self.context,
         ).data
 
+    @extend_schema_field(PatientDocumentSerializer(many=True))
     def get_documents(self, obj):
         return self.get_patient_documents(obj)
 

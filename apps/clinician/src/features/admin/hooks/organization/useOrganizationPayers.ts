@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createOrganizationPayer,
+  fetchOrganizationPayerDirectory,
   fetchOrganizationPayers,
   updateOrganizationPayer,
 } from "../../api/organization/payers";
@@ -22,6 +23,10 @@ export default function useOrganizationPayers() {
     queryKey: ORGANIZATION_PAYERS_QUERY_KEY,
     queryFn: fetchOrganizationPayers,
   });
+  const directoryQuery = useQuery({
+    queryKey: [...ORGANIZATION_PAYERS_QUERY_KEY, "directory"],
+    queryFn: fetchOrganizationPayerDirectory,
+  });
 
   const saveMutation = useMutation({
     mutationFn: ({ id, values }: SaveOrganizationPayerPayload) => {
@@ -38,11 +43,22 @@ export default function useOrganizationPayers() {
 
   return {
     payers: Array.isArray(payersQuery.data) ? payersQuery.data : [],
-    loading: payersQuery.isLoading,
+    directoryPayers: Array.isArray(directoryQuery.data)
+      ? directoryQuery.data
+      : [],
+    loading: payersQuery.isLoading || directoryQuery.isLoading,
     saving: saveMutation.isPending,
-    error: saveMutation.error?.message || payersQuery.error?.message || "",
-    loadError: payersQuery.error?.message || "",
-    reload: payersQuery.refetch,
+    error:
+      saveMutation.error?.message ||
+      payersQuery.error?.message ||
+      directoryQuery.error?.message ||
+      "",
+    loadError:
+      payersQuery.error?.message || directoryQuery.error?.message || "",
+    reload: () => {
+      void payersQuery.refetch();
+      void directoryQuery.refetch();
+    },
     savePayer: (payload: SaveOrganizationPayerPayload) =>
       saveMutation.mutateAsync(payload),
   };

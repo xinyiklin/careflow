@@ -72,7 +72,10 @@ function RefillRow({ refill }: { refill: PortalRefillRequest }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setConfirmOpen(true)}
+              onClick={() => {
+                setError(null);
+                setConfirmOpen(true);
+              }}
               disabled={cancel.isPending}
             >
               {t("medications.cancelRefill")}
@@ -80,13 +83,6 @@ function RefillRow({ refill }: { refill: PortalRefillRequest }) {
           ) : null}
         </div>
       </div>
-
-      {error ? (
-        <p className="mt-1 text-xs text-danger" role="alert">
-          {error}
-        </p>
-      ) : null}
-
       <Modal
         open={confirmOpen}
         onClose={() => {
@@ -95,6 +91,7 @@ function RefillRow({ refill }: { refill: PortalRefillRequest }) {
         title={t("medications.cancelRefillTitle")}
         description={t("medications.cancelRefillBody")}
         size="sm"
+        disableBackdropClose={cancel.isPending}
         footer={
           <>
             <Button
@@ -116,13 +113,18 @@ function RefillRow({ refill }: { refill: PortalRefillRequest }) {
           </>
         }
       >
-        <p className="text-sm text-text-muted">
+        <div className="text-sm text-text-muted">
           <span className="font-medium text-text">
             {refill.medication_name}
           </span>
           <br />
           {t("medications.requestedOn", { date: requested })}
-        </p>
+          {error ? (
+            <p className="mt-3 text-xs text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </div>
       </Modal>
     </li>
   );

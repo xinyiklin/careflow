@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -13,7 +14,15 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .demo_access import ensure_demo_user_is_org_owner
 from .models import UserPreference
-from .serializers import RegisterSerializer, UserPreferenceSerializer, UserSerializer
+from .serializers import (
+    AccessTokenResponseSerializer,
+    CookieTokenLoginRequestSerializer,
+    CookieTokenRefreshRequestSerializer,
+    DemoLoginResponseSerializer,
+    RegisterSerializer,
+    UserPreferenceSerializer,
+    UserSerializer,
+)
 from .tokens import (
     CLINIC_SURFACE,
     ClinicTokenObtainPairSerializer,
@@ -83,6 +92,11 @@ class CookieTokenObtainPairView(TokenObtainPairView):
     serializer_class = ClinicTokenObtainPairSerializer
     throttle_scope = "login"
 
+    @extend_schema(
+        request=CookieTokenLoginRequestSerializer,
+        responses={200: AccessTokenResponseSerializer},
+        summary="Sign in clinician and set a refresh cookie",
+    )
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         refresh_token = response.data.pop("refresh", None)
@@ -96,6 +110,11 @@ class CookieTokenRefreshView(TokenRefreshView):
     serializer_class = ClinicTokenRefreshSerializer
     throttle_scope = "refresh"
 
+    @extend_schema(
+        request=CookieTokenRefreshRequestSerializer,
+        responses={200: AccessTokenResponseSerializer},
+        summary="Refresh clinician access token",
+    )
     def post(self, request, *args, **kwargs):
         data = (
             request.data.copy() if hasattr(request.data, "copy") else dict(request.data)
@@ -121,6 +140,7 @@ class CookieTokenRefreshView(TokenRefreshView):
 class LogoutView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(request=None, responses={204: None}, summary="Sign out clinician")
     def post(self, request):
         blacklist_refresh_cookie(request)
         response = Response(status=status.HTTP_204_NO_CONTENT)
@@ -130,6 +150,11 @@ class LogoutView(APIView):
 class RegisterView(APIView):
     permission_classes = [permissions.AllowAny]
 
+    @extend_schema(
+        request=RegisterSerializer,
+        responses={201: UserSerializer, 400: None, 403: None},
+        summary="Register clinician user",
+    )
     def post(self, request):
         if not getattr(settings, "ALLOW_PUBLIC_REGISTRATION", False):
             return Response(
@@ -147,6 +172,7 @@ class RegisterView(APIView):
 class UserProfileView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(responses=UserSerializer, summary="Authenticated clinician profile")
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data)
@@ -155,6 +181,11 @@ class UserProfileView(APIView):
 class UserPreferenceView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        request=UserPreferenceSerializer,
+        responses=UserPreferenceSerializer,
+        summary="Update clinician preferences",
+    )
     def patch(self, request):
         preference_record, _ = UserPreference.objects.get_or_create(user=request.user)
         serializer = UserPreferenceSerializer(
@@ -172,6 +203,11 @@ class DemoLoginView(APIView):
     permission_classes = [permissions.AllowAny]
     throttle_scope = "demo"
 
+    @extend_schema(
+        request=None,
+        responses={200: DemoLoginResponseSerializer, 403: None, 500: None},
+        summary="Sign in as the seeded clinician demo user",
+    )
     def post(self, request):
         if not getattr(settings, "DEMO_MODE", False):
             return Response(

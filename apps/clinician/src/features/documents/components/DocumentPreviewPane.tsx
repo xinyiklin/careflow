@@ -80,19 +80,16 @@ export default function DocumentPreviewPane({
     let isCancelled = false;
     let pendingObjectUrl = "";
     setError("");
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    objectUrlRef.current = "";
+    setPreview(null);
 
     if (!document) {
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = "";
-      setPreview(null);
       setStatus("idle");
       return undefined;
     }
 
     if (!facilityId && !document.url) {
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = "";
-      setPreview(null);
       setStatus("error");
       setError("Select a facility before previewing this document.");
       return undefined;

@@ -208,6 +208,7 @@ class PharmacyAdmin(admin.ModelAdmin):
         "name",
         "ncpdp_id",
         "npi",
+        "ownership_scope",
         "service_type",
         "accepts_erx",
         "is_active",
@@ -217,6 +218,8 @@ class PharmacyAdmin(admin.ModelAdmin):
         "service_type",
         "accepts_erx",
         "directory_status",
+        "owning_organization",
+        "owning_facility",
         "is_active",
     )
     search_fields = (

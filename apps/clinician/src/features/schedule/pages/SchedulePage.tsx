@@ -22,6 +22,7 @@ import useFacility from "../../facilities/hooks/useFacility";
 import useFacilityConfig from "../../facilities/hooks/useFacilityConfig";
 import { usePatientFlowContext } from "../../patients/PatientFlowProvider";
 import { Button, Notice } from "../../../shared/components/ui";
+import DatePickerProvider from "../../../shared/components/DatePickerProvider";
 import WorkspaceShell from "../../../app/components/WorkspaceShell";
 import { useUserPreferences } from "../../../app/context/UserPreferencesProvider";
 import {
@@ -29,6 +30,10 @@ import {
   SCHEDULE_QUICK_ACTION_STORAGE_KEY,
 } from "../../../shared/constants/quickActions";
 import { getPatientChartName } from "../../patients/utils/patientDisplay";
+import {
+  getSessionStorageItem,
+  removeSessionStorageItem,
+} from "../../../shared/utils/browserStorage";
 
 import type { EntityId } from "../../../shared/api/types";
 import type { ApiRecord, AppointmentLike } from "../../../shared/types/domain";
@@ -49,6 +54,14 @@ import type {
 } from "../types";
 
 export default function SchedulePage() {
+  return (
+    <DatePickerProvider>
+      <SchedulePageContent />
+    </DatePickerProvider>
+  );
+}
+
+function SchedulePageContent() {
   const { facility, selectedFacilityId } = useFacility();
   const { physicians, staffs, resources, statusOptions, typeOptions } =
     useFacilityConfig();
@@ -213,11 +226,11 @@ export default function SchedulePage() {
   useEffect(() => {
     const consumePendingAction = (type: string | null | undefined) => {
       if (!handleScheduleQuickAction(type)) return;
-      sessionStorage.removeItem(SCHEDULE_QUICK_ACTION_STORAGE_KEY);
+      removeSessionStorageItem(SCHEDULE_QUICK_ACTION_STORAGE_KEY);
     };
 
     consumePendingAction(
-      sessionStorage.getItem(SCHEDULE_QUICK_ACTION_STORAGE_KEY)
+      getSessionStorageItem(SCHEDULE_QUICK_ACTION_STORAGE_KEY)
     );
 
     const handleWindowAction = (event: Event) => {

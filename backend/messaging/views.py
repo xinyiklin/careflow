@@ -13,9 +13,11 @@ captures who-saw-what and who-replied-when.
 
 from django.db import transaction
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from audit.services import record_audit_event
@@ -118,24 +120,29 @@ class MessageThreadViewSet(
         )
         return Response(self.get_serializer(thread).data)
 
+    @extend_schema(
+        request=MessageReplyInputSerializer,
+        responses={201: MessageSerializer},
+        summary="Reply to a message thread",
+    )
     @action(detail=True, methods=["post"])
     def reply(self, request, pk=None):
         facility = self._require_permission(
             "messaging.respond",
             "You do not have access to respond to messages.",
         )
-        thread = self.get_object()
-        if thread.facility_id != facility.id:
-            raise PermissionDenied("You do not have access to this thread.")
-        if thread.status == MessageThread.STATUS_CLOSED:
-            raise ValidationError(
-                {"status": "This thread is closed and cannot accept replies."}
-            )
-
-        shape = MessageReplyInputSerializer(data=request.data)
-        shape.is_valid(raise_exception=True)
 
         with transaction.atomic():
+            thread = self._get_locked_object()
+            if thread.facility_id != facility.id:
+                raise PermissionDenied("You do not have access to this thread.")
+            if thread.status == MessageThread.STATUS_CLOSED:
+                raise ValidationError(
+                    {"status": "This thread is closed and cannot accept replies."}
+                )
+
+            shape = MessageReplyInputSerializer(data=request.data)
+            shape.is_valid(raise_exception=True)
             message = Message.objects.create(
                 thread=thread,
                 sender_kind=Message.SENDER_CLINICIAN,
@@ -163,6 +170,11 @@ class MessageThreadViewSet(
             status=201,
         )
 
+    @extend_schema(
+        request=None,
+        responses={200: MessageThreadListSerializer},
+        summary="Close a message thread",
+    )
     @action(detail=True, methods=["post"])
     def close(self, request, pk=None):
         return self._set_status(
@@ -172,6 +184,11 @@ class MessageThreadViewSet(
             audit_summary_prefix="Closed thread",
         )
 
+    @extend_schema(
+        request=None,
+        responses={200: MessageThreadListSerializer},
+        summary="Reopen a message thread",
+    )
     @action(detail=True, methods=["post"])
     def reopen(self, request, pk=None):
         return self._set_status(
@@ -188,13 +205,14 @@ class MessageThreadViewSet(
             "messaging.respond",
             "You do not have access to respond to messages.",
         )
-        thread = self.get_object()
-        if thread.facility_id != facility.id:
-            raise PermissionDenied("You do not have access to this thread.")
-        if thread.status == new_status:
-            raise ValidationError({"status": already_message})
 
         with transaction.atomic():
+            thread = self._get_locked_object()
+            if thread.facility_id != facility.id:
+                raise PermissionDenied("You do not have access to this thread.")
+            if thread.status == new_status:
+                raise ValidationError({"status": already_message})
+
             thread.status = new_status
             thread.save(update_fields=["status"])
             record_audit_event(
@@ -213,6 +231,17 @@ class MessageThreadViewSet(
             )
 
         return Response(MessageThreadListSerializer(thread).data)
+
+    def _get_locked_object(self):
+        queryset = self.filter_queryset(self.get_queryset()).select_for_update(
+            of=("self",)
+        )
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        lookup_value = self.kwargs.get(lookup_url_kwarg)
+        filter_kwargs = {self.lookup_field: lookup_value}
+        obj = get_object_or_404(queryset, **filter_kwargs)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
     def _require_permission(self, permission, message):
         facility = self.get_facility()

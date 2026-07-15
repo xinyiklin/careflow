@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import WorkspaceShell from "../../../app/components/WorkspaceShell";
@@ -54,6 +54,18 @@ export default function MessagingWorkspace({
     (threadId: number) => setActiveThreadId(threadId),
     [setActiveThreadId]
   );
+
+  const previousFacilityIdRef = useRef(facilityId);
+  useEffect(() => {
+    const previousFacilityId = previousFacilityIdRef.current;
+    previousFacilityIdRef.current = facilityId;
+    if (
+      previousFacilityId !== null &&
+      String(previousFacilityId) !== String(facilityId)
+    ) {
+      setActiveThreadId(null);
+    }
+  }, [facilityId, setActiveThreadId]);
 
   return (
     <WorkspaceShell>

@@ -272,8 +272,8 @@ X_FRAME_OPTIONS = "DENY"
 # --- DRF ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
+        "users.authentication.SurfaceJWTAuthentication",
+        "users.authentication.SurfaceSessionAuthentication",
     ],
     # Fail closed: a view that forgets to declare permission_classes requires
     # authentication rather than defaulting to AllowAny. Public endpoints
@@ -319,4 +319,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "CareFlow API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "DirectoryRecordSourceEnum": "patients.models.Pharmacy.SOURCE_CHOICES",
+    },
 }
