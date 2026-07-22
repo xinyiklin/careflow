@@ -1,0 +1,67 @@
+/* Shared CareFlow semantic tokens for the clinician workspace and public
+   landing. Consumer apps own their dark-theme selectors and local visual
+   extensions; this file owns the common light contract and dark value palette. */
+@theme {
+  /* Surfaces */
+  --color-cf-page-bg: #f6f7f9;
+  --color-cf-surface: #ffffff;
+  --color-cf-surface-muted: #f8fafc;
+  --color-cf-surface-soft: #f1f5f9;
+
+  /* Borders */
+  --color-cf-border: #e6e9ee;
+  --color-cf-border-strong: #cbd5e1;
+
+  /* Text */
+  --color-cf-text: #0f172a;
+  --color-cf-text-muted: #475569;
+  --color-cf-text-subtle: #64748b;
+
+  /* Accent */
+  --color-cf-accent: #0f172a;
+  --color-cf-accent-hover: #1e293b;
+  --color-cf-accent-soft: #e2e8f0;
+
+  /* Semantic status */
+  --color-cf-success-bg: #ecfdf5;
+  --color-cf-success-text: #047857;
+  --color-cf-warning-bg: #fffbeb;
+  --color-cf-warning-text: #b45309;
+  --color-cf-danger-bg: #fef2f2;
+  --color-cf-danger-text: #b91c1c;
+
+  /* Shadows */
+  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-panel-lg: 0 22px 60px -32px rgba(15, 23, 42, 0.28);
+
+  /* Shape scale */
+  --radius-cf-control: 0.75rem;
+  --radius-cf-card: 1rem;
+  --radius-cf-shell: 1.5rem;
+}
+
+/* Consumers apply these through their own theme selectors (`.dark` for the
+   clinician app and `[data-theme]`/media queries for landing). Keeping values
+   here prevents semantically shared dark tokens from drifting. */
+:root {
+  --cf-dark-page-bg: #0f172a;
+  --cf-dark-surface: #182233;
+  --cf-dark-surface-muted: #111c2d;
+  --cf-dark-surface-soft: #334155;
+  --cf-dark-border: #334155;
+  --cf-dark-border-strong: #475569;
+  --cf-dark-text: #cbd5e1;
+  --cf-dark-text-muted: #94a3b8;
+  --cf-dark-text-subtle: #94a3b8;
+  --cf-dark-accent: #e2e8f0;
+  --cf-dark-accent-hover: #f1f5f9;
+  --cf-dark-accent-soft: #334155;
+  --cf-dark-success-bg: #052e16;
+  --cf-dark-success-text: #34d399;
+  --cf-dark-warning-bg: #451a03;
+  --cf-dark-warning-text: #fbbf24;
+  --cf-dark-danger-bg: #450a0a;
+  --cf-dark-danger-text: #f87171;
+  --cf-dark-shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --cf-dark-shadow-panel-lg: 0 14px 32px -24px rgba(0, 0, 0, 0.5);
+}

@@ -14,6 +14,8 @@ careflow/
                         single source of truth shared by both frontends
     ui-icons/           @careflow/ui-icons — shared icon assets, consumed
                         by both frontends
+    ui-tokens/          @careflow/ui-tokens — shared cf-* token contract for
+                        clinician workspace and landing
   apps/
     clinician/          @careflow/clinician — staff/admin/clinical app
     patient/            @careflow/patient — patient portal app
@@ -118,21 +120,28 @@ changes. CI regenerates both files and fails when committed contracts drift.
 patient frontends, keeping a single source of truth for iconography across
 surfaces.
 
+### `packages/ui-tokens`
+
+`@careflow/ui-tokens` owns the shared light-theme `cf-*` semantic tokens and
+the common dark palette used by the clinician workspace and landing. Each
+consumer owns its theme selector and local extensions: clinician adds sidebar
+tokens, while landing adds its marketing shell and ambient background values.
+The patient portal deliberately keeps its separate palette and does not consume
+this package.
+
 ### Why no other shared packages yet
 
-`packages/api-client/` (lift the duplicated `client.ts`) and
-`packages/ui-tokens/` (a unified token layer) are obvious candidates but
-**deliberately deferred**. Today both apps carry verbatim copies of `client.ts`
+`packages/api-client/` (lift the duplicated `client.ts`) is deliberately
+deferred. Today both apps carry verbatim copies of `client.ts`
 (~400 LOC each). The token systems are not yet shareable: the clinician app uses
 `--color-cf-*` tokens while the patient portal runs its own unprefixed palette,
-so there is nothing verbatim to lift until they converge. The cost of extracting
-is real (workspace config, build orchestration, refactor in both apps); the
-benefit only materializes once a third surface needs them or the copies
-converge/drift meaningfully. Premature extraction usually guesses the wrong API.
+so the patient palette remains local. The clinician and landing now share their
+verbatim `cf-*` light-theme contract through `packages/ui-tokens/`; the cost of
+that narrow extraction is justified because the landing is a third surface that
+already consumed a copy.
 
 When to extract:
 
-- A third app appears (mobile wrap, admin-only surface, etc.).
 - The clinician and patient versions of `client.ts` have meaningfully diverged
   (different refresh logic, different base URL resolution) — at that point
   the shared interface starts to fork.

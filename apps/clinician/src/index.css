@@ -1,34 +1,7 @@
 @import "tailwindcss";
+@import "@careflow/ui-tokens/careflow.css";
 
 @theme {
-  /* Surfaces */
-  --color-cf-page-bg: #f6f7f9;
-  --color-cf-surface: #ffffff;
-  --color-cf-surface-muted: #f8fafc;
-  --color-cf-surface-soft: #f1f5f9;
-
-  /* Borders */
-  --color-cf-border: #e6e9ee;
-  --color-cf-border-strong: #cbd5e1;
-
-  /* Text */
-  --color-cf-text: #0f172a;
-  --color-cf-text-muted: #475569;
-  --color-cf-text-subtle: #64748b;
-
-  /* Accent (primary action color) */
-  --color-cf-accent: #0f172a;
-  --color-cf-accent-hover: #1e293b;
-  --color-cf-accent-soft: #e2e8f0;
-
-  /* Semantic status */
-  --color-cf-success-bg: #ecfdf5;
-  --color-cf-success-text: #047857;
-  --color-cf-warning-bg: #fffbeb;
-  --color-cf-warning-text: #b45309;
-  --color-cf-danger-bg: #fef2f2;
-  --color-cf-danger-text: #b91c1c;
-
   /* Sidebar */
   --color-cf-sidebar-bg: #1d2735;
   --color-cf-sidebar-surface: rgba(255, 255, 255, 0.06);
@@ -39,39 +12,28 @@
   --color-cf-sidebar-accent: #b8cfdf;
   --color-cf-sidebar-active-bg: rgba(255, 255, 255, 0.12);
   --color-cf-sidebar-active-border: rgba(191, 210, 224, 0.18);
-
-  /* Shadows */
-  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-panel-lg: 0 22px 60px -32px rgba(15, 23, 42, 0.28);
-
-  /* Shape scale:
-     controls 0.75rem, cards 1rem, shells/modals 1.5rem.
-     Full pills are reserved for badges, chips, toggles, dots, and avatars. */
-  --radius-cf-control: 0.75rem;
-  --radius-cf-card: 1rem;
-  --radius-cf-shell: 1.5rem;
 }
 
 /* ── Dark mode token overrides ───────────────────────────────────── */
 .dark {
-  --color-cf-page-bg: #0f172a;
-  --color-cf-surface: #182233;
-  --color-cf-surface-muted: #111c2d;
-  --color-cf-surface-soft: #334155;
-  --color-cf-border: #334155;
-  --color-cf-border-strong: #475569;
-  --color-cf-text: #cbd5e1;
-  --color-cf-text-muted: #94a3b8;
-  --color-cf-text-subtle: #64748b;
-  --color-cf-accent: #e2e8f0;
-  --color-cf-accent-hover: #f1f5f9;
-  --color-cf-accent-soft: #334155;
-  --color-cf-success-bg: #052e16;
-  --color-cf-success-text: #34d399;
-  --color-cf-warning-bg: #451a03;
-  --color-cf-warning-text: #fbbf24;
-  --color-cf-danger-bg: #450a0a;
-  --color-cf-danger-text: #f87171;
+  --color-cf-page-bg: var(--cf-dark-page-bg);
+  --color-cf-surface: var(--cf-dark-surface);
+  --color-cf-surface-muted: var(--cf-dark-surface-muted);
+  --color-cf-surface-soft: var(--cf-dark-surface-soft);
+  --color-cf-border: var(--cf-dark-border);
+  --color-cf-border-strong: var(--cf-dark-border-strong);
+  --color-cf-text: var(--cf-dark-text);
+  --color-cf-text-muted: var(--cf-dark-text-muted);
+  --color-cf-text-subtle: var(--cf-dark-text-subtle);
+  --color-cf-accent: var(--cf-dark-accent);
+  --color-cf-accent-hover: var(--cf-dark-accent-hover);
+  --color-cf-accent-soft: var(--cf-dark-accent-soft);
+  --color-cf-success-bg: var(--cf-dark-success-bg);
+  --color-cf-success-text: var(--cf-dark-success-text);
+  --color-cf-warning-bg: var(--cf-dark-warning-bg);
+  --color-cf-warning-text: var(--cf-dark-warning-text);
+  --color-cf-danger-bg: var(--cf-dark-danger-bg);
+  --color-cf-danger-text: var(--cf-dark-danger-text);
   --color-cf-sidebar-bg: #111827;
   --color-cf-sidebar-surface: rgba(255, 255, 255, 0.06);
   --color-cf-sidebar-surface-strong: rgba(255, 255, 255, 0.1);
@@ -81,8 +43,8 @@
   --color-cf-sidebar-accent: #b7cee0;
   --color-cf-sidebar-active-bg: rgba(15, 23, 42, 0.28);
   --color-cf-sidebar-active-border: rgba(148, 163, 184, 0.16);
-  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-panel-lg: 0 14px 32px -24px rgba(0, 0, 0, 0.5);
+  --shadow-panel: var(--cf-dark-shadow-panel);
+  --shadow-panel-lg: var(--cf-dark-shadow-panel-lg);
 }
 
 @layer base {

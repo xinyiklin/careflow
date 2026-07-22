@@ -6,7 +6,7 @@ export function Stack() {
   return (
     <section
       id="stack"
-      className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 md:py-24"
+      className="cf-page-shell scroll-mt-20 py-16 md:py-24"
     >
       <div className="grid gap-10 lg:grid-cols-12 lg:gap-12">
         <Reveal className="lg:col-span-4">

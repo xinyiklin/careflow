@@ -6,6 +6,25 @@
 export type ThemeChoice = "light" | "dark" | "system";
 
 const STORAGE_KEY = "careflow_landing_theme";
+const THEME_COLORS = { light: "#f6f7f9", dark: "#0f172a" } as const;
+
+function syncBrowserThemeColor(choice: ThemeChoice): void {
+  const forced = document.querySelector<HTMLMetaElement>(
+    "meta[data-theme-color-forced]",
+  );
+  const system = document.querySelectorAll<HTMLMetaElement>(
+    "meta[data-theme-color-media]",
+  );
+  const useSystem = choice === "system";
+
+  system.forEach((meta) => {
+    meta.media = useSystem ? (meta.dataset.themeColorMedia ?? "") : "not all";
+  });
+  if (!forced) return;
+
+  forced.media = useSystem ? "not all" : "all";
+  if (choice !== "system") forced.content = THEME_COLORS[choice];
+}
 
 export function getStoredTheme(): ThemeChoice {
   try {
@@ -24,6 +43,7 @@ export function applyTheme(choice: ThemeChoice): void {
   } else {
     root.setAttribute("data-theme", choice);
   }
+  syncBrowserThemeColor(choice);
   try {
     if (choice === "system") {
       localStorage.removeItem(STORAGE_KEY);
