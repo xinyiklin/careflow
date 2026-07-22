@@ -6,13 +6,17 @@ AI tooling alongside [PRODUCT.md](PRODUCT.md). Authoritative source for
 **rules**: [docs/engineering/ui-principles.md](docs/engineering/ui-principles.md).
 When this file and `ui-principles.md` conflict, `ui-principles.md` wins.
 
-Token definitions live in [apps/clinician/src/index.css](apps/clinician/src/index.css)
-under `@theme`. This doc summarizes; the CSS is canonical.
+Shared `cf-*` semantic token values and the shared dark palette live in
+[packages/ui-tokens/src/careflow.css](packages/ui-tokens/src/careflow.css).
+Consumer stylesheets own their selectors and local extensions: clinician adds
+sidebar tokens in `apps/clinician/src/index.css`, while landing adds its
+marketing shell values in `apps/landing/src/index.css`. This doc summarizes;
+the CSS is canonical.
 
 ## Color
 
 Tailwind v4 `@theme` tokens. Product chrome should reference these tokens.
-Hard-coded hex values for ordinary surfaces outside `index.css` are a bug.
+Hard-coded hex values for ordinary surfaces outside token-owning CSS are a bug.
 Named data/config colors are the exception, not a shortcut around the system.
 
 ### Surfaces (light)
@@ -73,7 +77,8 @@ Do not substitute regular surface tokens inside the sidebar.
 Same token names; values override under `.dark`. Component code never
 branches on theme — it references the token. Token values for dark mode
 shift surface to `#0f172a → #182233`, text to slate-300, accent to slate-200
-(inversion of light). See `index.css` lines 56–86.
+(inversion of light). The common dark values live in
+`packages/ui-tokens/src/careflow.css`; clinician applies them under `.dark`.
 
 ### Heatmap scale
 
@@ -144,7 +149,7 @@ surface, not a global setting.
 
 ## Radius
 
-Three-step token scale (see `index.css` lines 50–52). Controls smaller than
+Three-step token scale (see `packages/ui-tokens/src/careflow.css`). Controls smaller than
 cards smaller than shells.
 
 | Token | Value | Use |

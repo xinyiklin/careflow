@@ -5,7 +5,7 @@ import { GITHUB_URL, PORTALS } from "../content";
 export function SiteFooter() {
   return (
     <footer className="mt-8 border-t border-cf-border">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:px-6 md:flex-row md:items-start md:justify-between">
+      <div className="cf-page-shell flex flex-col gap-8 py-12 md:flex-row md:items-start md:justify-between">
         <div className="max-w-xs">
           <div className="flex items-center gap-2.5">
             <span className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-cf-control)] bg-cf-accent text-cf-surface">
@@ -52,7 +52,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-cf-border">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        <div className="cf-page-shell py-6">
           <p className="text-xs text-cf-text-subtle">
             &copy; 2026 Xinyi Lin. Built as a portfolio project.
           </p>

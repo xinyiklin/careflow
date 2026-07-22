@@ -3,21 +3,6 @@
   <head>
     <meta charset="UTF-8" />
 
-    <script>
-      // Apply the stored theme before first paint so an explicit light/dark
-      // choice doesn't flash the OS theme. "light"/"dark" set the attribute;
-      // "system" (or unset) leaves it off so CSS falls back to
-      // prefers-color-scheme. Mirrors the ThemeToggle in src/app/theme.ts.
-      (function () {
-        try {
-          var t = localStorage.getItem("careflow_landing_theme");
-          if (t === "light" || t === "dark") {
-            document.documentElement.setAttribute("data-theme", t);
-          }
-        } catch (e) {}
-      })();
-    </script>
-
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,33 +13,84 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>CareFlow: clinic workflow demo</title>
+    <title>CareFlow · Clinic workflow demo</title>
 
     <meta
       name="description"
       content="CareFlow is a full-stack EHR-style clinic workflow demo: a clinician workspace and a patient portal over a Django API. Portfolio project by Xinyi Lin."
     />
 
-    <meta property="og:title" content="CareFlow: clinic workflow demo" />
+    <meta property="og:title" content="CareFlow · Clinic workflow demo" />
     <meta
       property="og:description"
       content="A clinician workspace and a patient portal over a facility-scoped Django API. Synthetic data, built as a portfolio project."
     />
     <meta property="og:type" content="website" />
+    <meta
+      property="og:image"
+      content="https://careflow.xinyiklin.com/careflow-thumbnail.jpg"
+    />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="675" />
+    <meta
+      property="og:image:alt"
+      content="CareFlow clinician scheduling workspace preview"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:image"
+      content="https://careflow.xinyiklin.com/careflow-thumbnail.jpg"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="CareFlow clinician scheduling workspace preview"
+    />
 
-    <!-- Match the mobile browser chrome to the page theme. Media-scoped so a
-         system-theme visitor (the default) gets a matching toolbar in both
-         modes instead of a fixed dark bar over a light page. -->
+    <!-- System mode follows the OS. An explicit choice disables these and
+         enables the forced tag below, so supported mobile browser chrome tracks
+         the page rather than the OS. -->
     <meta
       name="theme-color"
       content="#f6f7f9"
       media="(prefers-color-scheme: light)"
+      data-theme-color-media="(prefers-color-scheme: light)"
     />
     <meta
       name="theme-color"
       content="#0f172a"
       media="(prefers-color-scheme: dark)"
+      data-theme-color-media="(prefers-color-scheme: dark)"
     />
+    <meta
+      name="theme-color"
+      content="#f6f7f9"
+      media="not all"
+      data-theme-color-forced
+    />
+    <script>
+      // Apply the stored theme before first paint so an explicit light/dark
+      // choice doesn't flash the OS theme. "light"/"dark" set the attribute;
+      // "system" (or unset) leaves it off so CSS falls back to
+      // prefers-color-scheme. Mirrors the ThemeToggle in src/app/theme.ts.
+      (function () {
+        try {
+          var t = localStorage.getItem("careflow_landing_theme");
+          if (t !== "light" && t !== "dark") return;
+
+          document.documentElement.setAttribute("data-theme", t);
+          var forced = document.querySelector("meta[data-theme-color-forced]");
+          var system = document.querySelectorAll("meta[data-theme-color-media]");
+          if (forced) {
+            forced.setAttribute("content", t === "dark" ? "#0f172a" : "#f6f7f9");
+            forced.setAttribute("media", "all");
+          }
+          for (var i = 0; i < system.length; i += 1) {
+            system[i].setAttribute("media", "not all");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
 
   <body>

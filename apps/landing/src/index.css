@@ -1,80 +1,68 @@
 @import "tailwindcss";
+@import "@careflow/ui-tokens/careflow.css";
 
-/* ---------------------------------------------------------------------------
-   CareFlow brand tokens (light). Names mirror the canonical set in
-   apps/clinician/src/index.css so the landing page reads as the same product.
-   Tailwind v4 emits each --color-* as a utility (bg-cf-surface, text-cf-text).
---------------------------------------------------------------------------- */
 @theme {
-  --color-cf-page-bg: #f6f7f9;
-  --color-cf-surface: #ffffff;
-  --color-cf-surface-muted: #f8fafc;
-  --color-cf-surface-soft: #f1f5f9;
+  /* Landing-only shell, with 24px gutters yielding 1180px content. */
+  --container-cf-page: 76.75rem;
+}
 
-  --color-cf-border: #e6e9ee;
-  --color-cf-border-strong: #cbd5e1;
-
-  --color-cf-text: #0f172a;
-  --color-cf-text-muted: #475569;
-  --color-cf-text-subtle: #64748b;
-
-  --color-cf-accent: #0f172a;
-  --color-cf-accent-hover: #1e293b;
-  --color-cf-accent-soft: #e2e8f0;
-
-  --color-cf-success-bg: #ecfdf5;
-  --color-cf-success-text: #047857;
-
-  --shadow-panel: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-panel-lg: 0 22px 60px -32px rgba(15, 23, 42, 0.28);
-
-  --radius-cf-control: 0.75rem;
-  --radius-cf-card: 1rem;
-  --radius-cf-shell: 1.5rem;
+:root {
+  --cf-landing-ambient-top: rgba(219, 234, 254, 0.5);
+  --cf-landing-ambient-bottom: rgba(226, 232, 240, 0.7);
+  --cf-landing-page-start: #f8fafc;
+  --cf-landing-page-end: #eef2f7;
 }
 
 /* ── Dark token overrides ────────────────────────────────────────────────
    Applied when the OS prefers dark (unless the page is forced to light), and
-   whenever the theme toggle forces dark. Values match the clinician `.dark`
-   block so the two surfaces stay in lockstep. */
+   whenever the theme toggle forces dark. Each selector maps semantic tokens to
+   the shared dark palette so the two surfaces stay in lockstep. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-cf-page-bg: #0f172a;
-    --color-cf-surface: #182233;
-    --color-cf-surface-muted: #111c2d;
-    --color-cf-surface-soft: #334155;
-    --color-cf-border: #334155;
-    --color-cf-border-strong: #475569;
-    --color-cf-text: #cbd5e1;
-    --color-cf-text-muted: #94a3b8;
-    --color-cf-text-subtle: #64748b;
-    --color-cf-accent: #e2e8f0;
-    --color-cf-accent-hover: #f1f5f9;
-    --color-cf-accent-soft: #334155;
-    --color-cf-success-bg: #052e16;
-    --color-cf-success-text: #34d399;
-    --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-panel-lg: 0 14px 32px -24px rgba(0, 0, 0, 0.5);
+    --color-cf-page-bg: var(--cf-dark-page-bg);
+    --color-cf-surface: var(--cf-dark-surface);
+    --color-cf-surface-muted: var(--cf-dark-surface-muted);
+    --color-cf-surface-soft: var(--cf-dark-surface-soft);
+    --color-cf-border: var(--cf-dark-border);
+    --color-cf-border-strong: var(--cf-dark-border-strong);
+    --color-cf-text: var(--cf-dark-text);
+    --color-cf-text-muted: var(--cf-dark-text-muted);
+    --color-cf-text-subtle: var(--cf-dark-text-subtle);
+    --color-cf-accent: var(--cf-dark-accent);
+    --color-cf-accent-hover: var(--cf-dark-accent-hover);
+    --color-cf-accent-soft: var(--cf-dark-accent-soft);
+    --color-cf-success-bg: var(--cf-dark-success-bg);
+    --color-cf-success-text: var(--cf-dark-success-text);
+    --color-cf-warning-bg: var(--cf-dark-warning-bg);
+    --color-cf-warning-text: var(--cf-dark-warning-text);
+    --color-cf-danger-bg: var(--cf-dark-danger-bg);
+    --color-cf-danger-text: var(--cf-dark-danger-text);
+    --shadow-panel: var(--cf-dark-shadow-panel);
+    --shadow-panel-lg: var(--cf-dark-shadow-panel-lg);
   }
 }
 
 :root[data-theme="dark"] {
-  --color-cf-page-bg: #0f172a;
-  --color-cf-surface: #182233;
-  --color-cf-surface-muted: #111c2d;
-  --color-cf-surface-soft: #334155;
-  --color-cf-border: #334155;
-  --color-cf-border-strong: #475569;
-  --color-cf-text: #cbd5e1;
-  --color-cf-text-muted: #94a3b8;
-  --color-cf-text-subtle: #64748b;
-  --color-cf-accent: #e2e8f0;
-  --color-cf-accent-hover: #f1f5f9;
-  --color-cf-accent-soft: #334155;
-  --color-cf-success-bg: #052e16;
-  --color-cf-success-text: #34d399;
-  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-panel-lg: 0 14px 32px -24px rgba(0, 0, 0, 0.5);
+  --color-cf-page-bg: var(--cf-dark-page-bg);
+  --color-cf-surface: var(--cf-dark-surface);
+  --color-cf-surface-muted: var(--cf-dark-surface-muted);
+  --color-cf-surface-soft: var(--cf-dark-surface-soft);
+  --color-cf-border: var(--cf-dark-border);
+  --color-cf-border-strong: var(--cf-dark-border-strong);
+  --color-cf-text: var(--cf-dark-text);
+  --color-cf-text-muted: var(--cf-dark-text-muted);
+  --color-cf-text-subtle: var(--cf-dark-text-subtle);
+  --color-cf-accent: var(--cf-dark-accent);
+  --color-cf-accent-hover: var(--cf-dark-accent-hover);
+  --color-cf-accent-soft: var(--cf-dark-accent-soft);
+  --color-cf-success-bg: var(--cf-dark-success-bg);
+  --color-cf-success-text: var(--cf-dark-success-text);
+  --color-cf-warning-bg: var(--cf-dark-warning-bg);
+  --color-cf-warning-text: var(--cf-dark-warning-text);
+  --color-cf-danger-bg: var(--cf-dark-danger-bg);
+  --color-cf-danger-text: var(--cf-dark-danger-text);
+  --shadow-panel: var(--cf-dark-shadow-panel);
+  --shadow-panel-lg: var(--cf-dark-shadow-panel-lg);
 }
 
 @layer base {
@@ -91,15 +79,19 @@
     background:
       radial-gradient(
         1100px 560px at 88% -12%,
-        rgba(219, 234, 254, 0.5),
+        var(--cf-landing-ambient-top),
         transparent 60%
       ),
       radial-gradient(
         820px 480px at -8% 106%,
-        rgba(226, 232, 240, 0.7),
+        var(--cf-landing-ambient-bottom),
         transparent 62%
       ),
-      linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+      linear-gradient(
+        180deg,
+        var(--cf-landing-page-start) 0%,
+        var(--cf-landing-page-end) 100%
+      );
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
@@ -119,37 +111,36 @@
   }
 }
 
-/* Dark ambient background, gated the same way as the token overrides. */
+/* Dark landing extensions, gated with the semantic-token overrides. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) body {
-    background:
-      radial-gradient(
-        1100px 560px at 88% -12%,
-        rgba(30, 64, 175, 0.2),
-        transparent 60%
-      ),
-      radial-gradient(
-        820px 480px at -8% 106%,
-        rgba(15, 23, 42, 0.85),
-        transparent 62%
-      ),
-      linear-gradient(180deg, #0f172a 0%, #111827 100%);
+  :root:not([data-theme="light"]) {
+    --cf-landing-ambient-top: rgba(30, 64, 175, 0.2);
+    --cf-landing-ambient-bottom: rgba(15, 23, 42, 0.85);
+    --cf-landing-page-start: #0f172a;
+    --cf-landing-page-end: #111827;
   }
 }
 
-:root[data-theme="dark"] body {
-  background:
-    radial-gradient(
-      1100px 560px at 88% -12%,
-      rgba(30, 64, 175, 0.2),
-      transparent 60%
-    ),
-    radial-gradient(
-      820px 480px at -8% 106%,
-      rgba(15, 23, 42, 0.85),
-      transparent 62%
-    ),
-    linear-gradient(180deg, #0f172a 0%, #111827 100%);
+:root[data-theme="dark"] {
+  --cf-landing-ambient-top: rgba(30, 64, 175, 0.2);
+  --cf-landing-ambient-bottom: rgba(15, 23, 42, 0.85);
+  --cf-landing-page-start: #0f172a;
+  --cf-landing-page-end: #111827;
+}
+
+@layer utilities {
+  .cf-page-shell {
+    width: 100%;
+    max-width: var(--container-cf-page);
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+
+  @media (width >= 40rem) {
+    .cf-page-shell {
+      padding-inline: 1.5rem;
+    }
+  }
 }
 
 @layer components {

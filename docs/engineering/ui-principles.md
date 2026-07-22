@@ -7,7 +7,8 @@ documents, admin, and modal workflows.
 ## Source Of Truth
 
 - Reuse shared primitives from `apps/clinician/src/shared/components/ui/`.
-- Prefer CareFlow tokens and classes from `apps/clinician/src/index.css`.
+- Prefer semantic tokens from `packages/ui-tokens/src/careflow.css`; clinician
+  classes and local extensions remain in `apps/clinician/src/index.css`.
 - Keep page container, shell, modal, and header treatments consistent across
   dashboard, schedule, admin, documents, and patient surfaces.
 - Use Google Chrome for visual inspection/QA unless the user explicitly asks for

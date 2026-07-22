@@ -2,9 +2,7 @@ import type { MouseEvent } from "react";
 import { CareFlowIcon } from "@careflow/ui-icons";
 import { ButtonLink } from "./Button";
 import { ThemeToggle } from "./ThemeToggle";
-import { NAV_LINKS, PORTALS } from "../content";
-
-const patient = PORTALS.find((portal) => portal.key === "patient")!;
+import { GITHUB_URL, NAV_LINKS } from "../content";
 
 // Smooth-scroll to an in-page section without pushing a #hash onto the URL.
 // The href stays a real anchor (no-JS fallback, screen-reader link semantics);
@@ -31,7 +29,7 @@ function handleAnchorClick(event: MouseEvent<HTMLAnchorElement>, href: string) {
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-cf-border bg-cf-page-bg/80 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="cf-page-shell flex h-16 items-center justify-between gap-4">
         <a
           href="#top"
           onClick={(event) => handleAnchorClick(event, "#top")}
@@ -60,19 +58,23 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          {/* Visibility lives on the wrapper: ButtonLink's own `inline-flex`
+          {/* The clinician/patient portals are reachable from the Portals
+              section and Hero, so the header links to the source instead.
+              Visibility lives on the wrapper: ButtonLink's own `inline-flex`
               outranks `hidden` in the emitted utility order, so the link can't
               hide itself. */}
-          <span className="hidden sm:block">
-            <ButtonLink
-              href={patient.href}
-              variant="primary"
-              size="sm"
-              external
-            >
-              Launch demo
-            </ButtonLink>
-          </span>
+          {GITHUB_URL ? (
+            <span className="hidden sm:block">
+              <ButtonLink
+                href={GITHUB_URL}
+                variant="secondary"
+                size="sm"
+                external
+              >
+                GitHub
+              </ButtonLink>
+            </span>
+          ) : null}
         </div>
       </div>
     </header>

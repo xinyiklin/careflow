@@ -15,7 +15,8 @@ const CLINICIAN_URL =
 const PATIENT_URL =
   import.meta.env.VITE_PATIENT_URL ?? "https://patient.xinyiklin.com";
 
-export const GITHUB_URL = import.meta.env.VITE_GITHUB_URL ?? "";
+export const GITHUB_URL =
+  import.meta.env.VITE_GITHUB_URL ?? "https://github.com/xinyiklin/careflow";
 
 function hostOf(url: string): string {
   try {

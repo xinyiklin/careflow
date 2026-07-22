@@ -8,7 +8,7 @@ const patient = PORTALS.find((p) => p.key === "patient")!;
 
 export function Hero() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-16 pt-16 sm:px-6 md:pb-24 md:pt-24">
+    <section className="cf-page-shell pb-16 pt-16 md:pb-24 md:pt-24">
       <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-12">
         <Reveal className="lg:col-span-5">
           <span className="inline-flex items-center gap-2 rounded-full border border-cf-border bg-cf-surface/60 px-3 py-1 text-xs font-medium text-cf-text-muted backdrop-blur">

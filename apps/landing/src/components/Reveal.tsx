@@ -9,17 +9,14 @@ type RevealProps = {
 
 // A one-shot entrance: content fades and lifts into place the first time it
 // enters the viewport (or immediately, if already in view on load). This is the
-// one marketing-register affordance the portals deliberately avoid; it stays
-// inside a single slow band, never loops, and collapses entirely under
-// prefers-reduced-motion. Not a continuous scroll effect — a boolean toggle, so
-// plain state is correct here.
+// one marketing-register affordance the portals deliberately avoid; it never
+// loops and collapses entirely under prefers-reduced-motion. Not a continuous
+// scroll effect — a boolean toggle, so plain state is correct here.
 //
 // Robustness: content starts at opacity 0, so it must be guaranteed to reveal.
 // Anything already in view on mount reveals immediately without waiting on
-// IntersectionObserver (covers above-the-fold content and any environment where
-// the observer never delivers a callback); the rest reveals via the observer,
-// with a scroll listener as a belt-and-suspenders fallback. Content is never
-// left permanently hidden.
+// IntersectionObserver; the rest reveals through the observer. Browsers that
+// genuinely lack that API use a small scroll fallback.
 export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(false);
@@ -43,18 +40,29 @@ export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
       return;
     }
 
+    // TypeScript's DOM lib assumes this API is always present, but retain a
+    // small scroll fallback for genuinely older browser environments.
+    const Observer = window.IntersectionObserver as
+      | typeof IntersectionObserver
+      | undefined;
+    if (!Observer) {
+      const onScroll = () => {
+        if (!inView()) return;
+        setShown(true);
+        window.removeEventListener("scroll", onScroll);
+      };
+      window.addEventListener("scroll", onScroll, { passive: true });
+      return () => window.removeEventListener("scroll", onScroll);
+    }
+
     let done = false;
     const reveal = () => {
       if (done) return;
       done = true;
       setShown(true);
       observer.disconnect();
-      window.removeEventListener("scroll", onScroll);
     };
-    const onScroll = () => {
-      if (inView()) reveal();
-    };
-    const observer = new IntersectionObserver(
+    const observer = new Observer(
       ([entry]) => {
         if (entry.isIntersecting) reveal();
       },
@@ -62,11 +70,7 @@ export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
     );
 
     observer.observe(el);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("scroll", onScroll);
-    };
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -74,7 +78,7 @@ export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
       ref={ref}
       style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
       className={[
-        "transition-[opacity,transform] duration-700 ease-out motion-reduce:transition-none",
+        "transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
         className,
       ].join(" ")}

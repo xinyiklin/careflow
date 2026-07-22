@@ -19,7 +19,7 @@ export function Highlights() {
   return (
     <section
       id="highlights"
-      className="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6 md:py-24"
+      className="cf-page-shell scroll-mt-20 py-16 md:py-24"
     >
       <Reveal className="max-w-2xl">
         <h2 className="text-3xl font-semibold tracking-tight text-cf-text sm:text-4xl">

@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@careflow/ui-icons": "*",
+    "@careflow/ui-tokens": "*",
     "@tailwindcss/vite": "^4.2.2",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",

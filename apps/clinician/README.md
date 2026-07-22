@@ -145,8 +145,9 @@ Current auth endpoints include:
 - Prefer shared primitives from `src/shared/components/ui/`.
 - Use root `PRODUCT.md` for product register and `DESIGN.md` for token/component
   vocabulary before larger UI changes.
-- Prefer existing CareFlow tokens/classes from `src/index.css` over one-off
-  colors.
+- Prefer shared CareFlow semantic tokens from
+  `../../packages/ui-tokens/src/careflow.css`; use `src/index.css` for
+  clinician-only classes and extensions rather than one-off colors.
 - Keep clinical screens compact and calm; avoid extra subtitles, wrappers, and
   hidden overflow unless the component intentionally owns scrolling.
 - For major UI work, inspect the changed flow in Chrome before finalizing.
