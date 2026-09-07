@@ -2,6 +2,7 @@ import {
   extractStoredDate,
   extractStoredTime,
 } from "../../../shared/utils/dateTime";
+import { facilityWallText } from "./appointmentCandidate";
 import { getPatientChartName } from "../../patients/utils/patientDisplay";
 
 import type { AppointmentLike } from "../../../shared/types/domain";
@@ -21,9 +22,16 @@ export default function formatAppointments(
   onEditAppointment: (
     appointment: Omit<FormattedAppointment, "onEdit">
   ) => void,
-  _timeZone?: string | null
+  timeZone?: string | null
 ): FormattedAppointment[] {
+  const displayTime = (value?: string | null) => {
+    if (!value || !timeZone || !/(?:Z|[+-]\d{2}:?\d{2})$/i.test(value))
+      return value;
+    return facilityWallText(value, timeZone);
+  };
   return appointments.map((appointment) => {
+    const start = displayTime(appointment.appointment_time);
+    const end = displayTime(appointment.end_time);
     const patientName = getPatientChartName(
       appointment,
       appointment.patient_name || "Appointment"
@@ -58,17 +66,15 @@ export default function formatAppointments(
       facility: appointment.facility,
       is_billable: appointment.is_billable,
       created_by_name: appointment.created_by_name,
-      appointment_time: appointment.appointment_time,
+      appointment_time: start,
+      appointment_time_instant: appointment.appointment_time_instant,
+      end_time_instant: appointment.end_time_instant,
       duration_minutes: appointment.duration_minutes || 0,
-      end_time: appointment.end_time,
-      date: extractStoredDate(appointment.appointment_time),
-      time: extractStoredTime(appointment.appointment_time),
-      end_date: appointment.end_time
-        ? extractStoredDate(appointment.end_time)
-        : null,
-      end_time_str: appointment.end_time
-        ? extractStoredTime(appointment.end_time)
-        : null,
+      end_time: end,
+      date: extractStoredDate(start),
+      time: extractStoredTime(start),
+      end_date: end ? extractStoredDate(end) : null,
+      end_time_str: end ? extractStoredTime(end) : null,
     };
 
     return {
