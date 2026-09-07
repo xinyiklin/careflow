@@ -1,9 +1,20 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import {
+  useMutation,
+  useQueryClient,
+  type QueryKey,
+} from "@tanstack/react-query";
 import {
   createAppointment,
   updateAppointment,
   deleteAppointment,
 } from "../api/appointments";
+import { useAppointmentSaveConfirmation } from "../AppointmentSaveConfirmationProvider";
+import {
+  AppointmentSaveCancelled,
+  runAppointmentSaveAttempt,
+} from "../utils/appointmentSaveAttempt";
+import { optimisticAppointment } from "../utils/optimisticAppointment";
 import useFacility from "../../facilities/hooks/useFacility";
 import { getErrorMessage } from "../../../shared/utils/errors";
 
@@ -44,7 +55,53 @@ export default function useAppointmentMutations({
   setError,
 }: UseAppointmentMutationsOptions) {
   const queryClient = useQueryClient();
-  const { selectedFacilityId } = useFacility();
+  const { selectedFacilityId, facility } = useFacility();
+  const { beginAttempt, invalidateConfirmations } =
+    useAppointmentSaveConfirmation();
+  useEffect(() => () => invalidateConfirmations(), [invalidateConfirmations]);
+  type Attempt = ReturnType<typeof beginAttempt> & {
+    facilityId: typeof selectedFacilityId;
+    timeZone: string;
+    id?: EntityId | null;
+    data: ApiPayload;
+    previousQueries?: [QueryKey, AppointmentLike[] | undefined][];
+    restored?: boolean;
+  };
+  const attempts = useRef(new WeakMap<AppointmentMutationPayload, Attempt>());
+  const prepareAttempt = (variables: AppointmentMutationPayload) => {
+    const attempt: Attempt = {
+      ...beginAttempt(),
+      facilityId: selectedFacilityId,
+      timeZone: facility?.timezone || "",
+      id: variables.id,
+      data: structuredClone(variables.data),
+    };
+    attempts.current.set(variables, attempt);
+    return attempt;
+  };
+  const restoreMove = (attempt?: Attempt) => {
+    if (!attempt || attempt.restored || !attempt.isCurrent()) return;
+    attempt.previousQueries?.forEach(([queryKey, queryData]) => {
+      queryClient.setQueryData(queryKey, queryData);
+    });
+    attempt.restored = true;
+  };
+  const executeAttempt = (
+    variables: AppointmentMutationPayload,
+    isMove = false
+  ) => {
+    const attempt = attempts.current.get(variables);
+    if (!attempt) throw new AppointmentSaveCancelled();
+    return runAppointmentSaveAttempt({
+      ...attempt,
+      sameDayAlreadyAllowed: attempt.data.allow_same_day_double_book === true,
+      send: (data) =>
+        attempt.id
+          ? updateAppointment(attempt.facilityId, attempt.id, data)
+          : createAppointment(attempt.facilityId, data),
+      beforeConfirmation: isMove ? () => restoreMove(attempt) : undefined,
+    });
+  };
 
   const invalidateAppointmentViews = async () => {
     await Promise.all([
@@ -58,24 +115,30 @@ export default function useAppointmentMutations({
       ?.duplicate_day_appointment ?? null;
 
   const saveMutation = useMutation({
-    mutationFn: ({ id, data }: AppointmentMutationPayload) =>
-      id
-        ? updateAppointment(selectedFacilityId, id, data)
-        : createAppointment(selectedFacilityId, data),
-    onSuccess: async () => {
+    retry: false,
+    mutationFn: (variables: AppointmentMutationPayload) =>
+      executeAttempt(variables),
+    onMutate: (variables: AppointmentMutationPayload) =>
+      prepareAttempt(variables),
+    onSuccess: async (_result, _variables, attempt) => {
       await invalidateAppointmentViews();
+      if (!attempt?.isCurrent()) return;
       onCloseModal();
       setError("");
     },
-    onError: (err) => {
-      if (!getDuplicateDayAppointmentError(err)) {
+    onError: (err, _variables, attempt) => {
+      if (!(err instanceof AppointmentSaveCancelled) && attempt?.isCurrent()) {
         setError(getErrorMessage(err, "Failed to save appointment."));
       }
+    },
+    onSettled: async (_result, error) => {
+      if (error) await invalidateAppointmentViews();
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: EntityId) => deleteAppointment(selectedFacilityId, id),
+    onMutate: invalidateConfirmations,
     onSuccess: async () => {
       await invalidateAppointmentViews();
       onCloseModal();
@@ -87,23 +150,24 @@ export default function useAppointmentMutations({
   });
 
   const moveMutation = useMutation({
-    mutationFn: ({ id, data }: AppointmentMutationPayload & { id: EntityId }) =>
-      updateAppointment(selectedFacilityId, id, data),
-    onMutate: async ({
-      id,
-      data,
-    }: AppointmentMutationPayload & { id: EntityId }) => {
+    retry: false,
+    mutationFn: (variables: AppointmentMutationPayload & { id: EntityId }) =>
+      executeAttempt(variables, true),
+    onMutate: async (
+      variables: AppointmentMutationPayload & { id: EntityId }
+    ) => {
+      const attempt = prepareAttempt(variables);
+      const { id, data } = attempt;
       await queryClient.cancelQueries({
-        queryKey: ["appointments", selectedFacilityId],
+        queryKey: ["appointments", attempt.facilityId],
       });
+      if (!attempt.isCurrent()) return attempt;
 
       const previousQueries = queryClient.getQueriesData<AppointmentLike[]>({
-        queryKey: ["appointments", selectedFacilityId],
+        queryKey: ["appointments", attempt.facilityId],
       });
 
-      const nextAppointmentDate = extractAppointmentDate(
-        data?.appointment_time
-      );
+      attempt.previousQueries = previousQueries;
 
       previousQueries.forEach(([queryKey, queryData]) => {
         if (!Array.isArray(queryData)) return;
@@ -119,11 +183,14 @@ export default function useAppointmentMutations({
             return queryData;
           }
 
-          const nextAppointment = {
-            ...existingAppointment,
-            ...data,
-            id,
-          };
+          const nextAppointment = optimisticAppointment(
+            existingAppointment,
+            data,
+            attempt.timeZone
+          );
+          const nextAppointmentDate = extractAppointmentDate(
+            nextAppointment.appointment_time
+          );
 
           const shouldRemainInQuery = isDateWithinRange(
             nextAppointmentDate,
@@ -141,17 +208,15 @@ export default function useAppointmentMutations({
         });
       });
 
-      return { previousQueries };
+      return attempt;
     },
-    onSuccess: async () => {
-      setError("");
+    onSuccess: async (_result, _variables, attempt) => {
+      if (attempt?.isCurrent()) setError("");
     },
     onError: (err, _variables, context) => {
-      context?.previousQueries?.forEach(([queryKey, queryData]) => {
-        queryClient.setQueryData(queryKey, queryData);
-      });
+      restoreMove(context);
 
-      if (!getDuplicateDayAppointmentError(err)) {
+      if (!(err instanceof AppointmentSaveCancelled) && context?.isCurrent()) {
         setError(getErrorMessage(err, "Failed to move appointment."));
       }
     },
