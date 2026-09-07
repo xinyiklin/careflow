@@ -14,6 +14,7 @@ import {
 import type { BookingState } from "../utils/bookingSession";
 import type { ScheduleCandidate } from "../utils/appointmentCandidate";
 import { candidateKey } from "../utils/appointmentCandidate";
+import { BookingTakeover } from "../utils/bookingTakeover";
 import type { EntityId } from "../../../shared/api/types";
 
 const emptyState: BookingState = { response: null, error: "", checking: false };
@@ -40,7 +41,7 @@ export default function useAppointmentBooking({
   const seedRef = useRef(seed);
   const readyRef = useRef(ready);
   const consumedSeedId = useRef<string | null>(null);
-  const takeOverNext = useRef(false);
+  const [takeOverNext] = useState(() => new BookingTakeover());
   const lastActivity = useRef(Date.now());
   const key = candidateKey(candidate);
 
@@ -48,6 +49,7 @@ export default function useAppointmentBooking({
     currentCandidate.current = candidate;
     seedRef.current = seed;
     readyRef.current = ready;
+    takeOverNext.keepOnly(key);
   });
 
   useEffect(() => {
@@ -116,8 +118,7 @@ export default function useAppointmentBooking({
         } else {
           const owner = openBookingSession(session.current, createSession);
           session.current = owner;
-          const takeOver = takeOverNext.current;
-          takeOverNext.current = false;
+          const takeOver = takeOverNext.consume(candidateKey(value));
           const outcome = await owner.update(value, takeOver);
           if (
             outcome === "closed" &&
@@ -154,6 +155,7 @@ export default function useAppointmentBooking({
     }, 45_000);
     return () => {
       disposed = true;
+      takeOverNext.clear();
       requestGeneration += 1;
       clearTimeout(timer);
       clearInterval(heartbeat);
@@ -164,7 +166,7 @@ export default function useAppointmentBooking({
       session.current = null;
       refresh.current = null;
     };
-  }, [isOpen, facilityId, appointmentId]);
+  }, [isOpen, facilityId, appointmentId, takeOverNext]);
 
   const refresh = useRef<(() => void) | null>(null);
   useEffect(() => {
@@ -180,11 +182,11 @@ export default function useAppointmentBooking({
     retry: () => {
       void session.current?.close();
       session.current = null;
-      takeOverNext.current = false;
+      takeOverNext.clear();
       setRetryVersion((value) => value + 1);
     },
     takeOver: () => {
-      takeOverNext.current = true;
+      takeOverNext.request(key);
       if (
         state.response?.status === "revoked" ||
         state.response?.status === "released"
