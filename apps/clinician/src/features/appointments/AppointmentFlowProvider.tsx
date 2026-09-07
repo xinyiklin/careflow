@@ -1,6 +1,7 @@
 import { createContext, useContext } from "react";
 import useFacility from "../facilities/hooks/useFacility";
 import useFacilityConfig from "../facilities/hooks/useFacilityConfig";
+import { AppointmentSaveConfirmationProvider } from "./AppointmentSaveConfirmationProvider";
 import useAppointmentFlow from "./hooks/useAppointmentFlow";
 
 import type { ReactNode } from "react";
@@ -26,7 +27,9 @@ export function AppointmentFlowProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppointmentFlowContext.Provider value={flow}>
-      {children}
+      <AppointmentSaveConfirmationProvider>
+        {children}
+      </AppointmentSaveConfirmationProvider>
     </AppointmentFlowContext.Provider>
   );
 }
