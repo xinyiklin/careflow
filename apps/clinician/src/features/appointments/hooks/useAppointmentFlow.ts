@@ -1,4 +1,6 @@
 import { useState, useCallback } from "react";
+import { durationEnd } from "../utils/appointmentCandidate";
+import type { BookingSeed } from "../api/bookingHolds";
 import {
   formatDateOnlyInTimeZone,
   formatTimeInTimeZone,
@@ -21,6 +23,7 @@ type AppointmentFormData = {
   rendering_provider: EntityId | "";
   rendering_provider_name: string;
   appointment_time: string;
+  end_time?: string;
   room: string;
   reason: string;
   notes: string;
@@ -41,6 +44,8 @@ type OpenAppointmentModalOptions = {
   appointment?: AppointmentLike | null;
   appointmentTime?: string | null;
   resourceId?: EntityId | "";
+  preparedForm?: AppointmentFormData;
+  bookingSeed?: BookingSeed | null;
 };
 
 type UseAppointmentFlowOptions = {
@@ -162,10 +167,59 @@ export default function useAppointmentFlow({
   selectedDate,
 }: UseAppointmentFlowOptions) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [bookingSeed, setBookingSeed] = useState<BookingSeed | null>(null);
   const [editingId, setEditingId] = useState<EntityId | null>(null);
   const [formData, setFormData] = useState<AppointmentFormData>(emptyForm);
   const [selectedPatient, setSelectedPatient] =
     useState<AppointmentLike | null>(null);
+
+  const prepareForm = useCallback(
+    (
+      appointmentTime: string | null = null,
+      resourceId: EntityId | "" = ""
+    ): AppointmentFormData => {
+      const defaultResource = getDefaultResource(resources, resourceId);
+      const defaultRenderingProvider = getDefaultRenderingProvider(
+        staffs,
+        defaultResource,
+        physicians
+      );
+
+      const start =
+        appointmentTime ||
+        getCurrentFacilityAppointmentTime(facility, selectedDate);
+      let end = "";
+      try {
+        end = durationEnd(
+          start,
+          Number(typeOptions[0]?.duration_minutes),
+          facility?.timezone || ""
+        );
+      } catch {
+        // Missing configuration or invalid local time remains field validation.
+      }
+      return {
+        ...emptyForm,
+        facility: facility?.id || "",
+        resource: defaultResource?.id || "",
+        rendering_provider: defaultRenderingProvider?.id || "",
+        room: defaultResource?.default_room || "",
+        appointment_time: start,
+        end_time: end,
+        status: getDefaultStatusId(statusOptions),
+        appointment_type: typeOptions.length > 0 ? typeOptions[0].id || "" : "",
+      };
+    },
+    [
+      resources,
+      staffs,
+      physicians,
+      facility,
+      selectedDate,
+      typeOptions,
+      statusOptions,
+    ]
+  );
 
   const openModal = useCallback(
     ({
@@ -173,7 +227,10 @@ export default function useAppointmentFlow({
       appointment = null,
       appointmentTime = null,
       resourceId = "",
+      preparedForm,
+      bookingSeed: nextBookingSeed = null,
     }: OpenAppointmentModalOptions) => {
+      setBookingSeed(nextBookingSeed);
       setEditingId(mode === "edit" ? appointment?.id || null : null);
 
       if ((mode === "edit" || mode === "duplicate") && appointment) {
@@ -193,7 +250,11 @@ export default function useAppointmentFlow({
           resource: appointment.resource || "",
           rendering_provider: appointment.rendering_provider || "",
           rendering_provider_name: appointment.rendering_provider_name || "",
-          appointment_time: (appointment.appointment_time || "").slice(0, 16),
+          appointment_time:
+            appointment.appointment_time_instant ||
+            appointment.appointment_time ||
+            "",
+          end_time: appointment.end_time_instant || appointment.end_time || "",
           room: appointment.room || "",
           reason: appointment.reason || "",
           notes: appointment.notes || "",
@@ -203,44 +264,18 @@ export default function useAppointmentFlow({
           is_billable: appointment.is_billable ?? true,
         });
       } else {
-        const defaultResource = getDefaultResource(resources, resourceId);
-        const defaultRenderingProvider = getDefaultRenderingProvider(
-          staffs,
-          defaultResource,
-          physicians
-        );
-
         setSelectedPatient(null);
-        setFormData({
-          ...emptyForm,
-          facility: facility?.id || "",
-          resource: defaultResource?.id || "",
-          rendering_provider: defaultRenderingProvider?.id || "",
-          room: defaultResource?.default_room || "",
-          appointment_time:
-            appointmentTime ||
-            getCurrentFacilityAppointmentTime(facility, selectedDate),
-          status: getDefaultStatusId(statusOptions),
-          appointment_type:
-            typeOptions.length > 0 ? typeOptions[0].id || "" : "",
-        });
+        setFormData(preparedForm || prepareForm(appointmentTime, resourceId));
       }
 
       setIsModalOpen(true);
     },
-    [
-      facility,
-      physicians,
-      resources,
-      selectedDate,
-      staffs,
-      statusOptions,
-      typeOptions,
-    ]
+    [prepareForm]
   );
 
   const closeModal = () => {
     setIsModalOpen(false);
+    setBookingSeed(null);
     setEditingId(null);
     setFormData(emptyForm);
     setSelectedPatient(null);
@@ -251,6 +286,16 @@ export default function useAppointmentFlow({
       isOpen: isModalOpen,
       editingId,
       formData,
+      bookingSeed,
+      prepareFromSlot: (
+        date: string,
+        time24: string,
+        resourceId: EntityId | "" = ""
+      ) => prepareForm(`${date}T${time24}`, resourceId),
+      openPrepared: (
+        preparedForm: AppointmentFormData,
+        seed?: BookingSeed | null
+      ) => openModal({ mode: "create", preparedForm, bookingSeed: seed }),
       mode: editingId ? "edit" : "create",
       open: openModal,
       close: closeModal,

@@ -1,3 +1,4 @@
+import type { BookingSeed } from "../appointments/api/bookingHolds";
 import type { Dispatch, RefObject, SetStateAction } from "react";
 
 import type { ApiPayload, EntityId } from "../../shared/api/types";
@@ -219,6 +220,7 @@ export type ScheduleAppointmentFlow = {
     mode: AppointmentMode | string;
     editingId: EntityId | null;
     formData: AppointmentFormData;
+    bookingSeed?: BookingSeed | null;
     close: () => void;
     open: (options: {
       mode: "create" | "edit" | "duplicate";
