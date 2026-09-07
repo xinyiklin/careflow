@@ -1,16 +1,35 @@
-# PRODUCT.md
+# Product
 
-Product context for CareFlow. Loaded by design-aware AI tooling (`impeccable`,
-`frontend-design`, register-aware critique). Operating rules and visual
+<!-- impeccable:product-schema 1 -->
+
+Product context for CareFlow. Operating rules and visual
 anti-patterns live in [docs/engineering/ui-principles.md](docs/engineering/ui-principles.md);
 tokens and component vocabulary live in [DESIGN.md](DESIGN.md).
 
-## Register
+## Platform
 
-**Product.** Authenticated, task-oriented surfaces. Users are in a workflow,
-not browsing. The tool should disappear into the task; familiarity is a
-feature, not a failure. Brand-register expectations (ambitious motion, hero
-typography, drenched palettes) do not apply here.
+web
+
+## Product Purpose
+
+CareFlow is an EHR-style clinic workflow demo. The authenticated portals support
+staff scheduling, patient registration, clinical records, and patient
+self-service. Success means users can complete connected clinic workflows
+while facility boundaries and patient privacy remain explicit.
+
+## Positioning
+
+A portfolio demonstration of connected clinic workflows and facility-scoped
+access, using synthetic data. It is not a certified EHR or a production medical
+service. Product and engineering claims must be supported by the actual demo
+and repository; no regulatory or customer claims are implied.
+
+## Operating Context
+
+Staff use the clinician workspace for frequent scheduling, patient lookup,
+check-in, and charting. Patients use a separate authenticated self-service
+portal. Reviewers can explore the seeded demo. The public landing page explains
+the project; authenticated screens focus on completing work.
 
 ## Users
 
@@ -77,7 +96,7 @@ What CareFlow is **not**:
   one sanctioned exception is the insurance-card carrier branding (see
   `ui-principles.md § Sanctioned Visual Exceptions`).
 
-## Strategic principles
+## Product Principles
 
 1. **Workflow over schema.** Surfaces reflect what the user is trying to do,
    not the shape of the database. The Patient Hub Timeline tab cross-cuts
@@ -112,13 +131,37 @@ What CareFlow is **not**:
 - Mobile-native flows. Tablet-aware where it matters; phone is not a
   primary target.
 
-## Register boundary
+## Capabilities and Constraints
 
-Everything inside the two authenticated portals is **product register** (the
-rules above). The one exception is `apps/landing` — the public marketing front
-door at `careflow.xinyiklin.com` — which is **marketing register**: hero
+- Patient-adjacent records and operations are facility-scoped and permission
+  gated. Organization administration has its own explicit access boundaries.
+- Clinician scheduling permits intentional overlap after confirmation. Time
+  conflicts use appointment intervals, with adjacent endpoints allowed, and
+  compare assigned resources or rendering providers within the facility.
+  Only cancelled appointments release occupied time under this policy.
+- Booking presence is advisory. The final appointment save determines whether
+  an interval can be booked; the same-patient/same-day warning is a separate rule.
+- Patient self-scheduling has its own eligibility and cancellation rules and
+  does not offer a staff overlap override.
+- Current implementation and verification status belong in `CONTINUITY.md`;
+  this product record is not evidence of deployment or a passed runtime check.
+
+## Evidence on Hand
+
+- The clinician and patient apps in `apps/` demonstrate the supported workflows.
+- `backend/appointments/tests*.py` contains scheduling and booking regression
+  coverage; test existence alone is not a claim that a check passed.
+- `apps/landing/public/careflow-thumbnail.jpg` is an existing demo image.
+- `docs/engineering/architecture.md` records app boundaries and deployment
+  shape. Do not invent customer evidence, benchmarks, certifications, or audits.
+
+## Surface Boundaries
+
+The authenticated portals are task-oriented workspaces. Familiarity and
+workflow continuity matter. The public `apps/landing` site at
+`careflow.xinyiklin.com` explains the project: hero
 typography, generous spacing, and product-explaining copy are appropriate there
 precisely because they are wrong inside the product. It reuses the brand tokens
 and stays restrained (no gradient-healthcare slop, no stock clinicians), but it
 is not held to the density and copy-restraint rules that govern the portals.
-Keep the two registers from bleeding into each other.
+Keep these surface-specific expectations separate.
