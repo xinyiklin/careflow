@@ -12,7 +12,6 @@ messaging portal views. The audited clinician twin (``AppointmentViewSet``)
 still logs every clinician-initiated write to the same ``Appointment``.
 """
 
-from django.db import transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -37,6 +36,7 @@ from .portal_scheduling_serializers import (
     PortalSchedulingProviderSerializer,
     PortalSchedulingSlotSerializer,
 )
+from .schedule_conflicts import facility_schedule_lock, find_schedule_conflicts
 
 
 def _bookable_slot_queryset(patient):
@@ -182,9 +182,12 @@ def _facility_status(facility, code):
 class PortalSchedulingBookView(APIView):
     permission_classes = [IsPortalPatient]
 
-    @transaction.atomic
     def post(self, request):
         patient = get_patient_for_user(request.user)
+        with facility_schedule_lock(patient.facility):
+            return self._book(request, patient)
+
+    def _book(self, request, patient):
         payload = PortalBookingRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         slot_id = payload.validated_data["slot_id"]
@@ -221,6 +224,22 @@ class PortalSchedulingBookView(APIView):
                 {"appointment_type": "Type not available at your facility."}
             )
 
+        try:
+            conflicts = find_schedule_conflicts(
+                patient.facility,
+                slot.start_time,
+                slot.end_time,
+                rendering_provider_id=slot.provider_id,
+            )
+        except ValidationError:
+            raise ValidationError(
+                {"detail": "This time is no longer available for online booking."}
+            ) from None
+        if conflicts:
+            raise ValidationError(
+                {"detail": "This time is no longer available for online booking."}
+            )
+
         appointment = Appointment.objects.create(
             patient=patient,
             facility=patient.facility,
@@ -251,9 +270,12 @@ class PortalSchedulingCancelView(APIView):
         responses=PortalAppointmentBookingResponseSerializer,
         summary="Cancel a patient-booked appointment",
     )
-    @transaction.atomic
     def post(self, request, pk):
         patient = get_patient_for_user(request.user)
+        with facility_schedule_lock(patient.facility):
+            return self._cancel(request, patient, pk)
+
+    def _cancel(self, request, patient, pk):
         appointment = (
             Appointment.objects.select_for_update(of=("self",))
             .filter(pk=pk, patient=patient)

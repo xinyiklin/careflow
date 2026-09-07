@@ -259,6 +259,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Appointment'
           description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentScheduleOverlap'
+          description: ''
   /v1/appointments/{id}/:
     get:
       operationId: appointments_retrieve
@@ -318,6 +324,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Appointment'
           description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentScheduleOverlap'
+          description: ''
     patch:
       operationId: appointments_partial_update
       description: |-
@@ -351,6 +363,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Appointment'
+          description: ''
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppointmentScheduleOverlap'
           description: ''
     delete:
       operationId: appointments_destroy
@@ -6869,6 +6887,15 @@ components:
         end_time:
           type: string
           nullable: true
+        appointment_time_instant:
+          type: string
+          format: date-time
+          readOnly: true
+        end_time_instant:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
         duration_minutes:
           type: integer
           readOnly: true
@@ -6920,8 +6947,13 @@ components:
           type: boolean
           writeOnly: true
           default: false
+        allow_schedule_overlap:
+          type: boolean
+          writeOnly: true
+          default: false
       required:
       - appointment_time
+      - appointment_time_instant
       - appointment_type
       - appointment_type_code
       - appointment_type_color
@@ -6930,6 +6962,7 @@ components:
       - created_by
       - created_by_name
       - duration_minutes
+      - end_time_instant
       - id
       - patient
       - patient_chart_number
@@ -6989,6 +7022,21 @@ components:
       - id
       - metadata
       - summary
+    AppointmentScheduleOverlap:
+      type: object
+      properties:
+        code:
+          type: string
+        detail:
+          type: string
+        conflicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingConflict'
+      required:
+      - code
+      - conflicts
+      - detail
     AppointmentStatus:
       type: object
       properties:
@@ -7145,6 +7193,26 @@ components:
       - is_booked
       - provider
       - provider_display_name
+      - start_time
+    BookingConflict:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        resource:
+          type: integer
+          nullable: true
+        rendering_provider:
+          type: integer
+          nullable: true
+      required:
+      - end_time
+      - rendering_provider
+      - resource
       - start_time
     CPTCatalogEntry:
       type: object
@@ -9128,6 +9196,15 @@ components:
         end_time:
           type: string
           nullable: true
+        appointment_time_instant:
+          type: string
+          format: date-time
+          readOnly: true
+        end_time_instant:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
         duration_minutes:
           type: integer
           readOnly: true
@@ -9176,6 +9253,10 @@ components:
         is_billable:
           type: boolean
         allow_same_day_double_book:
+          type: boolean
+          writeOnly: true
+          default: false
+        allow_schedule_overlap:
           type: boolean
           writeOnly: true
           default: false

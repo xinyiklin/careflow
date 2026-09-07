@@ -6,11 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Appointment
-
-FACILITY_DATETIME_INPUT_FORMATS = (
-    "%Y-%m-%dT%H:%M",
-    "%Y-%m-%dT%H:%M:%S",
-)
+from .schedule_conflicts import parse_facility_datetime
 
 CLINICAL_LOCKED_APPOINTMENT_FIELDS = {
     "patient": "Patient",
@@ -20,6 +16,13 @@ CLINICAL_LOCKED_APPOINTMENT_FIELDS = {
     "appointment_type": "Visit type",
     "rendering_provider": "Rendering provider",
 }
+
+
+class StrictBooleanField(serializers.BooleanField):
+    def to_internal_value(self, data):
+        if type(data) is not bool:
+            self.fail("invalid", input=data)
+        return data
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
@@ -72,6 +75,15 @@ class AppointmentSerializer(serializers.ModelSerializer):
     rendering_provider_title_name = serializers.SerializerMethodField()
 
     duration_minutes = serializers.SerializerMethodField()
+    appointment_time_instant = serializers.DateTimeField(
+        source="appointment_time", read_only=True, default_timezone=dt_timezone.utc
+    )
+    end_time_instant = serializers.DateTimeField(
+        source="end_time",
+        read_only=True,
+        allow_null=True,
+        default_timezone=dt_timezone.utc,
+    )
     end_time = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -82,6 +94,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
         write_only=True,
         required=False,
         default=False,
+    )
+
+    allow_schedule_overlap = StrictBooleanField(
+        write_only=True, required=False, default=False
     )
 
     class Meta:
@@ -105,6 +121,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "rendering_provider_title_name",
             "appointment_time",
             "end_time",
+            "appointment_time_instant",
+            "end_time_instant",
             "duration_minutes",
             "room",
             "reason",
@@ -123,6 +141,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_at",
             "is_billable",
             "allow_same_day_double_book",
+            "allow_schedule_overlap",
         ]
         read_only_fields = (
             "created_by",
@@ -177,31 +196,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         if raw_value in (None, ""):
             return None
 
-        facility_tz = self._get_facility_tz(facility)
-
-        if isinstance(raw_value, datetime):
-            parsed = raw_value
-        elif isinstance(raw_value, str):
-            parsed = None
-            for fmt in FACILITY_DATETIME_INPUT_FORMATS:
-                try:
-                    parsed = datetime.strptime(raw_value, fmt)
-                    break
-                except ValueError:
-                    continue
-            if parsed is None:
-                raise serializers.ValidationError(
-                    {field_name: "Invalid datetime format. Use YYYY-MM-DDTHH:MM."}
-                )
-        else:
-            raise serializers.ValidationError({field_name: "Invalid datetime value."})
-
-        if timezone.is_aware(parsed):
-            local_dt = parsed.astimezone(facility_tz)
-        else:
-            local_dt = timezone.make_aware(parsed, facility_tz)
-
-        return local_dt.astimezone(dt_timezone.utc)
+        return parse_facility_datetime(raw_value, facility, field_name)
 
     def _format_utc_to_facility_local(self, value, facility):
         if not value:
@@ -218,6 +213,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             getattr(self.instance, "appointment_type", None),
         )
         allow_same_day_double_book = attrs.pop("allow_same_day_double_book", False)
+        self.allow_schedule_overlap = attrs.pop("allow_schedule_overlap", False)
 
         if facility is not None and not self.instance and "facility" not in attrs:
             attrs["facility"] = facility

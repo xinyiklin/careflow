@@ -1,8 +1,12 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
 
-from django.db import transaction
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -21,8 +25,10 @@ from facilities.security import user_has_facility_permission
 from patients.models import Patient
 from shared.scoping import FacilityScopedViewSetMixin
 
+from .booking_hold_serializers import BookingConflictSerializer
 from .edit_session import AppointmentEditSessionMixin
 from .models import Appointment
+from .schedule_conflicts import facility_schedule_lock, validate_schedule_save
 from .serializers import AppointmentSerializer
 from .services import (
     build_audit_history_item,
@@ -33,7 +39,27 @@ from .services import (
 )
 from .slot_hold import SlotHoldMixin
 
+_schedule_overlap_response = inline_serializer(
+    name="AppointmentScheduleOverlap",
+    fields={
+        "code": CharField(),
+        "detail": CharField(),
+        "conflicts": BookingConflictSerializer(many=True),
+    },
+)
 
+
+@extend_schema_view(
+    create=extend_schema(
+        responses={201: AppointmentSerializer, 409: _schedule_overlap_response}
+    ),
+    update=extend_schema(
+        responses={200: AppointmentSerializer, 409: _schedule_overlap_response}
+    ),
+    partial_update=extend_schema(
+        responses={200: AppointmentSerializer, 409: _schedule_overlap_response}
+    ),
+)
 class AppointmentViewSet(
     AppointmentEditSessionMixin,
     SlotHoldMixin,
@@ -122,14 +148,16 @@ class AppointmentViewSet(
             except ValueError:
                 raise ValidationError({"date": "Use YYYY-MM-DD for date and date_to."})
 
+        if getattr(self, "_lock_appointment_for_write", False):
+            queryset = queryset.select_for_update(of=("self",))
         return queryset
 
     def create(self, request, *args, **kwargs):
         facility = self.get_facility()
         patient_id = request.data.get("patient")
-        with transaction.atomic():
+        with facility_schedule_lock(facility):
             if patient_id:
-                Patient.objects.select_for_update().filter(
+                Patient.objects.select_for_update(of=("self",), no_key=True).filter(
                     pk=patient_id,
                     facility=facility,
                     is_active=True,
@@ -137,14 +165,24 @@ class AppointmentViewSet(
             return super().create(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
-        with transaction.atomic():
+        with facility_schedule_lock(self.get_facility()):
             appointment = self.get_object()
-            Patient.objects.select_for_update().filter(
-                pk=appointment.patient_id,
-                facility=appointment.facility,
-                is_active=True,
-            ).first()
+            patient_ids = [appointment.patient_id]
+            requested_patient = request.data.get("patient")
+            if str(requested_patient).isdigit():
+                patient_ids.append(int(requested_patient))
+            list(
+                Patient.objects.select_for_update(of=("self",), no_key=True)
+                .filter(pk__in=patient_ids, facility=appointment.facility)
+                .order_by("pk")
+            )
+            self._lock_appointment_for_write = True
             return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        with facility_schedule_lock(self.get_facility()):
+            self._lock_appointment_for_write = True
+            return super().destroy(request, *args, **kwargs)
 
     @extend_schema(
         parameters=[
@@ -236,6 +274,10 @@ class AppointmentViewSet(
                 "Selected rendering provider does not belong to this facility."
             )
 
+        validate_schedule_save(
+            serializer.validated_data,
+            allow_overlap=serializer.allow_schedule_overlap,
+        )
         appointment = serializer.save(created_by=self.request.user)
         self._create_audit_event(
             appointment=appointment,
@@ -325,6 +367,11 @@ class AppointmentViewSet(
                 "Selected rendering provider does not belong to this facility."
             )
 
+        validate_schedule_save(
+            serializer.validated_data,
+            instance=serializer.instance,
+            allow_overlap=serializer.allow_schedule_overlap,
+        )
         appointment = serializer.save()
         self._create_audit_event(
             appointment=appointment,

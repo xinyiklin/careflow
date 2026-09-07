@@ -3461,6 +3461,10 @@ export interface components {
             /** Format: date-time */
             appointment_time: string;
             end_time?: string | null;
+            /** Format: date-time */
+            readonly appointment_time_instant: string;
+            /** Format: date-time */
+            readonly end_time_instant: string | null;
             readonly duration_minutes: number;
             room?: string;
             reason?: string;
@@ -3481,6 +3485,8 @@ export interface components {
             is_billable?: boolean;
             /** @default false */
             allow_same_day_double_book: boolean;
+            /** @default false */
+            allow_schedule_overlap: boolean;
         };
         AppointmentHeatmap: {
             month: string;
@@ -3499,6 +3505,11 @@ export interface components {
             metadata: {
                 [key: string]: unknown;
             };
+        };
+        AppointmentScheduleOverlap: {
+            code: string;
+            detail: string;
+            conflicts: components["schemas"]["BookingConflict"][];
         };
         AppointmentStatus: {
             readonly id: number;
@@ -3552,6 +3563,14 @@ export interface components {
             end_time: string;
             readonly is_booked: boolean;
             notes?: string;
+        };
+        BookingConflict: {
+            /** Format: date-time */
+            start_time: string;
+            /** Format: date-time */
+            end_time: string;
+            resource: number | null;
+            rendering_provider: number | null;
         };
         /** @description One predefined billing code used to seed a fee schedule. */
         CPTCatalogEntry: {
@@ -4334,6 +4353,10 @@ export interface components {
             /** Format: date-time */
             appointment_time?: string;
             end_time?: string | null;
+            /** Format: date-time */
+            readonly appointment_time_instant?: string;
+            /** Format: date-time */
+            readonly end_time_instant?: string | null;
             readonly duration_minutes?: number;
             room?: string;
             reason?: string;
@@ -4354,6 +4377,8 @@ export interface components {
             is_billable?: boolean;
             /** @default false */
             allow_same_day_double_book: boolean;
+            /** @default false */
+            allow_schedule_overlap: boolean;
         };
         PatchedAppointmentStatus: {
             readonly id?: number;
@@ -6229,6 +6254,14 @@ export interface operations {
                     "application/json": components["schemas"]["Appointment"];
                 };
             };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentScheduleOverlap"];
+                };
+            };
         };
     };
     appointments_retrieve: {
@@ -6277,6 +6310,14 @@ export interface operations {
                     "application/json": components["schemas"]["Appointment"];
                 };
             };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentScheduleOverlap"];
+                };
+            };
         };
     };
     appointments_destroy: {
@@ -6322,6 +6363,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Appointment"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppointmentScheduleOverlap"];
                 };
             };
         };
