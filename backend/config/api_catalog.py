@@ -496,6 +496,30 @@ API_ENDPOINT_SECTIONS = [
                 ),
             },
             {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/appointments/schedule-check/?facility_id=<id>",
+                "description": "Check an interval for saved appointments and advisory booking presence; edits require a scoped appointment_id.",
+            },
+            {
+                "method": "POST",
+                "class": "post",
+                "path": "/v1/appointments/booking-hold/?facility_id=<id>",
+                "description": "Acquire or resize a booking session using JSON session_id, revision and interval; explicit take_over revokes overlapping sessions.",
+            },
+            {
+                "method": "PATCH",
+                "class": "patch",
+                "path": "/v1/appointments/booking-hold/?facility_id=<id>",
+                "description": "Heartbeat an active owned session using JSON session_id and its current revision; cannot acquire or resize.",
+            },
+            {
+                "method": "DELETE",
+                "class": "delete",
+                "path": "/v1/appointments/booking-hold/?facility_id=<id>&session_id=<uuid>&revision=<revision>",
+                "description": "Release a booking session with a newer revision; retain a tombstone against delayed requests.",
+            },
+            {
                 "method": "GET",
                 "class": "get",
                 "path": "/v1/appointments/<id>/history/?facility_id=<id>",

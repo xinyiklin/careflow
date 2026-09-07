@@ -625,6 +625,98 @@ paths:
       responses:
         '204':
           description: No response body
+  /v1/appointments/booking-hold/:
+    post:
+      operationId: appointments_booking_hold_create
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
+      tags:
+      - appointments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingHoldAcquire'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BookingHoldAcquire'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BookingHoldAcquire'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingHoldResponse'
+          description: ''
+    patch:
+      operationId: appointments_booking_hold_partial_update
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
+      tags:
+      - appointments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                revision:
+                  type: integer
+                  minimum: 1
+              required:
+              - session_id
+              - revision
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingHoldResponse'
+          description: ''
+    delete:
+      operationId: appointments_booking_hold_destroy
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
+      parameters:
+      - in: query
+        name: revision
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: session_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - appointments
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingHoldResponse'
+          description: ''
   /v1/appointments/heatmap/:
     get:
       operationId: appointments_heatmap_retrieve
@@ -650,6 +742,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AppointmentHeatmap'
+          description: ''
+  /v1/appointments/schedule-check/:
+    post:
+      operationId: appointments_schedule_check_create
+      description: |-
+        Facility-scoped appointment CRUD, plus the edit-session soft lock and
+        slot-hold presence actions.
+      tags:
+      - appointments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleCheck'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScheduleCheck'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScheduleCheck'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingHoldResponse'
           description: ''
   /v1/appointments/slot-hold/:
     post:
@@ -7194,6 +7316,26 @@ components:
       - provider
       - provider_display_name
       - start_time
+    BookingCandidateResponse:
+      type: object
+      properties:
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+        resource:
+          type: integer
+          nullable: true
+        rendering_provider:
+          type: integer
+          nullable: true
+      required:
+      - end_time
+      - rendering_provider
+      - resource
+      - start_time
     BookingConflict:
       type: object
       properties:
@@ -7214,6 +7356,96 @@ components:
       - rendering_provider
       - resource
       - start_time
+    BookingHoldAcquire:
+      type: object
+      description: |-
+        Reject unknown and read-only fields on write requests.
+
+        Fail-fast guard for catching misnamed payload keys instead of silently
+        dropping them. Composed with ``ModelSerializer`` ahead of the base class.
+      properties:
+        start_time:
+          type: string
+        end_time:
+          type: string
+        resource:
+          type: integer
+          minimum: 1
+          nullable: true
+        rendering_provider:
+          type: integer
+          minimum: 1
+          nullable: true
+        session_id:
+          type: string
+          format: uuid
+        revision:
+          type: integer
+          minimum: 1
+        take_over:
+          type: boolean
+          default: false
+      required:
+      - end_time
+      - revision
+      - session_id
+      - start_time
+    BookingHoldResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/BookingHoldResponseStatusEnum'
+        session_id:
+          type: string
+          format: uuid
+        revision:
+          type: integer
+        candidate:
+          allOf:
+          - $ref: '#/components/schemas/BookingCandidateResponse'
+          nullable: true
+        conflicts:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingConflict'
+        holders:
+          type: array
+          items:
+            $ref: '#/components/schemas/BookingHolder'
+      required:
+      - candidate
+      - conflicts
+      - holders
+      - status
+    BookingHoldResponseStatusEnum:
+      enum:
+      - available
+      - active
+      - occupied
+      - released
+      - revoked
+      type: string
+      description: |-
+        * `available` - available
+        * `active` - active
+        * `occupied` - occupied
+        * `released` - released
+        * `revoked` - revoked
+    BookingHolder:
+      type: object
+      properties:
+        user_name:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+      required:
+      - end_time
+      - start_time
+      - user_name
     CPTCatalogEntry:
       type: object
       description: One predefined billing code used to seed a fee schedule.
@@ -12893,6 +13125,35 @@ components:
       required:
       - code
       - label
+    ScheduleCheck:
+      type: object
+      description: |-
+        Reject unknown and read-only fields on write requests.
+
+        Fail-fast guard for catching misnamed payload keys instead of silently
+        dropping them. Composed with ``ModelSerializer`` ahead of the base class.
+      properties:
+        start_time:
+          type: string
+        end_time:
+          type: string
+        resource:
+          type: integer
+          minimum: 1
+          nullable: true
+        rendering_provider:
+          type: integer
+          minimum: 1
+          nullable: true
+        appointment_id:
+          type: integer
+          minimum: 1
+        session_id:
+          type: string
+          format: uuid
+      required:
+      - end_time
+      - start_time
     SenderKindEnum:
       enum:
       - patient
