@@ -47,6 +47,7 @@ export default function SchedulePageOverlays({
         mode={appointmentFlow.modal.mode === "edit" ? "edit" : "create"}
         appointmentId={appointmentFlow.modal.editingId}
         formData={appointmentFlow.modal.formData}
+        bookingSeed={appointmentFlow.modal.bookingSeed}
         facilityId={selectedFacilityId}
         physicians={physicians}
         staffs={staffs}

@@ -1,3 +1,4 @@
+import type { BookingSeed } from "../../appointments/api/bookingHolds";
 import AppointmentEditBlockedDialog from "../../appointments/components/AppointmentEditBlockedDialog";
 import AppointmentHistoryModal from "../../appointments/components/AppointmentHistoryModal";
 import AppointmentModal from "../../appointments/components/AppointmentModal";
@@ -64,6 +65,7 @@ type AppointmentFlowModal = {
   isOpen: boolean;
   editingId: EntityId | null;
   formData: Record<string, unknown>;
+  bookingSeed?: BookingSeed | null;
   mode: string;
 };
 
@@ -166,6 +168,7 @@ export default function PatientHubModals({
           mode={appointment.modal.mode as AppointmentMode}
           appointmentId={appointment.modal.editingId}
           formData={appointment.modal.formData}
+          bookingSeed={appointment.modal.bookingSeed}
           facilityId={facilityId}
           physicians={appointment.physicians}
           staffs={appointment.staffs}
