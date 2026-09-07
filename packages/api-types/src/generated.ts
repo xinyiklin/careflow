@@ -257,6 +257,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/appointments/booking-hold/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
+        post: operations["appointments_booking_hold_create"];
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
+        delete: operations["appointments_booking_hold_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
+        patch: operations["appointments_booking_hold_partial_update"];
+        trace?: never;
+    };
     "/v1/appointments/heatmap/": {
         parameters: {
             query?: never;
@@ -272,6 +300,26 @@ export interface paths {
         get: operations["appointments_heatmap_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/appointments/schedule-check/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Facility-scoped appointment CRUD, plus the edit-session soft lock and
+         *     slot-hold presence actions.
+         */
+        post: operations["appointments_schedule_check_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3564,6 +3612,14 @@ export interface components {
             readonly is_booked: boolean;
             notes?: string;
         };
+        BookingCandidateResponse: {
+            /** Format: date-time */
+            start_time: string;
+            /** Format: date-time */
+            end_time: string;
+            resource: number | null;
+            rendering_provider: number | null;
+        };
         BookingConflict: {
             /** Format: date-time */
             start_time: string;
@@ -3571,6 +3627,48 @@ export interface components {
             end_time: string;
             resource: number | null;
             rendering_provider: number | null;
+        };
+        /**
+         * @description Reject unknown and read-only fields on write requests.
+         *
+         *     Fail-fast guard for catching misnamed payload keys instead of silently
+         *     dropping them. Composed with ``ModelSerializer`` ahead of the base class.
+         */
+        BookingHoldAcquire: {
+            start_time: string;
+            end_time: string;
+            resource?: number | null;
+            rendering_provider?: number | null;
+            /** Format: uuid */
+            session_id: string;
+            revision: number;
+            /** @default false */
+            take_over: boolean;
+        };
+        BookingHoldResponse: {
+            status: components["schemas"]["BookingHoldResponseStatusEnum"];
+            /** Format: uuid */
+            session_id?: string;
+            revision?: number;
+            candidate: components["schemas"]["BookingCandidateResponse"] | null;
+            conflicts: components["schemas"]["BookingConflict"][];
+            holders: components["schemas"]["BookingHolder"][];
+        };
+        /**
+         * @description * `available` - available
+         *     * `active` - active
+         *     * `occupied` - occupied
+         *     * `released` - released
+         *     * `revoked` - revoked
+         * @enum {string}
+         */
+        BookingHoldResponseStatusEnum: "available" | "active" | "occupied" | "released" | "revoked";
+        BookingHolder: {
+            user_name: string;
+            /** Format: date-time */
+            start_time: string;
+            /** Format: date-time */
+            end_time: string;
         };
         /** @description One predefined billing code used to seed a fee schedule. */
         CPTCatalogEntry: {
@@ -5808,6 +5906,21 @@ export interface components {
             label: string;
         };
         /**
+         * @description Reject unknown and read-only fields on write requests.
+         *
+         *     Fail-fast guard for catching misnamed payload keys instead of silently
+         *     dropping them. Composed with ``ModelSerializer`` ahead of the base class.
+         */
+        ScheduleCheck: {
+            start_time: string;
+            end_time: string;
+            resource?: number | null;
+            rendering_provider?: number | null;
+            appointment_id?: number;
+            /** Format: uuid */
+            session_id?: string;
+        };
+        /**
          * @description * `patient` - Patient
          *     * `clinician` - Clinician
          * @enum {string}
@@ -6577,6 +6690,80 @@ export interface operations {
             };
         };
     };
+    appointments_booking_hold_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookingHoldAcquire"];
+                "application/x-www-form-urlencoded": components["schemas"]["BookingHoldAcquire"];
+                "multipart/form-data": components["schemas"]["BookingHoldAcquire"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingHoldResponse"];
+                };
+            };
+        };
+    };
+    appointments_booking_hold_destroy: {
+        parameters: {
+            query: {
+                revision: number;
+                session_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingHoldResponse"];
+                };
+            };
+        };
+    };
+    appointments_booking_hold_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    session_id: string;
+                    revision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingHoldResponse"];
+                };
+            };
+        };
+    };
     appointments_heatmap_retrieve: {
         parameters: {
             query: {
@@ -6595,6 +6782,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AppointmentHeatmap"];
+                };
+            };
+        };
+    };
+    appointments_schedule_check_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleCheck"];
+                "application/x-www-form-urlencoded": components["schemas"]["ScheduleCheck"];
+                "multipart/form-data": components["schemas"]["ScheduleCheck"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookingHoldResponse"];
                 };
             };
         };

@@ -25,6 +25,7 @@ from facilities.security import user_has_facility_permission
 from patients.models import Patient
 from shared.scoping import FacilityScopedViewSetMixin
 
+from .booking_hold import BookingHoldMixin
 from .booking_hold_serializers import BookingConflictSerializer
 from .edit_session import AppointmentEditSessionMixin
 from .models import Appointment
@@ -62,6 +63,7 @@ _schedule_overlap_response = inline_serializer(
 )
 class AppointmentViewSet(
     AppointmentEditSessionMixin,
+    BookingHoldMixin,
     SlotHoldMixin,
     FacilityScopedViewSetMixin,
     viewsets.ModelViewSet,
