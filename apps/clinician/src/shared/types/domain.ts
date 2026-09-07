@@ -203,6 +203,8 @@ export type AppointmentLike = PatientLike & {
   facility?: EntityId | null;
   created_by_name?: string | null;
   appointment_time?: string | null;
+  appointment_time_instant?: string | null;
+  end_time_instant?: string | null;
   duration_minutes?: number | string | null;
   end_time?: string | null;
   date?: string | null;
