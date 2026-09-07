@@ -154,7 +154,6 @@ export function usePatientHubActions({
   const {
     deleteMutation: deleteAppointmentMutation,
     saveMutation: saveAppointmentMutation,
-    getDuplicateDayAppointmentError,
   } = useAppointmentMutations({
     onCloseModal: handleCloseAppointmentModal,
     setError: setAppointmentError,
@@ -187,35 +186,13 @@ export function usePatientHubActions({
           data: buildPayload(),
         });
         await invalidatePatientHubAppointments();
-      } catch (err) {
-        const duplicateError = getDuplicateDayAppointmentError(err);
-        if (!duplicateError) return;
-
-        setAppointmentError("");
-        setConfirmDialogState({
-          isOpen: true,
-          title: "Possible Double Booking",
-          message:
-            "This patient already has an appointment on this date. Creating another appointment may result in a double booking. Do you want to proceed anyway?",
-          confirmText: "Confirm",
-          cancelText: "Cancel",
-          variant: "warning",
-          onConfirm: async () => {
-            await saveAppointmentMutation.mutateAsync({
-              id: appointmentFlow.modal.editingId,
-              data: buildPayload({ allow_same_day_double_book: true }),
-            });
-            await invalidatePatientHubAppointments();
-            closeConfirmDialog();
-          },
-        });
+      } catch {
+        // The shared mutation owns conflict confirmation and error display.
       }
     },
     [
       appointmentFlow.modal.editingId,
       appointmentFlow.selectedPatient?.id,
-      closeConfirmDialog,
-      getDuplicateDayAppointmentError,
       invalidatePatientHubAppointments,
       saveAppointmentMutation,
     ]
