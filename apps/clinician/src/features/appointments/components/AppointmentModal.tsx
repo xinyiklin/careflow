@@ -1,9 +1,21 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { SubmitHandler } from "react-hook-form";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import AppointmentDateTimePicker from "./AppointmentDateTimePicker";
 import { useQuery } from "@tanstack/react-query";
 import { ClipboardList, Clock3, UserRoundCheck } from "lucide-react";
+import { appointmentPickerDate as parseFacilityLocalDateTime } from "../utils/appointmentPicker";
+import useAppointmentBooking from "../hooks/useAppointmentBooking";
+import AppointmentBookingNotice from "./AppointmentBookingNotice";
+import {
+  candidateFromForm,
+  durationEnd,
+  facilityInstant,
+  facilityWallText,
+  pickerText,
+} from "../utils/appointmentCandidate";
+import type { BookingSeed } from "../api/bookingHolds";
+import { useAppointmentSaveConfirmation } from "../AppointmentSaveConfirmationProvider";
 
 import { fetchPatientById } from "../../patients/api/patients";
 import { fetchPatientInsurancePolicies } from "../../patients/api/insurance";
@@ -17,10 +29,6 @@ import {
   useLatestOpenValue,
   useModalPresence,
 } from "../../../shared/hooks/useModalPresence";
-import {
-  formatDateOnlyInTimeZone,
-  formatTimeInTimeZone,
-} from "../../../shared/utils/dateTime";
 import { getErrorMessage } from "../../../shared/utils/errors";
 import type { EntityId } from "../../../shared/api/types";
 import type { AppointmentLike } from "../../../shared/types/domain";
@@ -34,14 +42,11 @@ import {
 import AppointmentModalHeader from "./AppointmentModalHeader";
 import AppointmentPatientLens from "./AppointmentPatientLens";
 import {
-  addMinutes,
   formatAddress,
-  formatPickerValueForApi,
   getPatientDisplayName,
   getPhysicianLabel,
   getPrimaryInsurancePolicy,
   isRenderingProviderStaff,
-  parseFacilityLocalDateTime,
 } from "./appointmentModalUtils";
 import type {
   AppointmentFormData,
@@ -61,6 +66,7 @@ type AppointmentModalProps = {
   mode: AppointmentMode;
   appointmentId?: EntityId | null;
   formData: AppointmentFormData;
+  bookingSeed?: BookingSeed | null;
   facilityId?: EntityId | null;
   physicians?: AppointmentStaff[];
   staffs?: AppointmentStaff[];
@@ -109,6 +115,7 @@ export default function AppointmentModal({
   mode,
   appointmentId,
   formData,
+  bookingSeed,
   facilityId,
   staffs = [],
   resources,
@@ -179,10 +186,20 @@ export default function AppointmentModal({
   const billingLabelId = useId();
 
   const [internalError, setInternalError] = useState("");
+  const [initializedForm, setInitializedForm] =
+    useState<AppointmentFormData | null>(null);
+  const [startInstantHint, setStartInstantHint] = useState<string | null>(null);
+  const [endInstantHint, setEndInstantHint] = useState<string | null>(null);
+  const { invalidateConfirmations, isConfirming } =
+    useAppointmentSaveConfirmation();
   const { modalRef, modalStyle, dragHandleProps } = useDraggableModal({
     isOpen,
   });
-  const { handlePanelKeyDown } = useModalFocusTrap(modalRef, isOpen, onClose);
+  const { handlePanelKeyDown } = useModalFocusTrap(
+    modalRef,
+    isOpen,
+    isConfirming ? undefined : onClose
+  );
   const editSession = useAppointmentEditSession({
     appointmentId: displayedAppointmentId,
     facilityId: displayedFacilityId,
@@ -213,12 +230,28 @@ export default function AppointmentModal({
       Number(displayedFormData.duration_minutes) ||
       Number(initialAppointmentType?.duration_minutes) ||
       0;
-    const initialEndTime = displayedFormData.end_time
-      ? parseFacilityLocalDateTime(
-          displayedFormData.end_time,
-          displayedTimeZone
-        )
-      : addMinutes(initialAppointmentTime, initialDuration);
+    let startHint: string | null = null;
+    let endHint: string | null = null;
+    try {
+      const zone = displayedTimeZone || "";
+      startHint = facilityInstant(
+        String(displayedFormData.appointment_time || ""),
+        zone
+      ).toISOString();
+      endHint = displayedFormData.end_time
+        ? facilityInstant(
+            String(displayedFormData.end_time),
+            zone
+          ).toISOString()
+        : durationEnd(startHint, initialDuration, zone);
+    } catch {
+      // Invalid or incomplete times remain editable and are never held.
+    }
+    setStartInstantHint(startHint);
+    setEndInstantHint(endHint);
+    const initialEndTime = endHint
+      ? parseFacilityLocalDateTime(endHint, displayedTimeZone)
+      : null;
 
     reset({
       patient: toFormString(
@@ -238,6 +271,7 @@ export default function AppointmentModal({
     });
 
     setInternalError("");
+    setInitializedForm(displayedFormData);
   }, [
     displayedFacilityId,
     displayedFormData,
@@ -290,28 +324,117 @@ export default function AppointmentModal({
     [statusOptions, watchedStatus]
   );
 
-  const appointmentHeaderDate = useMemo(() => {
-    if (!watchedAppointmentTime) return "—";
-    return formatDateOnlyInTimeZone(
-      watchedAppointmentTime,
-      displayedTimeZone,
-      "MMM d, yyyy"
+  const startText = pickerText(watchedAppointmentTime);
+  const endText = pickerText(watchedEndTime);
+  const hintedTime = (text: string, hint: string | null) => {
+    try {
+      return hint && facilityWallText(hint, displayedTimeZone || "UTC") === text
+        ? hint
+        : text;
+    } catch {
+      return text;
+    }
+  };
+  const startValue = hintedTime(startText, startInstantHint);
+  const endValue = hintedTime(endText, endInstantHint);
+  let candidate = null;
+  let candidateError = "";
+  try {
+    candidate = candidateFromForm(
+      {
+        appointment_time: startValue,
+        end_time: endValue,
+        resource: watchedResource,
+        rendering_provider: watchedRenderingProvider,
+      },
+      displayedTimeZone
     );
-  }, [watchedAppointmentTime, displayedTimeZone]);
-
-  const appointmentHeaderTime = useMemo(() => {
-    if (!watchedAppointmentTime) return "—";
-    return formatTimeInTimeZone(
-      watchedAppointmentTime,
-      displayedTimeZone,
-      "h:mm a"
+  } catch (err) {
+    candidateError = getErrorMessage(
+      err,
+      "Choose a valid appointment interval."
     );
-  }, [watchedAppointmentTime, displayedTimeZone]);
+  }
+  const booking = useAppointmentBooking({
+    isOpen,
+    ready: initializedForm === displayedFormData,
+    facilityId: displayedFacilityId,
+    appointmentId: displayedMode === "edit" ? displayedAppointmentId : null,
+    candidate: selectedStatusOption?.code === "cancelled" ? null : candidate,
+    seed: bookingSeed,
+  });
+  useEffect(() => {
+    if (!isOpen) return;
+    invalidateConfirmations();
+    return invalidateConfirmations;
+  }, [
+    isOpen,
+    displayedFacilityId,
+    startValue,
+    endValue,
+    watchedResource,
+    watchedRenderingProvider,
+    watchedAppointmentType,
+    watchedStatus,
+    displayedSelectedPatient?.id,
+    invalidateConfirmations,
+  ]);
 
-  const appointmentHeaderEndTime = useMemo(() => {
-    if (!watchedEndTime) return "";
-    return formatTimeInTimeZone(watchedEndTime, displayedTimeZone, "h:mm a");
-  }, [watchedEndTime, displayedTimeZone]);
+  const computeEnd = (
+    start: Date | null,
+    minutes: number | string,
+    source = pickerText(start)
+  ) => {
+    try {
+      const next = durationEnd(
+        source,
+        Number(minutes),
+        displayedTimeZone || ""
+      );
+      setEndInstantHint(next);
+      return parseFacilityLocalDateTime(next, displayedTimeZone);
+    } catch {
+      setEndInstantHint(null);
+      return null;
+    }
+  };
+
+  const headerStart = candidate?.start_time || "";
+  const headerEnd = candidate?.end_time || "";
+  const appointmentHeaderDate = useMemo(
+    () =>
+      headerStart
+        ? new Intl.DateTimeFormat("en-US", {
+            timeZone: displayedTimeZone || "UTC",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }).format(new Date(headerStart))
+        : "—",
+    [headerStart, displayedTimeZone]
+  );
+  const appointmentHeaderTime = useMemo(
+    () =>
+      headerStart
+        ? new Intl.DateTimeFormat("en-US", {
+            timeZone: displayedTimeZone || "UTC",
+            hour: "numeric",
+            minute: "2-digit",
+          }).format(new Date(headerStart))
+        : "—",
+    [headerStart, displayedTimeZone]
+  );
+  const appointmentHeaderEndTime = useMemo(
+    () =>
+      headerEnd
+        ? new Intl.DateTimeFormat("en-US", {
+            timeZone: displayedTimeZone || "UTC",
+            hour: "numeric",
+            minute: "2-digit",
+          }).format(new Date(headerEnd))
+        : "",
+    [headerEnd, displayedTimeZone]
+  );
 
   const selectedPatientId =
     displayedSelectedPatient?.id || displayedFormData.patient || "";
@@ -398,7 +521,7 @@ export default function AppointmentModal({
       editSession.status === "error")
   );
 
-  const submitForm: SubmitHandler<AppointmentFormValues> = (data) => {
+  const submitForm: SubmitHandler<AppointmentFormValues> = async (data) => {
     if (editSession.isBlockedByActiveEditor) {
       onEditSessionBlocked?.(editSession.activeEditor);
       onClose?.();
@@ -411,14 +534,15 @@ export default function AppointmentModal({
     }
 
     try {
+      if (!candidate) throw new Error(candidateError);
       const payload: AppointmentSubmitPayload = {
         ...data,
         patient: displayedSelectedPatient?.id || "",
         facility: data.facility || toFormString(displayedFacilityId),
-        appointment_time: formatPickerValueForApi(data.appointment_time),
-        end_time: formatPickerValueForApi(data.end_time),
+        appointment_time: candidate.start_time,
+        end_time: candidate.end_time,
       };
-      onSubmit(payload);
+      await onSubmit(payload);
     } catch (err) {
       setInternalError(getErrorMessage(err, "Failed to submit form."));
     }
@@ -544,6 +668,13 @@ export default function AppointmentModal({
                 ) : null}
 
                 <FormSection icon={Clock3} title="Schedule">
+                  <AppointmentBookingNotice
+                    state={booking}
+                    timeZone={displayedTimeZone}
+                    onRetry={booking.retry}
+                    onTakeOver={booking.takeOver}
+                    allowTakeOver={displayedMode === "create"}
+                  />
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <div className="md:col-span-1 xl:col-span-1">
                       <FieldLabel required htmlFor={appointmentTimeId}>
@@ -554,21 +685,28 @@ export default function AppointmentModal({
                         control={control}
                         rules={{ required: "Appointment time is required." }}
                         render={({ field }) => (
-                          <DateTimePicker
+                          <AppointmentDateTimePicker
+                            facilityTimeZone={displayedTimeZone}
                             enableAccessibleFieldDOMStructure={false}
                             value={field.value}
                             onChange={(nextValue) => {
                               const nextDuration =
+                                (candidate
+                                  ? (Date.parse(candidate.end_time) -
+                                      Date.parse(candidate.start_time)) /
+                                    60000
+                                  : 0) ||
                                 getDurationMinutes(
                                   field.value,
                                   watchedEndTime
                                 ) ||
                                 selectedAppointmentType?.duration_minutes ||
                                 0;
+                              setStartInstantHint(null);
                               field.onChange(nextValue);
                               setValue(
                                 "end_time",
-                                addMinutes(nextValue, nextDuration),
+                                computeEnd(nextValue, nextDuration),
                                 {
                                   shouldDirty: true,
                                   shouldValidate: true,
@@ -601,16 +739,20 @@ export default function AppointmentModal({
                         rules={{
                           required: "End time is required.",
                           validate: (value) =>
-                            getDurationMinutes(watchedAppointmentTime, value) >
-                            0
+                            value && candidate
                               ? true
-                              : "End time must be after start time.",
+                              : candidateError ||
+                                "End time must be after start time.",
                         }}
                         render={({ field }) => (
-                          <DateTimePicker
+                          <AppointmentDateTimePicker
+                            facilityTimeZone={displayedTimeZone}
                             enableAccessibleFieldDOMStructure={false}
                             value={field.value}
-                            onChange={field.onChange}
+                            onChange={(value) => {
+                              setEndInstantHint(null);
+                              field.onChange(value);
+                            }}
                             slotProps={{
                               textField: {
                                 id: endTimeId,
@@ -696,9 +838,10 @@ export default function AppointmentModal({
                         if (watchedAppointmentTime && nextType) {
                           setValue(
                             "end_time",
-                            addMinutes(
+                            computeEnd(
                               watchedAppointmentTime,
-                              nextType.duration_minutes || 0
+                              nextType.duration_minutes || 0,
+                              startValue
                             ),
                             {
                               shouldDirty: true,
