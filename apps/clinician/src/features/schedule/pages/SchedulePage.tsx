@@ -11,12 +11,11 @@ import useAppointments from "../../appointments/hooks/useAppointments";
 import useAppointmentMutations from "../../appointments/hooks/useAppointmentMutations";
 import { useAppointmentFlowContext } from "../../appointments/AppointmentFlowProvider";
 import {
-  acquireSlotHold,
   beginAppointmentEditSession,
   releaseAppointmentEditSession,
 } from "../../appointments/api/appointments";
-import type { SlotHoldKey } from "../../appointments/api/appointments";
-import useAppointmentSlotHold from "../../appointments/hooks/useAppointmentSlotHold";
+import useSlotBookingEntry from "../hooks/useSlotBookingEntry";
+import { useAppointmentSaveConfirmation } from "../../appointments/AppointmentSaveConfirmationProvider";
 import useSchedulePageColumns from "../hooks/useSchedulePageColumns";
 import useFacility from "../../facilities/hooks/useFacility";
 import useFacilityConfig from "../../facilities/hooks/useFacilityConfig";
@@ -36,7 +35,7 @@ import {
 } from "../../../shared/utils/browserStorage";
 
 import type { EntityId } from "../../../shared/api/types";
-import type { ApiRecord, AppointmentLike } from "../../../shared/types/domain";
+import type { AppointmentLike } from "../../../shared/types/domain";
 import type {
   AppointmentPatient,
   AppointmentResource,
@@ -139,23 +138,6 @@ function SchedulePageContent() {
       activeEditor: null,
       appointmentId: null,
     });
-  // The empty slot currently held open by this user's create modal, kept alive
-  // by useAppointmentSlotHold and released when the modal closes.
-  const [activeSlotKey, setActiveSlotKey] = useState<SlotHoldKey | null>(null);
-  const [slotBooking, setSlotBooking] = useState<{
-    isOpen: boolean;
-    name: string;
-    slotKey: SlotHoldKey | null;
-    slot: { date: string; time24: string; resourceId: EntityId | "" } | null;
-    isOverriding: boolean;
-  }>({
-    isOpen: false,
-    name: "",
-    slotKey: null,
-    slot: null,
-    isOverriding: false,
-  });
-
   const {
     appointments,
     error: appointmentsError,
@@ -169,19 +151,19 @@ function SchedulePageContent() {
   const appointmentFlow = useAppointmentFlowContext();
   const { open: openAppointmentModal } = appointmentFlow.modal;
 
-  useAppointmentSlotHold({
+  const { invalidateConfirmations, beginAttempt } =
+    useAppointmentSaveConfirmation();
+  const {
+    dialog: slotBooking,
+    openFromSlot: handleOpenFromSlot,
+    takeOver: handleSlotBookingOverride,
+    cancel: closeSlotBooking,
+  } = useSlotBookingEntry({
     facilityId: selectedFacilityId,
-    slotKey: activeSlotKey,
+    timeZone: facility?.timezone,
+    modal: appointmentFlow.modal,
+    invalidateConfirmations,
   });
-
-  // Release the slot hold whenever the create modal closes (save, cancel, or
-  // escape) — the hold only represents an in-progress booking.
-  const isAppointmentModalOpen = appointmentFlow.modal.isOpen;
-  useEffect(() => {
-    if (!isAppointmentModalOpen && activeSlotKey) {
-      setActiveSlotKey(null);
-    }
-  }, [activeSlotKey, isAppointmentModalOpen]);
 
   const handleScheduleQuickAction = useCallback(
     (type: string | null | undefined) => {
@@ -189,6 +171,8 @@ function SchedulePageContent() {
 
       if (type === "new-appointment") {
         if (!selectedDate) return false;
+        closeSlotBooking();
+        invalidateConfirmations();
         openAppointmentModal({
           mode: "create",
           resourceId:
@@ -214,6 +198,8 @@ function SchedulePageContent() {
     },
     [
       handleQuickActionToday,
+      closeSlotBooking,
+      invalidateConfirmations,
       multiDayResourceKey,
       openAppointmentModal,
       scheduleMode,
@@ -247,21 +233,18 @@ function SchedulePageContent() {
   }, [handleScheduleQuickAction]);
 
   const handleCloseAppointmentModal = () => {
+    invalidateConfirmations();
     setAppError("");
     closeConfirmDialog();
     closeAppointmentContextMenu();
     appointmentFlow.modal.close();
   };
 
-  const {
-    deleteMutation,
-    saveMutation,
-    moveMutation,
-    getDuplicateDayAppointmentError,
-  } = useAppointmentMutations({
-    onCloseModal: handleCloseAppointmentModal,
-    setError: setAppError,
-  });
+  const { deleteMutation, saveMutation, moveMutation } =
+    useAppointmentMutations({
+      onCloseModal: handleCloseAppointmentModal,
+      setError: setAppError,
+    });
 
   const openConfirmDialog = (
     opts: Omit<Partial<ScheduleConfirmDialogState>, "isOpen"> &
@@ -296,7 +279,7 @@ function SchedulePageContent() {
     submittedData: AppointmentSubmitPayload
   ) => {
     setAppError("");
-    const buildPayload = (overrides: ApiRecord = {}) => ({
+    const buildPayload = () => ({
       ...submittedData,
       patient: appointmentFlow.selectedPatient?.id || "",
       resource: submittedData.resource ? Number(submittedData.resource) : null,
@@ -308,7 +291,6 @@ function SchedulePageContent() {
         ? Number(submittedData.appointment_type)
         : "",
       facility: submittedData.facility ? Number(submittedData.facility) : "",
-      ...overrides,
     });
 
     try {
@@ -316,23 +298,8 @@ function SchedulePageContent() {
         id: appointmentFlow.modal.editingId,
         data: buildPayload(),
       });
-    } catch (err) {
-      const duplicateError = getDuplicateDayAppointmentError(err);
-      if (!duplicateError) return;
-      setAppError("");
-      openConfirmDialog({
-        title: "Possible Double Booking",
-        message:
-          "This patient already has an appointment on this date. Creating another appointment may result in a double booking. Do you want to proceed anyway?",
-        confirmText: "Confirm",
-        variant: "warning",
-        onConfirm: async () => {
-          await saveMutation.mutateAsync({
-            id: appointmentFlow.modal.editingId,
-            data: buildPayload({ allow_same_day_double_book: true }),
-          });
-        },
-      });
+    } catch {
+      // The shared mutation handles confirmation, cancellation and errors.
     }
   };
 
@@ -398,6 +365,7 @@ function SchedulePageContent() {
     event: MouseEvent<HTMLDivElement>,
     appointment: AppointmentLike
   ) => {
+    closeSlotBooking();
     setContextMenuState({
       isOpen: true,
       x: event.clientX,
@@ -458,13 +426,14 @@ function SchedulePageContent() {
   );
 
   const beginDropEditSession = useCallback(
-    async (appointmentId: EntityId) => {
+    async (appointmentId: EntityId, isCurrent: () => boolean) => {
       try {
         const result = await beginAppointmentEditSession(
           selectedFacilityId,
           appointmentId
         );
 
+        if (!isCurrent()) return result?.status !== "occupied";
         if (result?.status === "occupied") {
           showEditBlockedDialog(result.active_editor || null, appointmentId);
           return null;
@@ -519,23 +488,38 @@ function SchedulePageContent() {
     if (!appointmentId) return;
     setAppError("");
 
-    const shouldReleaseEditSession = await beginDropEditSession(appointmentId);
+    closeSlotBooking();
+    const operation = beginAttempt();
+    const shouldReleaseEditSession = await beginDropEditSession(
+      appointmentId,
+      operation.isCurrent
+    );
     if (shouldReleaseEditSession === null) return;
+    if (!operation.isCurrent()) {
+      if (shouldReleaseEditSession)
+        await releaseAppointmentEditSession(
+          selectedFacilityId,
+          appointmentId
+        ).catch(() => {});
+      return;
+    }
 
     const resourceId =
       nextResourceId !== undefined ? nextResourceId : dragged.resource || null;
-    const buildPayload = (overrides: ApiRecord = {}) => ({
+    const buildPayload = () => ({
       patient: dragged.patient_id,
       resource: resourceId,
       rendering_provider: dragged.rendering_provider || null,
-      appointment_time: `${date}T${time24}`,
+      appointment_time:
+        dragged.appointment_time?.slice(0, 16) === `${date}T${time24}`
+          ? dragged.appointment_time_instant || dragged.appointment_time
+          : `${date}T${time24}`,
       room: dragged.room || "",
       reason: dragged.reason || "",
       notes: dragged.notes || "",
       status: dragged.status,
       appointment_type: dragged.appointment_type,
       facility: dragged.facility,
-      ...overrides,
     });
 
     try {
@@ -543,24 +527,8 @@ function SchedulePageContent() {
         id: appointmentId,
         data: buildPayload(),
       });
-    } catch (err) {
-      const duplicateError = getDuplicateDayAppointmentError(err);
-      if (!duplicateError) return;
-      setAppError("");
-      openConfirmDialog({
-        title: "Possible Double Booking",
-        message:
-          "This patient already has an appointment on this date. Moving this appointment may result in a double booking. Do you want to proceed anyway?",
-        confirmText: "Confirm",
-        cancelText: "Cancel",
-        variant: "warning",
-        onConfirm: async () => {
-          await moveMutation.mutateAsync({
-            id: appointmentId,
-            data: buildPayload({ allow_same_day_double_book: true }),
-          });
-        },
-      });
+    } catch {
+      // The shared mutation restores the grid before asking for confirmation.
     } finally {
       if (shouldReleaseEditSession) {
         await releaseAppointmentEditSession(
@@ -584,8 +552,21 @@ function SchedulePageContent() {
       (option) => String(option.id) === String(statusId)
     );
 
-    const shouldReleaseEditSession = await beginDropEditSession(appointmentId);
+    closeSlotBooking();
+    const operation = beginAttempt();
+    const shouldReleaseEditSession = await beginDropEditSession(
+      appointmentId,
+      operation.isCurrent
+    );
     if (shouldReleaseEditSession === null) return;
+    if (!operation.isCurrent()) {
+      if (shouldReleaseEditSession)
+        await releaseAppointmentEditSession(
+          selectedFacilityId,
+          appointmentId
+        ).catch(() => {});
+      return;
+    }
 
     try {
       await moveMutation.mutateAsync({
@@ -594,7 +575,9 @@ function SchedulePageContent() {
           patient: appointment.patient_id,
           resource: appointment.resource ?? null,
           rendering_provider: appointment.rendering_provider || null,
-          appointment_time: appointment.appointment_time,
+          appointment_time:
+            appointment.appointment_time_instant ||
+            appointment.appointment_time,
           room: appointment.room || "",
           reason: appointment.reason || "",
           notes: appointment.notes || "",
@@ -609,9 +592,7 @@ function SchedulePageContent() {
           status_name: selectedStatus?.name ?? null,
           status_code: selectedStatus?.code ?? null,
           status_color: selectedStatus?.color ?? null,
-          // A status-only change keeps the same patient/date, so it can't
-          // create a new same-day double booking. Bypass the duplicate-day
-          // validator so an already double-booked appointment stays editable.
+          // Preserve same-day acceptance for a status-only update.
           allow_same_day_double_book: true,
         },
       });
@@ -633,6 +614,8 @@ function SchedulePageContent() {
       if (!appointment?.id || !selectedFacilityId) return;
 
       closeAppointmentContextMenu();
+      closeSlotBooking();
+      const operation = beginAttempt();
       setAppError("");
 
       try {
@@ -641,6 +624,14 @@ function SchedulePageContent() {
           appointment.id
         );
 
+        if (!operation.isCurrent()) {
+          if (result?.status !== "occupied")
+            await releaseAppointmentEditSession(
+              selectedFacilityId,
+              appointment.id
+            ).catch(() => {});
+          return;
+        }
         if (result?.status === "occupied") {
           showEditBlockedDialog(
             result.active_editor || null,
@@ -651,11 +642,14 @@ function SchedulePageContent() {
 
         openAppointmentModal({ mode: "edit", appointment });
       } catch {
-        setAppError("Appointment could not be opened. Try again.");
+        if (operation.isCurrent())
+          setAppError("Appointment could not be opened. Try again.");
       }
     },
     [
       closeAppointmentContextMenu,
+      closeSlotBooking,
+      beginAttempt,
       openAppointmentModal,
       selectedFacilityId,
       showEditBlockedDialog,
@@ -663,73 +657,23 @@ function SchedulePageContent() {
   );
 
   const handleOpenDuplicate = useCallback(
-    (appointment: AppointmentLike) =>
-      appointmentFlow.modal.openDuplicate(appointment),
-    [appointmentFlow.modal]
+    (appointment: AppointmentLike) => {
+      closeSlotBooking();
+      invalidateConfirmations();
+      appointmentFlow.modal.openDuplicate(appointment);
+    },
+    [appointmentFlow.modal, closeSlotBooking, invalidateConfirmations]
   );
 
   const handleOpenPatientHub = useCallback(
     (appointment: AppointmentLike) => {
       if (!appointment?.patient_id) return;
+      closeSlotBooking();
+      invalidateConfirmations();
       patientFlow.hub.openById(appointment.patient_id);
     },
-    [patientFlow.hub]
+    [patientFlow.hub, closeSlotBooking, invalidateConfirmations]
   );
-
-  const handleOpenFromSlot = async (
-    date: string,
-    time24: string,
-    resourceId: EntityId | "" = ""
-  ) => {
-    const slotKey: SlotHoldKey = {
-      startTime: `${date}T${time24}`,
-      resource: resourceId === "" ? null : resourceId,
-    };
-
-    try {
-      const result = await acquireSlotHold(selectedFacilityId, slotKey);
-      if (result?.status === "occupied") {
-        setSlotBooking({
-          isOpen: true,
-          name: result.active_user?.user_name || "Another user",
-          slotKey,
-          slot: { date, time24, resourceId },
-          isOverriding: false,
-        });
-        return;
-      }
-    } catch {
-      // Presence is advisory; fall through and open the modal anyway.
-    }
-
-    setActiveSlotKey(slotKey);
-    appointmentFlow.modal.openFromSlot(date, time24, resourceId);
-  };
-
-  const closeSlotBooking = () =>
-    setSlotBooking({
-      isOpen: false,
-      name: "",
-      slotKey: null,
-      slot: null,
-      isOverriding: false,
-    });
-
-  const handleSlotBookingOverride = async () => {
-    const { slotKey, slot } = slotBooking;
-    if (!slotKey || !slot) return;
-
-    setSlotBooking((current) => ({ ...current, isOverriding: true }));
-    try {
-      await acquireSlotHold(selectedFacilityId, slotKey, { override: true });
-    } catch {
-      // Advisory — proceed regardless.
-    }
-
-    setActiveSlotKey(slotKey);
-    appointmentFlow.modal.openFromSlot(slot.date, slot.time24, slot.resourceId);
-    closeSlotBooking();
-  };
 
   const formattedAppointments = useMemo(
     () => formatAppointments(appointments, handleOpenEdit, facility?.timezone),
