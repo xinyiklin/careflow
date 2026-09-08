@@ -351,17 +351,17 @@ export default function AppShell() {
 
   return (
     <div className="h-full w-full overflow-hidden">
-      <PatientFlowProvider
-        facilityId={selectedFacilityId}
-        genderOptions={genderOptions}
-        careProviders={careProviders}
-        pharmacies={pharmacies}
-        onSelectPatient={null}
-      >
-        <AppointmentFlowProvider>
+      <AppointmentFlowProvider>
+        <PatientFlowProvider
+          facilityId={selectedFacilityId}
+          genderOptions={genderOptions}
+          careProviders={careProviders}
+          pharmacies={pharmacies}
+          onSelectPatient={null}
+        >
           <AppShellLayout />
-        </AppointmentFlowProvider>
-      </PatientFlowProvider>
+        </PatientFlowProvider>
+      </AppointmentFlowProvider>
     </div>
   );
 }

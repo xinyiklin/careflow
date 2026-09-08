@@ -41,6 +41,7 @@ docker-compose.*.override.yml
 
 CONTINUITY.md
 *.local.md
+.agent-work/
 .claude/
 
 # Node / Frontend

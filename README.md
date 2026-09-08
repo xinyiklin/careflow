@@ -6,113 +6,113 @@
 [![Patient portal](https://img.shields.io/badge/Patient%20portal-patient.xinyiklin.com-2A6F77?style=flat&logo=amazon-web-services&logoColor=white)](https://patient.xinyiklin.com)
 [![License: All Rights Reserved](https://img.shields.io/badge/license-All%20Rights%20Reserved-red.svg)](./LICENSE)
 
-CareFlow is a full-stack EHR-style clinic workflow demo for scheduling,
-patient registration, clinical charting, documents, billing, facility
-administration, and organization administration.
+CareFlow connects patient self-service with a facility-scoped clinician
+workspace: book a visit, find it on the schedule, and open the patient's chart.
+It is a full-stack portfolio project built with React, TypeScript, Django,
+Django REST Framework, and PostgreSQL.
 
-The project is designed as a portfolio-grade healthcare operations app rather
-than a basic CRUD sample. It focuses on facility-scoped workflows, configurable
-clinical scheduling, secure-by-default data handling, and UI patterns that feel
-closer to a real clinic workspace.
+[Watch the workflow](./docs/screenshots/demo.mp4) ·
+[Try the demo](#try-the-demo) · [Architecture](./docs/engineering/architecture.md) ·
+[Run locally](#local-setup)
 
-## Live Demo
+## Watch the workflow
 
-- Landing page: https://careflow.xinyiklin.com
-- Clinician app: https://clinician.xinyiklin.com
-- Patient portal: https://patient.xinyiklin.com
-- Backend API: https://api.careflow.xinyiklin.com
+[![Patient confirms a follow-up appointment](./docs/screenshots/demo.gif)](./docs/screenshots/demo.mp4)
 
-CareFlow uses synthetic demo data only. It is not production medical software,
-not a real EHR, and has not been formally audited or certified for HIPAA
-compliance.
+**Patient books → staff assign a resource → Schedule → Patient Hub.**
+61 seconds · 1080p · muted with captions · recorded locally on September 8, 2026.
+[Open or download the full recording](./docs/screenshots/demo.mp4).
 
-![CareFlow clinician workflow tour](./docs/screenshots/demo.gif)
+CareFlow uses synthetic data. It is not production medical software and has
+not been formally audited or certified for HIPAA compliance. See the [capture runbook](./docs/demo-runbook.md) for provenance, setup, and limits.
 
-## Highlights
+## Try the demo
 
-- **Scheduling** with facility-local time, configurable statuses, visit types,
-  resources, rooms, and blocks. Multi-column views, drag-to-reschedule guards,
-  appointment heatmap, and per-day interval customization.
-- **Patient Hub** with smart search, Quick Start registration, inline
-  demographics editing, masked SSN with auditable reveal, emergency contacts,
-  care-team details, pharmacy preferences, and security-aware tabs.
-- **Clinical charting** with encounters, SOAP progress notes, and a vitals
-  intake flow per appointment; draft and signed states, sign/unsign workflow,
-  and encounter-linked billing handoff.
-- **Medications and allergies** tracked per patient with active/historical
-  status, severity, reaction, prescriber, and audit history. Patient-initiated
-  refill requests flow into a clinician Refills inbox and a per-patient tab for
-  approve/deny resolution.
-- **Secure messaging** between clinicians and patients with threaded
-  conversations, unread tracking, and audit events written to the clinical
-  timeline on send, reply, and resolution.
-- **Billing** with encounter-linked superbills, organization fee schedules,
-  facility-level overrides, and a predefined CPT catalog for bulk-populating
-  schedules.
-- **Document Center** with patient-scoped uploads, preview/download, category
-  management, optional Cloudflare R2/S3 storage, and combined PDF export.
-- **Org and facility admin** for staff, role types, a security permission
-  matrix at both org and facility scope, payer preferences, pharmacy
-  preferences, fee schedules, and a read-only activity log.
-- **Hardening**: facility-scoped APIs, short-lived JWT access plus HTTP-only
-  refresh cookies, CSRF on cookie-backed routes, SSN encrypted at rest with
-  Fernet, audit events for sensitive mutations, and lockout-safe security
-  administration that stops admins from stripping their own — or the facility's
-  last — administrative access (org owners keep break-glass recovery).
-- **Patient portal**: separate React + TypeScript app at `apps/patient/` giving
-  patients a self-service workspace — dashboard, profile, appointments with
-  online self-scheduling and cancellation, medications with refill requests and
-  preferred-pharmacy updates, allergies, a medical summary with vitals, and
-  secure two-way messaging with their care team. Ships light/dark theming and a
-  multi-language UI (English, Spanish, and Chinese — Simplified and Traditional).
-  Shares the Django backend through a dedicated `/v1/portal/` namespace gated by
-  a `PatientPortalAccount` join model, with a cookie-isolated session on the
-  portal subdomain. See
-  [docs/engineering/architecture.md](docs/engineering/architecture.md) for the
-  monorepo layout, subdomain plan, and mobile-wrap considerations.
+| Surface | Open |
+| --- | --- |
+| Project overview | [CareFlow](https://careflow.xinyiklin.com) |
+| Staff workspace | [Clinician app](https://clinician.xinyiklin.com) |
+| Patient self-service | [Patient portal](https://patient.xinyiklin.com) |
+| Backend | [API](https://api.careflow.xinyiklin.com) |
+
+Choose **Continue with Demo** on either portal's sign-in page when demo access
+is enabled. For a connected walkthrough:
+
+1. **Patient:** choose a provider, visit type, and available time; confirm the visit.
+2. **Clinician:** find the patient in Hub → Appointments. Portal bookings have no
+   resource assignment; assign a resource using the existing appointment form,
+   then select that resource and date in Schedule.
+3. **Patient Hub:** open that patient's workspace and review the relevant history.
+
+Available dates depend on the environment's current demo data. Use the
+[runbook](./docs/demo-runbook.md) to preflight local capture and clean up a demo
+booking without reseeding a shared database.
+
+## Engineering strengths
+
+- **Connected scheduling.** Facility-local times, duration-aware resource and
+  provider conflict checks, configurable visit types, and separate patient
+  booking/cancellation rules. Staff can explicitly confirm an intentional
+  overlap; patients cannot override one. Database locking guards final writes;
+  booking presence is advisory.
+- **Explicit access boundaries.** Facility-scoped staff APIs and a separate
+  patient namespace resolve access on the server. Access tokens carry a surface
+  claim; API-host refresh cookies use separate paths for the two portals.
+- **Patient workflows.** Patient Hub brings together registration, appointments,
+  clinical charting, documents, medications, allergies, billing, and timeline
+  views. Patient refill requests feed the staff queue.
+- **Deliberate data handling.** SSNs are encrypted at rest and masked by default;
+  reveal is intentional and audited. Audit coverage is operation-specific:
+  clinician messaging writes audit events, while portal messaging and booking
+  do not currently do so. This is not a compliance claim.
+- **Shared contracts.** Django OpenAPI output generates the TypeScript API
+  package; CI checks contract drift. Shared icon and clinician/landing token
+  packages keep narrow reuse boundaries across independently deployed apps.
+
+For the implementation and its limits, see
+[architecture](./docs/engineering/architecture.md),
+[backend guidance](./docs/engineering/backend-guidelines.md), and
+[verification](./docs/engineering/testing.md).
 
 ## Screenshots
 
-### Schedule
+### Clinician schedule
 
-Facility-local scheduling with configurable resources, visit types, operating
-hours, closed-slot blocks, heatmap density, and appointment status chips in one
-compact workspace.
+Two resource columns keep visit times, duration, status, and overlapping
+appointments visible. This gallery shows June 3, 2026 synthetic data; its calendar date is distinct
+from the September 11 visit booked in the recording.
 
-![Schedule workspace](./docs/screenshots/schedule.png)
+![Populated clinician schedule with two resources](./docs/screenshots/schedule.png)
 
-### Patient Hub
+### Patient portal
 
-Per-patient workspace with identity, insurance, care team, emergency contacts,
-and tab navigation across demographics, documents, medications, allergies,
-appointments, clinical charting, billing, and the unified Timeline.
+Patients can review their upcoming visit and reach scheduling, records,
+medications, and messages from a separate workspace.
 
-![Patient Hub registration view](./docs/screenshots/patient-hub.png)
+![Patient self-service workspace](./docs/screenshots/patient-portal.png)
 
-### Patient Timeline
+### Patient Hub and timeline
 
-A chronological cross-cut of a patient's history — appointments, encounters,
-progress notes, medications, and allergies — aggregated via a shared
-`TimelineFeed` primitive reused across audit, history, and note-review
-surfaces.
+The Appointments and Visits timeline views show the same booking in context.
+These captures crop out the patient identity sidebar. The timeline is a close
+crop of the newly booked visit; historical visit reasons are excluded.
 
-![Patient Timeline tab](./docs/screenshots/timeline.png)
+![Patient Hub workspace](./docs/screenshots/patient-hub.png)
 
-### Refill Inbox
+![Patient timeline summary](./docs/screenshots/timeline.png)
 
-Patient-initiated refill requests flow into a clinician workspace with source,
-status, prescriber, pharmacy, and approve/deny actions kept visible for quick
-queue work.
+### Refill inbox
 
-![Clinician refill inbox](./docs/screenshots/refills.png)
+A pending synthetic request keeps medication, prescriber, pharmacy, status,
+and available actions together without opening free-text history.
 
-### Facility Security &amp; Permissions
+![Pending synthetic refill summary](./docs/screenshots/refills.png)
 
-Role-based permission matrix at facility scope, with sensitive actions flagged
-as audited and per-role staff counts. Org-level permissions and an org/facility
-audit log live under the same admin shell.
+### Facility security
 
-![Facility security permissions matrix](./docs/screenshots/security.png)
+The role matrix shows permissions within the selected facility.
+
+![Facility permission matrix](./docs/screenshots/security.png)
 
 ## Tech Stack
 
