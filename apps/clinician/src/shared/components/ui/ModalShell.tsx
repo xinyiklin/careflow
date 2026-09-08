@@ -24,6 +24,9 @@ type ModalShellProps = {
   isOpen: boolean;
   onClose?: () => void;
   title: ReactNode;
+  titleAccessory?: ReactNode;
+  headerActions?: ReactNode;
+  headerClassName?: string;
   eyebrow?: ReactNode;
   description?: ReactNode;
   maxWidth?: ModalMaxWidth;
@@ -48,6 +51,9 @@ export default function ModalShell({
   isOpen,
   onClose,
   title,
+  titleAccessory,
+  headerActions,
+  headerClassName = "px-6 py-4",
   eyebrow = "",
   description = "",
   maxWidth = "xl",
@@ -74,6 +80,9 @@ export default function ModalShell({
       maxWidth,
       panelClassName,
       title,
+      titleAccessory,
+      headerActions,
+      headerClassName,
     },
     isOpen
   );
@@ -181,17 +190,35 @@ export default function ModalShell({
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={handlePanelKeyDown}
       >
-        <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/55 px-6 py-4">
-          <div className="flex items-start justify-between gap-4">
+        <div
+          className={[
+            "shrink-0 border-b border-cf-border bg-cf-surface-muted/55",
+            displayedContent.headerClassName,
+          ].join(" ")}
+        >
+          <div
+            className={[
+              "flex justify-between gap-4",
+              displayedContent.headerActions ? "items-center" : "items-start",
+            ].join(" ")}
+          >
             <div className="min-w-0">
               {displayedContent.eyebrow ? (
                 <div className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cf-text-subtle">
                   {displayedContent.eyebrow}
                 </div>
               ) : null}
-              <h2 id={titleId} className="text-lg font-semibold text-cf-text">
-                {displayedContent.title}
-              </h2>
+              <div
+                className={[
+                  "flex flex-wrap items-center gap-x-2 gap-y-1",
+                  displayedContent.titleAccessory ? "min-h-9" : "",
+                ].join(" ")}
+              >
+                <h2 id={titleId} className="text-lg font-semibold text-cf-text">
+                  {displayedContent.title}
+                </h2>
+                {displayedContent.titleAccessory}
+              </div>
               {displayedContent.description ? (
                 <p
                   id={descriptionId}
@@ -201,14 +228,17 @@ export default function ModalShell({
                 </p>
               ) : null}
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-cf-text-subtle transition hover:bg-cf-surface-soft hover:text-cf-text-muted"
-              aria-label="Close"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex shrink-0 items-center gap-3">
+              {displayedContent.headerActions}
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-cf-text-subtle transition hover:bg-cf-surface-soft hover:text-cf-text-muted"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
 
