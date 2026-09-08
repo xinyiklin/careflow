@@ -21,6 +21,7 @@ test("existing binary startup choices and missing/invalid new fields preserve sa
     assert.equal(prefs.blockedSlotAppearance, "patterned");
   }
   for (const input of [
+    {},
     null,
     [],
     "bad",
@@ -32,7 +33,7 @@ test("existing binary startup choices and missing/invalid new fields preserve sa
     },
   ]) {
     const prefs = sanitizePreferences(input);
-    assert.equal(prefs.sidebarStartupMode, "expanded");
+    assert.equal(prefs.sidebarStartupMode, "remember");
     assert.equal(prefs.showScheduleFullDay, false);
     assert.equal(prefs.blockedSlotAppearance, "patterned");
   }
@@ -119,8 +120,6 @@ test("appearance reset retains all non-display content and leaves its input unto
   for (const key of [
     "theme",
     "sidebarStartupMode",
-    "sidebarCollapsed",
-    "sidebarLastCollapsed",
     "showScheduleFullDay",
     "blockedSlotAppearance",
     "scheduleStartMode",
@@ -133,6 +132,8 @@ test("appearance reset retains all non-display content and leaves its input unto
   ]) {
     assert.deepEqual(after[key], DEFAULT_USER_PREFERENCES[key], key);
   }
+  assert.equal(after.sidebarLastCollapsed, true);
+  assert.equal(after.sidebarCollapsed, true);
   assert.deepEqual(before, frozen);
 });
 
@@ -148,4 +149,31 @@ test("facility normalization does not import another user's content", () => {
   assert.equal(next.lastFacilityId, "assigned");
   assert.equal(next.personalNotes, prefs.personalNotes);
   assert.equal(normalizeLastFacilityForUser(prefs, null).lastFacilityId, "");
+});
+
+test("reset remembers the visible sidebar even after toggling a fixed startup mode", () => {
+  for (const mode of ["expanded", "collapsed", "remember"]) {
+    for (const visible of [true, false]) {
+      const before = sanitizePreferences({
+        sidebarStartupMode: mode,
+        sidebarLastCollapsed: !visible,
+      });
+      const after = resetWorkspaceAppearance(before, visible);
+      assert.equal(after.sidebarStartupMode, "remember");
+      assert.equal(
+        getInitialNavigationCollapsed(sanitizePreferences(after)),
+        visible
+      );
+      const toggled = toggleNavigation(after.sidebarStartupMode, visible);
+      assert.equal(
+        getInitialNavigationCollapsed(
+          sanitizePreferences({
+            ...after,
+            ...toggled.preferences,
+          })
+        ),
+        !visible
+      );
+    }
+  }
 });

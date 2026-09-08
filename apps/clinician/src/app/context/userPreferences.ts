@@ -20,9 +20,11 @@ export function normalizeSidebarPreferences(value: RawPreferences) {
   const sidebarStartupMode =
     mode === "collapsed" || mode === "expanded" || mode === "remember"
       ? mode
-      : value.sidebarCollapsed === true
-        ? "collapsed"
-        : "expanded";
+      : typeof value.sidebarCollapsed === "boolean"
+        ? value.sidebarCollapsed
+          ? "collapsed"
+          : "expanded"
+        : "remember";
   const sidebarLastCollapsed =
     typeof value.sidebarLastCollapsed === "boolean"
       ? value.sidebarLastCollapsed
@@ -41,7 +43,7 @@ export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   defaultLandingPage: "schedule",
   lastFacilityId: "",
   sidebarCollapsed: false,
-  sidebarStartupMode: "expanded",
+  sidebarStartupMode: "remember",
   sidebarLastCollapsed: false,
   showScheduleFullDay: false,
   blockedSlotAppearance: "patterned",
@@ -205,15 +207,16 @@ export function sanitizePreferences(value: unknown): UserPreferences {
 }
 
 export function resetWorkspaceAppearance(
-  current: UserPreferences
+  current: UserPreferences,
+  sidebarCollapsed = current.sidebarLastCollapsed
 ): UserPreferences {
   const defaults = DEFAULT_USER_PREFERENCES;
   return {
     ...current,
     theme: defaults.theme,
     sidebarStartupMode: defaults.sidebarStartupMode,
-    sidebarLastCollapsed: defaults.sidebarLastCollapsed,
-    sidebarCollapsed: defaults.sidebarCollapsed,
+    sidebarLastCollapsed: sidebarCollapsed,
+    sidebarCollapsed,
     scheduleStartMode: defaults.scheduleStartMode,
     scheduleViewMode: defaults.scheduleViewMode,
     showScheduleSlotDividers: defaults.showScheduleSlotDividers,

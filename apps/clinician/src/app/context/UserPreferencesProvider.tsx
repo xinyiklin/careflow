@@ -197,12 +197,13 @@ function UserPreferencesSession({ children }: { children: ReactNode }) {
     preferences,
     updatePreferences
   );
-  const { applyCollapsed } = navigation;
+  const { isSidebarCollapsed } = navigation;
   const resetPreferences = useCallback(() => {
     if (loggingOutRef.current) return;
-    applyCollapsed(false);
-    updatePreferences(resetWorkspaceAppearance(preferencesRef.current));
-  }, [applyCollapsed, updatePreferences]);
+    updatePreferences(
+      resetWorkspaceAppearance(preferencesRef.current, isSidebarCollapsed)
+    );
+  }, [isSidebarCollapsed, updatePreferences]);
 
   const clearPersonalNotesForLogout = useCallback((): Promise<void> => {
     if (logoutPromiseRef.current) return logoutPromiseRef.current;
