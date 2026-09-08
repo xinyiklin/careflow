@@ -1,136 +1,17 @@
-import { CalendarDays, History, PanelLeftOpen, Sun } from "lucide-react";
-
 import {
   DEFAULT_USER_PREFERENCES,
   useUserPreferences,
 } from "../../app/context/UserPreferencesProvider";
 import { useTheme } from "../context/ThemeProvider";
-import {
-  APPOINTMENT_BLOCK_COLOR_MODE_OPTIONS,
-  APPOINTMENT_BLOCK_DISPLAY_OPTIONS,
-} from "../constants/appointmentBlockDisplay";
 import { Button, ModalShell, SegmentedControl } from "./ui";
-
-import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
-import type {
-  AppointmentBlockDisplay,
-  AppointmentBlockDisplay as AppointmentBlockDisplayValue,
-} from "../constants/appointmentBlockDisplay";
+import {
+  PreferenceGroup,
+  PreferenceSection,
+  PreferenceToggle,
+} from "./user-preferences/PreferenceFields";
+import AppointmentAppearanceSettings from "./user-preferences/AppointmentAppearanceSettings";
+import PreferenceSaveIndicator from "./user-preferences/PreferenceSaveIndicator";
 import type { UserPreferences } from "../types/domain";
-
-type SectionProps = {
-  icon?: LucideIcon;
-  title: string;
-  children: ReactNode;
-};
-
-function Section({ icon: Icon, title, children }: SectionProps) {
-  return (
-    <section className="border-b border-cf-border px-5 py-4 last:border-b-0">
-      <div className="mb-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle">
-        {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
-        <span>{title}</span>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function SettingGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="grid gap-2">
-      <div className="flex items-center gap-2 text-sm font-semibold text-cf-text">
-        <span>{title}</span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function ToggleRow({
-  title,
-  checked,
-  onChange,
-}: {
-  title: string;
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <div className="flex min-h-11 items-center justify-between gap-4 rounded-xl border border-cf-border bg-cf-surface-muted/50 px-3.5 py-2.5 transition-all hover:bg-cf-surface-muted">
-      <div className="truncate text-sm font-semibold text-cf-text">{title}</div>
-      <button
-        type="button"
-        onClick={() => onChange(!checked)}
-        className={[
-          "inline-flex h-6 w-10 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-cf-accent-soft",
-          checked ? "bg-cf-accent" : "bg-cf-border-strong/75",
-        ].join(" ")}
-        aria-pressed={checked}
-        aria-label={title}
-      >
-        <span
-          className={[
-            "pointer-events-none block h-5 w-5 rounded-full bg-cf-surface shadow-xs transition-transform duration-200 ease-in-out",
-            checked ? "translate-x-4" : "translate-x-0",
-          ].join(" ")}
-        />
-      </button>
-    </div>
-  );
-}
-
-function AppointmentBlockDetailsControl({
-  value,
-  onChange,
-}: {
-  value: AppointmentBlockDisplay;
-  onChange: (value: AppointmentBlockDisplay) => void;
-}) {
-  const updateValue = (nextValue: Partial<AppointmentBlockDisplayValue>) =>
-    onChange({ ...value, ...nextValue });
-
-  return (
-    <div className="rounded-xl border border-cf-border bg-cf-surface-muted/50 p-3 space-y-3">
-      <SegmentedControl
-        value={value.colorMode}
-        onChange={(colorMode) => updateValue({ colorMode })}
-        options={APPOINTMENT_BLOCK_COLOR_MODE_OPTIONS}
-      />
-
-      <div className="flex flex-wrap gap-1.5">
-        {APPOINTMENT_BLOCK_DISPLAY_OPTIONS.map((option) => {
-          const optionKey = option.key as keyof AppointmentBlockDisplay;
-          const isActive = Boolean(value?.[optionKey]);
-
-          return (
-            <button
-              key={option.key}
-              type="button"
-              onClick={() => updateValue({ [optionKey]: !isActive })}
-              className={[
-                "rounded-full border px-3 py-1.5 text-xs font-semibold transition-all duration-200",
-                isActive
-                  ? "border-cf-accent bg-cf-accent text-cf-surface shadow-xs scale-[1.02]"
-                  : "border-cf-border bg-cf-surface text-cf-text-subtle hover:border-cf-border-strong hover:text-cf-text",
-              ].join(" ")}
-              aria-pressed={isActive}
-            >
-              {option.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 export default function UserPreferencesModal({
   isOpen,
@@ -139,46 +20,67 @@ export default function UserPreferencesModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const { preferences, updatePreferences, resetPreferences, setSidebarStartupMode } =
-    useUserPreferences();
+  const {
+    preferences,
+    updatePreferences,
+    resetPreferences,
+    saveStatus,
+    retrySave,
+    setSidebarStartupMode,
+  } = useUserPreferences();
   const { setTheme } = useTheme();
-
-  const handleThemeChange = (nextTheme: UserPreferences["theme"]) => {
-    setTheme(nextTheme);
-    updatePreferences({ theme: nextTheme });
+  const handleThemeChange = (theme: UserPreferences["theme"]) => {
+    setTheme(theme);
+    updatePreferences({ theme });
   };
-
-  const handleResetPreferences = () => {
-    setTheme(DEFAULT_USER_PREFERENCES.theme);
-    resetPreferences();
-  };
-
   return (
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
       title="Customize Workspace"
       maxWidth="2xl"
+      panelClassName="h-[min(85dvh,760px)]"
       bodyClassName="px-0 py-0"
-      footerClassName="justify-between bg-cf-surface"
+      footerClassName="justify-between gap-3 bg-cf-surface"
       footer={
         <>
-          <Button
-            type="button"
-            variant="default"
-            onClick={handleResetPreferences}
-          >
-            Reset
-          </Button>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
+            <Button
+              type="button"
+              variant="default"
+              className="whitespace-normal text-left"
+              title="Reset workspace appearance"
+              aria-label="Reset workspace appearance"
+              onClick={() => {
+                setTheme(DEFAULT_USER_PREFERENCES.theme);
+                resetPreferences();
+              }}
+            >
+              Reset
+            </Button>
+            <div className="flex min-h-7 items-center gap-2 text-xs text-cf-text-muted">
+              <PreferenceSaveIndicator status={saveStatus} />
+              {saveStatus === "error" ? (
+                <button
+                  type="button"
+                  onClick={retrySave}
+                  className="rounded px-1 py-1 font-medium text-cf-text underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cf-accent"
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
+          </div>
           <Button type="button" onClick={onClose}>
             Done
           </Button>
         </>
       }
     >
-      <>
-        <Section icon={Sun} title="Appearance">
+      <PreferenceSection title="Appearance">
+        <PreferenceGroup title="Theme">
           <SegmentedControl
+            aria-label="Theme"
             value={preferences.theme}
             onChange={handleThemeChange}
             options={[
@@ -187,136 +89,157 @@ export default function UserPreferencesModal({
               { value: "system", label: "System" },
             ]}
           />
-        </Section>
-
-        <Section icon={CalendarDays} title="Schedule">
-          <div className="grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <SettingGroup title="Start schedule in">
-                <SegmentedControl
-                  value={preferences.scheduleStartMode}
-                  onChange={(value) =>
-                    updatePreferences({ scheduleStartMode: value })
-                  }
-                  options={[
-                    { value: "resources", label: "Resource" },
-                    { value: "days", label: "Multi-day" },
-                  ]}
-                />
-              </SettingGroup>
-
-              <SettingGroup title="Default view">
-                <SegmentedControl
-                  value={preferences.scheduleViewMode}
-                  onChange={(value) =>
-                    updatePreferences({ scheduleViewMode: value })
-                  }
-                  options={[
-                    { value: "slot", label: "Slot" },
-                    { value: "agenda", label: "Agenda" },
-                  ]}
-                />
-              </SettingGroup>
+        </PreferenceGroup>
+      </PreferenceSection>
+      <PreferenceSection title="Navigation">
+        <PreferenceGroup title="Main navigation on startup">
+          <SegmentedControl
+            aria-label="Main navigation on startup"
+            wrapLabels
+            value={preferences.sidebarStartupMode}
+            onChange={setSidebarStartupMode}
+            options={[
+              { value: "collapsed", label: "Collapsed" },
+              { value: "expanded", label: "Expanded" },
+              { value: "remember", label: "Remember last state" },
+            ]}
+          />
+        </PreferenceGroup>
+      </PreferenceSection>
+      <PreferenceSection title="Schedule">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <PreferenceGroup title="Start schedule in">
+            <SegmentedControl
+              aria-label="Start schedule in"
+              value={preferences.scheduleStartMode}
+              onChange={(scheduleStartMode) =>
+                updatePreferences({ scheduleStartMode })
+              }
+              options={[
+                { value: "resources", label: "Resource" },
+                { value: "days", label: "Multi-day" },
+              ]}
+            />
+          </PreferenceGroup>
+          <PreferenceGroup title="Default view">
+            <SegmentedControl
+              aria-label="Default view"
+              value={preferences.scheduleViewMode}
+              onChange={(scheduleViewMode) =>
+                updatePreferences({ scheduleViewMode })
+              }
+              options={[
+                { value: "slot", label: "Slot" },
+                { value: "agenda", label: "Agenda" },
+              ]}
+            />
+          </PreferenceGroup>
+        </div>
+        <PreferenceToggle
+          title="Show full day"
+          description="Off: business hours and existing appointments"
+          checked={preferences.showScheduleFullDay}
+          onChange={(showScheduleFullDay) =>
+            updatePreferences({ showScheduleFullDay })
+          }
+        />
+        <PreferenceGroup title="Blocked-slot appearance">
+          <SegmentedControl
+            aria-label="Blocked-slot appearance"
+            value={preferences.blockedSlotAppearance}
+            onChange={(blockedSlotAppearance) =>
+              updatePreferences({ blockedSlotAppearance })
+            }
+            options={[
+              { value: "patterned", label: "Patterned" },
+              { value: "solid", label: "Solid" },
+            ]}
+          />
+          <div className="mt-2 grid grid-cols-2 gap-2" aria-hidden="true">
+            <div className="cf-blocked-slot relative overflow-hidden rounded-md px-3 py-3 text-xs text-cf-text-muted">
+              <div className="cf-blocked-hatch absolute inset-0" />
+              <span className="relative">Closed</span>
             </div>
-
-            <ToggleRow
-              title="Show slot grid lines"
-              checked={preferences.showScheduleSlotDividers}
-              onChange={(nextValue) =>
-                updatePreferences({ showScheduleSlotDividers: nextValue })
-              }
-            />
-
-            <SettingGroup title="Appointment block details">
-              <AppointmentBlockDetailsControl
-                value={preferences.appointmentBlockDisplay}
-                onChange={(appointmentBlockDisplay) =>
-                  updatePreferences({ appointmentBlockDisplay })
-                }
-              />
-            </SettingGroup>
-
-            <ToggleRow
-              title="Show calendar heatmap"
-              checked={preferences.showScheduleHeatmap}
-              onChange={(nextValue) =>
-                updatePreferences({ showScheduleHeatmap: nextValue })
-              }
-            />
-
-            {preferences.showScheduleHeatmap ? (
-              <SettingGroup title="Heatmap scale">
+            <div className="cf-blocked-slot rounded-md px-3 py-3 text-xs text-cf-text-muted">
+              Closed
+            </div>
+          </div>
+        </PreferenceGroup>
+        <PreferenceToggle
+          title="Show slot grid lines"
+          checked={preferences.showScheduleSlotDividers}
+          onChange={(showScheduleSlotDividers) =>
+            updatePreferences({ showScheduleSlotDividers })
+          }
+        />
+        <AppointmentAppearanceSettings
+          value={preferences.appointmentBlockDisplay}
+          onChange={(appointmentBlockDisplay) =>
+            updatePreferences({ appointmentBlockDisplay })
+          }
+        />
+        <div className="border-t border-cf-border pt-3">
+          <PreferenceToggle
+            title="Show calendar heatmap"
+            checked={preferences.showScheduleHeatmap}
+            onChange={(showScheduleHeatmap) =>
+              updatePreferences({ showScheduleHeatmap })
+            }
+          />
+          {preferences.showScheduleHeatmap ? (
+            <div className="mt-3 grid gap-3">
+              <PreferenceGroup title="Heatmap scale">
                 <SegmentedControl
+                  aria-label="Heatmap scale"
                   value={preferences.scheduleHeatmapMode}
-                  onChange={(value) =>
-                    updatePreferences({ scheduleHeatmapMode: value })
+                  onChange={(scheduleHeatmapMode) =>
+                    updatePreferences({ scheduleHeatmapMode })
                   }
                   options={[
                     { value: "auto", label: "Auto" },
                     { value: "target", label: "Daily target" },
                   ]}
                 />
-                {preferences.scheduleHeatmapMode === "target" ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-cf-border bg-cf-surface-muted/50 px-3.5 py-2.5">
-                    <label
-                      htmlFor="heatmap-daily-target"
-                      className="shrink-0 text-sm font-semibold text-cf-text"
-                    >
-                      Appointments per day
-                    </label>
-                    <input
-                      id="heatmap-daily-target"
-                      type="number"
-                      min={1}
-                      max={200}
-                      value={preferences.scheduleHeatmapDailyTarget}
-                      onChange={(event) => {
-                        const parsed = parseInt(event.target.value, 10);
-                        if (parsed > 0 && parsed <= 200) {
-                          updatePreferences({
-                            scheduleHeatmapDailyTarget: parsed,
-                          });
-                        }
-                      }}
-                      className="w-20 rounded-lg border border-cf-border bg-cf-surface px-2.5 py-1.5 text-center text-sm font-semibold text-cf-text outline-none transition focus:border-cf-accent focus:ring-1 focus:ring-cf-accent-soft"
-                    />
-                  </div>
-                ) : null}
-              </SettingGroup>
-            ) : null}
-          </div>
-        </Section>
-
-        <Section icon={PanelLeftOpen} title="Layout">
-          <ToggleRow
-            title="Start with sidebar collapsed"
-            checked={preferences.sidebarCollapsed}
-            onChange={(nextValue) =>
-              setSidebarStartupMode(nextValue ? "collapsed" : "expanded")
-            }
-          />
-        </Section>
-
-        <Section icon={History} title="Privacy">
-          <div className="grid gap-3">
-            <ToggleRow
-              title="Clear recent patients on logout"
-              checked={preferences.clearRecentPatientsOnLogout}
-              onChange={(nextValue) =>
-                updatePreferences({ clearRecentPatientsOnLogout: nextValue })
-              }
-            />
-
-            <ToggleRow
-              title="Clear personal notes on logout"
-              checked={preferences.clearPersonalNotesOnLogout}
-              onChange={(nextValue) =>
-                updatePreferences({ clearPersonalNotesOnLogout: nextValue })
-              }
-            />
-          </div>
-        </Section>
-      </>
+              </PreferenceGroup>
+              {preferences.scheduleHeatmapMode === "target" ? (
+                <label className="flex flex-wrap items-center justify-between gap-3 text-sm text-cf-text">
+                  Appointments per day
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={preferences.scheduleHeatmapDailyTarget}
+                    onChange={(event) => {
+                      const value = Number(event.target.value);
+                      if (Number.isInteger(value) && value >= 1 && value <= 200)
+                        updatePreferences({
+                          scheduleHeatmapDailyTarget: value,
+                        });
+                    }}
+                    className="w-20 rounded-lg border border-cf-border bg-cf-surface px-2.5 py-1.5 text-center outline-none focus-visible:ring-2 focus-visible:ring-cf-accent"
+                  />
+                </label>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </PreferenceSection>
+      <PreferenceSection title="Privacy">
+        <PreferenceToggle
+          title="Clear recent patients on logout"
+          checked={preferences.clearRecentPatientsOnLogout}
+          onChange={(clearRecentPatientsOnLogout) =>
+            updatePreferences({ clearRecentPatientsOnLogout })
+          }
+        />
+        <PreferenceToggle
+          title="Clear personal notes on logout"
+          checked={preferences.clearPersonalNotesOnLogout}
+          onChange={(clearPersonalNotesOnLogout) =>
+            updatePreferences({ clearPersonalNotesOnLogout })
+          }
+        />
+      </PreferenceSection>
     </ModalShell>
   );
 }
