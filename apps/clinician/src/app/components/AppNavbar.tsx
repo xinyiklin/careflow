@@ -273,6 +273,7 @@ export default function AppNavbar({
             onClick={() => setIsUserMenuOpen((prev) => !prev)}
             className="group flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface text-xs font-bold leading-none tracking-[0.08em] text-cf-text shadow-[var(--shadow-panel)] transition-all duration-150 hover:border-cf-border-strong hover:bg-cf-surface-soft focus:outline-none focus:ring-2 focus:ring-cf-accent/15 focus:ring-offset-1"
             aria-label="Open user menu"
+            aria-expanded={isUserMenuOpen}
           >
             {initials}
           </button>
@@ -359,7 +360,7 @@ export default function AppNavbar({
                     setIsUserMenuOpen(false);
                     onOpenPreferences?.();
                   }}
-                  className="group mt-2.5 flex w-full items-center justify-between rounded-xl border border-cf-border bg-cf-surface px-3.5 py-2.5 text-left text-sm font-medium text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text focus:outline-none"
+                  className="group mt-2.5 flex w-full items-center justify-between rounded-xl border border-cf-border bg-cf-surface px-3.5 py-2.5 text-left text-sm font-medium text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cf-accent"
                 >
                   <div className="flex items-center gap-2.5">
                     <SlidersHorizontal className="h-4 w-4 text-cf-text-subtle transition-colors group-hover:text-cf-accent" />
