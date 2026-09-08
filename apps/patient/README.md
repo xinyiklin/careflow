@@ -8,9 +8,9 @@ same Django backend as the clinician app, but through `/v1/portal/` endpoints
 gated by the `IsPortalPatient` permission and a `PatientPortalAccount` join
 model.
 
-The portal runs as a separate app with a cookie-isolated session, so a patient
-session and a clinician session can coexist without colliding on a shared
-parent domain.
+The portal runs as a separate app with surface-scoped authentication. Separate
+refresh-cookie paths and server-side token checks keep patient and clinician
+sessions distinct, including when both use the same API host.
 
 ## Tech Stack
 
@@ -101,10 +101,14 @@ src/
   under `/v1`.
 - All portal traffic uses the dedicated `/v1/portal/` namespace, gated by the
   `IsPortalPatient` permission.
-- Access tokens are kept in memory; the refresh token lives in an HTTP-only
-  cookie scoped to the portal session.
+- Access tokens are kept in memory and carry a portal surface claim. The
+  HTTP-only refresh cookie belongs to the API host and is path-scoped to
+  `/v1/portal/`; clinician refresh uses `/v1/users/`.
 - Requests use `credentials: "include"` so refresh-cookie auth works across the
   deployed frontend/backend domains.
+
+For demo preflight, recording, and cleanup, see the
+[capture runbook](../../docs/demo-runbook.md).
 
 ## Demo Credentials
 

@@ -207,6 +207,18 @@ For an automated second look once the PR is open, `/code-review` reviews the
 PR's diff against project conventions and bug heuristics, with stricter
 false-positive filtering than `/review`.
 
+### Exact-head merge gate
+
+Before merge, record the PR head SHA and confirm it is the exact commit that
+received the final focused review. Required CI must be green, GitHub must report
+the PR mergeable and conflict-free, and requested changes or unresolved review
+threads must be handled. Any new commit or conflict resolution invalidates the
+prior exact-head verdict and requires fresh affected checks and review.
+
+Keep implementer self-review and the fresh independent review required by
+`AGENTS.md` distinct in the PR receipt. A missing or waived check is recorded,
+not silently treated as a pass.
+
 ### Safety rules
 
 - Never force-push to `main`. Force-push with `--force-with-lease` is fine on
