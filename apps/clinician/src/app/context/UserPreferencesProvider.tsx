@@ -3,291 +3,249 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-
 import { useAuth } from "../../features/auth/AuthProvider";
 import { updateUserPreferences } from "../../features/auth/api/users";
 import {
-  DEFAULT_USER_PREFERENCES,
   normalizeLastFacilityForUser,
+  resetWorkspaceAppearance,
   sanitizePreferences,
 } from "./userPreferences";
-export { DEFAULT_USER_PREFERENCES } from "./userPreferences";
-
+import { UserPreferenceSaveQueue } from "./userPreferencePersistence";
+import useMainNavigationPreference from "./useMainNavigationPreference";
 import type { ReactNode } from "react";
 import type { UserPreferences, UserProfile } from "../../shared/types/domain";
+import type { SaveStamp, SaveStatus } from "./userPreferencePersistence";
 
+export { DEFAULT_USER_PREFERENCES } from "./userPreferences";
+
+type PreferenceUpdate =
+  | Partial<UserPreferences>
+  | ((current: UserPreferences) => Partial<UserPreferences>);
 type UserPreferencesContextValue = {
   preferences: UserPreferences;
   isHydrated: boolean;
-  updatePreferences: (
-    nextValue:
-      | Partial<UserPreferences>
-      | ((current: UserPreferences) => Partial<UserPreferences>)
-  ) => void;
+  updatePreferences: (next: PreferenceUpdate) => void;
   clearPersonalNotesForLogout: () => Promise<void>;
   resetPreferences: () => void;
+  saveStatus: SaveStatus;
+  retrySave: () => void;
+  isSidebarCollapsed: boolean;
+  toggleSidebar: () => void;
+  setSidebarStartupMode: (mode: UserPreferences["sidebarStartupMode"]) => void;
 };
-
 const UserPreferencesContext =
   createContext<UserPreferencesContextValue | null>(null);
 
-function getLegacyStorageKey(user: UserProfile | null) {
-  if (!user) return null;
-  return `cf-user-preferences:${user.id || user.username || "user"}`;
-}
-
-function loadLegacyPreferences(user: UserProfile | null) {
-  const storageKey = getLegacyStorageKey(user);
-  if (!storageKey) return null;
-
-  try {
-    const stored = localStorage.getItem(storageKey);
-    if (!stored) return null;
-    return sanitizePreferences(JSON.parse(stored));
-  } catch (error) {
-    console.error("Failed to load legacy user preferences.", error);
-    return null;
-  }
-}
-
-export function UserPreferencesProvider({ children }: { children: ReactNode }) {
-  const { user, setUser } = useAuth();
-  const userId = user?.id;
-  const userPreferences = user?.preferences;
-  const [preferences, setPreferences] = useState(() => {
-    if (!user) {
-      return DEFAULT_USER_PREFERENCES;
-    }
-    const serverPreferences = sanitizePreferences(userPreferences);
-    const hasServerPreferences =
-      userPreferences &&
-      typeof userPreferences === "object" &&
-      !Array.isArray(userPreferences) &&
-      Object.keys(userPreferences).length > 0;
-    const legacyPreferences = hasServerPreferences
-      ? null
-      : loadLegacyPreferences(user);
-    return normalizeLastFacilityForUser(
-      legacyPreferences || serverPreferences,
-      user
-    );
-  });
-  const [isHydrated, setIsHydrated] = useState(() => !!userId);
-  const hasHydratedRef = useRef(!!userId);
-  const lastSavedPreferencesRef = useRef(
-    userPreferences && typeof userPreferences === "object"
-      ? JSON.stringify(sanitizePreferences(userPreferences))
-      : ""
-  );
-  const saveRequestIdRef = useRef(0);
-  const pendingSaveTimeoutRef = useRef<number | null>(null);
-  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const activeUserIdRef = useRef(userId);
-  const sessionGenerationRef = useRef(0);
-
-  if (activeUserIdRef.current !== userId) {
-    activeUserIdRef.current = userId;
-    sessionGenerationRef.current += 1;
-    saveRequestIdRef.current += 1;
-  }
-
-  const persistPreferences = useCallback(
-    async (
-      preferencesToSave: UserPreferences,
-      requestId: number,
-      userIdForSave: UserProfile["id"],
-      sessionGeneration: number
-    ) => {
-      const runSave = async () => {
-        if (
-          activeUserIdRef.current !== userIdForSave ||
-          sessionGenerationRef.current !== sessionGeneration
-        ) {
-          return;
-        }
-
-        const data = await updateUserPreferences(preferencesToSave);
-        if (
-          saveRequestIdRef.current !== requestId ||
-          activeUserIdRef.current !== userIdForSave ||
-          sessionGenerationRef.current !== sessionGeneration
-        ) {
-          return;
-        }
-
-        const savedPreferences = sanitizePreferences(data?.preferences);
-        lastSavedPreferencesRef.current = JSON.stringify(savedPreferences);
-        setUser((currentUser) => {
-          if (!currentUser || currentUser.id !== userIdForSave) {
-            return currentUser;
-          }
-          return {
-            ...currentUser,
-            preferences: savedPreferences,
-          };
-        });
-      };
-
-      const savePromise = saveQueueRef.current
-        .catch(() => undefined)
-        .then(runSave);
-      saveQueueRef.current = savePromise.then(
-        () => undefined,
-        () => undefined
+function initialPreferences(user: UserProfile | null) {
+  const server = user?.preferences;
+  let source = server;
+  if (
+    user &&
+    (!server || typeof server !== "object" || Object.keys(server).length === 0)
+  ) {
+    try {
+      const legacy = localStorage.getItem(
+        `cf-user-preferences:${user.id || user.username || "user"}`
       );
+      if (legacy) source = JSON.parse(legacy);
+    } catch {
+      // Invalid or inaccessible legacy storage falls back to the server defaults.
+    }
+  }
+  return normalizeLastFacilityForUser(sanitizePreferences(source), user);
+}
 
-      return savePromise;
-    },
-    [setUser]
+// Auth identity changes remount the session owner before its children see preferences.
+// Profile acknowledgments keep the same key and never rehydrate over dirty edits.
+export function UserPreferencesProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  return (
+    <UserPreferencesSession
+      key={user ? String(user.id ?? user.username) : "anonymous"}
+    >
+      {children}
+    </UserPreferencesSession>
   );
+}
 
-  useEffect(() => {
-    if (!userId) {
-      hasHydratedRef.current = false;
-      lastSavedPreferencesRef.current = "";
-      setPreferences(DEFAULT_USER_PREFERENCES);
-      setIsHydrated(false);
-      return;
-    }
+function UserPreferencesSession({ children }: { children: ReactNode }) {
+  const { user, setUser } = useAuth();
+  const [preferences, setPreferences] = useState(() =>
+    initialPreferences(user)
+  );
+  const preferencesRef = useRef(preferences);
+  const userRef = useRef(user);
+  userRef.current = user;
+  const [queue] = useState(() => new UserPreferenceSaveQueue());
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>(() =>
+    user &&
+    JSON.stringify(preferences) !==
+      JSON.stringify(sanitizePreferences(user.preferences))
+      ? "pending"
+      : "saved"
+  );
+  const [revision, setRevision] = useState(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loggingOutRef = useRef(false);
+  const logoutPromiseRef = useRef<Promise<void> | null>(null);
 
-    const serverPreferences = sanitizePreferences(userPreferences);
-    const hasServerPreferences =
-      userPreferences &&
-      typeof userPreferences === "object" &&
-      !Array.isArray(userPreferences) &&
-      Object.keys(userPreferences).length > 0;
-    const legacyPreferences = hasServerPreferences
-      ? null
-      : loadLegacyPreferences(user);
-    const nextPreferences = normalizeLastFacilityForUser(
-      legacyPreferences || serverPreferences,
-      user
-    );
+  const cancelScheduledSave = useCallback(() => {
+    if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
+    timeoutRef.current = null;
+  }, []);
 
-    setPreferences(nextPreferences);
-    lastSavedPreferencesRef.current = JSON.stringify(serverPreferences);
-    hasHydratedRef.current = true;
-    setIsHydrated(true);
-  }, [user, userId, userPreferences]);
-
-  useEffect(() => {
-    if (!user || !hasHydratedRef.current) return;
-
-    const serializedPreferences = JSON.stringify(preferences);
-    if (serializedPreferences === lastSavedPreferencesRef.current) {
-      return;
-    }
-
-    const requestId = saveRequestIdRef.current + 1;
-    saveRequestIdRef.current = requestId;
-
-    const timeoutId = window.setTimeout(async () => {
-      if (pendingSaveTimeoutRef.current === timeoutId) {
-        pendingSaveTimeoutRef.current = null;
-      }
-      try {
-        await persistPreferences(
-          preferences,
-          requestId,
-          user.id,
-          sessionGenerationRef.current
-        );
-      } catch (error) {
-        console.error("Failed to save user preferences.", error);
-      }
-    }, 400);
-    pendingSaveTimeoutRef.current = timeoutId;
-
+  useLayoutEffect(() => {
+    queue.activate();
     return () => {
-      if (pendingSaveTimeoutRef.current === timeoutId) {
-        window.clearTimeout(timeoutId);
-        pendingSaveTimeoutRef.current = null;
-      }
+      cancelScheduledSave();
+      queue.dispose();
     };
-  }, [persistPreferences, preferences, user]);
+  }, [cancelScheduledSave, queue]);
 
-  const updatePreferences = useCallback(
-    (
-      nextValue:
-        | Partial<UserPreferences>
-        | ((current: UserPreferences) => Partial<UserPreferences>)
-    ) => {
-      setPreferences((current) => {
-        const resolved =
-          typeof nextValue === "function" ? nextValue(current) : nextValue;
-
-        return normalizeLastFacilityForUser(
-          sanitizePreferences({
-            ...current,
-            ...resolved,
-          }),
-          user
-        );
+  const persist = useCallback(
+    async (snapshot: UserPreferences, stamp: SaveStamp) => {
+      const userId = userRef.current?.id;
+      const result = await queue.enqueue(stamp, async () => {
+        setSaveStatus("saving");
+        const data = await updateUserPreferences(snapshot);
+        if (
+          !data?.preferences ||
+          typeof data.preferences !== "object" ||
+          Array.isArray(data.preferences)
+        ) {
+          throw new Error("Invalid preference acknowledgment");
+        }
+        return sanitizePreferences(data.preferences);
+      });
+      if (result.kind === "obsolete" || !queue.isCurrent(stamp)) return;
+      if (result.kind === "error") {
+        setSaveStatus("error");
+        throw new Error("Couldn't save workspace preferences.");
+      }
+      preferencesRef.current = result.value;
+      setPreferences(result.value);
+      setSaveStatus("saved");
+      setUser((current) => {
+        if (!current || current.id !== userId || !queue.isCurrent(stamp))
+          return current;
+        return { ...current, preferences: result.value };
       });
     },
-    [user]
+    [queue, setUser]
   );
 
-  const clearPersonalNotesForLogout = useCallback(async () => {
+  const updatePreferences = useCallback(
+    (next: PreferenceUpdate) => {
+      if (
+        !userRef.current ||
+        loggingOutRef.current ||
+        !queue.isCurrent(queue.stamp())
+      )
+        return;
+      const current = preferencesRef.current;
+      const patch = typeof next === "function" ? next(current) : next;
+      const value = normalizeLastFacilityForUser(
+        sanitizePreferences({ ...current, ...patch }),
+        userRef.current
+      );
+      if (JSON.stringify(value) === JSON.stringify(current)) return;
+      preferencesRef.current = value;
+      const stamp = queue.edit();
+      setPreferences(value);
+      setSaveStatus("pending");
+      setRevision(stamp.revision);
+    },
+    [queue]
+  );
+
+  // Membership changes may invalidate a facility choice, but do not replace other
+  // current choices with the last acknowledged profile's preference snapshot.
+  useEffect(() => {
+    updatePreferences({});
+  }, [user, updatePreferences]);
+
+  useEffect(() => {
+    if (!user || loggingOutRef.current || saveStatus !== "pending") return;
+    const stamp = queue.stamp();
+    timeoutRef.current = setTimeout(() => {
+      timeoutRef.current = null;
+      void persist(preferencesRef.current, stamp).catch(() => undefined);
+    }, 400);
+    return cancelScheduledSave;
+  }, [cancelScheduledSave, persist, queue, revision, saveStatus, user]);
+
+  const retrySave = useCallback(() => {
     if (
-      !user ||
-      !hasHydratedRef.current ||
-      !preferences.clearPersonalNotesOnLogout
-    ) {
+      !userRef.current ||
+      loggingOutRef.current ||
+      !queue.isCurrent(queue.stamp())
+    )
       return;
-    }
+    cancelScheduledSave();
+    const stamp = queue.edit();
+    setSaveStatus("pending");
+    setRevision(stamp.revision);
+    // The same debounce owns retry, avoiding duplicate queued requests.
+  }, [cancelScheduledSave, queue]);
 
-    const nextPreferences = normalizeLastFacilityForUser(
-      sanitizePreferences({
-        ...preferences,
-        personalNotes: "",
-      }),
-      user
-    );
-
-    const serializedPreferences = JSON.stringify(nextPreferences);
-    if (pendingSaveTimeoutRef.current !== null) {
-      window.clearTimeout(pendingSaveTimeoutRef.current);
-      pendingSaveTimeoutRef.current = null;
-    }
-
-    const requestId = saveRequestIdRef.current + 1;
-    saveRequestIdRef.current = requestId;
-    lastSavedPreferencesRef.current = serializedPreferences;
-    setPreferences(nextPreferences);
-
-    await persistPreferences(
-      nextPreferences,
-      requestId,
-      user.id,
-      sessionGenerationRef.current
-    );
-  }, [persistPreferences, preferences, user]);
-
+  const navigation = useMainNavigationPreference(
+    preferences,
+    updatePreferences
+  );
+  const { applyCollapsed } = navigation;
   const resetPreferences = useCallback(() => {
-    setPreferences(
-      normalizeLastFacilityForUser(DEFAULT_USER_PREFERENCES, user)
-    );
-  }, [user]);
+    if (loggingOutRef.current) return;
+    applyCollapsed(false);
+    updatePreferences(resetWorkspaceAppearance(preferencesRef.current));
+  }, [applyCollapsed, updatePreferences]);
+
+  const clearPersonalNotesForLogout = useCallback((): Promise<void> => {
+    if (logoutPromiseRef.current) return logoutPromiseRef.current;
+    if (!userRef.current) return Promise.resolve();
+    loggingOutRef.current = true;
+    cancelScheduledSave();
+    const current = preferencesRef.current;
+    const snapshot = current.clearPersonalNotesOnLogout
+      ? { ...current, personalNotes: "" }
+      : current;
+    preferencesRef.current = snapshot;
+    setPreferences(snapshot);
+    setSaveStatus("pending");
+    const stamp = queue.edit();
+    const promise = persist(snapshot, stamp);
+    logoutPromiseRef.current = promise;
+    return promise;
+  }, [cancelScheduledSave, persist, queue]);
 
   const value = useMemo(
     () => ({
       preferences,
-      isHydrated,
+      isHydrated: Boolean(user),
       updatePreferences,
       clearPersonalNotesForLogout,
       resetPreferences,
+      saveStatus,
+      retrySave,
+      isSidebarCollapsed: navigation.isSidebarCollapsed,
+      toggleSidebar: navigation.toggleSidebar,
+      setSidebarStartupMode: navigation.setSidebarStartupMode,
     }),
     [
-      clearPersonalNotesForLogout,
-      isHydrated,
       preferences,
-      resetPreferences,
+      user,
       updatePreferences,
+      clearPersonalNotesForLogout,
+      resetPreferences,
+      saveStatus,
+      retrySave,
+      navigation.isSidebarCollapsed,
+      navigation.toggleSidebar,
+      navigation.setSidebarStartupMode,
     ]
   );
 
@@ -300,12 +258,9 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
 
 export function useUserPreferences() {
   const context = useContext(UserPreferencesContext);
-
-  if (!context) {
+  if (!context)
     throw new Error(
       "useUserPreferences must be used within UserPreferencesProvider"
     );
-  }
-
   return context;
 }
