@@ -174,4 +174,3 @@ export function sanitizePreferences(value: unknown): UserPreferences {
         : DEFAULT_USER_PREFERENCES.scheduleHeatmapDailyTarget,
   };
 }
-
