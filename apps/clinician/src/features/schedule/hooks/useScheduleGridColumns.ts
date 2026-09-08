@@ -22,6 +22,7 @@ import {
 import {
   getAppointmentsScheduleWindow,
   mergeScheduleWindows,
+  resolveScheduleWindow,
 } from "../utils/scheduleWindowUtils";
 
 import type { ScheduleTimeSlot } from "../types";
@@ -61,6 +62,7 @@ type UseScheduleGridColumnsOptions = {
   sharedTimeRail?: boolean;
   scrollColumnsAt?: number | null;
   embedded?: boolean;
+  showScheduleFullDay?: boolean;
 };
 
 export default function useScheduleGridColumns({
@@ -83,6 +85,7 @@ export default function useScheduleGridColumns({
   sharedTimeRail,
   scrollColumnsAt,
   embedded,
+  showScheduleFullDay = false,
 }: UseScheduleGridColumnsOptions) {
   const resourceOptionsByKey = useMemo(
     () => new Map(resourceOptions.map((resource) => [resource.key, resource])),
@@ -156,7 +159,11 @@ export default function useScheduleGridColumns({
         );
         sharedWindow = mergeScheduleWindows(
           sharedWindow,
-          mergeScheduleWindows(operatingWindow, appointmentWindow)
+          resolveScheduleWindow(
+            showScheduleFullDay,
+            operatingWindow,
+            appointmentWindow
+          )
         );
       });
     }
@@ -175,7 +182,11 @@ export default function useScheduleGridColumns({
         entry.key,
         sharedTimeRail
           ? sharedWindow
-          : mergeScheduleWindows(operatingWindow, appointmentWindow)
+          : resolveScheduleWindow(
+              showScheduleFullDay,
+              operatingWindow,
+              appointmentWindow
+            )
       );
     });
 
@@ -184,6 +195,7 @@ export default function useScheduleGridColumns({
     facility,
     rawAppointmentsByColumn,
     sharedTimeRail,
+    showScheduleFullDay,
     visibleDayEntries,
     timeZone,
   ]);

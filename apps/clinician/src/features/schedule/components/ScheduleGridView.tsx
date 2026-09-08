@@ -58,6 +58,8 @@ export default function ScheduleGridView({
   showResourceSelector = true,
   resourceColumnMode = false,
   showSlotDividers = true,
+  showScheduleFullDay = false,
+  blockedSlotAppearance = "patterned",
   appointmentBlockDisplay,
   showToolbar = true,
   embedded = false,
@@ -119,6 +121,7 @@ export default function ScheduleGridView({
     sharedTimeRail,
     scrollColumnsAt,
     embedded,
+    showScheduleFullDay,
   });
 
   const allPositionedByColumn = useMemo(() => {
@@ -558,6 +561,7 @@ export default function ScheduleGridView({
             sharedTimeRailGridTemplate={sharedTimeRailGridTemplate}
             sharedTimeSlots={sharedTimeSlots}
             showSlotDividers={showSlotDividers}
+            blockedSlotAppearance={blockedSlotAppearance}
             timeZoneAbbreviation={timeZoneAbbreviation}
             visibleDayCount={visibleDayCount}
             visibleDayEntries={visibleDayEntries}
@@ -589,6 +593,7 @@ export default function ScheduleGridView({
             showIntervalSelector={showIntervalSelector}
             showResourceSelector={showResourceSelector}
             showSlotDividers={showSlotDividers}
+            blockedSlotAppearance={blockedSlotAppearance}
             slotRowHeightByColumn={slotRowHeightByColumn}
             syncDayScrollTops={syncDayScrollTops}
             timeSlotsByColumn={timeSlotsByColumn}

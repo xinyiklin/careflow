@@ -144,6 +144,8 @@ export type ScheduleViewProps = {
   showResourceSelector?: boolean;
   resourceColumnMode?: boolean;
   showSlotDividers?: boolean;
+  showScheduleFullDay?: boolean;
+  blockedSlotAppearance?: "patterned" | "solid";
   appointmentBlockDisplay: AppointmentBlockDisplay;
   showToolbar?: boolean;
   embedded?: boolean;
@@ -160,6 +162,7 @@ export type ScheduleGridCommonProps = {
   registerDayScrollRef: (key: string, node: HTMLDivElement | null) => void;
   resourceOptionsByKey: Map<string, ResourceDefinition>;
   showSlotDividers: boolean;
+  blockedSlotAppearance: "patterned" | "solid";
   visibleDayCount: number;
   visibleDayEntries: ScheduleDayEntry[];
 };
@@ -270,6 +273,8 @@ export type ScheduleWorkspaceLayoutProps = {
   scheduleMode: ScheduleMode;
   viewMode: ScheduleViewMode;
   showSlotDividers: boolean;
+  showScheduleFullDay: boolean;
+  blockedSlotAppearance: "patterned" | "solid";
   appointmentBlockDisplay: AppointmentBlockDisplay;
   activeScheduleInterval: number;
   formattedAppointments: ScheduleDisplayAppointment[];
