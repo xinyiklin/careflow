@@ -15,6 +15,9 @@ type SegmentedControlProps<TValue extends string> = {
   variant?: "default" | "pill" | "loose";
   disabled?: boolean;
   className?: string;
+  "aria-label"?: string;
+  "aria-labelledby"?: string;
+  wrapLabels?: boolean;
 };
 
 type ThumbStyle = {
@@ -45,6 +48,9 @@ export default function SegmentedControl<TValue extends string>({
   variant = "default",
   disabled,
   className,
+  "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
+  wrapLabels = false,
 }: SegmentedControlProps<TValue>) {
   const groupRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -135,6 +141,8 @@ export default function SegmentedControl<TValue extends string>({
         className
       )}
       role="radiogroup"
+      aria-label={ariaLabel}
+      aria-labelledby={ariaLabelledBy}
       onKeyDown={handleKeyDown}
     >
       {hasThumb && thumb.ready ? (
@@ -168,7 +176,10 @@ export default function SegmentedControl<TValue extends string>({
             disabled={disabled}
             onClick={() => onChange(optionValue)}
             className={joinClasses(
-              "relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap font-medium transition-colors duration-150",
+              "relative z-10 flex items-center justify-center gap-1.5 font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-cf-accent",
+              wrapLabels
+                ? "min-w-0 whitespace-normal py-1"
+                : "whitespace-nowrap",
               !isLoose && "flex-1",
               sizeStyles.height,
               sizeStyles.text,

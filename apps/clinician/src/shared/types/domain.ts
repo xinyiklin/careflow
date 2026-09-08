@@ -89,6 +89,10 @@ export type UserPreferences = {
   lastFacilityId: string;
   defaultFacilityId?: EntityId | null;
   sidebarCollapsed: boolean;
+  sidebarStartupMode: "collapsed" | "expanded" | "remember";
+  sidebarLastCollapsed: boolean;
+  showScheduleFullDay: boolean;
+  blockedSlotAppearance: "patterned" | "solid";
   overviewDensity: string;
   scheduleStartMode: ScheduleStartMode;
   scheduleViewMode: ScheduleViewMode;
