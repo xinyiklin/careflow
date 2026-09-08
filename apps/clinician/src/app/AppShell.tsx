@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import AppNavbar from "./components/AppNavbar";
@@ -33,7 +33,6 @@ import {
   setSessionStorageItem,
 } from "../shared/utils/browserStorage";
 
-import type { Dispatch, SetStateAction } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import type { PatientLike, UserProfile } from "../shared/types/domain";
 
@@ -86,15 +85,7 @@ function AppNavbarContainer({
   );
 }
 
-type AppShellLayoutProps = {
-  isSidebarCollapsed: boolean;
-  setIsSidebarCollapsed: Dispatch<SetStateAction<boolean>>;
-};
-
-function AppShellLayout({
-  isSidebarCollapsed,
-  setIsSidebarCollapsed,
-}: AppShellLayoutProps) {
+function AppShellLayout() {
   const [isQuickActionsOpen, setIsQuickActionsOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
   const [isNotesOpen, setIsNotesOpen] = useState(false);
@@ -108,8 +99,13 @@ function AppShellLayout({
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { preferences, updatePreferences, clearPersonalNotesForLogout } =
-    useUserPreferences();
+  const {
+    preferences,
+    updatePreferences,
+    clearPersonalNotesForLogout,
+    isSidebarCollapsed,
+    toggleSidebar,
+  } = useUserPreferences();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const personalNotesKey = useMemo(() => getPersonalNotesKey(user), [user]);
   const personalNote = preferences.personalNotes || "";
@@ -124,10 +120,6 @@ function AppShellLayout({
     },
     [navigate]
   );
-
-  const handleToggleSidebar = useCallback(() => {
-    setIsSidebarCollapsed((currentValue: boolean) => !currentValue);
-  }, [setIsSidebarCollapsed]);
 
   const handleToggleTheme = useCallback(() => {
     const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
@@ -166,7 +158,7 @@ function AppShellLayout({
         onSetScheduleView: (view) =>
           dispatchScheduleQuickAction(`view:${view}`),
         onShowScheduleToday: () => dispatchScheduleQuickAction("today"),
-        onToggleSidebar: handleToggleSidebar,
+        onToggleSidebar: toggleSidebar,
         onToggleTheme: handleToggleTheme,
         preferences,
       }),
@@ -174,7 +166,7 @@ function AppShellLayout({
       canAccessFacilityAdmin,
       canAccessOrganizationAdmin,
       dispatchScheduleQuickAction,
-      handleToggleSidebar,
+      toggleSidebar,
       handleToggleTheme,
       navigate,
       openPatientSearch,
@@ -270,7 +262,7 @@ function AppShellLayout({
     <div className="cf-app-shell relative flex h-full w-full overflow-hidden bg-cf-page-bg">
       <AppSidebar
         isCollapsed={isSidebarCollapsed}
-        onToggleCollapse={handleToggleSidebar}
+        onToggleCollapse={toggleSidebar}
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -320,7 +312,7 @@ function AppShellLayout({
           dispatchScheduleQuickAction(`view:${view}`)
         }
         onShowScheduleToday={() => dispatchScheduleQuickAction("today")}
-        onToggleSidebar={handleToggleSidebar}
+        onToggleSidebar={toggleSidebar}
         onToggleTheme={handleToggleTheme}
       />
 
@@ -344,10 +336,6 @@ function AppShellLayout({
 
 export default function AppShell() {
   const { selectedFacilityId } = useFacility();
-  const { user } = useAuth();
-  const { preferences, isHydrated } = useUserPreferences();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const initialSidebarUserIdRef = useRef<string | number | null>(null);
   const {
     genderOptions,
     careProviders,
@@ -361,14 +349,6 @@ export default function AppShell() {
     setShellReady(true);
   }, [isFacilityConfigLoading, selectedFacilityId, setShellReady]);
 
-  useEffect(() => {
-    const userKey = user?.id || user?.username || "anonymous";
-    if (!isHydrated || initialSidebarUserIdRef.current === userKey) return;
-
-    setIsSidebarCollapsed(preferences.sidebarCollapsed);
-    initialSidebarUserIdRef.current = userKey;
-  }, [isHydrated, preferences.sidebarCollapsed, user?.id, user?.username]);
-
   return (
     <div className="h-full w-full overflow-hidden">
       <PatientFlowProvider
@@ -379,10 +359,7 @@ export default function AppShell() {
         onSelectPatient={null}
       >
         <AppointmentFlowProvider>
-          <AppShellLayout
-            isSidebarCollapsed={isSidebarCollapsed}
-            setIsSidebarCollapsed={setIsSidebarCollapsed}
-          />
+          <AppShellLayout />
         </AppointmentFlowProvider>
       </PatientFlowProvider>
     </div>

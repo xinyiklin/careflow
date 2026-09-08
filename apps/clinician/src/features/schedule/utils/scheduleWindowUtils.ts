@@ -67,3 +67,14 @@ export function getAppointmentsScheduleWindow(
     endMinute: Math.max(endMinute, startMinute + intervalMinutes),
   };
 }
+
+export function resolveScheduleWindow(
+  fullDay: boolean,
+  operatingWindow: ScheduleWindow,
+  appointmentWindow?: ScheduleWindow | null
+): ScheduleWindow {
+  return fullDay
+    ? { startMinute: 0, endMinute: 24 * 60 }
+    : (mergeScheduleWindows(operatingWindow, appointmentWindow) ??
+        operatingWindow);
+}

@@ -41,6 +41,7 @@ export function ScheduleDayColumns({
   showIntervalSelector,
   showResourceSelector,
   showSlotDividers,
+  blockedSlotAppearance,
   slotRowHeightByColumn,
   syncDayScrollTops,
   timeSlotsByColumn,
@@ -219,6 +220,7 @@ export function ScheduleDayColumns({
                               <div
                                 aria-hidden="true"
                                 className="cf-blocked-hatch pointer-events-none absolute inset-x-0 top-0 z-[1]"
+                                hidden={blockedSlotAppearance === "solid"}
                                 style={{
                                   height: blockedRunLength * slotRowHeight,
                                 }}

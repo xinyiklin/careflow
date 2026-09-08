@@ -759,6 +759,8 @@ function SchedulePageContent() {
           viewMode={viewMode}
           showSlotDividers={showSlotDividers}
           appointmentBlockDisplay={preferences.appointmentBlockDisplay}
+          showScheduleFullDay={preferences.showScheduleFullDay}
+          blockedSlotAppearance={preferences.blockedSlotAppearance}
           activeScheduleInterval={activeScheduleInterval}
           formattedAppointments={formattedAppointments}
           resourceDefinitions={resourceDefinitions}

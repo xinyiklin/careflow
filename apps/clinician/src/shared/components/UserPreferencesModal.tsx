@@ -139,7 +139,7 @@ export default function UserPreferencesModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const { preferences, updatePreferences, resetPreferences } =
+  const { preferences, updatePreferences, resetPreferences, setSidebarStartupMode } =
     useUserPreferences();
   const { setTheme } = useTheme();
 
@@ -292,7 +292,7 @@ export default function UserPreferencesModal({
             title="Start with sidebar collapsed"
             checked={preferences.sidebarCollapsed}
             onChange={(nextValue) =>
-              updatePreferences({ sidebarStartupMode: nextValue ? "collapsed" : "expanded" })
+              setSidebarStartupMode(nextValue ? "collapsed" : "expanded")
             }
           />
         </Section>

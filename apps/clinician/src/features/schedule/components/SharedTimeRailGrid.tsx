@@ -21,6 +21,7 @@ export default function SharedTimeRailGrid({
   sharedTimeRailGridTemplate,
   sharedTimeSlots,
   showSlotDividers,
+  blockedSlotAppearance,
   timeZoneAbbreviation,
   visibleDayCount,
   visibleDayEntries,
@@ -150,6 +151,7 @@ export default function SharedTimeRailGrid({
                           <div
                             aria-hidden="true"
                             className="cf-blocked-hatch pointer-events-none absolute inset-x-0 top-0 z-[1]"
+                            hidden={blockedSlotAppearance === "solid"}
                             style={{
                               height: blockedRunLength * sharedSlotRowHeight,
                             }}

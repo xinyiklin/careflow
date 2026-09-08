@@ -48,6 +48,8 @@ export default function ScheduleWorkspaceLayout({
   scheduleMode,
   viewMode,
   showSlotDividers,
+  showScheduleFullDay,
+  blockedSlotAppearance,
   appointmentBlockDisplay,
   activeScheduleInterval,
   formattedAppointments,
@@ -108,6 +110,8 @@ export default function ScheduleWorkspaceLayout({
                 <MultiDayScheduleView
                   viewMode={viewMode}
                   showSlotDividers={showSlotDividers}
+                  showScheduleFullDay={showScheduleFullDay}
+                  blockedSlotAppearance={blockedSlotAppearance}
                   appointmentBlockDisplay={appointmentBlockDisplay}
                   appointments={formattedAppointments}
                   selectedDate={selectedDate}
@@ -135,6 +139,8 @@ export default function ScheduleWorkspaceLayout({
                 <ResourceScheduleView
                   viewMode={viewMode}
                   showSlotDividers={showSlotDividers}
+                  showScheduleFullDay={showScheduleFullDay}
+                  blockedSlotAppearance={blockedSlotAppearance}
                   appointmentBlockDisplay={appointmentBlockDisplay}
                   appointments={formattedAppointments}
                   selectedDate={selectedDate}
