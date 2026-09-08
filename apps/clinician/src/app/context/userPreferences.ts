@@ -15,10 +15,36 @@ type RawPreferences = Partial<UserPreferences> & {
   [key: string]: unknown;
 };
 
+export function normalizeSidebarPreferences(value: RawPreferences) {
+  const mode = value.sidebarStartupMode;
+  const sidebarStartupMode =
+    mode === "collapsed" || mode === "expanded" || mode === "remember"
+      ? mode
+      : value.sidebarCollapsed === true
+        ? "collapsed"
+        : "expanded";
+  const sidebarLastCollapsed =
+    typeof value.sidebarLastCollapsed === "boolean"
+      ? value.sidebarLastCollapsed
+      : value.sidebarCollapsed === true;
+  return {
+    sidebarStartupMode,
+    sidebarLastCollapsed,
+    sidebarCollapsed:
+      sidebarStartupMode === "remember"
+        ? sidebarLastCollapsed
+        : sidebarStartupMode === "collapsed",
+  };
+}
+
 export const DEFAULT_USER_PREFERENCES: UserPreferences = {
   defaultLandingPage: "schedule",
   lastFacilityId: "",
   sidebarCollapsed: false,
+  sidebarStartupMode: "expanded",
+  sidebarLastCollapsed: false,
+  showScheduleFullDay: false,
+  blockedSlotAppearance: "patterned",
   overviewDensity: "balanced",
   scheduleStartMode: "resources",
   scheduleViewMode: "slot",
@@ -119,7 +145,10 @@ export function sanitizePreferences(value: unknown): UserPreferences {
     lastFacilityId: sanitizeFacilityId(
       nextPreferences.lastFacilityId || nextPreferences.defaultFacilityId
     ),
-    sidebarCollapsed: Boolean(nextPreferences.sidebarCollapsed),
+    ...normalizeSidebarPreferences(nextPreferences),
+    showScheduleFullDay: nextPreferences.showScheduleFullDay === true,
+    blockedSlotAppearance:
+      nextPreferences.blockedSlotAppearance === "solid" ? "solid" : "patterned",
     overviewDensity:
       nextPreferences.overviewDensity ||
       DEFAULT_USER_PREFERENCES.overviewDensity,
@@ -172,5 +201,27 @@ export function sanitizePreferences(value: unknown): UserPreferences {
       nextPreferences.scheduleHeatmapDailyTarget > 0
         ? Math.round(nextPreferences.scheduleHeatmapDailyTarget)
         : DEFAULT_USER_PREFERENCES.scheduleHeatmapDailyTarget,
+  };
+}
+
+export function resetWorkspaceAppearance(
+  current: UserPreferences
+): UserPreferences {
+  const defaults = DEFAULT_USER_PREFERENCES;
+  return {
+    ...current,
+    theme: defaults.theme,
+    sidebarStartupMode: defaults.sidebarStartupMode,
+    sidebarLastCollapsed: defaults.sidebarLastCollapsed,
+    sidebarCollapsed: defaults.sidebarCollapsed,
+    scheduleStartMode: defaults.scheduleStartMode,
+    scheduleViewMode: defaults.scheduleViewMode,
+    showScheduleSlotDividers: defaults.showScheduleSlotDividers,
+    showScheduleFullDay: defaults.showScheduleFullDay,
+    blockedSlotAppearance: defaults.blockedSlotAppearance,
+    appointmentBlockDisplay: { ...defaults.appointmentBlockDisplay },
+    showScheduleHeatmap: defaults.showScheduleHeatmap,
+    scheduleHeatmapMode: defaults.scheduleHeatmapMode,
+    scheduleHeatmapDailyTarget: defaults.scheduleHeatmapDailyTarget,
   };
 }

@@ -292,7 +292,7 @@ export default function UserPreferencesModal({
             title="Start with sidebar collapsed"
             checked={preferences.sidebarCollapsed}
             onChange={(nextValue) =>
-              updatePreferences({ sidebarCollapsed: nextValue })
+              updatePreferences({ sidebarStartupMode: nextValue ? "collapsed" : "expanded" })
             }
           />
         </Section>
