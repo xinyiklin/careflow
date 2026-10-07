@@ -1,16 +1,38 @@
 @import "tailwindcss";
 @import "@careflow/ui-tokens/careflow.css";
 
+/* The day sheet: CareFlow's public landing. Shared `cf-*` tokens carry the
+   surfaces; the values below are landing-only brand and data colors (see
+   DESIGN.md § Public landing). */
 @theme {
   /* Landing-only shell, with 24px gutters yielding 1180px content. */
   --container-cf-page: 76.75rem;
-}
 
-:root {
-  --cf-landing-ambient-top: rgba(219, 234, 254, 0.5);
-  --cf-landing-ambient-bottom: rgba(226, 232, 240, 0.7);
-  --cf-landing-page-start: #f8fafc;
-  --cf-landing-page-end: #eef2f7;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Brand: the favicon's navy mark and frost glyph. */
+  --color-cf-mark: #2a3847;
+  --color-cf-frost: #b8cfdf;
+
+  /* Door colors are data: which portal a workflow belongs to. */
+  --color-cf-door-clinician: #2a3847;
+  --color-cf-door-clinician-tint: #eef2f6;
+  --color-cf-door-clinician-line: #d3dce6;
+  --color-cf-door-patient: #2563eb;
+  --color-cf-door-patient-tint: #eff5ff;
+  --color-cf-door-patient-line: #cbdcfc;
+  --color-cf-on-door: #ffffff;
+
+  /* The boundary band borrows the clinician sidebar: the same lifted navy in
+     both themes, so it reads as a slab on light paper and on the dark page. */
+  --color-cf-band: #1d2735;
+  --color-cf-band-raised: rgba(255, 255, 255, 0.05);
+  --color-cf-band-line: rgba(191, 210, 224, 0.16);
+  --color-cf-band-text: #e6eef5;
+  --color-cf-band-muted: #a7b7c5;
+
+  --ease-cf-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ── Dark token overrides ────────────────────────────────────────────────
@@ -39,6 +61,14 @@
     --color-cf-danger-text: var(--cf-dark-danger-text);
     --shadow-panel: var(--cf-dark-shadow-panel);
     --shadow-panel-lg: var(--cf-dark-shadow-panel-lg);
+
+    --color-cf-door-clinician: #b8cfdf;
+    --color-cf-door-clinician-tint: rgba(184, 207, 223, 0.07);
+    --color-cf-door-clinician-line: rgba(184, 207, 223, 0.2);
+    --color-cf-door-patient: #60a5fa;
+    --color-cf-door-patient-tint: rgba(96, 165, 250, 0.09);
+    --color-cf-door-patient-line: rgba(96, 165, 250, 0.26);
+    --color-cf-on-door: #0f172a;
   }
 }
 
@@ -63,6 +93,14 @@
   --color-cf-danger-text: var(--cf-dark-danger-text);
   --shadow-panel: var(--cf-dark-shadow-panel);
   --shadow-panel-lg: var(--cf-dark-shadow-panel-lg);
+
+  --color-cf-door-clinician: #b8cfdf;
+  --color-cf-door-clinician-tint: rgba(184, 207, 223, 0.07);
+  --color-cf-door-clinician-line: rgba(184, 207, 223, 0.2);
+  --color-cf-door-patient: #60a5fa;
+  --color-cf-door-patient-tint: rgba(96, 165, 250, 0.09);
+  --color-cf-door-patient-line: rgba(96, 165, 250, 0.26);
+  --color-cf-on-door: #0f172a;
 }
 
 @layer base {
@@ -72,36 +110,24 @@
   }
 
   body {
-    /* Inter is the brand face (DESIGN.md); this is a deliberate override of the
-       design-skill default, not a reach for it. */
-    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
     color: var(--color-cf-text);
-    background:
-      radial-gradient(
-        1100px 560px at 88% -12%,
-        var(--cf-landing-ambient-top),
-        transparent 60%
-      ),
-      radial-gradient(
-        820px 480px at -8% 106%,
-        var(--cf-landing-ambient-bottom),
-        transparent 62%
-      ),
-      linear-gradient(
-        180deg,
-        var(--cf-landing-page-start) 0%,
-        var(--cf-landing-page-end) 100%
-      );
+    background: var(--color-cf-page-bg);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-cf-door-patient-tint);
+    color: var(--color-cf-text);
   }
 
   code,
   kbd,
   samp,
   pre {
-    font-family:
-      "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-family: var(--font-mono);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -109,23 +135,6 @@
       scroll-behavior: auto;
     }
   }
-}
-
-/* Dark landing extensions, gated with the semantic-token overrides. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --cf-landing-ambient-top: rgba(30, 64, 175, 0.2);
-    --cf-landing-ambient-bottom: rgba(15, 23, 42, 0.85);
-    --cf-landing-page-start: #0f172a;
-    --cf-landing-page-end: #111827;
-  }
-}
-
-:root[data-theme="dark"] {
-  --cf-landing-ambient-top: rgba(30, 64, 175, 0.2);
-  --cf-landing-ambient-bottom: rgba(15, 23, 42, 0.85);
-  --cf-landing-page-start: #0f172a;
-  --cf-landing-page-end: #111827;
 }
 
 @layer utilities {
@@ -141,54 +150,35 @@
       padding-inline: 1.5rem;
     }
   }
+
+  /* The shared mono label voice (also used on RoleFit AI's landing): small,
+     uppercase, lightly tracked. Reserved for times, hosts, and ledger labels. */
+  .cf-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .cf-display {
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+}
+
+/* Day sheet columns: a time gutter plus the four lanes. A utility (not a
+   component class) so it composes with responsive variants. */
+@utility cf-board-grid {
+  grid-template-columns: 4.5rem repeat(4, minmax(0, 1fr));
 }
 
 @layer components {
-  /* Framed panel matching the product's route frame. */
-  .cf-panel {
-    border: 1px solid var(--color-cf-border);
-    border-radius: var(--radius-cf-card);
-    background: var(--color-cf-surface);
-    box-shadow: var(--shadow-panel);
-  }
-
-  /* Card that reacts to hover with a small physical lift. Motion stays inside
-     DESIGN.md's 150ms band and collapses under reduced-motion. */
-  .cf-lift {
-    transition:
-      transform 150ms ease,
-      border-color 150ms ease,
-      box-shadow 150ms ease;
-  }
-
-  .cf-lift:hover {
-    transform: translateY(-2px);
-    border-color: var(--color-cf-border-strong);
-    box-shadow: var(--shadow-panel-lg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .cf-lift {
-      transition: none;
-    }
-    .cf-lift:hover {
-      transform: none;
-    }
-  }
-
-  /* Browser chrome around a product screenshot: honest frame, real image. */
-  .cf-frame {
-    border: 1px solid var(--color-cf-border);
-    border-radius: var(--radius-cf-shell);
-    background: var(--color-cf-surface);
-    box-shadow: var(--shadow-panel-lg);
-    overflow: hidden;
-  }
-
   /* Theme-adaptive screenshot: show the variant matching the active theme.
      Gated identically to the token overrides above so the framed shot tracks
-     the page (explicit data-theme wins; otherwise follow the OS). Exactly one
-     variant is ever displayed, so the duplicated alt announces only once. */
+     the page (explicit data-theme wins; otherwise follow the OS). */
   .cf-shot-dark {
     display: none;
   }
@@ -198,6 +188,39 @@
   :root[data-theme="dark"] .cf-shot-dark {
     display: block;
   }
+
+  /* ── Day sheet board ──────────────────────────────────────────────────── */
+  .cf-appt {
+    border: 1px solid var(--color-cf-door-clinician-line);
+    border-radius: var(--radius-cf-control);
+    background: var(--color-cf-door-clinician-tint);
+  }
+
+  .cf-appt[data-door="patient"] {
+    border-color: var(--color-cf-door-patient-line);
+    background: var(--color-cf-door-patient-tint);
+  }
+
+  .cf-door-dot {
+    display: inline-block;
+    width: 0.4375rem;
+    height: 0.4375rem;
+    flex: none;
+    border-radius: 9999px;
+    background: var(--color-cf-door-clinician);
+  }
+
+  .cf-door-dot[data-door="patient"] {
+    background: var(--color-cf-door-patient);
+  }
+
+  /* ── Boundary band diagram ───────────────────────────────────────────── */
+  .cf-wire {
+    stroke: color-mix(in srgb, var(--color-cf-frost) 50%, transparent);
+    stroke-width: 1.25;
+    fill: none;
+    vector-effect: non-scaling-stroke;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -206,5 +229,48 @@
   }
   :root:not([data-theme="light"]) .cf-shot-dark {
     display: block;
+  }
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────
+   The shared maker motion: a one-shot 16px fade-lift on the house ease.
+   Everything lives inside `no-preference`, so reduced motion leaves content
+   visible and still. The board's blocks fill in row by row once, the way a
+   day's bookings land on the grid. */
+@media (prefers-reduced-motion: no-preference) {
+  .cf-enter > * {
+    animation: cf-enter 320ms var(--ease-cf-out) backwards;
+  }
+  .cf-enter > :nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .cf-enter > :nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .cf-enter > :nth-child(4) {
+    animation-delay: 180ms;
+  }
+  .cf-enter > :nth-child(5) {
+    animation-delay: 240ms;
+  }
+
+  .cf-fill .cf-appt {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  .cf-fill.is-shown .cf-appt {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 360ms var(--ease-cf-out),
+      transform 360ms var(--ease-cf-out);
+    transition-delay: calc(var(--row, 0) * 90ms + var(--col, 0) * 40ms);
+  }
+}
+
+@keyframes cf-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
 }

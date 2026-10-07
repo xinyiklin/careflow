@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowUpRight } from "lucide-react";
 
-type Variant = "primary" | "secondary";
+type Variant = "clinician" | "patient" | "secondary";
 type Size = "md" | "sm";
 
 type ButtonLinkProps = {
@@ -15,15 +15,18 @@ type ButtonLinkProps = {
 };
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-cf-control)] text-sm font-medium transition-[background-color,border-color,color,transform] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cf-accent active:translate-y-px";
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-[var(--radius-cf-control)] text-sm font-medium transition-[background-color,border-color,color,filter] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cf-text active:translate-y-px";
 
 const SIZES: Record<Size, string> = {
-  md: "px-5 py-2.5",
-  sm: "px-4 py-2",
+  md: "h-11 px-5",
+  sm: "h-9 px-3.5",
 };
 
+// Door colors double as the primary fills: each portal's button wears the
+// color its workflows carry on the day sheet.
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-cf-accent text-cf-surface hover:bg-cf-accent-hover",
+  clinician: "bg-cf-door-clinician text-cf-on-door hover:brightness-[1.15]",
+  patient: "bg-cf-door-patient text-cf-on-door hover:brightness-[1.08]",
   secondary:
     "border border-cf-border-strong bg-cf-surface text-cf-text hover:border-cf-text-subtle",
 };
@@ -31,7 +34,7 @@ const VARIANTS: Record<Variant, string> = {
 export function ButtonLink({
   href,
   children,
-  variant = "primary",
+  variant = "clinician",
   size = "md",
   external = false,
   className = "",

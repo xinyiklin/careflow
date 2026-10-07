@@ -1,9 +1,8 @@
 import { SiteHeader } from "../components/SiteHeader";
 import { Hero } from "../components/Hero";
-import { Portals } from "../components/Portals";
-import { Highlights } from "../components/Highlights";
-import { Stack } from "../components/Stack";
-import { Disclaimer } from "../components/Disclaimer";
+import { DaySheet } from "../components/DaySheet";
+import { Boundary } from "../components/Boundary";
+import { Doors } from "../components/Doors";
 import { SiteFooter } from "../components/SiteFooter";
 
 export function App() {
@@ -11,7 +10,7 @@ export function App() {
     <div id="top" className="min-h-[100dvh]">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[var(--radius-cf-control)] focus:bg-cf-accent focus:px-4 focus:py-2 focus:text-sm focus:text-cf-surface"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-[var(--radius-cf-control)] focus:bg-cf-door-clinician focus:px-4 focus:py-2 focus:text-sm focus:text-cf-on-door"
       >
         Skip to content
       </a>
@@ -20,10 +19,9 @@ export function App() {
 
       <main id="main">
         <Hero />
-        <Portals />
-        <Highlights />
-        <Stack />
-        <Disclaimer />
+        <DaySheet />
+        <Boundary />
+        <Doors />
       </main>
 
       <SiteFooter />

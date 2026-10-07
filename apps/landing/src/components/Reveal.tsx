@@ -1,24 +1,20 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
-type RevealProps = {
-  children: ReactNode;
-  /** Stagger within a group; added to the base transition delay. */
-  delay?: number;
-  className?: string;
-};
-
-// A one-shot entrance: content fades and lifts into place the first time it
-// enters the viewport (or immediately, if already in view on load). This is the
-// one marketing-register affordance the portals deliberately avoid; it never
-// loops and collapses entirely under prefers-reduced-motion. Not a continuous
-// scroll effect — a boolean toggle, so plain state is correct here.
+// One-shot visibility: true the first time the element enters the viewport (or
+// immediately when it is already in view, or when reduced motion is on). Never
+// flips back. A boolean toggle, so plain state is correct here.
 //
-// Robustness: content starts at opacity 0, so it must be guaranteed to reveal.
-// Anything already in view on mount reveals immediately without waiting on
-// IntersectionObserver; the rest reveals through the observer. Browsers that
-// genuinely lack that API use a small scroll fallback.
-export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
-  const ref = useRef<HTMLDivElement>(null);
+// Robustness: callers hide content until this is true, so it must be
+// guaranteed to resolve. Anything already in view on mount resolves
+// immediately without waiting on IntersectionObserver; browsers that lack that
+// API use a small scroll fallback.
+export function useShownOnce(ref: RefObject<HTMLElement | null>): boolean {
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -40,8 +36,6 @@ export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
       return;
     }
 
-    // TypeScript's DOM lib assumes this API is always present, but retain a
-    // small scroll fallback for genuinely older browser environments.
     const Observer = window.IntersectionObserver as
       | typeof IntersectionObserver
       | undefined;
@@ -55,30 +49,41 @@ export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
       return () => window.removeEventListener("scroll", onScroll);
     }
 
-    let done = false;
-    const reveal = () => {
-      if (done) return;
-      done = true;
-      setShown(true);
-      observer.disconnect();
-    };
     const observer = new Observer(
       ([entry]) => {
-        if (entry.isIntersecting) reveal();
+        if (!entry.isIntersecting) return;
+        setShown(true);
+        observer.disconnect();
       },
       { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
     );
-
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [ref]);
+
+  return shown;
+}
+
+type RevealProps = {
+  children: ReactNode;
+  /** Stagger within a group; added to the base transition delay. */
+  delay?: number;
+  className?: string;
+};
+
+// The shared maker entrance: content fades and lifts 16px into place the first
+// time it enters the viewport. It never loops and collapses entirely under
+// prefers-reduced-motion.
+export function Reveal({ children, delay = 0, className = "" }: RevealProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const shown = useShownOnce(ref);
 
   return (
     <div
       ref={ref}
       style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
       className={[
-        "transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+        "transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
         shown ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
         className,
       ].join(" ")}
