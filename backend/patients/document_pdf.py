@@ -5,44 +5,18 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from pypdf import PdfReader, PdfWriter
 from pypdf.errors import PdfReadError
 
-SUPPORTED_DOCUMENT_CONTENT_TYPES = {
-    "application/pdf",
-    "image/jpeg",
-    "image/png",
-    "image/tiff",
+# Bundling chooses a parser from the stored MIME type, so the extension and
+# leading bytes must identify that same format at upload time.
+SUPPORTED_DOCUMENT_FORMATS = {
+    "application/pdf": ((".pdf",), (b"%PDF-",)),
+    "image/jpeg": ((".jpg", ".jpeg"), (b"\xff\xd8\xff",)),
+    "image/png": ((".png",), (b"\x89PNG\r\n\x1a\n",)),
+    "image/tiff": ((".tif", ".tiff"), (b"II*\x00", b"MM\x00*")),
 }
-
-SUPPORTED_DOCUMENT_EXTENSIONS = {
-    ".pdf",
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".tif",
-    ".tiff",
-}
-
-# Leading magic bytes for the supported document formats. Used to reject a file
-# whose real content does not match its claimed extension/MIME type before it is
-# stored (a spoofed ``.pdf`` otherwise fails later at preview/bundle time).
-SUPPORTED_DOCUMENT_MAGIC_PREFIXES = (
-    b"%PDF-",  # PDF
-    b"\xff\xd8\xff",  # JPEG
-    b"\x89PNG\r\n\x1a\n",  # PNG
-    b"II*\x00",  # TIFF (little-endian)
-    b"MM\x00*",  # TIFF (big-endian)
-)
 
 
 class DocumentPdfError(ValueError):
     pass
-
-
-def _has_supported_magic(uploaded_file):
-    header = uploaded_file.read(8)
-    uploaded_file.seek(0)
-    return any(
-        header.startswith(prefix) for prefix in SUPPORTED_DOCUMENT_MAGIC_PREFIXES
-    )
 
 
 def validate_supported_document_file(uploaded_file):
@@ -53,19 +27,14 @@ def validate_supported_document_file(uploaded_file):
 
     content_type = (uploaded_file.content_type or "").lower()
     filename = (uploaded_file.name or "").lower()
-    has_supported_extension = any(
-        filename.endswith(extension) for extension in SUPPORTED_DOCUMENT_EXTENSIONS
-    )
-
-    if (
-        content_type not in SUPPORTED_DOCUMENT_CONTENT_TYPES
-        or not has_supported_extension
-    ):
+    format_rules = SUPPORTED_DOCUMENT_FORMATS.get(content_type)
+    if format_rules is None:
         raise DocumentPdfError("Upload a PDF, TIFF, PNG, or JPG document.")
 
-    # Confirm the real leading bytes match a supported format so a spoofed
-    # extension/MIME cannot smuggle non-document bytes into storage.
-    if not _has_supported_magic(uploaded_file):
+    extensions, magic_prefixes = format_rules
+    header = uploaded_file.read(8)
+    uploaded_file.seek(0)
+    if not filename.endswith(extensions) or not header.startswith(magic_prefixes):
         raise DocumentPdfError("Upload a PDF, TIFF, PNG, or JPG document.")
 
 
