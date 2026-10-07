@@ -39,6 +39,8 @@ def get_changed_field_labels(instance, validated_data):
         "resource": "Resource",
         "rendering_provider": "Rendering provider",
         "appointment_time": "Appointment time",
+        "end_time": "End time",
+        "room": "Room",
         "reason": "Reason",
         "notes": "Notes",
         "status": "Status",
@@ -96,18 +98,23 @@ def compute_heatmap_counts(facility, month_str):
         raise ValidationError({"month": "Use YYYY-MM for month."})
 
     facility_tz = get_facility_timezone(facility)
-    next_month = (
-        month_start_date.replace(year=month_start_date.year + 1, month=1)
-        if month_start_date.month == 12
-        else month_start_date.replace(month=month_start_date.month + 1)
-    )
+    try:
+        next_month = (
+            month_start_date.replace(year=month_start_date.year + 1, month=1)
+            if month_start_date.month == 12
+            else month_start_date.replace(month=month_start_date.month + 1)
+        )
 
-    local_start = datetime.combine(month_start_date, datetime.min.time())
-    local_end = datetime.combine(next_month, datetime.min.time())
-    utc_start = timezone.make_aware(local_start, facility_tz).astimezone(
-        dt_timezone.utc
-    )
-    utc_end = timezone.make_aware(local_end, facility_tz).astimezone(dt_timezone.utc)
+        local_start = datetime.combine(month_start_date, datetime.min.time())
+        local_end = datetime.combine(next_month, datetime.min.time())
+        utc_start = timezone.make_aware(local_start, facility_tz).astimezone(
+            dt_timezone.utc
+        )
+        utc_end = timezone.make_aware(local_end, facility_tz).astimezone(
+            dt_timezone.utc
+        )
+    except (ValueError, OverflowError):
+        raise ValidationError({"month": "Use YYYY-MM for month."})
 
     rows = (
         Appointment.objects.filter(

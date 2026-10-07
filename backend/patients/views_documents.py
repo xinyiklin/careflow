@@ -129,6 +129,14 @@ class PatientDocumentViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        try:
+            patient_id = int(patient_id)
+        except (TypeError, ValueError):
+            return Response(
+                {"patient": "Patient ID must be an integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         patient = Patient.objects.filter(
             pk=patient_id,
             facility=facility,
