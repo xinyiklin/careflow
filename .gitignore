@@ -74,6 +74,3 @@ Thumbs.db
 # Postman local workspace/export files
 .postman/
 postman/
-
-# Local interview diagrams and presentation notes
-/docs/diagrams/archify/
