@@ -235,6 +235,34 @@ accent colors are data-driven from `insuranceCardBranding.ts`. Gradient
 treatments stop at the card boundary; do not extend to surrounding chrome,
 related tabs, or other patient surfaces.
 
+## Public landing (`apps/landing`)
+
+**North star: "The day sheet."** The landing explains CareFlow through the
+clinic's own instruments — a front-desk door directory and a schedule board —
+rather than marketing cards. It is the one surface allowed hero type and
+generous spacing; everything else on this page still uses the tokens above.
+
+- **Brand values beyond `cf-*`:** the favicon's navy mark (`#2a3847`) with its
+  frost glyph (`#b8cfdf`), and the clinician sidebar navy (`#1d2735`) for the
+  always-dark boundary band. The two "doors" carry one color each, used only as
+  data: clinician = navy (frost in dark), patient = the patient app's own accent
+  (`#2563eb`, `#60a5fa` dark). No page gradients, no glass.
+- **Type:** Inter variable with optical sizing (display cut at hero sizes,
+  600, tracking ≥ -0.035em); JetBrains Mono only for times, hosts, routes, and
+  counts.
+- **Signature pieces:** the hero door directory (an APG tablist that swaps the
+  real capture between the two portals); the clinic-day board (time gutter,
+  role columns, appointment-shaped blocks labeled with the real module name);
+  the navy boundary band with the two-host → `/v1` API → PostgreSQL diagram.
+- **Shared maker house** (kept in step with RoleFit AI's landing): creator tag
+  in the masthead, a one-line spec strip under the hero, section heads with
+  the heading left and lede right, an inverse boundary band in the product's
+  deepest color, action ledger rows (name · audience · mono host · action), and
+  a colophon footer that lists the real stack and links the sibling projects.
+  Motion is the shared one-shot 16px fade-lift; nothing loops.
+- Screenshots stay real captures with light/dark variants; a missing file
+  degrades to a labeled empty frame, never a div-built mock.
+
 ## Visual QA
 
 Chrome, not Preview. For meaningful UI changes: run locally, open the

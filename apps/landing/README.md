@@ -37,10 +37,10 @@ All optional; sensible defaults ship in `src/content.ts`.
 
 ## Screenshots
 
-The hero and portal cards render real product screenshots from
-`public/shots/` (`clinician-schedule.png`, `patient-portal.png`). Until those
-files exist the frame shows an honest labeled placeholder, not a mock UI. Drop
-in real captures to complete the page.
+The hero's door frame renders real product captures from `public/shots/`
+(`clinician-schedule-{light,dark}.jpg`, `patient-portal-{light,dark}.jpg`,
+1280×800), swapping portals from the door directory and themes with the page.
+A missing file degrades to an honest labeled placeholder, not a mock UI.
 
 ## Deploy (AWS Amplify)
 

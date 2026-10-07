@@ -157,7 +157,8 @@ apps/patient/src/
 
 apps/landing/src/
   app/              App entry and theme
-  components/       Hero, Portals, Highlights, Header, Footer, ScreenFrame
+  components/       Hero door directory, DaySheet board, Boundary band,
+                    Doors ledger, Header, Footer
 
 packages/
   api-types/        Generated OpenAPI types shared across frontend apps

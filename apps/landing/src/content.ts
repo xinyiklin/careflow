@@ -1,13 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  CalendarClock,
-  ClipboardList,
-  Languages,
-  MessagesSquare,
-  Building2,
-  ShieldCheck,
-} from "lucide-react";
-
 // Portal destinations. Default to the AWS subdomains this landing page fronts;
 // override per environment with VITE_CLINICIAN_URL / VITE_PATIENT_URL.
 const CLINICIAN_URL =
@@ -17,6 +7,8 @@ const PATIENT_URL =
 
 export const GITHUB_URL =
   import.meta.env.VITE_GITHUB_URL ?? "https://github.com/xinyiklin/careflow";
+
+export const CREATOR = { name: "Xinyi Lin", href: "https://xinyiklin.com/" };
 
 function hostOf(url: string): string {
   try {
@@ -30,137 +22,185 @@ function hostOf(url: string): string {
  * matches the landing page's active theme. */
 export type ThemedShot = { light: string; dark: string };
 
-export type Portal = {
-  key: "clinician" | "patient";
+export type DoorKey = "clinician" | "patient";
+
+export type Door = {
+  key: DoorKey;
   name: string;
-  tagline: string;
-  description: string;
-  points: string[];
+  audience: string;
   href: string;
   host: string;
-  cta: string;
   shot: ThemedShot;
   shotAlt: string;
 };
 
-export const PORTALS: Portal[] = [
+export const DOORS: Door[] = [
   {
     key: "clinician",
     name: "Clinician workspace",
-    tagline: "For front desk, nurses, physicians, and admins",
-    description:
-      "The authenticated staff surface: schedule the day, register and chart patients, prescribe, message, and manage a facility.",
-    points: [
-      "Day grid with an availability heatmap and drag to reschedule",
-      "Patient hub: history, encounters, signed progress notes",
-      "Facility scoping and role permissions on every action",
-    ],
+    audience: "Front desk, nurses, physicians, and admins",
     href: CLINICIAN_URL,
     host: hostOf(CLINICIAN_URL),
-    cta: "Clinician workspace",
     shot: {
       light: "/shots/clinician-schedule-light.jpg",
       dark: "/shots/clinician-schedule-dark.jpg",
     },
-    shotAlt: "CareFlow clinician schedule board with an availability heatmap",
+    shotAlt:
+      "CareFlow clinician schedule: provider and room columns, a month calendar with an availability heatmap, and appointment blocks with status labels",
   },
   {
     key: "patient",
     name: "Patient portal",
-    tagline: "For patients, in four languages",
-    description:
-      "A calm, read-first portal where patients see their profile, appointments, and medications, and message the care team.",
-    points: [
-      "Profile, appointments, and medication list at a glance",
-      "Refill requests and secure messaging with the clinic",
-      "English, Spanish, and Chinese, in light or dark mode",
-    ],
+    audience: "Patients, in four languages",
     href: PATIENT_URL,
     host: hostOf(PATIENT_URL),
-    cta: "Patient portal",
     shot: {
       light: "/shots/patient-portal-light.jpg",
       dark: "/shots/patient-portal-dark.jpg",
     },
-    shotAlt: "CareFlow patient portal showing appointments and medications",
+    shotAlt:
+      "CareFlow patient portal home with a booking prompt, messages, and active medications",
   },
 ];
 
-export type Highlight = {
-  icon: LucideIcon;
+export const SPECS: { label: string; value: string }[] = [
+  { label: "Portals", value: "Clinician + patient" },
+  { label: "API", value: "240+ OpenAPI operations" },
+  { label: "Scope", value: "Facility-bound" },
+  { label: "Locales", value: "EN · ES · 简体 · 繁體" },
+  { label: "Data", value: "Synthetic only" },
+];
+
+export type Lane = "desk" | "clinical" | "patient" | "admin";
+
+export const LANES: { key: Lane; label: string; door: DoorKey }[] = [
+  { key: "desk", label: "Front desk", door: "clinician" },
+  { key: "clinical", label: "Clinical", door: "clinician" },
+  { key: "patient", label: "Patient", door: "patient" },
+  { key: "admin", label: "Admin", door: "clinician" },
+];
+
+export type DayBlock = {
+  time: string;
+  lane: Lane;
+  /** Where this lives in the product: the real nav or module name. */
+  module: string;
   title: string;
   body: string;
 };
 
-export const HIGHLIGHTS: Highlight[] = [
+// An illustrative clinic day, ordered by time. The times are a narrative
+// device; every block is a workflow that ships in the demo (PRODUCT.md and the
+// portal READMEs). Blocks that share an hour share a row on the board.
+export const DAY: DayBlock[] = [
   {
-    icon: Building2,
-    title: "Facility-scoped by default",
-    body: "Every patient, appointment, document, and bill is bound to a facility. Cross-facility access needs an explicit organization-level permission gate.",
+    time: "08:05",
+    lane: "desk",
+    module: "Schedule",
+    title: "Open the day grid",
+    body: "Provider and room columns, an availability heatmap, and drag to reschedule.",
   },
   {
-    icon: CalendarClock,
-    title: "Scheduling that holds up",
-    body: "A day grid with an availability heatmap, drag to reschedule, and live slot-hold presence that helps staff avoid booking collisions.",
+    time: "08:20",
+    lane: "patient",
+    module: "Appointments",
+    title: "Book from home",
+    body: "Open times with the care team, under the portal's own eligibility and cancellation rules.",
   },
   {
-    icon: ClipboardList,
-    title: "Charting and orders",
-    body: "Patient hub, SOAP encounters, signed progress notes, and medications with refill requests and e-prescribing scaffolding.",
+    time: "09:10",
+    lane: "desk",
+    module: "Schedule",
+    title: "Book without collisions",
+    body: "Live slot holds show when someone else is booking a time. The final save decides.",
   },
   {
-    icon: MessagesSquare,
-    title: "Secure messaging",
-    body: "A clinic-wide inbox. Patients reach the care team; clinicians reply as one voice, with thread reads audited on the staff side.",
+    time: "09:30",
+    lane: "clinical",
+    module: "Patient hub",
+    title: "Chart the visit",
+    body: "History, SOAP encounters, and progress notes that are signed, not just saved.",
   },
   {
-    icon: Languages,
-    title: "A portal in four languages",
-    body: "The patient side ships English, Spanish, and Chinese (Simplified and Traditional), with a light, dark, and system theme.",
+    time: "11:00",
+    lane: "clinical",
+    module: "Refills",
+    title: "Work the refill queue",
+    body: "Medication lists, refill requests from the portal, and e-prescribing scaffolding.",
   },
   {
-    icon: ShieldCheck,
-    title: "Built for privacy",
-    body: "SSN is encrypted at rest and masked by default, and revealing it is audited. No real PHI: every record is synthetic.",
+    time: "11:40",
+    lane: "patient",
+    module: "Messages",
+    title: "Ask the care team",
+    body: "Secure messages and refill requests in English, Spanish, or Chinese, Simplified or Traditional.",
+  },
+  {
+    time: "14:15",
+    lane: "clinical",
+    module: "Inbox",
+    title: "Reply as one clinic",
+    body: "A clinic-wide inbox answers patient threads in one voice. Staff reads are audited.",
+  },
+  {
+    time: "14:30",
+    lane: "admin",
+    module: "Facility Admin",
+    title: "Run the facility",
+    body: "Staff, resources, appointment types, fee schedules, and payer and pharmacy preferences.",
+  },
+  {
+    time: "17:05",
+    lane: "admin",
+    module: "Org Admin",
+    title: "Hold the line",
+    body: "Roles, permission matrices, and the audit log. Crossing facilities takes an org-level gate.",
   },
 ];
 
-export type TechGroup = {
-  label: string;
-  items: { name: string; slug: string }[];
-};
+export const BOUNDARY: { title: string; items: string[] }[] = [
+  {
+    title: "Scoped",
+    items: [
+      "Patient, appointment, document, clinical, and billing lists and edits carry a facility",
+      "Permission gates per source: patients, documents, insurance, billing",
+      "Organization-wide views only behind an organization-level permission",
+    ],
+  },
+  {
+    title: "Guarded",
+    items: [
+      "SSN encrypted at rest and masked by default",
+      "Revealing it is deliberate, and every reveal is audited",
+      "Portal accounts reject any user who holds a staff role",
+    ],
+  },
+  {
+    title: "Synthetic",
+    items: [
+      "Every patient, appointment, and record is invented",
+      "Not a certified EHR or a medical service",
+      "No HIPAA or SOC 2 compliance claim",
+    ],
+  },
+];
 
-// Real stack, rendered as monochrome marks (Simple Icons) so the neutral
-// palette stays intact. Names carry the meaning if a logo fails to load.
-export const STACK: TechGroup[] = [
+export const SIBLINGS = [
   {
-    label: "Frontend",
-    items: [
-      { name: "React", slug: "react" },
-      { name: "TypeScript", slug: "typescript" },
-      { name: "Vite", slug: "vite" },
-      { name: "Tailwind CSS", slug: "tailwindcss" },
-    ],
+    name: "RoleFit AI",
+    note: "Local-first job application workbench",
+    href: "https://rolefit.xinyiklin.com/",
   },
   {
-    label: "Backend",
-    items: [
-      { name: "Python", slug: "python" },
-      { name: "Django", slug: "django" },
-      { name: "PostgreSQL", slug: "postgresql" },
-    ],
+    name: "Typeset",
+    note: "Local-first resume editor",
+    href: "https://typeset.xinyiklin.com/",
   },
-  {
-    label: "Infrastructure",
-    items: [
-      { name: "AWS Amplify", slug: "awsamplify" },
-      { name: "Render", slug: "render" },
-    ],
-  },
+  { name: "Portfolio", note: "xinyiklin.com", href: CREATOR.href },
 ];
 
 export const NAV_LINKS = [
-  { href: "#portals", label: "Portals" },
-  { href: "#highlights", label: "What's inside" },
-  { href: "#stack", label: "Built with" },
+  { href: "#day", label: "A clinic day" },
+  { href: "#boundary", label: "Boundary" },
+  { href: "#doors", label: "Open the demo" },
 ];
