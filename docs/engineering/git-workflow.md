@@ -168,9 +168,26 @@ rebase B onto the new `main`, then squash-merge B.
 
 ### PR size
 
-Aim for ≤500 lines changed per PR; treat ≤1000 lines as a hard cap. If a PR
-grows past ~500 lines, split it. Refactors that enable a feature should ship
-as their own PR before the feature PR.
+Aim for ≤500 lines changed per PR; past ~500, split it or say in the PR why
+keeping it together helps review. Over 1,000 lines, split it or get a
+documented exception from the fresh independent reviewer for the exact
+reviewed head. Refactors that enable a feature should ship as their own PR
+before the feature PR.
+
+Count additions plus deletions of handwritten code, tests, and documentation
+against the merge base with the PR's actual base (the declared parent for
+stacked PRs). Report generated output (including `packages/api-types`),
+lockfiles, pure renames, and binary files separately with paths; they are
+excluded from the count but still reviewed. Never classify handwritten changes
+as generated to fit a limit. When a machine-bootstrap checkout sits beside the
+repo, `node ../machine-bootstrap/scripts/pr-size.mjs <base>`, run from the
+repo root, counts a branch this way; from a Git worktree the checkout is beside
+the main checkout, not `../`.
+
+An exception records the counted size, excluded paths, why a split is not
+useful, and how the change can be reviewed. The author cannot self-approve, a
+new head needs renewed confirmation, and the exception waives nothing else. If
+review was user-waived, only the user can grant a size exception.
 
 ### Verification before opening a PR
 
@@ -183,29 +200,15 @@ scoped changes, and say what was skipped.
 
 ### Self-review
 
-After the verification gate passes, run `/review` on the local diff to catch
-issues lint and type checks can't surface: silent failures, test gaps, type
-design problems, dead code, and stylistic drift. The skill defaults to a full
-sweep across all applicable aspects; narrow it when you want a focused pass:
+After the verification gate passes, run `/code-review` on the local diff to
+catch issues lint and type checks can't surface: silent failures, test gaps,
+dead code, and logic bugs. Address critical and important findings before
+opening the PR; suggestions are optional. Once the PR is open,
+`/code-review <PR#>` gives a second look at the pushed diff.
 
-```bash
-/review                    # full sweep (default)
-/review code errors        # general code review + error handling
-/review tests              # test coverage and quality
-```
-
-Findings are returned in chat, grouped by severity. Address critical and
-important findings before opening the PR; suggestions are optional.
-
-The `simplify` aspect is intentionally omitted from the default flow. It
-applies built-in style defaults (e.g. `function` over arrow, no nested
-ternaries, explicit return types) that CareFlow hasn't codified, so it can
-suggest churn against the existing house style. Invoke it manually when you
-specifically want a polish pass.
-
-For an automated second look once the PR is open, `/code-review` reviews the
-PR's diff against project conventions and bug heuristics, with stricter
-false-positive filtering than `/review`.
+`/simplify` is intentionally outside the default flow: it applies style
+defaults CareFlow hasn't codified and can churn the house style. Invoke it
+manually when you specifically want a polish pass.
 
 ### Exact-head merge gate
 
@@ -216,19 +219,21 @@ threads must be handled. Any new commit or conflict resolution invalidates the
 prior exact-head verdict and requires fresh affected checks and review.
 
 Keep implementer self-review and the fresh independent review required by
-`AGENTS.md` distinct in the PR receipt. A missing or waived check is recorded,
+`AGENTS.md` distinct in the PR receipt; the PR body is the change's durable
+receipt. A missing or waived check is recorded,
 not silently treated as a pass.
 
 ### Safety rules
 
 - Never force-push to `main`. Force-push with `--force-with-lease` is fine on
   feature branches when rewriting history before merge.
-- Never bypass pre-commit hooks (`--no-verify`, `--no-gpg-sign`) without an
-  explicit reason recorded in the PR body. If a hook fails, fix the underlying
-  issue.
+- Never bypass hooks (`--no-verify`, `--no-gpg-sign`). If a hook fails, fix
+  the underlying issue.
 - After merging, checkout `main`, run `git pull --ff-only origin main`, and
   confirm the PR's commit landed. `gh pr merge --delete-branch` handles the
   remote feature branch.
+- When the task's final PR merges, move its `.agent-work/tasks/<task-id>/`
+  folder to the trash; the PR body is the durable record.
 
 ## Source Basis
 

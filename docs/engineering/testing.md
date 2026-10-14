@@ -82,12 +82,16 @@ Prefer targeted lint for changed frontend files while iterating when available.
 Run the affected app's `build` script when frontend source changes before
 finalizing unless the user explicitly asks for a faster partial pass.
 
-## Chrome Visual QA
+## Visual QA
 
-Chrome visual QA is expected for major UI changes when feasible. A change is
-"major" when layout, spacing, density, theming, or responsive behavior
-changes, or an authenticated view gains new UI. Copy-only edits, type-only
-changes, and refactors with no visual impact are not major.
+Browser QA is flag-first: agents do not run it unsolicited. When a change is
+"major" — layout, spacing, density, theming, or responsive behavior changes,
+or an authenticated view gains new UI — name the risk and let the user decide;
+run it when asked. Copy-only edits, type-only changes, and refactors with no
+visual impact are not major. Every UI change still needs no console errors,
+token-matched density and spacing, and no layout shift. The browser surface
+(in-app pane by default, Chrome for the real logged-in profile) and its
+mechanics live in `CLAUDE.md`.
 
 Check:
 
@@ -99,7 +103,7 @@ Check:
 - no spinner/loading/shimmer effects unless requested
 - tablet or desktop breakpoints relevant to the changed surface
 
-For tiny copy or class-only edits, visual QA may be skipped with a short reason.
+When skipping a flagged check, say so with a short reason.
 
 ## Refactors
 

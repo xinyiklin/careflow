@@ -11,8 +11,6 @@ documents, admin, and modal workflows.
   classes and local extensions remain in `apps/clinician/src/index.css`.
 - Keep page container, shell, modal, and header treatments consistent across
   dashboard, schedule, admin, documents, and patient surfaces.
-- Use Google Chrome for visual inspection/QA unless the user explicitly asks for
-  another browser surface.
 - Dev-only visual experiments belong in `apps/clinician/dev-previews/` and must
   be guarded by `import.meta.env.DEV`.
 
@@ -339,6 +337,5 @@ What to keep in headers:
 
 ## Visual QA
 
-Visual QA expectations (run locally, Chrome, both themes, no console errors /
-layout shift, screenshot) live in `docs/engineering/testing.md` → Chrome Visual
+Visual QA policy and checklist live in `docs/engineering/testing.md` § Visual
 QA.

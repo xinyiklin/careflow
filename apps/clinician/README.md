@@ -150,7 +150,8 @@ Current auth endpoints include:
   clinician-only classes and extensions rather than one-off colors.
 - Keep clinical screens compact and calm; avoid extra subtitles, wrappers, and
   hidden overflow unless the component intentionally owns scrolling.
-- For major UI work, inspect the changed flow in Chrome before finalizing.
+- For major UI work, follow the flag-first visual QA policy in
+  `docs/engineering/testing.md`.
 - Dev-only visual experiments belong in `apps/clinician/dev-previews/`, which
   is gitignored.
 

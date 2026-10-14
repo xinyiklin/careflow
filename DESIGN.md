@@ -265,8 +265,7 @@ generous spacing; everything else on this page still uses the tokens above.
 
 ## Visual QA
 
-Chrome, not Preview. For meaningful UI changes: run locally, open the
-affected authenticated route in Chrome, check both themes if the surface
-uses theme tokens, confirm no console errors / layout shift / broken
-keyboard path, capture a screenshot. Full procedure in `ui-principles.md
-§ Visual QA`.
+Flag-first; policy and checklist live in `docs/engineering/testing.md
+§ Visual QA`. When it runs: open the affected authenticated route, check both
+themes if the surface uses theme tokens, confirm no console errors / layout
+shift / broken keyboard path, and capture a screenshot.
