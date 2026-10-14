@@ -183,9 +183,9 @@ export default function StaffModal({
       return;
     }
     onSubmit?.({
-      user: formData.user_id ? Number(formData.user_id) : "",
-      role: formData.role_id ? Number(formData.role_id) : "",
-      title: formData.title_id ? Number(formData.title_id) : null,
+      user_id: formData.user_id ? Number(formData.user_id) : "",
+      role_id: formData.role_id ? Number(formData.role_id) : "",
+      title_id: formData.title_id ? Number(formData.title_id) : null,
       fee_schedule: formData.fee_schedule_id
         ? Number(formData.fee_schedule_id)
         : null,
