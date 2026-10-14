@@ -82,9 +82,14 @@ helpers, or utilities instead of packing business logic into one large view.
 - New facility-scoped viewsets must extend `FacilityScopedViewSetMixin` (see
   `shared/scoping.py`) rather than hand-rolling queryset filtering — it owns the
   403-on-cross-facility / 401-on-unauthenticated contract.
-- Staff role, security override, and active-status changes are
-  security-impacting. Preserve the self-lockout and last-admin coverage guards
-  when editing staff administration paths.
+- Staff role, security override, active-status, and org-membership active
+  changes are security-impacting. Preserve the self-lockout and last-admin
+  coverage guards when editing staff administration paths.
+- A facility administrator has one definition,
+  `facilities.access.holds_facility_administration`: active staff at an active
+  facility, active membership in its organization, active role, and effective
+  `admin.facility.manage` + `admin.security.manage`. Gates check effective
+  permission keys; never authorize on a role code.
 
 ## Error Handling
 

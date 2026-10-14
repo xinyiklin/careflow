@@ -186,6 +186,15 @@ class StaffSerializer(serializers.ModelSerializer):
             "fee_schedule", getattr(self.instance, "fee_schedule", None)
         )
 
+        # The membership's user is fixed at creation. Re-pointing an existing
+        # row would hand its role and overrides to another user outside the
+        # security gates and audit trail.
+        if self.instance is not None and "user" in attrs:
+            if attrs["user"] != self.instance.user:
+                raise serializers.ValidationError(
+                    {"user_id": "Staff membership user cannot be changed."}
+                )
+
         if role and role.facility_id != facility.id:
             raise serializers.ValidationError(
                 {"role_id": "Role must belong to the selected facility."}

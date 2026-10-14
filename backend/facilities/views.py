@@ -7,7 +7,10 @@ from organizations.permissions import get_user_organization_membership, is_org_a
 from shared.scoping import OrgAdminFacilityScopedViewSetMixin
 
 from .access import (
+    holds_facility_administration,
+    lock_facility_roles,
     lock_facility_security_staff,
+    lock_organization_memberships,
     user_can_manage_facility_security,
     validate_staff_security_transition,
 )
@@ -28,7 +31,6 @@ from .permissions import (
 from .security import (
     SELF_MANAGEMENT_PERMISSIONS,
     get_role_security_template,
-    holds_all_self_management,
 )
 from .serializers import (
     AppointmentStatusSerializer,
@@ -107,31 +109,14 @@ class StaffViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         facility = self.get_facility()
 
-        # security_overrides is writable, and a role can itself grant security
-        # self-management, so creating a membership with either is a
-        # security-management operation gated exactly like perform_update.
-        overrides_in_payload = "security_overrides" in serializer.validated_data
-        incoming_role = serializer.validated_data.get("role")
-        role_manages_security = bool(
-            incoming_role
-            and incoming_role.security_permissions.get("admin.security.manage", False)
-        )
-        can_manage_security = user_can_manage_facility_security(
-            self.request.user, facility.id
-        )
-
-        if (overrides_in_payload or role_manages_security) and (
-            not can_manage_security
-        ):
-            if role_manages_security:
-                raise PermissionDenied(
-                    "You do not have permission to manage security permissions."
-                )
-            # Actor may create the membership but not the security overrides;
-            # strip them rather than persisting an unauthorized escalation.
-            staff = serializer.save(facility=facility, security_overrides={})
-        else:
-            staff = serializer.save(facility=facility)
+        # Every membership carries a role, and assigning a role grants its
+        # permissions, so creation is a security-management operation gated
+        # exactly like a role change in perform_update.
+        if not user_can_manage_facility_security(self.request.user, facility.id):
+            raise PermissionDenied(
+                "You do not have permission to manage security permissions."
+            )
+        staff = serializer.save(facility=facility)
 
         create_security_audit_event(
             self.request,
@@ -286,17 +271,15 @@ class StaffViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet):
                 )
 
             had_admin = any(
-                holds_all_self_management(
-                    staff.role.security_permissions if staff.role else {},
-                    staff.security_overrides,
+                holds_facility_administration(
+                    staff, staff.role, staff.security_overrides
                 )
                 for staff in facility_staff
             )
             has_admin_after = any(
                 staff.id != instance.id
-                and holds_all_self_management(
-                    staff.role.security_permissions if staff.role else {},
-                    staff.security_overrides,
+                and holds_facility_administration(
+                    staff, staff.role, staff.security_overrides
                 )
                 for staff in facility_staff
             )
@@ -487,27 +470,56 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
         if serializer.instance.facility_id != facility.id:
             raise PermissionDenied("Invalid facility.")
 
-        new_perms = serializer.validated_data.get("security_permissions")
-        if new_perms is None:
-            serializer.save()
-            return
-
-        if not user_can_manage_facility_security(self.request.user, facility.id):
-            raise PermissionDenied(
-                "You do not have permission to manage security permissions."
-            )
-
         with transaction.atomic():
+            # Classify and save against the locked, committed row. Both paths
+            # save the full row, so a pre-lock copy could silently undo a
+            # concurrent permission or active-state change. Memberships lock
+            # first to keep the memberships -> roles -> staff order.
+            lock_organization_memberships(facility.organization_id)
+            lock_facility_roles(facility)
+            role = StaffRole.objects.get(pk=serializer.instance.pk)
+            serializer.instance = role
+
+            new_perms = serializer.validated_data.get("security_permissions")
+            active_is_changing = (
+                "is_active" in serializer.validated_data
+                and serializer.validated_data["is_active"] != role.is_active
+            )
+            # Permission lookups require an active role, so deactivating a
+            # role revokes every holder's access and is gated like a
+            # permission edit.
+            if new_perms is None and not active_is_changing:
+                serializer.save()
+                return
+
+            if not user_can_manage_facility_security(self.request.user, facility.id):
+                raise PermissionDenied(
+                    "You do not have permission to manage security permissions."
+                )
+
             facility_staff = lock_facility_security_staff(facility)
+            prospective_is_active = serializer.validated_data.get(
+                "is_active", role.is_active
+            )
+            prospective_permissions = (
+                new_perms if new_perms is not None else role.security_permissions
+            )
 
             user_has_role = any(
-                staff.user_id == self.request.user.id
-                and staff.role_id == serializer.instance.id
+                staff.user_id == self.request.user.id and staff.role_id == role.id
                 for staff in facility_staff
             )
-            if user_has_role and any(
-                not new_perms.get(permission, False)
-                for permission in SELF_MANAGEMENT_PERMISSIONS
+            if user_has_role and not prospective_is_active:
+                raise PermissionDenied(
+                    "You cannot deactivate your own role. This would lock you out."
+                )
+            if (
+                user_has_role
+                and new_perms is not None
+                and any(
+                    not new_perms.get(permission, False)
+                    for permission in SELF_MANAGEMENT_PERMISSIONS
+                )
             ):
                 raise PermissionDenied(
                     "You cannot remove administrative or security management "
@@ -515,19 +527,21 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
                 )
 
             def holds_admin_after(staff):
-                role_permissions = (
-                    new_perms
-                    if staff.role_id == serializer.instance.id
-                    else (staff.role.security_permissions if staff.role else {})
-                )
-                return holds_all_self_management(
-                    role_permissions, staff.security_overrides
+                if staff.role_id == role.id:
+                    return holds_facility_administration(
+                        staff,
+                        role,
+                        staff.security_overrides,
+                        permissions=prospective_permissions,
+                        is_active=prospective_is_active,
+                    )
+                return holds_facility_administration(
+                    staff, staff.role, staff.security_overrides
                 )
 
             had_admin = any(
-                holds_all_self_management(
-                    staff.role.security_permissions if staff.role else {},
-                    staff.security_overrides,
+                holds_facility_administration(
+                    staff, staff.role, staff.security_overrides
                 )
                 for staff in facility_staff
             )
@@ -539,27 +553,45 @@ class StaffRoleViewSet(OrgAdminFacilityScopedViewSetMixin, viewsets.ModelViewSet
                     "administrator. Assign another administrator first."
                 )
 
-            previous_permissions = serializer.instance.security_permissions or {}
+            previous_permissions = role.security_permissions or {}
+            previous_is_active = role.is_active
             members_affected = sum(
-                1 for staff in facility_staff if staff.role_id == serializer.instance.id
+                1 for staff in facility_staff if staff.role_id == role.id
             )
             serializer.save()
-            create_security_audit_event(
-                self.request,
-                facility=serializer.instance.facility,
-                model_name="staffrole",
-                object_pk=serializer.instance.pk,
-                summary=(
-                    f"Updated security permissions for role "
-                    f"{serializer.instance.name}"
-                ),
-                metadata={
-                    "changed_fields": ["Security permissions"],
-                    "previous": previous_permissions,
-                    "next": serializer.instance.security_permissions or {},
-                    "members_affected": members_affected,
-                },
-            )
+            if new_perms is not None:
+                create_security_audit_event(
+                    self.request,
+                    facility=serializer.instance.facility,
+                    model_name="staffrole",
+                    object_pk=serializer.instance.pk,
+                    summary=(
+                        f"Updated security permissions for role "
+                        f"{serializer.instance.name}"
+                    ),
+                    metadata={
+                        "changed_fields": ["Security permissions"],
+                        "previous": previous_permissions,
+                        "next": serializer.instance.security_permissions or {},
+                        "members_affected": members_affected,
+                    },
+                )
+            if active_is_changing:
+                create_security_audit_event(
+                    self.request,
+                    facility=serializer.instance.facility,
+                    model_name="staffrole",
+                    object_pk=serializer.instance.pk,
+                    summary=(
+                        f"Updated active status for role {serializer.instance.name}"
+                    ),
+                    metadata={
+                        "changed_fields": ["Active status"],
+                        "previous": {"is_active": previous_is_active},
+                        "next": {"is_active": serializer.instance.is_active},
+                        "members_affected": members_affected,
+                    },
+                )
 
     def perform_destroy(self, instance):
         if instance.facility_id != self.get_facility().id:

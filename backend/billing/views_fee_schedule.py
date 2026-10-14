@@ -6,7 +6,6 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from audit.services import record_audit_event
-from facilities.access import user_can_admin_facility
 from facilities.security import user_has_facility_permission
 from organizations.permissions import get_user_organization_membership, is_org_admin
 from shared.scoping import OrgAdminFacilityScopedViewSetMixin
@@ -29,7 +28,8 @@ from .services import copy_schedule_to_facility, populate_fee_schedule_from_cata
 class OrgAdminBillingViewSetMixin(OrgAdminFacilityScopedViewSetMixin):
     def require_billing_permission(self, permission):
         facility = self.get_facility()
-        if user_can_admin_facility(self.request.user, facility.id):
+        # get_facility already scoped org admins to their own organization.
+        if is_org_admin(self.request.user):
             return facility
         if not user_has_facility_permission(self.request.user, facility.id, permission):
             raise PermissionDenied("You do not have access to billing.")

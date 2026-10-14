@@ -1,14 +1,79 @@
-from django.db.models import F
+from django.db.models import Exists, F, OuterRef
 from rest_framework.exceptions import PermissionDenied
 
+from organizations.models import OrganizationMembership
 from organizations.permissions import (
     get_user_organization_membership,
     is_org_admin,
     is_org_owner,
 )
 
-from .models import Facility, Staff
-from .security import holds_all_self_management, user_has_facility_permission
+from .models import Facility, Staff, StaffRole
+from .security import holds_effective_self_management, user_has_facility_permission
+
+
+def lock_facility_roles(facility):
+    """Lock a facility's role rows in a stable order. Must run in a transaction.
+
+    FOR NO KEY UPDATE serializes role edits and security checks without
+    blocking the key-share locks Postgres takes when a staff row references a
+    role, so staff inserts elsewhere in an open transaction cannot deadlock it.
+    """
+    list(
+        StaffRole.objects.select_for_update(no_key=True)
+        .filter(facility=facility)
+        .order_by("pk")
+    )
+
+
+def lock_organization_memberships(organization_id):
+    """Lock an organization's membership rows in a stable order.
+
+    Membership state decides whether a staff row grants facility access, so
+    facility security checks and organization people updates both take these
+    locks first (memberships, then roles, then staff). Must run in a
+    transaction.
+    """
+    list(
+        OrganizationMembership.objects.select_for_update()
+        .filter(organization_id=organization_id)
+        .order_by("pk")
+    )
+
+
+def _security_staff_queryset(facility):
+    """Locking staff queryset annotated with the access-granting membership."""
+    return (
+        Staff.objects.select_for_update(of=("self",))
+        .select_related("role")
+        .annotate(
+            has_active_membership=Exists(
+                OrganizationMembership.objects.filter(
+                    user_id=OuterRef("user_id"),
+                    organization_id=facility.organization_id,
+                    is_active=True,
+                )
+            )
+        )
+    )
+
+
+def holds_facility_administration(staff, role, security_overrides, **role_state):
+    """Whether ``staff`` counts as a facility administrator.
+
+    The single definition shared by every coverage guard, mirroring how
+    ``user_has_facility_permission`` resolves access: an active organization
+    membership in the facility's organization, an active role, and effective
+    ``admin.facility.manage`` and ``admin.security.manage``. The role code is
+    irrelevant. ``staff`` must come from ``lock_facility_security_staff`` (or
+    ``validate_staff_security_transition``); the caller checks the staff row's
+    own active state, and an inactive facility has no administrators (see
+    ``validate_staff_security_transition``). ``role_state`` evaluates a
+    prospective role state.
+    """
+    return staff.has_active_membership and holds_effective_self_management(
+        role, security_overrides, **role_state
+    )
 
 
 def lock_facility_security_staff(facility):
@@ -18,13 +83,16 @@ def lock_facility_security_staff(facility):
     last-write-wins: two admins editing concurrently could each pass the
     self-management coverage check and together strip the final administrator.
     Locking the active staff rows serializes those mutations so the coverage
-    check and the save see a consistent, committed view. Must run inside a
-    transaction.
+    check and the save see a consistent, committed view. The organization's
+    memberships and the facility's role rows are locked first so a concurrent
+    membership or role edit is committed before the staff rows, their roles,
+    and their membership state are read. Rows carry ``has_active_membership``
+    for ``holds_facility_administration``. Must run inside a transaction.
     """
+    lock_organization_memberships(facility.organization_id)
+    lock_facility_roles(facility)
     return list(
-        Staff.objects.select_for_update(of=("self",))
-        .filter(facility=facility, is_active=True)
-        .select_related("role")
+        _security_staff_queryset(facility).filter(facility=facility, is_active=True)
     )
 
 
@@ -49,21 +117,22 @@ def validate_staff_security_transition(
     locked_staff_by_id = {item.id: item for item in facility_staff}
     locked_staff = locked_staff_by_id.get(staff.id)
     if locked_staff is None:
-        locked_staff = (
-            Staff.objects.select_for_update(of=("self",))
-            .select_related("role")
-            .get(pk=staff.pk)
-        )
+        locked_staff = _security_staff_queryset(facility).get(pk=staff.pk)
         facility_staff.append(locked_staff)
+    if prospective_role is not None:
+        # Re-read under the role lock; the caller's copy may predate a
+        # concurrent deactivation.
+        prospective_role = StaffRole.objects.get(pk=prospective_role.pk)
 
-    prospective_role_permissions = (
-        prospective_role.security_permissions if prospective_role else {}
-    )
+    # An inactive facility grants no access, so it has no administrators to
+    # cover or lock out. Re-read: the caller's copy may predate a change.
+    if not Facility.objects.filter(pk=facility.pk, is_active=True).exists():
+        return locked_staff
+
     if locked_staff.user_id == actor.id and (
         not prospective_is_active
-        or not holds_all_self_management(
-            prospective_role_permissions,
-            prospective_overrides,
+        or not holds_facility_administration(
+            locked_staff, prospective_role, prospective_overrides
         )
     ):
         raise PermissionDenied(
@@ -73,24 +142,17 @@ def validate_staff_security_transition(
 
     def holds_admin_after(candidate):
         if candidate.id == locked_staff.id:
-            if not prospective_is_active:
-                return False
-            return holds_all_self_management(
-                prospective_role_permissions,
-                prospective_overrides,
+            return prospective_is_active and holds_facility_administration(
+                candidate, prospective_role, prospective_overrides
             )
-        if not candidate.is_active:
-            return False
-        return holds_all_self_management(
-            candidate.role.security_permissions if candidate.role else {},
-            candidate.security_overrides,
+        return candidate.is_active and holds_facility_administration(
+            candidate, candidate.role, candidate.security_overrides
         )
 
     had_admin = any(
         candidate.is_active
-        and holds_all_self_management(
-            candidate.role.security_permissions if candidate.role else {},
-            candidate.security_overrides,
+        and holds_facility_administration(
+            candidate, candidate.role, candidate.security_overrides
         )
         for candidate in facility_staff
     )
@@ -193,11 +255,8 @@ def user_can_admin_facility(user, facility_id):
             is_active=True,
         ).exists()
 
-    staff_profile = get_staff_profile_for_facility(user, facility_id)
-    if not staff_profile or not staff_profile.role:
-        return False
-
-    return staff_profile.role.code == "admin"
+    # Facility staff qualify by effective permission, never by role code.
+    return user_has_facility_permission(user, facility_id, "admin.facility.manage")
 
 
 def user_can_manage_facility_security(user, facility_id):
