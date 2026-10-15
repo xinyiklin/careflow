@@ -4,6 +4,7 @@ import {
   CategoryRail,
   CategoryRailItem,
   SegmentedControl,
+  WorkspaceTitle,
 } from "../../../../shared/components/ui";
 import AdminToolbarSlotContext from "./AdminToolbarSlotContext";
 import useFacility from "../../../facilities/hooks/useFacility";
@@ -47,7 +48,7 @@ export default function AdminWorkspaceShell({
         <div className="grid h-full min-h-0 overflow-hidden bg-cf-surface md:grid-cols-[240px_minmax(0,1fr)]">
           <aside className="cf-admin-sidebar hidden min-h-0 flex-col overflow-hidden border-r border-cf-border bg-cf-surface-muted/70 md:flex">
             <div className="px-3 py-3">
-              <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle leading-none">
                 {workspaceLabel}
               </div>
               {workspaceLabel === "Facility" && leadingAccessory ? (
@@ -93,11 +94,10 @@ export default function AdminWorkspaceShell({
           <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-cf-surface">
             <div className="shrink-0 border-b border-cf-border/60 bg-cf-surface px-3 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h1 className="text-base font-extrabold tracking-tight text-cf-text leading-none">
-                    {activeLabel}
-                  </h1>
-                </div>
+                <WorkspaceTitle
+                  eyebrow={`${workspaceLabel} Admin`}
+                  title={activeLabel}
+                />
 
                 <div
                   ref={setToolbarSlot}
