@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 import useAdminPermissions from "../../features/admin/hooks/shared/useAdminPermissions";
 import useFacility from "../../features/facilities/hooks/useFacility";
@@ -22,7 +22,6 @@ export default function AppSidebar({
   onToggleCollapse,
 }: AppSidebarProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const { canAccessFacilityAdmin, canAccessOrganizationAdmin } =
     useAdminPermissions();
   const { selectedFacilityId, selectedMembership } = useFacility();
@@ -47,7 +46,6 @@ export default function AppSidebar({
 
   const navItems = getSidebarNavItems({
     location,
-    navigate,
     canAccessFacilityAdmin,
     canAccessOrganizationAdmin,
     canViewBilling,
@@ -55,10 +53,24 @@ export default function AppSidebar({
     canViewMedications,
     inboxUnreadCount,
   });
+  const workflowItems = navItems.filter((item) => item.group === "workflow");
+  const adminItems = navItems.filter((item) => item.group === "admin");
+
+  const renderItem = (item: (typeof navItems)[number]) => (
+    <SidebarItem
+      key={item.key}
+      icon={item.icon}
+      label={item.label}
+      to={item.to}
+      isActive={item.isActive}
+      isCollapsed={isCollapsed}
+      badgeCount={item.badgeCount}
+    />
+  );
 
   return (
     <aside
-      className="relative h-full shrink-0 will-change-[width] transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+      className="cf-sidebar-motion relative h-full shrink-0 transition-[width] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]"
       style={{
         width: isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
       }}
@@ -83,10 +95,10 @@ export default function AppSidebar({
 
             <div
               className={[
-                "min-w-0 origin-left overflow-hidden text-left transition-[max-width,opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                "min-w-0 overflow-hidden text-left transition-[max-width,opacity] duration-150 ease-out",
                 isCollapsed
-                  ? "max-w-0 -translate-x-1 scale-x-95 opacity-0"
-                  : "max-w-[124px] translate-x-0 scale-x-100 opacity-100 delay-75",
+                  ? "max-w-0 opacity-0"
+                  : "max-w-[124px] opacity-100 delay-50",
               ].join(" ")}
             >
               <div className="truncate text-sm font-semibold text-[var(--color-cf-sidebar-text)]">
@@ -95,28 +107,14 @@ export default function AppSidebar({
             </div>
           </div>
 
-          <nav className="mt-4 flex-1">
-            <div
-              className={[
-                "mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-cf-sidebar-text-muted)] transition-opacity",
-                isCollapsed ? "opacity-0" : "opacity-100",
-              ].join(" ")}
-            >
-              Navigate
-            </div>
-            <div className="space-y-1">
-              {navItems.map((item) => (
-                <SidebarItem
-                  key={item.key}
-                  icon={item.icon}
-                  label={item.label}
-                  isActive={item.isActive}
-                  isCollapsed={isCollapsed}
-                  onClick={item.onClick}
-                  badgeCount={item.badgeCount}
-                />
-              ))}
-            </div>
+          <nav aria-label="Primary" className="mt-4 flex-1">
+            <div className="space-y-1">{workflowItems.map(renderItem)}</div>
+            {adminItems.length ? (
+              <>
+                <div aria-hidden="true" className="cf-sidebar-divider" />
+                <div className="space-y-1">{adminItems.map(renderItem)}</div>
+              </>
+            ) : null}
           </nav>
         </div>
       </div>

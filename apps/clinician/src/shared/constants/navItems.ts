@@ -9,21 +9,21 @@ import {
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
-import type { Location, NavigateFunction } from "react-router-dom";
+import type { Location } from "react-router-dom";
 
 export type SidebarNavItem = {
   key: string;
   label: string;
   icon: LucideIcon;
   isActive: boolean;
-  onClick: () => void;
+  to: string;
+  group: "workflow" | "admin";
   isVisible?: boolean;
   badgeCount?: number;
 };
 
 type SidebarNavOptions = {
   location: Location;
-  navigate: NavigateFunction;
   canAccessFacilityAdmin: boolean;
   canAccessOrganizationAdmin: boolean;
   canViewBilling?: boolean;
@@ -34,7 +34,6 @@ type SidebarNavOptions = {
 
 export function getSidebarNavItems({
   location,
-  navigate,
   canAccessFacilityAdmin,
   canAccessOrganizationAdmin,
   canViewBilling = false,
@@ -48,7 +47,8 @@ export function getSidebarNavItems({
       label: "Facility Admin",
       icon: Hospital,
       isActive: location.pathname.startsWith("/admin/facility"),
-      onClick: () => navigate("/admin/facility"),
+      to: "/admin/facility",
+      group: "admin",
       isVisible: canAccessFacilityAdmin,
     },
     {
@@ -56,7 +56,8 @@ export function getSidebarNavItems({
       label: "Org Admin",
       icon: Building2,
       isActive: location.pathname.startsWith("/admin/organization"),
-      onClick: () => navigate("/admin/organization"),
+      to: "/admin/organization",
+      group: "admin",
       isVisible: canAccessOrganizationAdmin,
     },
   ] satisfies SidebarNavItem[];
@@ -69,21 +70,24 @@ export function getSidebarNavItems({
       isActive:
         location.pathname.startsWith("/schedule") ||
         location.pathname.startsWith("/appointments"),
-      onClick: () => navigate("/schedule"),
+      to: "/schedule",
+      group: "workflow",
     },
     {
       key: "documents",
       label: "Documents",
       icon: FileText,
       isActive: location.pathname.startsWith("/documents"),
-      onClick: () => navigate("/documents"),
+      to: "/documents",
+      group: "workflow",
     },
     {
       key: "billing",
       label: "Billing",
       icon: CreditCard,
       isActive: location.pathname.startsWith("/billing"),
-      onClick: () => navigate("/billing"),
+      to: "/billing",
+      group: "workflow",
       isVisible: canViewBilling,
     },
     {
@@ -91,7 +95,8 @@ export function getSidebarNavItems({
       label: "Inbox",
       icon: Inbox,
       isActive: location.pathname.startsWith("/inbox"),
-      onClick: () => navigate("/inbox"),
+      to: "/inbox",
+      group: "workflow",
       isVisible: canViewMessaging,
       badgeCount: inboxUnreadCount,
     },
@@ -100,7 +105,8 @@ export function getSidebarNavItems({
       label: "Refills",
       icon: Pill,
       isActive: location.pathname.startsWith("/refills"),
-      onClick: () => navigate("/refills"),
+      to: "/refills",
+      group: "workflow",
       isVisible: canViewMedications,
     },
     ...adminItems,

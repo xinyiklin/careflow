@@ -194,7 +194,7 @@ export default function ScheduleSidebar({
             </button>
 
             {isMonthPickerOpen ? (
-              <div className="absolute left-0 top-8 z-20 w-56 rounded-xl border border-cf-border/60 bg-cf-surface p-3 shadow-[var(--shadow-elevated)]">
+              <div className="absolute left-0 top-8 z-20 w-56 rounded-xl border border-cf-border/60 bg-cf-surface p-3 shadow-[var(--shadow-panel-lg)]">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <button
                     type="button"

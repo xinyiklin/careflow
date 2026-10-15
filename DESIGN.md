@@ -219,10 +219,13 @@ and critique passes should prefer these over hand-rolled variants.
 
 - 150–220ms duration band. Modal panel-in is the upper bound at 220ms
   (`cubic-bezier(0.22, 1, 0.36, 1)`); most transitions sit at 150ms ease.
+- Shell reference values: route fade 200ms, sidebar collapse 200ms (labels
+  150ms), navbar popovers 150ms (`cf-popover-in`). No hover lifts or scales on
+  chrome.
 - Motion conveys state change only. No decorative motion, no orchestrated
   page-load sequences, no entrance choreography on data.
-- `@media (prefers-reduced-motion: reduce)` disables modal animations.
-  Respect this everywhere.
+- `@media (prefers-reduced-motion: reduce)` disables modal, route-fade,
+  popover, and sidebar-collapse motion. Respect this everywhere.
 - No skeleton shimmer, no spinner-as-default, no loading badges. Layout
   preservation is silent. (See `ui-principles.md § Loading And Empty States`.)
 
