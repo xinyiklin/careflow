@@ -112,7 +112,7 @@ function MixList({ title, items }: { title: string; items: BillingMixItem[] }) {
               className="relative group flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs transition hover:bg-cf-surface/50"
             >
               <div
-                className="absolute inset-y-0 left-0 bg-cf-accent/5 rounded-r transition-all duration-500 ease-out"
+                className="absolute inset-y-0 left-0 bg-cf-accent/5 rounded-r transition-[width] duration-200 ease-out"
                 style={{ width: `${percentage}%` }}
               />
               <span className="relative z-10 truncate text-cf-text-muted font-medium">

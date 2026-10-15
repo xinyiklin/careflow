@@ -77,23 +77,23 @@ export default function ScheduleHeader({
             onClick={() => setIsIntervalExpanded((current) => !current)}
             aria-expanded={isIntervalExpanded}
             className={[
-              "group flex min-h-7 items-center gap-1 rounded-xl border px-2 text-left text-[10px] font-semibold transition",
+              "group flex min-h-7 items-center gap-1 rounded-lg border px-2 text-left text-[11px] font-semibold transition-colors",
               isIntervalExpanded
-                ? "bg-[var(--color-cf-sidebar-active-bg)] text-[var(--color-cf-sidebar-text)] border-[var(--color-cf-sidebar-active-border)]"
-                : "border-[var(--color-cf-sidebar-border)] bg-[var(--color-cf-sidebar-surface)] text-[var(--color-cf-sidebar-text-muted)] hover:bg-[var(--color-cf-sidebar-surface-strong)] hover:text-[var(--color-cf-sidebar-text)]",
+                ? "border-cf-border-strong bg-cf-surface text-cf-text"
+                : "border-cf-border bg-cf-surface text-cf-text-muted hover:border-cf-border-strong hover:text-cf-text",
             ].join(" ")}
           >
             <span className="tabular-nums">{activeScheduleInterval}</span>
             <ChevronDown
               className={[
-                "h-3 w-3 shrink-0 text-[var(--color-cf-sidebar-text-muted)] transition-transform duration-200 group-hover:text-[var(--color-cf-sidebar-text)]",
+                "h-3 w-3 shrink-0 text-cf-text-subtle transition-transform duration-150 group-hover:text-cf-text",
                 isIntervalExpanded ? "rotate-180" : "",
               ].join(" ")}
             />
           </button>
 
           {isIntervalExpanded ? (
-            <div className="absolute right-0 top-[calc(100%+0.25rem)] z-30 grid min-w-[3.5rem] gap-1 overflow-hidden rounded-xl border border-[var(--color-cf-sidebar-border)] bg-[var(--color-cf-sidebar-bg)] p-1 shadow-lg">
+            <div className="cf-popover-in absolute right-0 top-[calc(100%+0.25rem)] z-30 grid min-w-[3.5rem] gap-0.5 overflow-hidden rounded-xl border border-cf-border bg-cf-surface p-1 shadow-[var(--shadow-panel-lg)]">
               {SLOT_INTERVAL_OPTIONS.map((option) => {
                 const isActive = activeScheduleInterval === option;
 
@@ -109,8 +109,8 @@ export default function ScheduleHeader({
                     className={[
                       "flex h-7 items-center justify-center rounded-lg px-2 text-center text-xs font-semibold transition",
                       isActive
-                        ? "bg-[var(--color-cf-sidebar-active-bg)] text-[var(--color-cf-sidebar-text)]"
-                        : "text-[var(--color-cf-sidebar-text-muted)] hover:bg-[var(--color-cf-sidebar-surface)] hover:text-[var(--color-cf-sidebar-text)]",
+                        ? "bg-cf-accent text-cf-page-bg"
+                        : "text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text",
                     ].join(" ")}
                   >
                     <span className="tabular-nums">{option}</span>

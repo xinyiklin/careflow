@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Search,
   ChevronDown,
@@ -37,7 +37,15 @@ type AppNavbarProps = {
   onOpenPatientSearch?: () => void;
   recentPatients?: PatientLike[];
   onOpenRecentPatient?: (patient: PatientLike) => void;
+  patientSearchShortcut?: string | null;
 };
+
+const MENU_ROW_CLASS =
+  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cf-accent/25";
+const MENU_SECTION_LABEL_CLASS =
+  "px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle";
+const POPOVER_CLASS =
+  "cf-popover-in absolute top-[2.75rem] z-50 overflow-hidden rounded-[var(--radius-cf-card)] border border-cf-border bg-cf-surface shadow-[var(--shadow-panel-lg)]";
 
 function getUserInitials(user: UserProfile | null) {
   const initials = [user?.first_name, user?.last_name]
@@ -89,6 +97,7 @@ export default function AppNavbar({
   onOpenPatientSearch,
   recentPatients = [],
   onOpenRecentPatient,
+  patientSearchShortcut = null,
 }: AppNavbarProps) {
   const {
     memberships,
@@ -106,6 +115,9 @@ export default function AppNavbar({
   const userDisplayName = useMemo(() => getUserDisplayName(user), [user]);
   const quickActionsShortcut = useMemo(getQuickActionsShortcutLabel, []);
   const roleName = getRoleName(role);
+  const facilitySelectId = useId();
+  const recentMenuId = useId();
+  const userMenuId = useId();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -131,7 +143,7 @@ export default function AppNavbar({
 
   return (
     <header
-      className={`sticky top-0 z-40 bg-transparent py-1.5 transition-colors duration-150 ${PAGE_GUTTER_X}`}
+      className={`sticky top-0 z-40 bg-transparent py-1.5 ${PAGE_GUTTER_X}`}
     >
       <div
         className="flex w-full max-w-none items-center justify-between gap-3 bg-transparent"
@@ -139,38 +151,38 @@ export default function AppNavbar({
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div ref={patientMenuRef} className="relative flex items-center">
-            <div className="inline-flex h-9 max-w-full items-center rounded-xl border border-cf-border bg-cf-surface-muted p-0.5 shadow-[var(--shadow-panel)] transition-all hover:border-cf-border-strong focus-within:border-cf-accent focus-within:ring-2 focus-within:ring-cf-accent/10">
+            <div className="inline-flex h-9 max-w-full items-center rounded-xl border border-cf-border bg-cf-surface p-0.5 shadow-[var(--shadow-panel)] transition-colors hover:border-cf-border-strong focus-within:border-cf-accent focus-within:ring-2 focus-within:ring-cf-accent/10">
               <button
                 type="button"
                 onClick={onOpenPatientSearch}
-                className="group inline-flex h-7 min-w-0 items-center justify-center gap-2 rounded-lg px-2.5 text-sm font-semibold leading-none text-cf-text-muted transition hover:bg-cf-surface hover:text-cf-text sm:px-3 focus:outline-none"
+                className="group inline-flex h-7 min-w-0 items-center justify-center gap-2 rounded-lg px-2.5 text-xs font-medium leading-none text-cf-text-muted transition-colors hover:bg-cf-surface-soft hover:text-cf-text focus:outline-none sm:px-3"
                 aria-label="Search Patient"
                 title="Search Patient"
               >
                 <Search className="h-3.5 w-3.5 text-cf-text-subtle transition-colors group-hover:text-cf-text" />
-                <span className="hidden sm:inline text-xs font-semibold">
-                  Search Patient
-                </span>
-                <span className="hidden rounded-md bg-cf-surface-soft px-1.5 py-0.5 text-[10px] font-bold text-cf-text-subtle lg:inline border border-cf-border/40">
-                  /
-                </span>
+                <span className="hidden sm:inline">Search Patient</span>
+                {patientSearchShortcut ? (
+                  <kbd className="hidden rounded-md border border-cf-border bg-cf-surface-soft px-1.5 py-0.5 text-[10px] font-medium leading-none text-cf-text-subtle lg:inline">
+                    {patientSearchShortcut}
+                  </kbd>
+                ) : null}
               </button>
 
-              <div className="h-4 w-px bg-cf-border-strong/50" />
+              <div className="h-4 w-px bg-cf-border" />
 
               <button
                 type="button"
                 onClick={() => setIsPatientMenuOpen((prev) => !prev)}
-                className="group inline-flex h-7 items-center justify-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold leading-none text-cf-text-muted transition hover:bg-cf-surface hover:text-cf-text sm:px-3 focus:outline-none"
-                aria-label="Open recent patients"
+                className="group inline-flex h-7 items-center justify-center gap-1.5 rounded-lg px-2.5 text-xs font-medium leading-none text-cf-text-muted transition-colors hover:bg-cf-surface-soft hover:text-cf-text focus:outline-none sm:px-3"
+                aria-label="Recent patients"
+                aria-expanded={isPatientMenuOpen}
+                aria-controls={isPatientMenuOpen ? recentMenuId : undefined}
                 title="Recent patients"
               >
-                <span className="hidden sm:inline text-xs font-semibold">
-                  Recent
-                </span>
+                <span className="hidden sm:inline">Recent</span>
                 <ChevronDown
                   className={[
-                    "h-3.5 w-3.5 transition-transform duration-200 text-cf-text-subtle group-hover:text-cf-text",
+                    "h-3.5 w-3.5 text-cf-text-subtle transition-transform duration-150 group-hover:text-cf-text",
                     isPatientMenuOpen ? "rotate-180" : "rotate-0",
                   ].join(" ")}
                 />
@@ -178,28 +190,20 @@ export default function AppNavbar({
             </div>
 
             {isPatientMenuOpen && (
-              <div className="absolute left-0 top-[2.75rem] z-50 w-[24rem] overflow-hidden rounded-2xl border border-cf-border bg-cf-surface/95 shadow-[var(--shadow-panel-lg)] backdrop-blur-md transition-all duration-200 ease-out origin-top-left">
-                <div className="flex items-center justify-between border-b border-cf-border px-4 py-3 bg-cf-surface-muted/50">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-cf-text-subtle">
-                    Recent Patients
-                  </span>
-                  <span className="text-[10px] font-semibold text-cf-text-subtle/80 bg-cf-surface px-2 py-0.5 rounded-md border border-cf-border">
-                    Last {recentPatients.length} visited
-                  </span>
+              <div
+                id={recentMenuId}
+                className={`${POPOVER_CLASS} left-0 w-[24rem] max-w-[calc(100vw-1rem)]`}
+              >
+                <div className="border-b border-cf-border bg-cf-surface-muted px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
+                  Recent Patients
                 </div>
 
                 {recentPatients.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center px-4 py-8 text-center bg-cf-surface/50">
-                    <Search className="h-8 w-8 text-cf-text-subtle/50 mb-2 stroke-[1.5]" />
-                    <p className="text-sm font-medium text-cf-text-muted">
-                      No recent patients yet
-                    </p>
-                    <p className="text-xs text-cf-text-subtle mt-0.5">
-                      Patients you search or view will appear here
-                    </p>
-                  </div>
+                  <p className="px-4 py-6 text-center text-sm text-cf-text-muted">
+                    No recent patients
+                  </p>
                 ) : (
-                  <ul className="max-h-80 overflow-y-auto divide-y divide-cf-border/40 py-1">
+                  <ul className="max-h-80 divide-y divide-cf-border/60 overflow-y-auto">
                     {recentPatients.map((patient) => {
                       const patientInitials = getPatientInitials(patient);
                       return (
@@ -210,16 +214,16 @@ export default function AppNavbar({
                               setIsPatientMenuOpen(false);
                               onOpenRecentPatient?.(patient);
                             }}
-                            className="group flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-cf-surface-soft/80 focus:bg-cf-surface-soft/80 focus:outline-none"
+                            className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-cf-surface-soft focus:bg-cf-surface-soft focus:outline-none"
                           >
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-cf-border bg-cf-surface-soft text-[11px] font-bold text-cf-text-muted transition-all group-hover:border-cf-border-strong group-hover:bg-cf-surface shadow-sm">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cf-surface-soft text-[11px] font-semibold text-cf-text-muted">
                               {patientInitials}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm font-semibold text-cf-text transition-colors group-hover:text-cf-accent">
+                              <div className="truncate text-sm font-medium text-cf-text">
                                 {getPatientName(patient)}
                               </div>
-                              <div className="flex items-center gap-1.5 mt-0.5 text-xs text-cf-text-subtle">
+                              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-cf-text-subtle">
                                 <span>
                                   DOB:{" "}
                                   {patient.date_of_birth
@@ -228,17 +232,15 @@ export default function AppNavbar({
                                 </span>
                                 {patient.chart_number ? (
                                   <>
-                                    <span className="text-cf-border-strong">
-                                      •
-                                    </span>
-                                    <span className="font-mono text-[11px] text-cf-text-muted bg-cf-surface-soft/60 px-1 py-0.2 rounded border border-cf-border/50">
-                                      MRN: {patient.chart_number}
+                                    <span aria-hidden="true">·</span>
+                                    <span className="font-mono text-[11px] text-cf-text-muted">
+                                      MRN {patient.chart_number}
                                     </span>
                                   </>
                                 ) : null}
                               </div>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-cf-text-subtle/30 opacity-0 transition-all -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0" />
+                            <ChevronRight className="h-4 w-4 shrink-0 text-cf-text-subtle opacity-0 transition-opacity group-hover:opacity-100 group-focus:opacity-100" />
                           </button>
                         </li>
                       );
@@ -259,45 +261,54 @@ export default function AppNavbar({
             size="sm"
             shape="rounded"
             onClick={onOpenQuickActions}
-            className="hidden h-9 leading-none lg:inline-flex hover:scale-[1.02] active:scale-[0.98] transition-transform duration-100"
+            className="hidden h-9 lg:inline-flex"
           >
             <Keyboard className="h-4 w-4" />
             Actions
-            <span className="rounded-md bg-cf-surface-soft px-1.5 py-0.5 text-[11px] font-semibold text-cf-text-subtle border border-cf-border/40">
+            <kbd className="rounded-md border border-cf-border bg-cf-surface-soft px-1.5 py-0.5 text-[11px] font-medium text-cf-text-subtle">
               {quickActionsShortcut}
-            </span>
+            </kbd>
           </Button>
 
           <button
             type="button"
             onClick={() => setIsUserMenuOpen((prev) => !prev)}
-            className="group flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface text-xs font-bold leading-none tracking-[0.08em] text-cf-text shadow-[var(--shadow-panel)] transition-all duration-150 hover:border-cf-border-strong hover:bg-cf-surface-soft focus:outline-none focus:ring-2 focus:ring-cf-accent/15 focus:ring-offset-1"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface text-xs font-semibold leading-none tracking-[0.06em] text-cf-text shadow-[var(--shadow-panel)] transition-colors duration-150 hover:border-cf-border-strong hover:bg-cf-surface-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-cf-accent/25"
             aria-label="Open user menu"
             aria-expanded={isUserMenuOpen}
+            aria-controls={isUserMenuOpen ? userMenuId : undefined}
           >
             {initials}
           </button>
 
           {isUserMenuOpen && (
-            <div className="absolute right-0 top-[2.75rem] z-50 w-[22rem] overflow-hidden rounded-2xl border border-cf-border bg-cf-surface/95 shadow-[var(--shadow-panel-lg)] backdrop-blur-md transition-all duration-200 ease-out origin-top-right">
-              <div className="border-b border-cf-border bg-cf-surface-muted/50 px-4 py-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface text-sm font-semibold tracking-[0.08em] text-cf-text shadow-sm">
-                    {initials}
-                  </div>
+            <div
+              id={userMenuId}
+              className={`${POPOVER_CLASS} right-0 w-[20rem] max-w-[calc(100vw-1rem)]`}
+            >
+              <div className="flex items-start gap-3 border-b border-cf-border bg-cf-surface-muted px-4 py-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cf-border bg-cf-surface text-sm font-semibold tracking-[0.06em] text-cf-text">
+                  {initials}
+                </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-cf-text truncate">
-                      {userDisplayName}
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-semibold text-cf-text">
+                    {userDisplayName}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-xs text-cf-text-subtle">
+                    {user?.username || "User"}
+                  </div>
+                  {user?.email ? (
+                    <div className="truncate text-xs text-cf-text-subtle">
+                      {user.email}
                     </div>
-                    <div className="mt-0.5 text-xs text-cf-text-subtle font-mono truncate">
-                      {user?.username || "User"}
-                    </div>
-                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  ) : null}
+                  {roleName || facility?.name ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
                       {roleName ? (
                         <Badge
                           variant="outline"
-                          className="text-[11px] font-semibold px-2 py-0.5"
+                          className="px-2 py-0.5 text-[11px]"
                         >
                           {roleName}
                         </Badge>
@@ -305,29 +316,27 @@ export default function AppNavbar({
                       {facility?.name ? (
                         <Badge
                           variant="muted"
-                          className="text-[11px] font-semibold px-2 py-0.5"
+                          className="px-2 py-0.5 text-[11px]"
                         >
                           {facility.name}
                         </Badge>
                       ) : null}
                     </div>
-                  </div>
+                  ) : null}
                 </div>
-
-                {user?.email ? (
-                  <div className="mt-3 text-xs text-cf-text-subtle truncate bg-cf-surface-soft/40 px-2.5 py-1.5 rounded-lg border border-cf-border/50">
-                    {user.email}
-                  </div>
-                ) : null}
               </div>
 
               {memberships.length > 1 ? (
-                <div className="border-b border-cf-border px-4 py-4 bg-cf-surface/50">
-                  <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
-                    Switch Facility
-                  </div>
-                  <div className="mt-2.5 relative">
+                <div className="border-b border-cf-border p-2 pt-3">
+                  <label
+                    htmlFor={facilitySelectId}
+                    className={`${MENU_SECTION_LABEL_CLASS} block`}
+                  >
+                    Facility
+                  </label>
+                  <div className="px-1">
                     <Input
+                      id={facilitySelectId}
                       as="select"
                       value={selectedFacilityId ?? ""}
                       onChange={(event) =>
@@ -335,7 +344,7 @@ export default function AppNavbar({
                           (event.target.value || null) as EntityId | null
                         )
                       }
-                      className="bg-cf-surface cursor-pointer pr-8"
+                      className="cursor-pointer pr-8"
                     >
                       {memberships.map((membership) => (
                         <option
@@ -350,23 +359,17 @@ export default function AppNavbar({
                 </div>
               ) : null}
 
-              <div className="border-b border-cf-border px-4 py-4 bg-cf-surface/50">
-                <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-cf-text-subtle">
-                  Personalize
-                </div>
+              <div className="border-b border-cf-border p-1.5">
                 <button
                   type="button"
                   onClick={() => {
                     setIsUserMenuOpen(false);
                     onOpenPreferences?.();
                   }}
-                  className="group mt-2.5 flex w-full items-center justify-between rounded-xl border border-cf-border bg-cf-surface px-3.5 py-2.5 text-left text-sm font-medium text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cf-accent"
+                  className={`${MENU_ROW_CLASS} text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <SlidersHorizontal className="h-4 w-4 text-cf-text-subtle transition-colors group-hover:text-cf-accent" />
-                    <span>Customize Workspace</span>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-cf-text-subtle/40 transition-transform group-hover:translate-x-0.5 group-hover:text-cf-text-subtle" />
+                  <SlidersHorizontal className="h-4 w-4 text-cf-text-subtle" />
+                  Customize Workspace
                 </button>
                 <button
                   type="button"
@@ -374,26 +377,23 @@ export default function AppNavbar({
                     setIsUserMenuOpen(false);
                     onOpenNotes?.();
                   }}
-                  className="group mt-2 flex w-full items-center justify-between rounded-xl border border-cf-border bg-cf-surface px-3.5 py-2.5 text-left text-sm font-medium text-cf-text-muted transition hover:bg-cf-surface-soft hover:text-cf-text focus:outline-none"
+                  className={`${MENU_ROW_CLASS} text-cf-text-muted hover:bg-cf-surface-soft hover:text-cf-text`}
                 >
-                  <div className="flex items-center gap-2.5">
-                    <FileText className="h-4 w-4 text-cf-text-subtle transition-colors group-hover:text-cf-accent" />
-                    <span>Open Notes</span>
-                  </div>
-                  <ChevronRight className="h-3.5 w-3.5 text-cf-text-subtle/40 transition-transform group-hover:translate-x-0.5 group-hover:text-cf-text-subtle" />
+                  <FileText className="h-4 w-4 text-cf-text-subtle" />
+                  Open Notes
                 </button>
               </div>
 
-              <div className="bg-cf-surface-muted/30 p-2">
+              <div className="p-1.5">
                 <button
                   type="button"
                   onClick={() => {
                     setIsUserMenuOpen(false);
                     onLogout?.();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-semibold text-cf-danger-text hover:bg-cf-danger-bg transition focus:outline-none"
+                  className={`${MENU_ROW_CLASS} text-cf-danger-text hover:bg-cf-danger-bg`}
                 >
-                  <LogOut className="h-4 w-4 stroke-[2]" />
+                  <LogOut className="h-4 w-4" />
                   Logout
                 </button>
               </div>

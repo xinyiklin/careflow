@@ -20,6 +20,7 @@ import { useUserPreferences } from "./context/UserPreferencesProvider";
 import { useTheme } from "../shared/context/ThemeProvider";
 import {
   buildQuickActions,
+  getAssignedQuickActionSlot,
   getMatchingQuickActionSlot,
   getStoredQuickActionAssignments,
   SCHEDULE_QUICK_ACTION_EVENT,
@@ -51,14 +52,23 @@ type AppNavbarContainerProps = {
   onOpenPreferences: () => void;
   recentPatients: PatientLike[];
   onOpenRecentPatient: (patient: PatientLike) => void;
+  patientSearchShortcut: string | null;
 };
 
 // Paths whose only job is to <Navigate replace /> elsewhere (e.g.
 // /admin resolves to /admin/organization or /admin/facility based on
-// the user's permissions). Skipping the fade on these prevents the
-// double-flicker that a transient mount + redirect would otherwise
-// produce.
-const TRANSIENT_REDIRECT_PATHS = new Set(["/admin"]);
+// the user's permissions; / resolves to the landing preference). Skipping
+// the fade on these prevents the double-flicker that a transient mount +
+// redirect would otherwise produce. Keep in step with router.tsx.
+const TRANSIENT_REDIRECT_PATHS = new Set([
+  "/",
+  "/admin",
+  "/analytics",
+  "/appointments",
+  "/overview",
+  "/patients",
+  "/tasks",
+]);
 
 function AppNavbarContainer({
   onLogout,
@@ -68,6 +78,7 @@ function AppNavbarContainer({
   onOpenPreferences,
   recentPatients,
   onOpenRecentPatient,
+  patientSearchShortcut,
 }: AppNavbarContainerProps) {
   const { user } = useAuth();
 
@@ -81,6 +92,7 @@ function AppNavbarContainer({
       onOpenPatientSearch={() => onOpenPatientSearch("navbar")}
       recentPatients={recentPatients}
       onOpenRecentPatient={onOpenRecentPatient}
+      patientSearchShortcut={patientSearchShortcut}
     />
   );
 }
@@ -274,6 +286,10 @@ function AppShellLayout() {
           onOpenPreferences={() => setIsPreferencesOpen(true)}
           recentPatients={visibleRecentPatients}
           onOpenRecentPatient={openRecentPatient}
+          patientSearchShortcut={
+            getAssignedQuickActionSlot("search-patients", preferences)?.label ??
+            null
+          }
         />
 
         <main
