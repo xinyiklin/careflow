@@ -1,3 +1,5 @@
+from django.db.models import F
+
 SECURITY_PERMISSIONS = [
     "schedule.view",
     "schedule.create",
@@ -286,6 +288,25 @@ def holds_all_self_management(role_permissions, security_overrides):
     )
 
 
+def holds_effective_self_management(
+    role, security_overrides, *, permissions=None, is_active=None
+):
+    """Self-management coverage as runtime permission checks resolve it.
+
+    Facility permission lookups require an active role, so a missing or
+    inactive role grants nothing, overrides included. ``permissions`` and
+    ``is_active`` evaluate a prospective (unsaved) state of ``role``.
+    """
+    if role is None:
+        return False
+    if not (role.is_active if is_active is None else is_active):
+        return False
+    return holds_all_self_management(
+        role.security_permissions if permissions is None else permissions,
+        security_overrides,
+    )
+
+
 def user_has_facility_permission(user, facility_id, permission):
     if not user or not user.is_authenticated or not facility_id:
         return False
@@ -300,6 +321,7 @@ def user_has_facility_permission(user, facility_id, permission):
             facility__is_active=True,
             role__is_active=True,
             user__org_membership__is_active=True,
+            facility__organization_id=F("user__org_membership__organization_id"),
         )
         .select_related("role")
         .first()

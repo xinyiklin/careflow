@@ -1,8 +1,10 @@
 from django.contrib.auth.password_validation import validate_password
+from django.db.models import F
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from facilities.models import Staff
+from facilities.security import get_effective_staff_permissions
 
 from .models import User, UserPreference
 
@@ -270,20 +272,24 @@ class UserSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_admin_facility_ids(self, obj):
+        # Mirrors the facility admin gate: effective admin.facility.manage
+        # under the same active-access filters, never the role code.
         profiles = Staff.objects.filter(
             user=obj,
             is_active=True,
             facility__is_active=True,
             role__is_active=True,
             user__org_membership__is_active=True,
+            facility__organization_id=F("user__org_membership__organization_id"),
         ).select_related("role")
 
-        admin_ids = []
-        for profile in profiles:
-            if profile.role and profile.role.code == "admin":
-                admin_ids.append(profile.facility_id)
-
-        return admin_ids
+        return [
+            profile.facility_id
+            for profile in profiles
+            if get_effective_staff_permissions(profile).get(
+                "admin.facility.manage", False
+            )
+        ]
 
     @extend_schema_field(serializers.DictField())
     def get_preferences(self, obj):

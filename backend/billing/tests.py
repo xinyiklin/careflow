@@ -378,6 +378,36 @@ class EncounterBillingRecordViewSetTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_admin_role_needs_fee_schedule_permission(self):
+        # The facility "admin" role code is not a bypass; only org admins skip
+        # billing.fee_schedules.manage.
+        admin_user, admin_staff = self.create_staff_user(
+            "fee_config_admin", self.facility, "admin"
+        )
+        admin_staff.security_overrides = {"billing.fee_schedules.manage": False}
+        admin_staff.save()
+        self.client.force_authenticate(admin_user)
+
+        response = self.client.get(
+            "/v1/billing/facility-fee-schedules/",
+            {"facility_id": self.facility.id},
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_org_admin_keeps_fee_schedule_access_without_permission(self):
+        self.staff.security_overrides = {"billing.fee_schedules.manage": False}
+        self.staff.save()
+
+        response = self.client.get(
+            "/v1/billing/facility-fee-schedules/",
+            {"facility_id": self.facility.id},
+            HTTP_HOST="localhost:8000",
+        )
+
+        self.assertEqual(response.status_code, 200)
+
     def test_cross_facility_detail_access_is_rejected(self):
         other_patient = Patient.objects.create(
             facility=self.other_facility,
