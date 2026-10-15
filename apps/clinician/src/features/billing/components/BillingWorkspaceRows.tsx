@@ -151,7 +151,7 @@ export function BillingRecordRow({
             size="sm"
             onClick={() => onEdit(record)}
             disabled={!canManage}
-            className="flex items-center gap-1.5 whitespace-nowrap hover:scale-[1.02] active:scale-[0.98] transition-transform duration-100"
+            className="flex items-center gap-1.5 whitespace-nowrap"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -187,7 +187,7 @@ export function BillingPendingEncounterRow({
     <div className="rounded-lg border border-cf-border bg-cf-surface transition-all duration-150 hover:border-cf-border-strong hover:shadow-[var(--shadow-panel)]">
       <div className="flex flex-col gap-2 px-3.5 py-2 md:flex-row md:items-center md:justify-between md:gap-3">
         {/* Col 1: Patient & Time */}
-        <div className="min-w-0 shrink-0 md:w-[32%]">
+        <div className="min-w-0 shrink-0 md:w-[32%] md:shrink">
           <div className="flex items-center gap-1.5">
             <button
               type="button"
@@ -210,7 +210,7 @@ export function BillingPendingEncounterRow({
         </div>
 
         {/* Col 2: Provider */}
-        <div className="min-w-0 shrink-0 md:w-[18%]">
+        <div className="min-w-0 shrink-0 md:w-[18%] md:shrink">
           <div className="text-[12px] font-semibold text-cf-text truncate leading-snug">
             {encounter.rendering_provider_name || "Provider not set"}
           </div>
@@ -219,8 +219,9 @@ export function BillingPendingEncounterRow({
           </div>
         </div>
 
-        {/* Col 3: Status */}
-        <div className="min-w-0 flex-1">
+        {/* Col 3: Status — keeps room for its badge; the text columns
+            above give way first. */}
+        <div className="shrink-0 md:min-w-[5.75rem] md:flex-1">
           {encounter.status === "signed" ? (
             <Badge variant="success">Signed</Badge>
           ) : (
@@ -245,7 +246,7 @@ export function BillingPendingEncounterRow({
             variant="primary"
             disabled={!canManage}
             onClick={() => onCreateSuperbill(encounter)}
-            className="flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] transition-transform duration-100"
+            className="flex items-center gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
             Create Superbill
