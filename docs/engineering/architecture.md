@@ -235,6 +235,16 @@ Three options, in order of effort:
 For a form, list, and message-heavy portal, Capacitor is the natural landing
 zone after PWA proves out. Don't pre-build the pipeline.
 
+## Dependencies
+
+Before adding or upgrading a dependency, read the constraints already in force
+— root `package.json` and `package-lock.json` for the workspaces, and the
+backend `requirements*.txt` and `pyproject.toml` — then verify the current
+stable release from npm, PyPI, or the maintainer's release notes. Never choose
+a version from memory. Prefer the latest compatible stable release, keep the
+project's package manager and range policy, update the lockfile, and explain
+any deliberate pin to an older or prerelease version.
+
 ## When to add Turborepo
 
 Today: two `npm run build`s in parallel finish in under a minute. Turborepo's

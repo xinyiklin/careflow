@@ -303,8 +303,8 @@ npm run typecheck:landing
 npm run build:landing
 ```
 
-For major UI changes, run the app locally and visually inspect the changed flow
-in Chrome.
+For major UI changes, follow the visual QA checklist in
+`docs/engineering/testing.md`.
 
 ## Document Storage
 
