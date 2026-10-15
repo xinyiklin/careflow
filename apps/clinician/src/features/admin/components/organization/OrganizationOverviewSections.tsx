@@ -371,9 +371,9 @@ export function OrganizationReadOnlyOverview({
       </div>
 
       {/* Right Column: Dashboard Details & Stats (2/3) */}
-      <div className="space-y-6">
+      <div className="@container space-y-6">
         {/* Footprint Statistics Grid */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 @2xl:grid-cols-4">
           {[
             {
               label: "Total Users",

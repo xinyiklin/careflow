@@ -192,7 +192,7 @@ export default function AppNavbar({
             {isPatientMenuOpen && (
               <div
                 id={recentMenuId}
-                className={`${POPOVER_CLASS} left-0 w-[24rem] max-w-[calc(100vw-1rem)]`}
+                className={`${POPOVER_CLASS} left-0 w-[24rem] max-w-[calc(100vw-var(--cf-sidebar-w,0px)-1rem)]`}
               >
                 <div className="border-b border-cf-border bg-cf-surface-muted px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle">
                   Recent Patients
@@ -256,19 +256,22 @@ export default function AppNavbar({
           ref={userMenuRef}
           className="relative flex shrink-0 items-center gap-1.5"
         >
-          <Button
-            type="button"
-            size="sm"
-            shape="rounded"
-            onClick={onOpenQuickActions}
-            className="hidden h-9 lg:inline-flex"
-          >
-            <Keyboard className="h-4 w-4" />
-            Actions
-            <kbd className="rounded-md border border-cf-border bg-cf-surface-soft px-1.5 py-0.5 text-[11px] font-medium text-cf-text-subtle">
-              {quickActionsShortcut}
-            </kbd>
-          </Button>
+          {/* Button's own inline-flex outranks `hidden`, so gate the wrapper. */}
+          <div className="hidden lg:block">
+            <Button
+              type="button"
+              size="sm"
+              shape="rounded"
+              onClick={onOpenQuickActions}
+              className="h-9"
+            >
+              <Keyboard className="h-4 w-4" />
+              Actions
+              <kbd className="rounded-md border border-cf-border bg-cf-surface-soft px-1.5 py-0.5 text-[11px] font-medium text-cf-text-subtle">
+                {quickActionsShortcut}
+              </kbd>
+            </Button>
+          </div>
 
           <button
             type="button"

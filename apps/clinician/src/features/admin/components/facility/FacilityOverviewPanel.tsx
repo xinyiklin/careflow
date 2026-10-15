@@ -270,9 +270,9 @@ export default function FacilityOverviewPanel() {
               </div>
 
               {/* Right Column: Dashboard Details & Stats (2/3) */}
-              <div className="space-y-6">
+              <div className="@container space-y-6">
                 {/* Footprint Statistics Grid */}
-                <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-4 @2xl:grid-cols-4">
                   {[
                     {
                       label: "Providers",
@@ -331,7 +331,7 @@ export default function FacilityOverviewPanel() {
                     Operating Hours & Days
                   </h3>
 
-                  <div className="grid gap-4 sm:grid-cols-2 bg-cf-surface-soft/10 border border-cf-border/50 rounded-xl p-4 shadow-[var(--shadow-panel)]">
+                  <div className="grid gap-4 @2xl:grid-cols-2 bg-cf-surface-soft/10 border border-cf-border/50 rounded-xl p-4 shadow-[var(--shadow-panel)]">
                     <div className="space-y-2">
                       <div className="text-[10px] font-bold uppercase tracking-wider text-cf-text-subtle mb-1">
                         Weekly Operating Days

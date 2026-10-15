@@ -45,8 +45,8 @@ export default function AdminWorkspaceShell({
   return (
     <AdminToolbarSlotContext.Provider value={toolbarContextValue}>
       <div className="cf-admin-shell h-full min-h-0 bg-transparent">
-        <div className="grid h-full min-h-0 overflow-hidden bg-cf-surface md:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="cf-admin-sidebar hidden min-h-0 flex-col overflow-hidden border-r border-cf-border bg-cf-surface-muted/70 md:flex">
+        <div className="grid h-full min-h-0 overflow-hidden bg-cf-surface lg:grid-cols-[240px_minmax(0,1fr)]">
+          <aside className="cf-admin-sidebar hidden min-h-0 flex-col overflow-hidden border-r border-cf-border bg-cf-surface-muted/70 lg:flex">
             <div className="px-3 py-3">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cf-text-subtle leading-none">
                 {workspaceLabel}

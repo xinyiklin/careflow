@@ -26,7 +26,11 @@ import {
   SCHEDULE_QUICK_ACTION_EVENT,
   SCHEDULE_QUICK_ACTION_STORAGE_KEY,
 } from "../shared/constants/quickActions";
-import { PAGE_GUTTER_X } from "../shared/constants/layout";
+import {
+  PAGE_GUTTER_X,
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_EXPANDED_WIDTH,
+} from "../shared/constants/layout";
 import { useBootReadiness } from "./BootReadinessContext";
 import {
   getLocalStorageItem,
@@ -34,6 +38,7 @@ import {
   setSessionStorageItem,
 } from "../shared/utils/browserStorage";
 
+import type { CSSProperties } from "react";
 import type { NavigateFunction } from "react-router-dom";
 import type { PatientLike, UserProfile } from "../shared/types/domain";
 
@@ -271,7 +276,19 @@ function AppShellLayout() {
   }, [openPatientSearch, preferences, quickActions]);
 
   return (
-    <div className="cf-app-shell relative flex h-full w-full overflow-hidden bg-cf-page-bg">
+    <div
+      className="cf-app-shell relative flex h-full w-full overflow-hidden bg-cf-page-bg"
+      style={
+        {
+          // Navbar popovers size against the space beside the sidebar.
+          "--cf-sidebar-w": `${
+            isSidebarCollapsed
+              ? SIDEBAR_COLLAPSED_WIDTH
+              : SIDEBAR_EXPANDED_WIDTH
+          }px`,
+        } as CSSProperties
+      }
+    >
       <AppSidebar
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
