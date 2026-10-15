@@ -66,6 +66,42 @@ def build_staff_security_audit_event(
     }
 
 
+def build_membership_access_audit_event(*, staff, membership, membership_is_active):
+    """Assemble a facility-scoped security audit event for a Staff row whose
+    facility access changed only because its org membership was (de)activated.
+
+    The Staff row itself is not modified; an inactive membership grants no
+    facility access, so this is how facility audit viewers see the change.
+    """
+    if membership_is_active:
+        summary = (
+            f"Facility access restored for {staff.user}: "
+            "organization membership reactivated"
+        )
+    else:
+        summary = (
+            f"Facility access removed for {staff.user}: "
+            "organization membership deactivated"
+        )
+    return {
+        "facility": staff.facility,
+        "object_pk": staff.pk,
+        "action": "update",
+        "summary": summary,
+        "metadata": {
+            "changed_fields": ["organization_membership_is_active"],
+            "previous": {"membership_is_active": not membership_is_active},
+            "next": {"membership_is_active": membership_is_active},
+            "staff_is_active": staff.is_active,
+            "role_id": staff.role_id,
+            "user_id": staff.user_id,
+            "membership_id": membership.pk,
+            "organization_id": membership.organization_id,
+            "via": "organization_people",
+        },
+    }
+
+
 class OrganizationMembershipSerializer(serializers.ModelSerializer):
     user_id = serializers.IntegerField(source="user.id", read_only=True)
     username = serializers.CharField(source="user.username", read_only=True)
@@ -333,9 +369,37 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
         # row (the org-membership audit alone is not facility-scoped, so a
         # facility admin could never see they gained or lost an administrator).
         self.security_audit_events = []
+        # Staff rows this request creates or reactivates; on membership
+        # reactivation their own staff event already records the access grant.
+        newly_active_staff_ids = set()
 
         with transaction.atomic():
             user = instance.user
+            membership_was_active = instance.is_active
+            membership_will_be_active = validated_data.get(
+                "is_active", membership_was_active
+            )
+            if instance.is_active and not validated_data.get("is_active", True):
+                # An inactive membership grants no facility access, so this
+                # removes the person as an administrator everywhere at once.
+                for staff in (
+                    Staff.objects.filter(
+                        user=user,
+                        facility__organization=instance.organization,
+                        is_active=True,
+                    )
+                    .select_related("facility", "role")
+                    .order_by("facility_id")
+                ):
+                    validate_staff_security_transition(
+                        actor=self.context["request"].user,
+                        facility=staff.facility,
+                        staff=staff,
+                        prospective_role=staff.role,
+                        prospective_overrides=staff.security_overrides,
+                        prospective_is_active=False,
+                    )
+
             if facility_ids is not None:
                 org_facilities = list(
                     Facility.objects.filter(
@@ -387,11 +451,17 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
                         ).first()
                         or StaffRole.objects.filter(facility=facility).first()
                     )
-                    staff, created = Staff.objects.get_or_create(
-                        user=user,
-                        facility=facility,
-                        defaults={"role": default_role, "is_active": True},
-                    )
+                    # New rows stay unsaved until the membership state is
+                    # settled below; Staff.clean needs an active membership.
+                    staff = Staff.objects.filter(user=user, facility=facility).first()
+                    created = staff is None
+                    if created:
+                        staff = Staff(
+                            user=user,
+                            facility=facility,
+                            role=default_role,
+                            is_active=True,
+                        )
                     previous_role_id = staff.role_id
                     previous_is_active = staff.is_active
                     prospective_role = staff.role
@@ -440,6 +510,21 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
                             )
                         )
 
+                if (
+                    staff_to_update
+                    and not membership_was_active
+                    and not membership_will_be_active
+                ):
+                    raise serializers.ValidationError(
+                        {"is_active": "Inactive people cannot be assigned facilities."}
+                    )
+
+                if membership_will_be_active and not membership_was_active:
+                    # Staff.clean requires an active membership. The guards
+                    # above have already run against the pre-request state.
+                    instance.is_active = True
+                    instance.save(update_fields=["is_active"])
+
                 Staff.objects.filter(
                     user=user,
                     facility__organization=instance.organization,
@@ -455,6 +540,8 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
                     staff.is_active = True
                     staff.role = prospective_role
                     staff.save()
+                    if created or not previous_is_active:
+                        newly_active_staff_ids.add(staff.pk)
                     self._record_staff_security_event(
                         facility=staff.facility,
                         staff=staff,
@@ -472,6 +559,30 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
             for attr, value in validated_data.items():
                 setattr(instance, attr, value)
             instance.save()
+
+            if instance.is_active != membership_was_active:
+                # Staff rows deactivated via facility_ids above already have
+                # their own event; cover the ones still active. On reactivation,
+                # rows this request created or reactivated are covered too.
+                for staff in (
+                    Staff.objects.filter(
+                        user=user,
+                        facility__organization=instance.organization,
+                        is_active=True,
+                    )
+                    .exclude(
+                        pk__in=newly_active_staff_ids if instance.is_active else []
+                    )
+                    .select_related("facility", "user")
+                    .order_by("facility_id")
+                ):
+                    self.security_audit_events.append(
+                        build_membership_access_audit_event(
+                            staff=staff,
+                            membership=instance,
+                            membership_is_active=instance.is_active,
+                        )
+                    )
 
         return instance
 

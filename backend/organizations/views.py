@@ -7,7 +7,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from audit.services import record_audit_event
-from facilities.access import get_facility_for_user
+from facilities.access import get_facility_for_user, lock_organization_memberships
 from facilities.models import Staff
 from facilities.security import (
     get_effective_staff_permissions,
@@ -355,10 +355,11 @@ class OrganizationPeopleViewSet(
                 raise PermissionDenied("Only an owner can assign the owner role.")
 
         with transaction.atomic():
+            # Same pk order as facilities.access.lock_organization_memberships.
             locked_memberships = list(
-                OrganizationMembership.objects.select_for_update().filter(
-                    organization_id=target_membership.organization_id
-                )
+                OrganizationMembership.objects.select_for_update()
+                .filter(organization_id=target_membership.organization_id)
+                .order_by("pk")
             )
             locked_target = next(
                 membership
@@ -616,13 +617,16 @@ class OrganizationSecurityViewSet(viewsets.ViewSet):
                 "This would lock you out of the security panel."
             )
 
-        OrganizationRole.objects.filter(organization=org, code=role).update(
-            security_permissions=security_permissions
-        )
-
-        updated = OrganizationMembership.objects.filter(
-            organization=org, role=role, is_active=True
-        ).update(security_permissions=security_permissions)
+        with transaction.atomic():
+            # Ordered lock first; a bare bulk UPDATE locks rows in scan order
+            # and can deadlock with facility security checks.
+            lock_organization_memberships(org.id)
+            OrganizationRole.objects.filter(organization=org, code=role).update(
+                security_permissions=security_permissions
+            )
+            updated = OrganizationMembership.objects.filter(
+                organization=org, role=role, is_active=True
+            ).update(security_permissions=security_permissions)
 
         record_audit_event(
             actor=request.user,
