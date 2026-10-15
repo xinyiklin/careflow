@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search } from "lucide-react";
 
-import { Badge, Button, SegmentedControl } from "../../../shared/components/ui";
+import {
+  Badge,
+  Button,
+  SegmentedControl,
+  WorkspaceTitle,
+} from "../../../shared/components/ui";
 import useMinimumLoading from "../../../shared/hooks/useMinimumLoading";
 import {
   useMessageThreads,
@@ -151,21 +156,17 @@ export default function ThreadListPanel({
     <div className="flex h-full min-h-0 w-full flex-col border-cf-border bg-cf-surface md:border-r">
       <div className="border-b border-cf-border bg-cf-surface px-3 py-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
-              Messaging
-            </div>
-            <div className="mt-1 flex items-baseline gap-2">
-              <h2 className="text-base font-extrabold tracking-tight text-cf-text leading-none">
-                Inbox
-              </h2>
-              {unreadCount > 0 ? (
-                <Badge variant="warning" size="sm">
+          <WorkspaceTitle
+            eyebrow="Messaging"
+            title="Inbox"
+            meta={
+              unreadCount > 0 ? (
+                <Badge variant="warning" size="sm" className="shrink-0">
                   {unreadCount} new
                 </Badge>
-              ) : null}
-            </div>
-          </div>
+              ) : null
+            }
+          />
           <Button
             type="button"
             size="sm"

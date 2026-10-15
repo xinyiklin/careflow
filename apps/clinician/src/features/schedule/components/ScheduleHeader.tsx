@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-import { SegmentedControl } from "../../../shared/components/ui";
+import {
+  SegmentedControl,
+  WorkspaceTitle,
+} from "../../../shared/components/ui";
 import { SLOT_INTERVAL_OPTIONS } from "../utils/scheduleConstants";
 
 import type { ScheduleHeaderProps, ScheduleMode } from "../types";
@@ -49,14 +52,7 @@ export default function ScheduleHeader({
 
   return (
     <div className="mb-2">
-      <div className="min-w-0">
-        <div className="text-[9px] font-bold uppercase tracking-[0.18em] leading-none text-cf-text-subtle">
-          Schedule
-        </div>
-        <div className="mt-1 truncate text-base font-extrabold leading-none tracking-tight text-cf-text">
-          {facility?.name || "Schedule"}
-        </div>
-      </div>
+      <WorkspaceTitle eyebrow="Schedule" title={facility?.name || "Schedule"} />
 
       <div className="mt-3 flex items-center gap-2">
         <SegmentedControl

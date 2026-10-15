@@ -8,6 +8,8 @@ export { CategoryRail, CategoryRailItem } from "./CategoryRail";
 export { default as SegmentedControl } from "./SegmentedControl";
 export { default as Tabs, getTabId, getTabPanelId } from "./Tabs";
 export { default as EmptyState } from "./EmptyState";
+export { default as AccessDenied } from "./AccessDenied";
+export { default as WorkspaceTitle } from "./WorkspaceTitle";
 export { default as IconButton } from "./IconButton";
 export { default as TimelineFeed } from "./TimelineFeed";
 export type {

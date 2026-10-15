@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { ShieldAlert } from "lucide-react";
 
 import PatientDocumentsWorkspace from "../components/PatientDocumentsWorkspace";
 import useFacility from "../../facilities/hooks/useFacility";
 import PatientSearchField from "../../patients/components/PatientSearchField";
 import WorkspaceShell from "../../../app/components/WorkspaceShell";
-import Panel from "../../../shared/components/ui/Panel";
+import AccessDenied from "../../../shared/components/ui/AccessDenied";
 
 import type { ComponentType } from "react";
 import type { EntityId } from "../../../shared/api/types";
@@ -62,18 +61,7 @@ export default function DocumentsPage() {
             }
           />
         ) : (
-          <div className="flex h-full items-center justify-center p-6">
-            <Panel
-              icon={ShieldAlert}
-              title="Access Denied"
-              tone="subtle"
-              className="w-full max-w-md"
-            >
-              <div className="text-sm text-cf-text-muted">
-                You do not have permission to view documents.
-              </div>
-            </Panel>
-          </div>
+          <AccessDenied message="You do not have permission to view documents." />
         )}
       </div>
     </WorkspaceShell>

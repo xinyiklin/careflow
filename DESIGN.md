@@ -211,6 +211,13 @@ and critique passes should prefer these over hand-rolled variants.
   admin-panel layout primitives. Section title and subheader belong to the
   shell, refresh/add actions belong to the table card, filter/sort belong to
   the toolbar.
+- **WorkspaceTitle** — a workspace header's identity: one uppercase eyebrow
+  plus the page's single `h1` (`text-base`, 600) with an optional inline meta
+  slot (count, unread badge). Schedule, Documents, Billing, Inbox, Refills, and
+  both admin workspaces use it; do not hand-roll eyebrow + title pairs.
+- **AccessDenied** — the flat, centered permission state rendered inside the
+  route frame (icon, "Access unavailable", one line). No framed panel, no
+  "contact your administrator" filler.
 - **CompactModalGrid + preview panel** — premium two-column modal layout
   (fixed left preview, scrolling right form) used by Org User, Staff,
   Facility, and Pharmacy modals.

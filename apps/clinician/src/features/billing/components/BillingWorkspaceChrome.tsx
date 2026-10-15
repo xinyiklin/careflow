@@ -8,7 +8,11 @@ import {
   Clock,
 } from "lucide-react";
 
-import { CategoryRail, CategoryRailItem } from "../../../shared/components/ui";
+import {
+  CategoryRail,
+  CategoryRailItem,
+  WorkspaceTitle,
+} from "../../../shared/components/ui";
 import {
   formatBillingCurrency,
   type BillingIssueFilter,
@@ -28,11 +32,11 @@ type HeaderMetricProps = {
 function HeaderMetric({ label, value, detail }: HeaderMetricProps) {
   return (
     <div className="min-w-0 px-4 py-0.5 first:pl-0 last:pr-0 border-r last:border-r-0 border-cf-border/60">
-      <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-cf-text-subtle leading-none">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-cf-text-subtle leading-none">
         {label}
       </div>
       <div className="mt-1 flex items-baseline gap-1.5 min-w-0">
-        <span className="truncate text-base font-extrabold tabular-nums text-cf-text leading-none tracking-tight">
+        <span className="truncate text-base font-semibold tabular-nums text-cf-text leading-none tracking-tight">
           {value}
         </span>
         {detail ? (
@@ -58,14 +62,7 @@ export function BillingWorkspaceHeader({
   return (
     <div className="mb-0 shrink-0 border-b border-cf-border bg-cf-surface px-3 py-3 transition-[background-color,border-color] duration-150">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="min-w-0">
-          <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
-            Billing Center
-          </div>
-          <div className="mt-1 text-base font-extrabold tracking-tight text-cf-text leading-none">
-            Claims & Revenue
-          </div>
-        </div>
+        <WorkspaceTitle eyebrow="Billing Center" title="Claims & Revenue" />
         <div className="flex flex-wrap items-center gap-x-0">
           <HeaderMetric
             label="Unbilled"

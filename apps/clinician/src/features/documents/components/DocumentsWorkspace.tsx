@@ -21,6 +21,7 @@ import {
   CategoryRail,
   CategoryRailItem,
   Notice,
+  WorkspaceTitle,
 } from "../../../shared/components/ui";
 import useDocumentMutations from "../hooks/useDocumentMutations";
 import DocumentMetadataModal from "./DocumentMetadataModal";
@@ -423,25 +424,21 @@ export default function DocumentsWorkspace({
           {!compact ? (
             <div className="shrink-0 border-b border-cf-border bg-cf-surface px-3 py-3 transition-[background-color,border-color] duration-150">
               <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
-                    Records
-                  </div>
-                  <div className="mt-1 flex min-w-0 items-center gap-3">
-                    <div className="shrink-0 text-base font-extrabold tracking-tight text-cf-text leading-none">
-                      {title}
-                    </div>
-                    {normalizedDocuments.length > 0 && (
-                      <span className="text-[11px] text-cf-text-subtle font-medium leading-none">
+                <WorkspaceTitle
+                  eyebrow="Records"
+                  title={title}
+                  meta={
+                    normalizedDocuments.length > 0 ? (
+                      <span className="truncate text-[11px] font-medium text-cf-text-subtle">
                         {normalizedDocuments.length}{" "}
                         {normalizedDocuments.length === 1
                           ? "document"
                           : "documents"}
                         {activeCategory !== "all" ? ` in ${activeLabel}` : ""}
                       </span>
-                    )}
-                  </div>
-                </div>
+                    ) : null
+                  }
+                />
                 {toolbarAccessory ? (
                   <div className="min-w-[180px] flex-1 md:max-w-[240px]">
                     {toolbarAccessory}

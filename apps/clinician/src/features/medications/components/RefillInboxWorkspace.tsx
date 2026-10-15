@@ -7,6 +7,7 @@ import {
   EmptyState,
   SegmentedControl,
   Tabs,
+  WorkspaceTitle,
   getTabId,
   getTabPanelId,
 } from "../../../shared/components/ui";
@@ -244,14 +245,11 @@ export default function RefillInboxWorkspace({
           you're viewing), while the status filter below stays a pill
           SegmentedControl (a filter within that queue). */}
       <header className="flex shrink-0 items-stretch justify-between gap-3 border-b border-cf-border bg-cf-surface px-3">
-        <div className="flex min-w-0 flex-col justify-center py-3">
-          <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-cf-text-subtle leading-none">
-            Workflow
-          </div>
-          <h1 className="mt-1 text-base leading-none font-extrabold tracking-tight text-cf-text">
-            Refills
-          </h1>
-        </div>
+        <WorkspaceTitle
+          eyebrow="Medications"
+          title="Refills"
+          className="flex flex-col justify-center py-3"
+        />
         <Tabs
           options={SOURCE_OPTIONS}
           value={source}

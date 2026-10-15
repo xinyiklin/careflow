@@ -1,10 +1,9 @@
 import { useMemo } from "react";
-import { ShieldAlert } from "lucide-react";
 
 import useFacility from "../../facilities/hooks/useFacility";
 import useFacilityConfig from "../../facilities/hooks/useFacilityConfig";
 import { useAuth } from "../../auth/AuthProvider";
-import Panel from "../../../shared/components/ui/Panel";
+import AccessDenied from "../../../shared/components/ui/AccessDenied";
 import RefillInboxWorkspace from "../components/RefillInboxWorkspace";
 
 import type { PrescriberOption } from "../components/RefillInboxWorkspace";
@@ -45,19 +44,7 @@ export default function RefillInboxPage() {
 
   if (!canViewMedications) {
     return (
-      <div className="flex h-full items-center justify-center p-6">
-        <Panel
-          icon={ShieldAlert}
-          title="Access Denied"
-          tone="subtle"
-          className="w-full max-w-md"
-        >
-          <div className="text-sm text-cf-text-muted">
-            You do not have the required permissions to view refill requests. If
-            you believe this is an error, please contact your administrator.
-          </div>
-        </Panel>
-      </div>
+      <AccessDenied message="You do not have permission to view refill requests." />
     );
   }
 
