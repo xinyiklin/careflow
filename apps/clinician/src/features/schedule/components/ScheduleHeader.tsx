@@ -20,6 +20,8 @@ export default function ScheduleHeader({
   activeScheduleInterval,
   onScheduleModeChange,
   onScheduleIntervalChange,
+  compact = false,
+  titleAction = null,
 }: ScheduleHeaderProps) {
   const [isIntervalExpanded, setIsIntervalExpanded] = useState(false);
   const intervalControlRef = useRef<HTMLDivElement | null>(null);
@@ -50,17 +52,40 @@ export default function ScheduleHeader({
     };
   }, [isIntervalExpanded]);
 
+  // Rail (>=lg sidebar): title stacked over the controls. Compact (<lg bar):
+  // one row that wraps the controls under the title on narrow widths.
   return (
-    <div className="mb-2">
-      <WorkspaceTitle eyebrow="Schedule" title={facility?.name || "Schedule"} />
+    <div
+      className={
+        compact ? "flex flex-wrap items-center gap-x-3 gap-y-2" : "mb-2"
+      }
+    >
+      <div
+        className={[
+          "flex min-w-0 items-center gap-2",
+          // A real basis lets the compact row wrap before the title is crushed.
+          compact ? "flex-[1_1_16rem]" : "flex-1",
+        ].join(" ")}
+      >
+        <WorkspaceTitle
+          eyebrow="Schedule"
+          title={facility?.name || "Schedule"}
+          className="flex-1"
+        />
+        {titleAction}
+      </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div
+        className={
+          compact ? "flex items-center gap-2" : "mt-3 flex items-center gap-2"
+        }
+      >
         <SegmentedControl
           options={SCHEDULE_MODE_OPTIONS}
           value={scheduleMode}
           onChange={onScheduleModeChange}
           size="xs"
-          className="flex-1 min-w-0"
+          className={compact ? "min-w-0" : "flex-1 min-w-0"}
         />
 
         <div

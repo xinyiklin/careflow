@@ -1,7 +1,10 @@
-import { useMemo } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { CalendarDays, ChevronDown } from "lucide-react";
 
+import { formatDateOnlyInTimeZone } from "../../../shared/utils/dateTime";
 import MultiDayScheduleView from "./MultiDayScheduleView";
 import ResourceScheduleView from "./ResourceScheduleView";
+import ScheduleHeader from "./ScheduleHeader";
 import ScheduleSidebar from "./ScheduleSidebar";
 
 import type {
@@ -84,12 +87,76 @@ export default function ScheduleWorkspaceLayout({
     () => new Set(activeColumnResourceKeys.filter(Boolean)),
     [activeColumnResourceKeys]
   );
+  const drawerId = useId();
+  const drawerToggleRef = useRef<HTMLButtonElement | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isDrawerOpen) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsDrawerOpen(false);
+      if (document.getElementById(drawerId)?.contains(document.activeElement)) {
+        drawerToggleRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [drawerId, isDrawerOpen]);
+
+  const selectedDateLabel = formatDateOnlyInTimeZone(
+    selectedDate,
+    facility?.timezone,
+    "EEE, MMM d"
+  );
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <section className="flex min-h-0 flex-1 flex-col overflow-hidden bg-cf-surface">
-        <div className="grid min-h-0 flex-1 overflow-hidden bg-cf-surface lg:grid-cols-[280px_minmax(0,1fr)]">
+        <div className="shrink-0 border-b border-cf-border bg-cf-surface-muted/70 px-3 py-2 lg:hidden">
+          <ScheduleHeader
+            compact
+            facility={facility}
+            scheduleMode={scheduleMode}
+            activeScheduleInterval={activeScheduleInterval}
+            onScheduleModeChange={onScheduleModeChange}
+            onScheduleIntervalChange={onScheduleIntervalChange}
+            titleAction={
+              <button
+                ref={drawerToggleRef}
+                type="button"
+                onClick={() => setIsDrawerOpen((current) => !current)}
+                aria-expanded={isDrawerOpen}
+                aria-controls={drawerId}
+                aria-label={`${selectedDateLabel}, calendar and resources`}
+                className={[
+                  "group flex min-h-7 shrink-0 items-center gap-1.5 rounded-lg border px-2 text-[11px] font-semibold transition-colors",
+                  isDrawerOpen
+                    ? "border-cf-border-strong bg-cf-surface text-cf-text"
+                    : "border-cf-border bg-cf-surface text-cf-text-muted hover:border-cf-border-strong hover:text-cf-text",
+                ].join(" ")}
+              >
+                <CalendarDays className="h-3.5 w-3.5 shrink-0 text-cf-text-subtle" />
+                <span className="whitespace-nowrap tabular-nums">
+                  {selectedDateLabel}
+                </span>
+                <ChevronDown
+                  className={[
+                    "h-3 w-3 shrink-0 text-cf-text-subtle transition-transform duration-150 group-hover:text-cf-text",
+                    isDrawerOpen ? "rotate-180" : "",
+                  ].join(" ")}
+                />
+              </button>
+            }
+          />
+        </div>
+
+        <div className="relative grid min-h-0 flex-1 overflow-hidden bg-cf-surface lg:grid-cols-[280px_minmax(0,1fr)]">
           <ScheduleSidebar
+            drawerId={drawerId}
+            isDrawerOpen={isDrawerOpen}
             facilityId={facilityId}
             facility={facility}
             selectedDate={selectedDate}
