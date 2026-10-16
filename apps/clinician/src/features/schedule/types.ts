@@ -1,5 +1,5 @@
 import type { BookingSeed } from "../appointments/api/bookingHolds";
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
 
 import type { ApiPayload, EntityId } from "../../shared/api/types";
 import type { AppointmentBlockDisplay } from "../../shared/constants/appointmentBlockDisplay";
@@ -310,6 +310,8 @@ export type ScheduleSidebarProps = {
   onScheduleModeChange: (mode: ScheduleMode) => void;
   onScheduleIntervalChange: (interval: number) => void;
   onToggleResource: (resourceKey: string) => void;
+  drawerId: string;
+  isDrawerOpen: boolean;
 };
 
 export type ScheduleHeaderProps = {
@@ -318,6 +320,8 @@ export type ScheduleHeaderProps = {
   activeScheduleInterval: number;
   onScheduleModeChange: (mode: ScheduleMode) => void;
   onScheduleIntervalChange: (interval: number) => void;
+  compact?: boolean;
+  titleAction?: ReactNode;
 };
 
 export type SchedulePageOverlaysProps = {

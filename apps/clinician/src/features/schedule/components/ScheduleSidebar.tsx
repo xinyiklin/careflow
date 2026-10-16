@@ -121,6 +121,8 @@ export default function ScheduleSidebar({
   onScheduleModeChange,
   onScheduleIntervalChange,
   onToggleResource,
+  drawerId,
+  isDrawerOpen,
 }: ScheduleSidebarProps) {
   const { preferences } = useUserPreferences();
   const showHeatmap = preferences.showScheduleHeatmap;
@@ -165,14 +167,26 @@ export default function ScheduleSidebar({
   const displayMonthIndex = Number((displayMonth || "").split("-")[1]) - 1;
 
   return (
-    <aside className="hidden min-h-0 overflow-y-auto border-r border-cf-border bg-cf-surface-muted/70 px-3 py-3 lg:block">
-      <ScheduleHeader
-        facility={facility}
-        scheduleMode={scheduleMode}
-        activeScheduleInterval={activeScheduleInterval}
-        onScheduleModeChange={onScheduleModeChange}
-        onScheduleIntervalChange={onScheduleIntervalChange}
-      />
+    // >=lg: the fixed left rail. <lg: an overlay drawer over the grid, opened
+    // from the compact bar, which also carries the header controls.
+    <aside
+      id={drawerId}
+      className={[
+        isDrawerOpen
+          ? "absolute inset-y-0 left-0 z-20 block w-full bg-cf-surface-muted shadow-[var(--shadow-panel-lg)] sm:w-[280px]"
+          : "hidden",
+        "min-h-0 overflow-y-auto border-r border-cf-border px-3 py-3 lg:static lg:z-auto lg:block lg:w-auto lg:bg-cf-surface-muted/70 lg:shadow-none",
+      ].join(" ")}
+    >
+      <div className="hidden lg:block">
+        <ScheduleHeader
+          facility={facility}
+          scheduleMode={scheduleMode}
+          activeScheduleInterval={activeScheduleInterval}
+          onScheduleModeChange={onScheduleModeChange}
+          onScheduleIntervalChange={onScheduleIntervalChange}
+        />
+      </div>
 
       <div className="rounded-xl border border-cf-border/60 bg-cf-surface p-4 shadow-[var(--shadow-panel)]">
         <div className="flex items-start justify-between gap-2">
