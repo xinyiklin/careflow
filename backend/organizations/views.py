@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.db.models import Prefetch, Q
 from drf_spectacular.utils import extend_schema
-from rest_framework import mixins, permissions, viewsets
+from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
@@ -29,7 +29,12 @@ from .permissions import (
     is_org_admin,
     is_org_owner,
 )
-from .security import get_org_role_security_template, normalize_org_security_permissions
+from .security import (
+    ORG_SYSTEM_ROLE_NAMES,
+    get_org_role_security_template,
+    normalize_org_security_permissions,
+    role_grants_security_management,
+)
 from .serializers import (
     FacilityPharmacyPreferenceOverrideSerializer,
     OrganizationDetailSerializer,
@@ -52,9 +57,13 @@ def user_can_manage_organization_pharmacies(user, organization):
     if user.is_superuser or is_org_admin(user):
         return True
 
+    # Same active-access filters as user_has_facility_permission: an inactive
+    # facility or role grants nothing, so it cannot grant org pharmacy access.
     staff_profiles = user.staff_profiles.filter(
         facility__organization=organization,
         is_active=True,
+        facility__is_active=True,
+        role__is_active=True,
     ).select_related("role")
 
     return any(
@@ -304,9 +313,46 @@ class OrganizationPeopleViewSet(
             context["organization"] = membership.organization
         return context
 
-    def perform_create(self, serializer):
+    def _require_people_admin(self, message):
         if not is_org_admin(self.request.user) and not self.request.user.is_superuser:
-            raise PermissionDenied("Only organization admins can create people.")
+            raise PermissionDenied(message)
+
+    def _require_security_manager_for_role(self, organization_id, role):
+        """Assigning a role is how its permissions are granted, so handing out
+        a role that carries ``org.security.manage`` is itself a
+        security-management operation (mirrors the facility staff gate)."""
+        if self.request.user.is_superuser:
+            return
+        if role_grants_security_management(
+            organization_id, role
+        ) and not can_manage_org_security(self.request.user):
+            raise PermissionDenied(
+                "Only organization security managers can assign a role that "
+                "grants security management."
+            )
+
+    @extend_schema(
+        request=OrganizationPersonCreateSerializer,
+        responses={201: OrganizationPersonSerializer},
+    )
+    def create(self, request, *args, **kwargs):
+        # Authorize before validation: the username/email uniqueness checks
+        # read the whole User table and must not act as an account lookup for
+        # callers who may not create people.
+        self._require_people_admin("Only organization admins can create people.")
+        # The create serializer describes the request body only; it cannot
+        # represent the saved membership, so answer with the read shape the
+        # list and detail routes use.
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        read_serializer = OrganizationPersonSerializer(
+            serializer.instance, context=self.get_serializer_context()
+        )
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        self._require_people_admin("Only organization admins can create people.")
 
         if (
             serializer.validated_data.get("role") == OrganizationMembership.ROLE_OWNER
@@ -314,6 +360,15 @@ class OrganizationPeopleViewSet(
             and not is_org_owner(self.request.user)
         ):
             raise PermissionDenied("Only an owner can assign the owner role.")
+
+        self._require_security_manager_for_role(
+            (
+                self.get_membership().organization_id
+                if not self.request.user.is_superuser
+                else None
+            ),
+            serializer.validated_data.get("role"),
+        )
 
         membership = serializer.save()
         self._emit_staff_security_events(serializer)
@@ -353,6 +408,15 @@ class OrganizationPeopleViewSet(
                 self.request.user
             ):
                 raise PermissionDenied("Only an owner can assign the owner role.")
+
+            prospective_role = serializer.validated_data.get("role")
+            if (
+                prospective_role is not None
+                and prospective_role != target_membership.role
+            ):
+                self._require_security_manager_for_role(
+                    target_membership.organization_id, prospective_role
+                )
 
         with transaction.atomic():
             # Same pk order as facilities.access.lock_organization_memberships.
@@ -621,11 +685,28 @@ class OrganizationSecurityViewSet(viewsets.ViewSet):
             # Ordered lock first; a bare bulk UPDATE locks rows in scan order
             # and can deadlock with facility security checks.
             lock_organization_memberships(org.id)
-            OrganizationRole.objects.filter(organization=org, code=role).update(
-                security_permissions=security_permissions
-            )
+            role_row = OrganizationRole.objects.filter(
+                organization=org, code=role
+            ).first()
+            if role_row is None:
+                if role not in OrganizationRole.SYSTEM_ROLES:
+                    raise ValidationError({"role": ["Unknown organization role."]})
+                # Organizations created after the system-role seed migration
+                # have no rows; create one so the edit persists for members
+                # added later (effective permissions read the role row).
+                role_row = OrganizationRole(
+                    organization=org,
+                    code=role,
+                    name=ORG_SYSTEM_ROLE_NAMES[role],
+                    is_system_role=True,
+                    is_deletable=False,
+                )
+            role_row.security_permissions = security_permissions
+            role_row.save()
+            # Every member holding the role, active or not: an inactive member
+            # reactivated later must not resurface a stale snapshot.
             updated = OrganizationMembership.objects.filter(
-                organization=org, role=role, is_active=True
+                organization=org, role=role
             ).update(security_permissions=security_permissions)
 
         record_audit_event(

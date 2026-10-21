@@ -4898,7 +4898,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OrganizationPersonCreate'
+                $ref: '#/components/schemas/OrganizationPerson'
           description: ''
   /v1/organizations/people/{id}/:
     get:
@@ -9296,6 +9296,12 @@ components:
           default: 0
     OrganizationRole:
       type: object
+      description: |-
+        Organization role catalog entry.
+
+        Permissions are read here and edited through the security
+        ``update-role`` action, which syncs member snapshots and enforces the
+        self-lockout guard.
       properties:
         id:
           type: integer
@@ -9309,7 +9315,8 @@ components:
         description:
           type: string
           maxLength: 255
-        security_permissions: {}
+        security_permissions:
+          readOnly: true
         is_system_role:
           type: boolean
           readOnly: true
@@ -9324,6 +9331,7 @@ components:
       - is_deletable
       - is_system_role
       - name
+      - security_permissions
     OrganizationSecurityRole:
       type: object
       description: One organization role and its effective security permissions.
@@ -10403,6 +10411,12 @@ components:
           default: 0
     PatchedOrganizationRole:
       type: object
+      description: |-
+        Organization role catalog entry.
+
+        Permissions are read here and edited through the security
+        ``update-role`` action, which syncs member snapshots and enforces the
+        self-lockout guard.
       properties:
         id:
           type: integer
@@ -10416,7 +10430,8 @@ components:
         description:
           type: string
           maxLength: 255
-        security_permissions: {}
+        security_permissions:
+          readOnly: true
         is_system_role:
           type: boolean
           readOnly: true

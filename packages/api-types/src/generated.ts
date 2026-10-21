@@ -4399,12 +4399,19 @@ export interface components {
             /** @default 0 */
             sort_order: number;
         };
+        /**
+         * @description Organization role catalog entry.
+         *
+         *     Permissions are read here and edited through the security
+         *     ``update-role`` action, which syncs member snapshots and enforces the
+         *     self-lockout guard.
+         */
         OrganizationRole: {
             readonly id: number;
             code: string;
             name: string;
             description?: string;
-            security_permissions?: unknown;
+            readonly security_permissions: unknown;
             readonly is_system_role: boolean;
             readonly is_deletable: boolean;
             is_active?: boolean;
@@ -4867,12 +4874,19 @@ export interface components {
             /** @default 0 */
             sort_order: number;
         };
+        /**
+         * @description Organization role catalog entry.
+         *
+         *     Permissions are read here and edited through the security
+         *     ``update-role`` action, which syncs member snapshots and enforces the
+         *     self-lockout guard.
+         */
         PatchedOrganizationRole: {
             readonly id?: number;
             code?: string;
             name?: string;
             description?: string;
-            security_permissions?: unknown;
+            readonly security_permissions?: unknown;
             readonly is_system_role?: boolean;
             readonly is_deletable?: boolean;
             is_active?: boolean;
@@ -10159,7 +10173,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OrganizationPersonCreate"];
+                    "application/json": components["schemas"]["OrganizationPerson"];
                 };
             };
         };

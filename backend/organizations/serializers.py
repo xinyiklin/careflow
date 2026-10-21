@@ -4,9 +4,13 @@ from rest_framework import serializers
 
 from facilities.access import validate_staff_security_transition
 from facilities.models import Facility, Staff, StaffRole
+from facilities.security import (
+    SELF_MANAGEMENT_PERMISSIONS,
+    resolve_effective_permissions,
+)
 from patients.models import Pharmacy
 from patients.serializers import PharmacySerializer
-from shared.serializers import AddressSerializer
+from shared.serializers import AddressSerializer, StrictPayloadMixin
 
 from .models import (
     FacilityPharmacyPreferenceOverride,
@@ -18,6 +22,83 @@ from .models import (
 from .security import normalize_org_security_permissions
 
 User = get_user_model()
+
+DEFAULT_STAFF_ROLE_CODE = "staff"
+
+
+def validate_membership_role_code(role, organization):
+    """Accept only codes the organization defines: the system roles or its
+    active ``OrganizationRole`` rows, matched exactly.
+
+    Permissions resolve from the role code by exact match, so an unknown or
+    case-variant code ("Admin") must be refused rather than fall through to a
+    template the owner never edited.
+    """
+    allowed = set(OrganizationRole.SYSTEM_ROLES)
+    if organization is not None:
+        allowed |= set(
+            OrganizationRole.objects.filter(
+                organization=organization, is_active=True
+            ).values_list("code", flat=True)
+        )
+    if role not in allowed:
+        raise serializers.ValidationError("Unknown organization role.")
+    return role
+
+
+def _grants_any_self_management(role):
+    effective = resolve_effective_permissions(role.security_permissions, {})
+    return any(effective.get(permission) for permission in SELF_MANAGEMENT_PERMISSIONS)
+
+
+def get_default_non_admin_role(facility):
+    """Role granted when a person is assigned to a facility without the admin
+    flag: the facility's ``staff`` role, else the first active role that holds
+    neither self-management permission (either one lets the holder reach
+    administration or the security panel).
+
+    Never falls back to an arbitrary row: ``StaffRole`` orders by name, so a
+    bare ``.first()`` resolves to Admin and silently escalates the person.
+    """
+    role = StaffRole.objects.filter(
+        facility=facility, code=DEFAULT_STAFF_ROLE_CODE, is_active=True
+    ).first()
+    if role is not None and _grants_any_self_management(role):
+        # A ``staff`` role customized to reach administration is no safer a
+        # default than Admin; fall through to the filtered search.
+        role = None
+    if role is None:
+        role = next(
+            (
+                candidate
+                for candidate in StaffRole.objects.filter(
+                    facility=facility, is_active=True
+                ).order_by("name")
+                if not _grants_any_self_management(candidate)
+            ),
+            None,
+        )
+    if role is None:
+        raise serializers.ValidationError(
+            {
+                "facility_ids": (
+                    f"{facility.name} has no non-administrative role to assign."
+                )
+            }
+        )
+    return role
+
+
+def get_facility_admin_role(facility):
+    """The facility's active ``admin`` role, used when the admin flag is set."""
+    role = StaffRole.objects.filter(
+        facility=facility, code="admin", is_active=True
+    ).first()
+    if role is None:
+        raise serializers.ValidationError(
+            {"admin_facility_ids": f"{facility.name} has no active admin role."}
+        )
+    return role
 
 
 def build_staff_security_audit_event(
@@ -125,7 +206,14 @@ class OrganizationMembershipSerializer(serializers.ModelSerializer):
         ]
 
 
-class OrganizationRoleSerializer(serializers.ModelSerializer):
+class OrganizationRoleSerializer(StrictPayloadMixin, serializers.ModelSerializer):
+    """Organization role catalog entry.
+
+    Permissions are read here and edited through the security
+    ``update-role`` action, which syncs member snapshots and enforces the
+    self-lockout guard.
+    """
+
     class Meta:
         model = OrganizationRole
         fields = [
@@ -138,7 +226,14 @@ class OrganizationRoleSerializer(serializers.ModelSerializer):
             "is_deletable",
             "is_active",
         ]
-        read_only_fields = ["id", "is_system_role", "is_deletable"]
+        # Permissions change only through the security ``update-role`` action,
+        # which syncs member snapshots and enforces the self-lockout guard.
+        read_only_fields = [
+            "id",
+            "security_permissions",
+            "is_system_role",
+            "is_deletable",
+        ]
 
 
 class OrganizationSecuritySerializer(serializers.Serializer):
@@ -287,6 +382,9 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
     facility_names = serializers.SerializerMethodField()
     admin_facility_names = serializers.SerializerMethodField()
 
+    def validate_role(self, value):
+        return validate_membership_role_code(value, self.context.get("organization"))
+
     class Meta:
         model = OrganizationMembership
         fields = [
@@ -376,6 +474,7 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
         with transaction.atomic():
             user = instance.user
             membership_was_active = instance.is_active
+            membership_previous_role = instance.role
             membership_will_be_active = validated_data.get(
                 "is_active", membership_was_active
             )
@@ -445,12 +544,7 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
                     if facility.id not in target_facility_ids:
                         continue
 
-                    default_role = (
-                        StaffRole.objects.filter(
-                            facility=facility, code="front_desk"
-                        ).first()
-                        or StaffRole.objects.filter(facility=facility).first()
-                    )
+                    is_admin = facility.id in target_admin_ids
                     # New rows stay unsaved until the membership state is
                     # settled below; Staff.clean needs an active membership.
                     staff = Staff.objects.filter(user=user, facility=facility).first()
@@ -459,30 +553,22 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
                         staff = Staff(
                             user=user,
                             facility=facility,
-                            role=default_role,
+                            role=(
+                                get_facility_admin_role(facility)
+                                if is_admin
+                                else get_default_non_admin_role(facility)
+                            ),
                             is_active=True,
                         )
                     previous_role_id = staff.role_id
                     previous_is_active = staff.is_active
                     prospective_role = staff.role
-                    is_admin = facility.id in target_admin_ids
                     current_role_code = staff.role.code if staff.role else ""
 
                     if is_admin and current_role_code != "admin":
-                        admin_role = StaffRole.objects.filter(
-                            facility=facility,
-                            code="admin",
-                        ).first()
-                        if admin_role:
-                            prospective_role = admin_role
+                        prospective_role = get_facility_admin_role(facility)
                     elif not is_admin and current_role_code == "admin":
-                        non_admin_role = (
-                            StaffRole.objects.filter(facility=facility)
-                            .exclude(code="admin")
-                            .first()
-                        )
-                        if non_admin_role:
-                            prospective_role = non_admin_role
+                        prospective_role = get_default_non_admin_role(facility)
 
                     role_is_changing = staff.role_id != getattr(
                         prospective_role,
@@ -558,6 +644,10 @@ class OrganizationPersonSerializer(serializers.ModelSerializer):
 
             for attr, value in validated_data.items():
                 setattr(instance, attr, value)
+            if instance.role != membership_previous_role:
+                # The stored map is a per-role snapshot; carrying it across a
+                # role change would let a demoted admin keep admin permissions.
+                instance.security_permissions = {}
             instance.save()
 
             if instance.is_active != membership_was_active:
@@ -603,6 +693,9 @@ class OrganizationPersonCreateSerializer(serializers.Serializer):
         child=serializers.IntegerField(), required=False, default=list
     )
 
+    def validate_role(self, value):
+        return validate_membership_role_code(value, self.context.get("organization"))
+
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError(
@@ -644,17 +737,11 @@ class OrganizationPersonCreateSerializer(serializers.Serializer):
             for fac in org_facilities:
                 if fac.id in target_facility_ids:
                     is_admin = fac.id in target_admin_ids
-                    if is_admin:
-                        role = StaffRole.objects.filter(
-                            facility=fac, code="admin"
-                        ).first()
-                    else:
-                        role = (
-                            StaffRole.objects.filter(
-                                facility=fac, code="front_desk"
-                            ).first()
-                            or StaffRole.objects.filter(facility=fac).first()
-                        )
+                    role = (
+                        get_facility_admin_role(fac)
+                        if is_admin
+                        else get_default_non_admin_role(fac)
+                    )
 
                     staff = Staff.objects.create(
                         user=user, facility=fac, role=role, is_active=True
