@@ -282,7 +282,7 @@ class PatientInsurancePolicyViewSet(FacilityScopedViewSetMixin, viewsets.ModelVi
             is_active=True,
         ).select_related("patient", "carrier")
 
-        patient_id = self.request.query_params.get("patient_id")
+        patient_id = self.parse_positive_int_query_param("patient_id")
         if patient_id:
             queryset = queryset.filter(patient_id=patient_id)
 

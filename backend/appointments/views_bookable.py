@@ -69,7 +69,7 @@ class BookableSlotViewSet(
             .order_by("start_time", "id")
         )
 
-        provider_id = self.request.query_params.get("provider")
+        provider_id = self.parse_positive_int_query_param("provider")
         if provider_id:
             queryset = queryset.filter(provider_id=provider_id)
         return queryset
@@ -93,7 +93,9 @@ class BookableSlotViewSet(
         serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):
-        if instance.is_booked:
+        # A booked slot whose appointment is gone is an orphan (the FK is
+        # SET_NULL); it holds nothing, so it may be removed.
+        if instance.is_booked and instance.appointment_id is not None:
             raise PermissionDenied(
                 "Slot has already been booked; cancel the appointment first."
             )

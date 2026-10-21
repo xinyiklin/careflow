@@ -1,7 +1,9 @@
+from datetime import date
+
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import permissions, serializers, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from audit.services import record_audit_event
@@ -83,10 +85,7 @@ class PatientViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
             raise PermissionDenied("You do not have access to view patients.")
 
         base_queryset = (
-            Patient.objects.filter(
-                facility=facility,
-                is_active=True,
-            )
+            Patient.objects.filter(facility=facility)
             .select_related(
                 "gender",
                 "facility",
@@ -102,12 +101,23 @@ class PatientViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
                 "pharmacy_preferences__pharmacy",
             )
         )
+        # Deactivated patients stay out of search and list results; detail
+        # actions still reach them so deactivation can be reversed (audited in
+        # perform_update).
+        if self.action == "list":
+            base_queryset = base_queryset.filter(is_active=True)
 
         quick_search = (self.request.query_params.get("search") or "").strip()
         name = (self.request.query_params.get("name") or "").strip()
         date_of_birth = (self.request.query_params.get("date_of_birth") or "").strip()
         chart_number = (self.request.query_params.get("chart_number") or "").strip()
         phone = (self.request.query_params.get("phone") or "").strip()
+
+        if date_of_birth:
+            try:
+                date.fromisoformat(date_of_birth)
+            except ValueError:
+                raise ValidationError({"date_of_birth": ["Use YYYY-MM-DD."]})
 
         if quick_search:
             queryset = base_queryset
@@ -299,6 +309,9 @@ class PatientViewSet(FacilityScopedViewSetMixin, viewsets.ModelViewSet):
             "patients.delete",
         ):
             raise PermissionDenied("You do not have access to delete patients.")
+
+        if not instance.is_active:
+            return
 
         instance.is_active = False
         instance.save(update_fields=["is_active"])

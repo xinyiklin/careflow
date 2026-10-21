@@ -8,6 +8,20 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from .models import BookableSlot
+
+
+def release_bookable_slot(appointment) -> int:
+    """Free the portal slot linked to ``appointment`` so it can be re-offered
+    or deleted. ``BookableSlot.appointment`` is ``SET_NULL``, so deleting or
+    cancelling the appointment without this leaves ``is_booked=True`` with no
+    appointment, a state the slot's ``clean()`` rejects and the slot admin
+    cannot delete. Returns the number of slots released.
+    """
+    return BookableSlot.objects.filter(appointment=appointment).update(
+        is_booked=False, appointment=None, updated_at=timezone.now()
+    )
+
 
 def slot_offered(slot) -> bool:
     """Return True if ``slot`` should be visible to portal patients.

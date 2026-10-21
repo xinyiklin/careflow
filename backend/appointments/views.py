@@ -29,7 +29,12 @@ from .booking_hold import BookingHoldMixin
 from .booking_hold_serializers import BookingConflictSerializer
 from .edit_session import AppointmentEditSessionMixin
 from .models import Appointment
-from .schedule_conflicts import facility_schedule_lock, validate_schedule_save
+from .schedule_conflicts import (
+    facility_schedule_lock,
+    occupies_schedule,
+    validate_schedule_save,
+)
+from .scheduling import release_bookable_slot
 from .serializers import AppointmentSerializer
 from .services import (
     build_audit_history_item,
@@ -39,6 +44,22 @@ from .services import (
     get_user_display_name,
 )
 from .slot_hold import SlotHoldMixin
+
+
+def _parse_optional_pk(value):
+    """Return ``value`` as an int pk, or None when it is absent or malformed.
+
+    Used only to pre-lock rows before validation; ``str.isdigit`` is not
+    enough because characters like superscripts pass it and still fail
+    ``int()``, which would raise inside the queryset filter.
+    """
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
 
 _schedule_overlap_response = inline_serializer(
     name="AppointmentScheduleOverlap",
@@ -106,7 +127,7 @@ class AppointmentViewSet(
 
         date_str = self.request.query_params.get("date")
         date_to_str = self.request.query_params.get("date_to")
-        patient_id = self.request.query_params.get("patient_id")
+        patient_id = self.parse_positive_int_query_param("patient_id")
 
         if date_to_str and not date_str:
             raise ValidationError(
@@ -156,7 +177,9 @@ class AppointmentViewSet(
 
     def create(self, request, *args, **kwargs):
         facility = self.get_facility()
-        patient_id = request.data.get("patient")
+        # Pre-lock the patient row only for a well-formed id; the serializer
+        # reports a malformed one as a 400 instead of this filter raising.
+        patient_id = _parse_optional_pk(request.data.get("patient"))
         with facility_schedule_lock(facility):
             if patient_id:
                 Patient.objects.select_for_update(of=("self",), no_key=True).filter(
@@ -170,9 +193,9 @@ class AppointmentViewSet(
         with facility_schedule_lock(self.get_facility()):
             appointment = self.get_object()
             patient_ids = [appointment.patient_id]
-            requested_patient = request.data.get("patient")
-            if str(requested_patient).isdigit():
-                patient_ids.append(int(requested_patient))
+            requested_patient = _parse_optional_pk(request.data.get("patient"))
+            if requested_patient is not None:
+                patient_ids.append(requested_patient)
             list(
                 Patient.objects.select_for_update(of=("self",), no_key=True)
                 .filter(pk__in=patient_ids, facility=appointment.facility)
@@ -375,6 +398,8 @@ class AppointmentViewSet(
             allow_overlap=serializer.allow_schedule_overlap,
         )
         appointment = serializer.save()
+        if not occupies_schedule(appointment.status):
+            release_bookable_slot(appointment)
         self._create_audit_event(
             appointment=appointment,
             action="update",
@@ -424,6 +449,7 @@ class AppointmentViewSet(
                 "actor_name": get_user_display_name(self.request.user),
             },
         )
+        release_bookable_slot(instance)
         instance.delete()
 
     @extend_schema(
