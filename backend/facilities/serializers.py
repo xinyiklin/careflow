@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -42,6 +44,28 @@ class FacilityAddressMixin:
         serializer = AddressSerializer(data=address_data)
         serializer.is_valid(raise_exception=True)
         instance.address = serializer.save()
+
+
+# Reject a duplicate ``code`` within the view's facility as a 400. ``facility``
+# is read-only on the catalog serializers, so DRF skips the model's
+# unique-together validator; without this the duplicate surfaces from the
+# database or ``full_clean()`` instead of as field validation. (A comment, not
+# a docstring: drf-spectacular would copy a docstring into every component.)
+class FacilityCodeUniqueMixin:
+    def validate_code(self, value):
+        view = self.context.get("view")
+        if view is None:
+            return value
+        queryset = self.Meta.model.objects.filter(
+            facility=view.get_facility(), code=value
+        )
+        if self.instance is not None:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError(
+                "This code is already in use at this facility."
+            )
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -224,6 +248,21 @@ class StaffSerializer(serializers.ModelSerializer):
                     }
                 )
 
+            # (user, facility) is unique on the model, but facility is
+            # read-only here so DRF adds no validator for it.
+            if (
+                self.instance is None
+                and Staff.objects.filter(user=user, facility=facility).exists()
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "user_id": (
+                            "This user already has a staff membership at this "
+                            "facility."
+                        )
+                    }
+                )
+
         return attrs
 
 
@@ -267,6 +306,13 @@ class FacilitySerializer(FacilityAddressMixin, serializers.ModelSerializer):
         extra_kwargs = {
             "fee_schedule": {"required": False, "allow_null": True},
         }
+
+    def validate_timezone(self, value):
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError, TypeError):
+            raise serializers.ValidationError("Enter a valid IANA time zone name.")
+        return value
 
     def validate_operating_days(self, value):
         if value in (None, ""):
@@ -344,7 +390,7 @@ class FacilitySerializer(FacilityAddressMixin, serializers.ModelSerializer):
         return instance
 
 
-class AppointmentStatusSerializer(serializers.ModelSerializer):
+class AppointmentStatusSerializer(FacilityCodeUniqueMixin, serializers.ModelSerializer):
     class Meta:
         model = AppointmentStatus
         fields = [
@@ -360,7 +406,7 @@ class AppointmentStatusSerializer(serializers.ModelSerializer):
         read_only_fields = ["facility"]
 
 
-class AppointmentTypeSerializer(serializers.ModelSerializer):
+class AppointmentTypeSerializer(FacilityCodeUniqueMixin, serializers.ModelSerializer):
     class Meta:
         model = AppointmentType
         fields = [
@@ -443,7 +489,7 @@ class FacilityResourceSerializer(serializers.ModelSerializer):
         return " ".join(part for part in [title_name, base_name] if part).strip()
 
 
-class StaffRoleSerializer(serializers.ModelSerializer):
+class StaffRoleSerializer(FacilityCodeUniqueMixin, serializers.ModelSerializer):
     class Meta:
         model = StaffRole
         fields = [
@@ -462,7 +508,7 @@ class StaffRoleSerializer(serializers.ModelSerializer):
         return normalize_security_permissions(value)
 
 
-class StaffTitleSerializer(serializers.ModelSerializer):
+class StaffTitleSerializer(FacilityCodeUniqueMixin, serializers.ModelSerializer):
     class Meta:
         model = StaffTitle
         fields = [
@@ -476,7 +522,7 @@ class StaffTitleSerializer(serializers.ModelSerializer):
         read_only_fields = ["facility", "is_deletable"]
 
 
-class PatientGenderSerializer(serializers.ModelSerializer):
+class PatientGenderSerializer(FacilityCodeUniqueMixin, serializers.ModelSerializer):
     class Meta:
         model = PatientGender
         fields = [

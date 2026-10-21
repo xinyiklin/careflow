@@ -1,9 +1,25 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from patients.models import Patient, PatientEmergencyContact, PatientPhone
+from patients.models import (
+    Patient,
+    PatientEmergencyContact,
+    PatientPhone,
+    validate_phone_number,
+)
 from shared.serializers import AddressSerializer
+
+
+def _validate_portal_phone(value):
+    """Apply the clinician-side phone rule; ``PatientPhone`` has no model
+    ``full_clean`` on save, so the serializer is the only gate here."""
+    try:
+        validate_phone_number(value)
+    except DjangoValidationError as exc:
+        raise serializers.ValidationError(exc.message) from exc
+    return (value or "").strip()
 
 
 class PortalDemoLoginResponseSerializer(serializers.Serializer):
@@ -19,6 +35,9 @@ class PortalEmergencyContactSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, allow_blank=True)
     relationship = serializers.CharField(required=False, allow_blank=True)
     phone_number = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_phone_number(self, value):
+        return _validate_portal_phone(value)
 
 
 class PortalPreferredPharmacyResponseSerializer(serializers.Serializer):
@@ -103,6 +122,9 @@ class PortalPatientSerializer(serializers.ModelSerializer):
             "facility_timezone",
             "insurance_policies",
         ]
+
+    def validate_primary_phone_number(self, value):
+        return _validate_portal_phone(value)
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
