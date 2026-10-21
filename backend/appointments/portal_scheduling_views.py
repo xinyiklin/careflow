@@ -39,6 +39,19 @@ from .portal_scheduling_serializers import (
 from .schedule_conflicts import facility_schedule_lock, find_schedule_conflicts
 
 
+def _parse_id_param(value, field_name):
+    """Return a positive int id from a query param or raise a 400."""
+    if value in (None, ""):
+        raise ValidationError({field_name: "Required query parameter."})
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        raise ValidationError({field_name: "Use a numeric id."})
+    if parsed <= 0:
+        raise ValidationError({field_name: "Use a numeric id."})
+    return parsed
+
+
 def _bookable_slot_queryset(patient):
     """Slots the given patient could potentially see in the portal.
 
@@ -115,9 +128,7 @@ class PortalSchedulingAppointmentTypesView(APIView):
 
     def get(self, request):
         patient = get_patient_for_user(request.user)
-        provider_id = request.query_params.get("provider")
-        if not provider_id:
-            raise ValidationError({"provider": "Required query parameter."})
+        provider_id = _parse_id_param(request.query_params.get("provider"), "provider")
 
         slots = _bookable_slot_queryset(patient).filter(provider_id=provider_id)
         type_ids = slots.values_list("appointment_type_id", flat=True).distinct()
@@ -148,6 +159,8 @@ class PortalSchedulingSlotsView(APIView):
             raise ValidationError(
                 {"detail": "Both 'provider' and 'type' query parameters required."}
             )
+        provider_id = _parse_id_param(provider_id, "provider")
+        type_id = _parse_id_param(type_id, "type")
 
         slots = (
             _bookable_slot_queryset(patient)

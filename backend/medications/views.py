@@ -342,6 +342,21 @@ class RefillRequestViewSet(
                     {"status": "Only pending refill requests can be resolved."}
                 )
 
+            # A discontinued medication can still be denied (so the request
+            # leaves the inbox) but must not be approved for refill.
+            if (
+                new_status == RefillRequest.STATUS_APPROVED
+                and refill.medication.status != Medication.STATUS_ACTIVE
+            ):
+                raise ValidationError(
+                    {
+                        "medication": (
+                            "Cannot approve a refill for a medication that is "
+                            "no longer active."
+                        )
+                    }
+                )
+
             refill.status = new_status
             refill.resolved_at = timezone.now()
             refill.resolved_by = request.user

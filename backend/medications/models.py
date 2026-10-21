@@ -95,7 +95,10 @@ class Medication(models.Model):
     def discontinue(self, *, user=None):
         self.status = self.STATUS_DISCONTINUED
         if not self.end_date:
-            self.end_date = timezone.localdate()
+            today = timezone.localdate()
+            # A medication that has not started yet ends on its start date;
+            # clean() rejects an end date before the start date.
+            self.end_date = max(today, self.start_date) if self.start_date else today
         if user:
             self.updated_by = user
         self.save()
@@ -225,7 +228,14 @@ class RefillRequest(models.Model):
         ]
 
     def clean(self):
-        if self.medication and self.medication.status != Medication.STATUS_ACTIVE:
+        # Only a new request needs an active medication. Resolving or
+        # cancelling one after the medication was discontinued must still
+        # save, or the request stays pending forever.
+        if (
+            self._state.adding
+            and self.medication
+            and self.medication.status != Medication.STATUS_ACTIVE
+        ):
             raise ValidationError(
                 {"medication": "Refill requests require an active medication."}
             )
