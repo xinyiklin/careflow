@@ -271,6 +271,8 @@ X_FRAME_OPTIONS = "DENY"
 
 # --- DRF ---
 REST_FRAMEWORK = {
+    # Model full_clean() failures become 400s instead of escaping as 500s.
+    "EXCEPTION_HANDLER": "shared.exceptions.exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "users.authentication.SurfaceJWTAuthentication",
         "users.authentication.SurfaceSessionAuthentication",
